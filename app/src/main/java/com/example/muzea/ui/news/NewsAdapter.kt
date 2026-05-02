@@ -1,13 +1,16 @@
 package com.example.muzea.ui.news
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.example.muzea.databinding.ItemNewsBinding
+import com.example.muzea.R
 import com.example.muzea.data.model.NewsResponse
+import com.example.muzea.databinding.ItemNewsBinding
+import com.example.muzea.utils.Constants
 
 class NewsAdapter(
     private val onItemClick: (Long) -> Unit
@@ -33,11 +36,20 @@ class NewsAdapter(
             binding.tvAuthor.text = news.author
             binding.tvDate.text = news.publishedAt.substring(0, 10)
 
+            // Изображение новости
+            loadImage(news)
+        }
+
+        private fun loadImage(news: NewsResponse) {
             if (!news.imageUrl.isNullOrEmpty()) {
+                binding.ivImage.visibility = View.VISIBLE
                 Glide.with(binding.root.context)
-                    .load(news.imageUrl)
+                    .load(Constants.BASE_URL + news.imageUrl)
                     .centerCrop()
+                    .placeholder(R.drawable.placeholder_image)
                     .into(binding.ivImage)
+            } else {
+                binding.ivImage.visibility = View.GONE
             }
 
             binding.root.setOnClickListener {

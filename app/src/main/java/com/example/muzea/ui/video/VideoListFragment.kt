@@ -48,11 +48,14 @@ class VideoListFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        adapter = VideoAdapter { videoId ->
-            val intent = Intent(requireContext(), VideoDetailActivity::class.java)
-            intent.putExtra("video_id", videoId)
-            startActivity(intent)
-        }
+        adapter = VideoAdapter(
+            onItemClick = { videoId ->
+                val intent = Intent(requireContext(), VideoDetailActivity::class.java)
+                intent.putExtra("video_id", videoId)
+                startActivity(intent)
+            },
+            lifecycleScope = lifecycleScope
+        )
         binding.recyclerViewVideos.apply {
             layoutManager = GridLayoutManager(requireContext(), 2)
             adapter = this@VideoListFragment.adapter

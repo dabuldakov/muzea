@@ -2,6 +2,7 @@ package com.example.muzea.data.api
 
 import com.example.muzea.data.model.*
 import okhttp3.MultipartBody
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -70,4 +71,8 @@ interface ApiService {
         @Path("id") id: Long,
         @Body request: UpdateUserRequest
     ): Response<UserResponse>
+
+    @GET
+    @Streaming
+    suspend fun downloadFile(@Url url: String): Response<ResponseBody>
 }

@@ -1,5 +1,7 @@
 package com.example.muzea.data.repository
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import com.example.muzea.data.api.ApiService
 import com.example.muzea.data.model.VideoResponse
 import com.example.muzea.utils.NetworkResult
@@ -66,6 +68,22 @@ class VideoRepository (
                 emit(NetworkResult.Success(response.body()!!))
             } else {
                 emit(NetworkResult.Error("Failed to stream video: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            emit(NetworkResult.Error("Network error: ${e.message}"))
+        }
+    }
+
+    suspend fun downloadThumbnail(thumbnailUrl: String): Flow<NetworkResult<Bitmap>> = flow {
+        emit(NetworkResult.Loading())
+        try {
+            val response = apiService.downloadFile(thumbnailUrl)
+            if (response.isSuccessful && response.body() != null) {
+                val bytes = response.body()!!.bytes()
+                val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                emit(NetworkResult.Success(bitmap))
+            } else {
+                emit(NetworkResult.Error("Failed to load thumbnail"))
             }
         } catch (e: Exception) {
             emit(NetworkResult.Error("Network error: ${e.message}"))
