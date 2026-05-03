@@ -5,12 +5,11 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
 import com.example.muzea.R
 import com.example.muzea.data.api.RetrofitClient
-import com.example.muzea.databinding.ItemVideoBinding
 import com.example.muzea.data.model.VideoResponse
 import com.example.muzea.data.repository.VideoRepository
+import com.example.muzea.databinding.ItemVideoBinding
 import com.example.muzea.utils.Constants
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
@@ -48,15 +47,12 @@ class VideoAdapter(
         }
 
         private fun loadThumbnail(video: VideoResponse) {
-            val thumbnailUrl = video.getFullThumbnailUrl(Constants.BASE_URL)
-
-            if (thumbnailUrl.isNullOrEmpty()) {
-                binding.ivThumbnail.setImageResource(R.drawable.placeholder_video)
-                return
-            }
-
             // Показываем заглушку
             binding.ivThumbnail.setImageResource(R.drawable.placeholder_video)
+
+            if (video.thumbnailUrl.isNullOrEmpty()) {
+                return
+            }
 
             // Загружаем через Retrofit с авторизацией
             lifecycleScope.launch {
@@ -64,14 +60,15 @@ class VideoAdapter(
                 val apiService = RetrofitClient(tokenManager).apiService
                 val videoRepository = VideoRepository(apiService)
 
-                videoRepository.downloadThumbnail(thumbnailUrl).collect { result ->
-                    when (result) {
-                        is NetworkResult.Success -> {
-                            binding.ivThumbnail.setImageBitmap(result.data)
+                videoRepository.downloadThumbnail(Constants.BASE_URL + video.thumbnailUrl)
+                    .collect { result ->
+                        when (result) {
+                            is NetworkResult.Success -> {
+                                binding.ivThumbnail.setImageBitmap(result.data)
+                            }
+                            else -> {}
                         }
-                        else -> {}
                     }
-                }
             }
         }
     }

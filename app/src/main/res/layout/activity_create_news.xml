@@ -55,6 +55,52 @@
 
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Выбор изображения -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="News Image (Optional)"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardImagePreview"
+                android:layout_width="match_parent"
+                android:layout_height="150dp"
+                android:layout_marginTop="8dp"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="2dp"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/ivImagePreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop" />
+
+            </androidx.cardview.widget.CardView>
+
+            <Button
+                android:id="@+id/btnSelectImage"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="8dp"
+                android:text="Select Image"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:textAllCaps="false" />
+
+            <TextView
+                android:id="@+id/tvImageFileName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="No image selected"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:textColor="@color/gray" />
+
+            <!-- Выбор видео -->
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -66,7 +112,8 @@
                 <androidx.appcompat.widget.AppCompatSpinner
                     android:id="@+id/spinnerVideo"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp" />
 
             </com.google.android.material.textfield.TextInputLayout>
 

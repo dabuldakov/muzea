@@ -54,13 +54,14 @@ interface ApiService {
         @Path("id") id: Long
     ): Response<NewsResponse>
 
+    @Multipart
     @POST("/api/news")
-    @FormUrlEncoded
     suspend fun createNews(
-        @Field("title") title: String,
-        @Field("content") content: String,
-        @Field("videoId") videoId: Long?
-    ): Response<NewsResponse>
+        @Part("title") title: String,
+        @Part("content") content: String,
+        @Part("videoId") videoId: Long?,
+        @Part image: MultipartBody.Part?
+    ): Response<NewsCreateResponse>
 
     // User endpoints
     @GET("/api/users/me")

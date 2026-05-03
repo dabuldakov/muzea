@@ -6,19 +6,23 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
-import com.example.muzea.R
+import com.example.muzea.data.api.RetrofitClient
 import com.example.muzea.data.model.NewsResponse
+import com.example.muzea.data.repository.NewsRepository
 import com.example.muzea.databinding.ItemNewsBinding
 import com.example.muzea.utils.Constants
+import com.example.muzea.utils.NetworkResult
+import com.example.muzea.utils.TokenManager
+import kotlinx.coroutines.launch
 
 class NewsAdapter(
-    private val onItemClick: (Long) -> Unit
+    private val onItemClick: (Long) -> Unit,
+    private val lifecycleScope: kotlinx.coroutines.CoroutineScope
 ) : ListAdapter<NewsResponse, NewsAdapter.NewsViewHolder>(NewsDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NewsViewHolder {
         val binding = ItemNewsBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return NewsViewHolder(binding, onItemClick)
+        return NewsViewHolder(binding, onItemClick, lifecycleScope)
     }
 
     override fun onBindViewHolder(holder: NewsViewHolder, position: Int) {
@@ -27,7 +31,8 @@ class NewsAdapter(
 
     class NewsViewHolder(
         private val binding: ItemNewsBinding,
-        private val onItemClick: (Long) -> Unit
+        private val onItemClick: (Long) -> Unit,
+        private val lifecycleScope: kotlinx.coroutines.CoroutineScope
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(news: NewsResponse) {
@@ -42,12 +47,23 @@ class NewsAdapter(
 
         private fun loadImage(news: NewsResponse) {
             if (!news.imageUrl.isNullOrEmpty()) {
-                binding.ivImage.visibility = View.VISIBLE
-                Glide.with(binding.root.context)
-                    .load(Constants.BASE_URL + news.imageUrl)
-                    .centerCrop()
-                    .placeholder(R.drawable.placeholder_image)
-                    .into(binding.ivImage)
+                // Загружаем через Retrofit с авторизацией
+                lifecycleScope.launch {
+                    val tokenManager = TokenManager(binding.root.context)
+                    val apiService = RetrofitClient(tokenManager).apiService
+                    val newsRepository = NewsRepository(apiService)
+
+                    newsRepository.downloadImage(Constants.BASE_URL + news.imageUrl)
+                        .collect { result ->
+                            when (result) {
+                                is NetworkResult.Success -> {
+                                    binding.ivImage.setImageBitmap(result.data)
+                                }
+
+                                else -> {}
+                            }
+                        }
+                }
             } else {
                 binding.ivImage.visibility = View.GONE
             }

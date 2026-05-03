@@ -2,6 +2,7 @@ package com.example.muzea.ui.news
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.muzea.data.model.NewsCreateResponse
 import com.example.muzea.data.model.NewsResponse
 import com.example.muzea.data.repository.NewsRepository
 import com.example.muzea.utils.NetworkResult
@@ -9,6 +10,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import java.io.File
 
 class NewsViewModel(
     private val newsRepository: NewsRepository
@@ -20,8 +22,8 @@ class NewsViewModel(
     private val _newsDetailResult = MutableSharedFlow<NetworkResult<NewsResponse>>()
     val newsDetailResult: SharedFlow<NetworkResult<NewsResponse>> = _newsDetailResult.asSharedFlow()
 
-    private val _createNewsResult = MutableSharedFlow<NetworkResult<NewsResponse>>()
-    val createNewsResult: SharedFlow<NetworkResult<NewsResponse>> = _createNewsResult.asSharedFlow()
+    private val _createNewsResult = MutableSharedFlow<NetworkResult<NewsCreateResponse>>()
+    val createNewsResult: SharedFlow<NetworkResult<NewsCreateResponse>> = _createNewsResult.asSharedFlow()
 
     fun loadNews(page: Int = 0, size: Int = 20) {
         viewModelScope.launch {
@@ -39,9 +41,9 @@ class NewsViewModel(
         }
     }
 
-    fun createNews(title: String, content: String, videoId: Long?) {
+    fun createNews(title: String, content: String, videoId: Long?, imageFile: File?) {
         viewModelScope.launch {
-            newsRepository.createNews(title, content, videoId).collect { result ->
+            newsRepository.createNews(title, content, videoId, imageFile).collect { result ->
                 _createNewsResult.emit(result)
             }
         }

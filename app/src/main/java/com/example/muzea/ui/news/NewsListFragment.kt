@@ -10,9 +10,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.muzea.R
-import com.example.muzea.databinding.FragmentNewsListBinding
 import com.example.muzea.data.api.RetrofitClient
 import com.example.muzea.data.repository.NewsRepository
+import com.example.muzea.databinding.FragmentNewsListBinding
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
 import kotlinx.coroutines.launch
@@ -56,18 +56,21 @@ class NewsListFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        adapter = NewsAdapter { newsId ->
-            val fragment = NewsDetailFragment()
-            val bundle = Bundle().apply {
-                putLong("newsId", newsId)
-            }
-            fragment.arguments = bundle
+        adapter = NewsAdapter(
+            onItemClick = { newsId ->
+                val fragment = NewsDetailFragment()
+                val bundle = Bundle().apply {
+                    putLong("newsId", newsId)
+                }
+                fragment.arguments = bundle
 
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, fragment)
-                .addToBackStack(null)
-                .commit()
-        }
+                parentFragmentManager.beginTransaction()
+                    .replace(R.id.fragment_container, fragment)
+                    .addToBackStack(null)
+                    .commit()
+            },
+            lifecycleScope = lifecycleScope
+        )
         binding.recyclerViewNews.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = this@NewsListFragment.adapter
@@ -137,6 +140,7 @@ class NewsListFragment : Fragment() {
                             binding.progressBar.visibility = View.VISIBLE
                         }
                     }
+
                     is NetworkResult.Success -> {
                         binding.progressBar.visibility = View.GONE
                         binding.swipeRefresh.isRefreshing = false
@@ -161,6 +165,7 @@ class NewsListFragment : Fragment() {
                             binding.recyclerViewNews.visibility = View.VISIBLE
                         }
                     }
+
                     is NetworkResult.Error -> {
                         binding.progressBar.visibility = View.GONE
                         binding.swipeRefresh.isRefreshing = false
