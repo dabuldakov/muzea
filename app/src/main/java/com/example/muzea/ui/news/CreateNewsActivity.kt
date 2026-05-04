@@ -240,7 +240,10 @@ class CreateNewsActivity : AppCompatActivity() {
                 when (result) {
                     is NetworkResult.Loading -> setLoadingState(true)
                     is NetworkResult.Success -> handleSuccess()
-                    is NetworkResult.Error -> handleError(result.message ?: "Unknown error")
+                    is NetworkResult.Error -> {
+                        android.util.Log.e("CreateNews", "Error: ${result.message}")
+                        handleError(result.message ?: "Unknown error")
+                    }
                 }
             }
         }
