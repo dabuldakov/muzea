@@ -215,4 +215,10 @@ class NewsListFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
+
+    override fun onResume() {
+        super.onResume()
+        // Обновляем список при возвращении на экран
+        refreshNews()
+    }
 }
