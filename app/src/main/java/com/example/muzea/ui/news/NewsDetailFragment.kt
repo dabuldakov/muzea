@@ -7,10 +7,13 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.example.muzea.R
 import com.example.muzea.databinding.FragmentNewsDetailBinding
 import com.example.muzea.data.api.RetrofitClient
 import com.example.muzea.data.model.NewsResponse
 import com.example.muzea.data.repository.NewsRepository
+import com.example.muzea.utils.Constants
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
 import kotlinx.coroutines.launch
@@ -81,7 +84,11 @@ class NewsDetailFragment : Fragment() {
 
         if (!news.imageUrl.isNullOrEmpty()) {
             Glide.with(requireContext())
-                .load(news.imageUrl)
+                .load(Constants.BASE_URL + news.imageUrl)
+                .centerCrop()
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .placeholder(R.drawable.placeholder_image)
+                .error(R.drawable.placeholder_image)
                 .into(binding.ivImage)
         }
 
