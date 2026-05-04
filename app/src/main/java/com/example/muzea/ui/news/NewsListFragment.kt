@@ -5,12 +5,14 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.muzea.R
 import com.example.muzea.data.api.RetrofitClient
+import com.example.muzea.data.model.NewsResponse
 import com.example.muzea.data.repository.NewsRepository
 import com.example.muzea.databinding.FragmentNewsListBinding
 import com.example.muzea.utils.NetworkResult
@@ -21,14 +23,18 @@ class NewsListFragment : Fragment() {
 
     private var _binding: FragmentNewsListBinding? = null
     private val binding get() = _binding!!
-
     private lateinit var viewModel: NewsViewModel
     private lateinit var adapter: NewsAdapter
+
+    // Состояния загрузки
     private var isLoading = false
+    private var isRefreshing = false
     private var currentPage = 0
     private var hasMorePages = true
-    private val pageSize = 20
-    private var isRefreshing = false
+
+    private companion object {
+        const val PAGE_SIZE = 20
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -41,13 +47,7 @@ class NewsListFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        // Создаем ViewModel вручную
-        val tokenManager = TokenManager(requireContext())
-        val apiService = RetrofitClient(tokenManager).apiService
-        val newsRepository = NewsRepository(apiService)
-        viewModel = NewsViewModel(newsRepository)
-
+        initViewModel()
         setupRecyclerView()
         setupSwipeRefresh()
         setupPagination()
@@ -56,20 +56,16 @@ class NewsListFragment : Fragment() {
         loadNews()
     }
 
+    private fun initViewModel() {
+        val tokenManager = TokenManager(requireContext())
+        val apiService = RetrofitClient(tokenManager).apiService
+        val newsRepository = NewsRepository(apiService)
+        viewModel = NewsViewModel(newsRepository)
+    }
+
     private fun setupRecyclerView() {
         adapter = NewsAdapter(
-            onItemClick = { newsId ->
-                val fragment = NewsDetailFragment()
-                val bundle = Bundle().apply {
-                    putLong("newsId", newsId)
-                }
-                fragment.arguments = bundle
-
-                parentFragmentManager.beginTransaction()
-                    .replace(R.id.fragment_container, fragment)
-                    .addToBackStack(null)
-                    .commit()
-            },
+            onItemClick = ::openNewsDetail,
             lifecycleScope = lifecycleScope
         )
         binding.recyclerViewNews.apply {
@@ -78,32 +74,35 @@ class NewsListFragment : Fragment() {
         }
     }
 
+    private fun openNewsDetail(newsId: Long) {
+        val fragment = NewsDetailFragment().apply {
+            arguments = Bundle().apply { putLong("newsId", newsId) }
+        }
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .addToBackStack(null)
+            .commit()
+    }
+
     private fun setupPagination() {
-        binding.recyclerViewNews.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+        val scrollListener = object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                super.onScrolled(recyclerView, dx, dy)
+                if (dy <= 0 || isLoading || isRefreshing || !hasMorePages) return
 
                 val layoutManager = recyclerView.layoutManager as LinearLayoutManager
-                val visibleItemCount = layoutManager.childCount
+                val lastVisiblePosition = layoutManager.findLastVisibleItemPosition()
                 val totalItemCount = layoutManager.itemCount
-                val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
 
-                if (!isLoading && hasMorePages && !isRefreshing && dy > 0) {  // Добавили dy > 0
-                    if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount
-                        && firstVisibleItemPosition >= 0
-                        && totalItemCount >= pageSize
-                    ) {
-                        loadMoreNews()
-                    }
+                if (lastVisiblePosition >= totalItemCount - 1 && totalItemCount >= PAGE_SIZE) {
+                    loadMoreNews()
                 }
             }
-        })
+        }
+        binding.recyclerViewNews.addOnScrollListener(scrollListener)
     }
 
     private fun setupSwipeRefresh() {
-        binding.swipeRefresh.setOnRefreshListener {
-            refreshNews()
-        }
+        binding.swipeRefresh.setOnRefreshListener { refreshNews() }
     }
 
     private fun refreshNews() {
@@ -112,18 +111,14 @@ class NewsListFragment : Fragment() {
         currentPage = 0
         hasMorePages = true
         isLoading = false
-
-        // Очищаем адаптер
-        adapter.submitList(emptyList())
-
-        // Загружаем новости заново
+        adapter.clearItems()
         loadNews()
     }
 
     private fun loadNews() {
         if (isLoading && !isRefreshing) return
         isLoading = true
-        viewModel.loadNews(currentPage, pageSize)
+        viewModel.loadNews(currentPage, PAGE_SIZE)
     }
 
     private fun loadMoreNews() {
@@ -134,8 +129,7 @@ class NewsListFragment : Fragment() {
 
     private fun setupFab() {
         binding.fabAddNews.setOnClickListener {
-            val intent = Intent(requireContext(), CreateNewsActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(requireContext(), CreateNewsActivity::class.java))
         }
     }
 
@@ -143,74 +137,77 @@ class NewsListFragment : Fragment() {
         lifecycleScope.launch {
             viewModel.newsResult.collect { result ->
                 when (result) {
-                    is NetworkResult.Loading -> {
-                        if (!binding.swipeRefresh.isRefreshing && currentPage == 0 && !isRefreshing) {
-                            binding.progressBar.visibility = View.VISIBLE
-                        }
-                    }
-
-                    is NetworkResult.Success -> {
-                        binding.progressBar.visibility = View.GONE
-                        binding.swipeRefresh.isRefreshing = false
-                        isLoading = false
-
-                        val newNews = result.data ?: emptyList()
-                        hasMorePages = newNews.size == pageSize
-
-                        android.util.Log.d("NewsListFragment", "Page: $currentPage, News count: ${newNews.size}, IsRefreshing: $isRefreshing")
-
-                        if (currentPage == 0) {
-                            // При обновлении принудительно создаем новый список
-                            if (isRefreshing) {
-                                android.util.Log.d("NewsListFragment", "Refresh complete, showing ${newNews.size} items")
-                                // Создаем новый список чтобы принудительно обновить адаптер
-                                adapter.updateList(newNews)
-                                isRefreshing = false
-                            } else {
-                                adapter.submitList(newNews)
-                            }
-                        } else {
-                            // Добавляем к существующему списку
-                            val currentList = adapter.currentList.toMutableList()
-                            currentList.addAll(newNews)
-                            adapter.submitList(currentList.toList())
-                        }
-
-                        // Обновляем UI состояние
-                        if (adapter.currentList.isEmpty()) {
-                            binding.tvEmpty.visibility = View.VISIBLE
-                            binding.recyclerViewNews.visibility = View.GONE
-                            binding.tvError.visibility = View.GONE
-                            binding.tvEmpty.text = "No news available"
-                        } else {
-                            binding.tvEmpty.visibility = View.GONE
-                            binding.recyclerViewNews.visibility = View.VISIBLE
-                            binding.tvError.visibility = View.GONE
-                        }
-                    }
-
-                    is NetworkResult.Error -> {
-                        binding.progressBar.visibility = View.GONE
-                        binding.swipeRefresh.isRefreshing = false
-                        isLoading = false
-                        isRefreshing = false
-
-                        android.util.Log.e("NewsListFragment", "Error: ${result.message}")
-
-                        if (adapter.currentList.isEmpty()) {
-                            binding.tvError.text = result.message
-                            binding.tvError.visibility = View.VISIBLE
-                            binding.recyclerViewNews.visibility = View.GONE
-                        } else {
-                            android.widget.Toast.makeText(
-                                requireContext(),
-                                "Error: ${result.message}",
-                                android.widget.Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
+                    is NetworkResult.Loading -> handleLoadingState()
+                    is NetworkResult.Success -> handleSuccessState(result.data ?: emptyList())
+                    is NetworkResult.Error -> handleErrorState(result.message ?: "Unknown error")
                 }
             }
+        }
+    }
+
+    private fun handleLoadingState() {
+        val showProgress = !binding.swipeRefresh.isRefreshing && currentPage == 0 && !isRefreshing
+        if (showProgress) {
+            binding.progressBar.visibility = View.VISIBLE
+        }
+    }
+
+    private fun handleSuccessState(newNews: List<NewsResponse>) {
+        binding.progressBar.visibility = View.GONE
+        binding.swipeRefresh.isRefreshing = false
+        isLoading = false
+
+        hasMorePages = newNews.size == PAGE_SIZE
+
+        if (currentPage == 0) {
+            handleInitialLoad(newNews)
+        } else {
+            handlePaginationLoad(newNews)
+        }
+
+        updateEmptyState()
+    }
+
+    private fun handleInitialLoad(newNews: List<NewsResponse>) {
+        if (isRefreshing) {
+            adapter.updateList(newNews)
+            isRefreshing = false
+        } else {
+            adapter.submitList(newNews)
+        }
+    }
+
+    private fun handlePaginationLoad(newNews: List<NewsResponse>) {
+        val currentList = adapter.currentList.toMutableList()
+        currentList.addAll(newNews)
+        adapter.submitList(currentList.toList())
+    }
+
+    private fun handleErrorState(message: String) {
+        binding.progressBar.visibility = View.GONE
+        binding.swipeRefresh.isRefreshing = false
+        isLoading = false
+        isRefreshing = false
+
+        if (adapter.currentList.isEmpty()) {
+            binding.tvError.text = message
+            binding.tvError.visibility = View.VISIBLE
+            binding.recyclerViewNews.visibility = View.GONE
+        } else {
+            Toast.makeText(requireContext(), "Error: $message", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun updateEmptyState() {
+        if (adapter.currentList.isEmpty()) {
+            binding.tvEmpty.visibility = View.VISIBLE
+            binding.recyclerViewNews.visibility = View.GONE
+            binding.tvError.visibility = View.GONE
+            binding.tvEmpty.text = "No news available"
+        } else {
+            binding.tvEmpty.visibility = View.GONE
+            binding.recyclerViewNews.visibility = View.VISIBLE
+            binding.tvError.visibility = View.GONE
         }
     }
 

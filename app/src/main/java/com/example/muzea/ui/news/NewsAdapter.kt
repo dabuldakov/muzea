@@ -75,8 +75,12 @@ class NewsAdapter(
     }
 
     fun updateList(newList: List<NewsResponse>) {
-        submitList(null)  // Сначала очищаем
-        submitList(newList)  // Потом загружаем новый
+        submitList(null)
+        submitList(newList)
+    }
+
+    fun clearItems() {
+        submitList(emptyList())
     }
 
     class NewsDiffCallback : DiffUtil.ItemCallback<NewsResponse>() {
