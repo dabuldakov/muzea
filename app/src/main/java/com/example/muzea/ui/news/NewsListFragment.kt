@@ -28,6 +28,7 @@ class NewsListFragment : Fragment() {
     private var currentPage = 0
     private var hasMorePages = true
     private val pageSize = 20
+    private var isRefreshing = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -87,7 +88,7 @@ class NewsListFragment : Fragment() {
                 val totalItemCount = layoutManager.itemCount
                 val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
 
-                if (!isLoading && hasMorePages) {
+                if (!isLoading && hasMorePages && !isRefreshing && dy > 0) {  // Добавили dy > 0
                     if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount
                         && firstVisibleItemPosition >= 0
                         && totalItemCount >= pageSize
@@ -106,20 +107,27 @@ class NewsListFragment : Fragment() {
     }
 
     private fun refreshNews() {
+        if (isRefreshing) return
+        isRefreshing = true
         currentPage = 0
         hasMorePages = true
+        isLoading = false
+
+        // Очищаем адаптер
         adapter.submitList(emptyList())
+
+        // Загружаем новости заново
         loadNews()
     }
 
     private fun loadNews() {
-        if (isLoading) return
+        if (isLoading && !isRefreshing) return
         isLoading = true
         viewModel.loadNews(currentPage, pageSize)
     }
 
     private fun loadMoreNews() {
-        if (!hasMorePages) return
+        if (!hasMorePages || isRefreshing) return
         currentPage++
         loadNews()
     }
@@ -136,7 +144,7 @@ class NewsListFragment : Fragment() {
             viewModel.newsResult.collect { result ->
                 when (result) {
                     is NetworkResult.Loading -> {
-                        if (!binding.swipeRefresh.isRefreshing && currentPage == 0) {
+                        if (!binding.swipeRefresh.isRefreshing && currentPage == 0 && !isRefreshing) {
                             binding.progressBar.visibility = View.VISIBLE
                         }
                     }
@@ -149,20 +157,35 @@ class NewsListFragment : Fragment() {
                         val newNews = result.data ?: emptyList()
                         hasMorePages = newNews.size == pageSize
 
-                        val currentList = adapter.currentList.toMutableList()
+                        android.util.Log.d("NewsListFragment", "Page: $currentPage, News count: ${newNews.size}, IsRefreshing: $isRefreshing")
+
                         if (currentPage == 0) {
-                            adapter.submitList(newNews)
+                            // При обновлении принудительно создаем новый список
+                            if (isRefreshing) {
+                                android.util.Log.d("NewsListFragment", "Refresh complete, showing ${newNews.size} items")
+                                // Создаем новый список чтобы принудительно обновить адаптер
+                                adapter.updateList(newNews)
+                                isRefreshing = false
+                            } else {
+                                adapter.submitList(newNews)
+                            }
                         } else {
+                            // Добавляем к существующему списку
+                            val currentList = adapter.currentList.toMutableList()
                             currentList.addAll(newNews)
-                            adapter.submitList(currentList)
+                            adapter.submitList(currentList.toList())
                         }
 
+                        // Обновляем UI состояние
                         if (adapter.currentList.isEmpty()) {
                             binding.tvEmpty.visibility = View.VISIBLE
                             binding.recyclerViewNews.visibility = View.GONE
+                            binding.tvError.visibility = View.GONE
+                            binding.tvEmpty.text = "No news available"
                         } else {
                             binding.tvEmpty.visibility = View.GONE
                             binding.recyclerViewNews.visibility = View.VISIBLE
+                            binding.tvError.visibility = View.GONE
                         }
                     }
 
@@ -170,8 +193,21 @@ class NewsListFragment : Fragment() {
                         binding.progressBar.visibility = View.GONE
                         binding.swipeRefresh.isRefreshing = false
                         isLoading = false
-                        binding.tvError.text = result.message
-                        binding.tvError.visibility = View.VISIBLE
+                        isRefreshing = false
+
+                        android.util.Log.e("NewsListFragment", "Error: ${result.message}")
+
+                        if (adapter.currentList.isEmpty()) {
+                            binding.tvError.text = result.message
+                            binding.tvError.visibility = View.VISIBLE
+                            binding.recyclerViewNews.visibility = View.GONE
+                        } else {
+                            android.widget.Toast.makeText(
+                                requireContext(),
+                                "Error: ${result.message}",
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
                 }
             }

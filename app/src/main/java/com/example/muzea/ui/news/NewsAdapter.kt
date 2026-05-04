@@ -74,6 +74,11 @@ class NewsAdapter(
         }
     }
 
+    fun updateList(newList: List<NewsResponse>) {
+        submitList(null)  // Сначала очищаем
+        submitList(newList)  // Потом загружаем новый
+    }
+
     class NewsDiffCallback : DiffUtil.ItemCallback<NewsResponse>() {
         override fun areItemsTheSame(oldItem: NewsResponse, newItem: NewsResponse): Boolean {
             return oldItem.id == newItem.id
