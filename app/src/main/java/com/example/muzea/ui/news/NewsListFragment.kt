@@ -26,7 +26,6 @@ class NewsListFragment : Fragment() {
     private lateinit var viewModel: NewsViewModel
     private lateinit var adapter: NewsAdapter
 
-    // Состояния загрузки
     private var isLoading = false
     private var isRefreshing = false
     private var currentPage = 0
@@ -65,8 +64,7 @@ class NewsListFragment : Fragment() {
 
     private fun setupRecyclerView() {
         adapter = NewsAdapter(
-            onItemClick = ::openNewsDetail,
-            lifecycleScope = lifecycleScope
+            onItemClick = ::openNewsDetail
         )
         binding.recyclerViewNews.apply {
             layoutManager = LinearLayoutManager(requireContext())
