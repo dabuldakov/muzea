@@ -74,9 +74,11 @@ dependencies {
     implementation("com.github.bumptech.glide:okhttp3-integration:4.16.0")
     kapt("com.github.bumptech.glide:compiler:4.16.0")
 
-    // Video player
-    implementation("com.google.android.exoplayer:exoplayer:2.19.1")
-    implementation("com.google.android.exoplayer:exoplayer-hls:2.19.1")
+    // Добавьте новые Media3 зависимости:
+    implementation("androidx.media3:media3-exoplayer:1.3.1")
+    implementation("androidx.media3:media3-exoplayer-hls:1.3.1")
+    implementation("androidx.media3:media3-ui:1.3.1")
+    implementation("androidx.media3:media3-datasource-okhttp:1.3.1")
 
     // Permissions
     implementation("com.karumi:dexter:6.2.3")

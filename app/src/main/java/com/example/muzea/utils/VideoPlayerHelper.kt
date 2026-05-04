@@ -1,37 +1,44 @@
 package com.example.muzea.utils
 
 import android.content.Context
-import android.net.Uri
-import com.google.android.exoplayer2.ExoPlayer
-import com.google.android.exoplayer2.MediaItem
-import com.google.android.exoplayer2.source.ProgressiveMediaSource
-import com.google.android.exoplayer2.upstream.DefaultHttpDataSource
+import androidx.core.net.toUri
+import androidx.media3.common.MediaItem
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import okhttp3.OkHttpClient
 
 object VideoPlayerHelper {
 
+    @UnstableApi
+    @OptIn(UnstableApi::class)
     fun createPlayerWithAuth(context: Context, videoUrl: String, token: String): ExoPlayer {
-        // Создаем фабрику с заголовком авторизации
-        val dataSourceFactory = DefaultHttpDataSource.Factory()
-            .setDefaultRequestProperties(mapOf("Authorization" to "Bearer $token"))
-            .setAllowCrossProtocolRedirects(true)
-
-        // Создаем MediaItem
-        val mediaItem = MediaItem.Builder()
-            .setUri(Uri.parse(videoUrl))
+        val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                val original = chain.request()
+                val request = original.newBuilder()
+                    .header("Authorization", "Bearer $token")
+                    .build()
+                chain.proceed(request)
+            }
             .build()
 
-        // СОЗДАЕМ MEDIASOURCE С ИСПОЛЬЗОВАНИЕМ ФАБРИКИ
+        val dataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
+
+        val mediaItem = MediaItem.Builder()
+            .setUri(videoUrl.toUri())
+            .build()
+
         val mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory)
             .createMediaSource(mediaItem)
 
-        // Создаем плеер
-        val player = ExoPlayer.Builder(context).build()
-
-        // Устанавливаем MediaSource (а не просто MediaItem)
-        player.setMediaSource(mediaSource)
-        player.prepare()
-
-        return player
+        return ExoPlayer.Builder(context)
+            .build()
+            .apply {
+                setMediaSource(mediaSource)
+                prepare()
+            }
     }
 
     fun releasePlayer(player: ExoPlayer?) {
