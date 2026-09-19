@@ -158,7 +158,15 @@ class NewsListFragment : Fragment() {
 
         adapter.submitList(newNews)
 
-        updateEmptyState()
+        if (newNews.isEmpty()) {
+            binding.tvEmpty.visibility = View.VISIBLE
+            binding.recyclerViewNews.visibility = View.GONE
+            binding.tvError.visibility = View.GONE
+        } else {
+            binding.tvEmpty.visibility = View.GONE
+            binding.recyclerViewNews.visibility = View.VISIBLE
+            binding.tvError.visibility = View.GONE
+        }
     }
 
     private fun handleErrorState(message: String) {
@@ -173,19 +181,6 @@ class NewsListFragment : Fragment() {
             binding.recyclerViewNews.visibility = View.GONE
         } else {
             Toast.makeText(requireContext(), "Error: $message", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun updateEmptyState() {
-        if (adapter.currentList.isEmpty()) {
-            binding.tvEmpty.visibility = View.VISIBLE
-            binding.recyclerViewNews.visibility = View.GONE
-            binding.tvError.visibility = View.GONE
-            binding.tvEmpty.text = "No news available"
-        } else {
-            binding.tvEmpty.visibility = View.GONE
-            binding.recyclerViewNews.visibility = View.VISIBLE
-            binding.tvError.visibility = View.GONE
         }
     }
 

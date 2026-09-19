@@ -7,11 +7,10 @@ import com.example.muzea.data.model.NewsResponse
 import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.data.repository.NewsRepository
 import com.example.muzea.utils.NetworkResult
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -20,7 +19,7 @@ class NewsViewModel(
     private val chatRepository: ChatRepository
 ) : ViewModel() {
 
-    private val _newsResult = MutableSharedFlow<NetworkResult<List<NewsResponse>>>()
+    private val _newsResult = MutableSharedFlow<NetworkResult<List<NewsResponse>>>(replay = 1)
     val newsResult: SharedFlow<NetworkResult<List<NewsResponse>>> = _newsResult.asSharedFlow()
 
     private val _newsDetailResult = MutableSharedFlow<NetworkResult<NewsResponse>>()
@@ -73,13 +72,12 @@ class NewsViewModel(
 
     private suspend fun loadContactUsernames(): Boolean {
         return try {
-            val result = chatRepository.loadContacts()
-                .filter { it is NetworkResult.Success || it is NetworkResult.Error }
-                .first()
+            val result = chatRepository.loadContacts().firstTerminal()
             when (result) {
                 is NetworkResult.Success -> {
                     contactUsernames = (result.data ?: emptyList())
-                        .mapNotNull { it.username }
+                        .mapNotNull { (it.username ?: it.contactName)?.trim() }
+                        .filter { it.isNotEmpty() }
                         .toSet()
                     true
                 }
@@ -109,26 +107,33 @@ class NewsViewModel(
             val visible = visibleNews()
             _newsResult.emit(NetworkResult.Success(visible))
 
-            val shouldStop = endReached ||
-                visible.size >= pageSize ||
-                (filterByContacts && contactUsernames.isEmpty() && ownUsername == null)
-            if (shouldStop) return
+            if (visible.size >= pageSize) return
+            if (endReached) return
         }
     }
 
     private suspend fun fetchRawPage(page: Int): List<NewsResponse>? {
-        val result = newsRepository.getNews(page, pageSize)
-            .filter { it is NetworkResult.Success || it is NetworkResult.Error }
-            .first()
+        val result = newsRepository.getNews(page, pageSize).firstTerminal()
         return when (result) {
             is NetworkResult.Success -> result.data ?: emptyList()
             else -> null
         }
     }
 
+    private suspend fun <T> Flow<NetworkResult<T>>.firstTerminal(): NetworkResult<T>? {
+        var result: NetworkResult<T>? = null
+        collect { r ->
+            if (r is NetworkResult.Success || r is NetworkResult.Error) {
+                result = r
+            }
+        }
+        return result
+    }
+
     private fun visibleNews(): List<NewsResponse> {
         if (!filterByContacts) return rawNewsCache.toList()
-        return rawNewsCache.filter { it.author in contactUsernames || it.author == ownUsername }
+        val me = ownUsername?.trim()
+        return rawNewsCache.filter { it.author.trim() in contactUsernames || it.author.trim() == me }
     }
 
     fun loadNewsById(id: Long) {
