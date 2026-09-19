@@ -11,8 +11,10 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.muzea.R
+import com.example.muzea.data.api.ChatRetrofitClient
 import com.example.muzea.data.api.RetrofitClient
 import com.example.muzea.data.model.NewsResponse
+import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.data.repository.NewsRepository
 import com.example.muzea.databinding.FragmentNewsListBinding
 import com.example.muzea.utils.NetworkResult
@@ -28,8 +30,7 @@ class NewsListFragment : Fragment() {
 
     private var isLoading = false
     private var isRefreshing = false
-    private var currentPage = 0
-    private var hasMorePages = true
+    private var myUsername: String? = null
 
     private companion object {
         const val PAGE_SIZE = 20
@@ -57,9 +58,11 @@ class NewsListFragment : Fragment() {
 
     private fun initViewModel() {
         val tokenManager = TokenManager(requireContext())
+        myUsername = tokenManager.getUsername()
         val apiService = RetrofitClient(tokenManager).apiService
         val newsRepository = NewsRepository(apiService)
-        viewModel = NewsViewModel(newsRepository)
+        val chatRepository = ChatRepository(ChatRetrofitClient(tokenManager).apiService, tokenManager)
+        viewModel = NewsViewModel(newsRepository, chatRepository)
     }
 
     private fun setupRecyclerView() {
@@ -85,7 +88,7 @@ class NewsListFragment : Fragment() {
     private fun setupPagination() {
         val scrollListener = object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                if (dy <= 0 || isLoading || isRefreshing || !hasMorePages) return
+                if (dy <= 0 || isLoading || isRefreshing) return
 
                 val layoutManager = recyclerView.layoutManager as LinearLayoutManager
                 val lastVisiblePosition = layoutManager.findLastVisibleItemPosition()
@@ -106,23 +109,20 @@ class NewsListFragment : Fragment() {
     private fun refreshNews() {
         if (isRefreshing) return
         isRefreshing = true
-        currentPage = 0
-        hasMorePages = true
-        isLoading = false
         adapter.clearItems()
-        loadNews()
+        viewModel.loadNews(PAGE_SIZE, myUsername)
     }
 
     private fun loadNews() {
-        if (isLoading && !isRefreshing) return
-        isLoading = true
-        viewModel.loadNews(currentPage, PAGE_SIZE)
+        if (isLoading) return
+        if (adapter.currentList.isEmpty()) {
+            binding.progressBar.visibility = View.VISIBLE
+        }
+        viewModel.loadNews(PAGE_SIZE, myUsername)
     }
 
     private fun loadMoreNews() {
-        if (!hasMorePages || isRefreshing) return
-        currentPage++
-        loadNews()
+        viewModel.loadMoreNews()
     }
 
     private fun setupFab() {
@@ -144,7 +144,7 @@ class NewsListFragment : Fragment() {
     }
 
     private fun handleLoadingState() {
-        val showProgress = !binding.swipeRefresh.isRefreshing && currentPage == 0 && !isRefreshing
+        val showProgress = !binding.swipeRefresh.isRefreshing && !isRefreshing && adapter.currentList.isEmpty()
         if (showProgress) {
             binding.progressBar.visibility = View.VISIBLE
         }
@@ -154,31 +154,11 @@ class NewsListFragment : Fragment() {
         binding.progressBar.visibility = View.GONE
         binding.swipeRefresh.isRefreshing = false
         isLoading = false
+        isRefreshing = false
 
-        hasMorePages = newNews.size == PAGE_SIZE
-
-        if (currentPage == 0) {
-            handleInitialLoad(newNews)
-        } else {
-            handlePaginationLoad(newNews)
-        }
+        adapter.submitList(newNews)
 
         updateEmptyState()
-    }
-
-    private fun handleInitialLoad(newNews: List<NewsResponse>) {
-        if (isRefreshing) {
-            adapter.updateList(newNews)
-            isRefreshing = false
-        } else {
-            adapter.submitList(newNews)
-        }
-    }
-
-    private fun handlePaginationLoad(newNews: List<NewsResponse>) {
-        val currentList = adapter.currentList.toMutableList()
-        currentList.addAll(newNews)
-        adapter.submitList(currentList.toList())
     }
 
     private fun handleErrorState(message: String) {

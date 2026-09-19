@@ -10,8 +10,10 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.muzea.R
 import com.example.muzea.databinding.FragmentNewsDetailBinding
+import com.example.muzea.data.api.ChatRetrofitClient
 import com.example.muzea.data.api.RetrofitClient
 import com.example.muzea.data.model.NewsResponse
+import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.data.repository.NewsRepository
 import com.example.muzea.utils.Constants
 import com.example.muzea.utils.NetworkResult
@@ -42,7 +44,8 @@ class NewsDetailFragment : Fragment() {
         val tokenManager = TokenManager(requireContext())
         val apiService = RetrofitClient(tokenManager).apiService
         val newsRepository = NewsRepository(apiService)
-        viewModel = NewsViewModel(newsRepository)
+        val chatRepository = ChatRepository(ChatRetrofitClient(tokenManager).apiService, tokenManager)
+        viewModel = NewsViewModel(newsRepository, chatRepository)
 
         newsId = arguments?.getLong("newsId", 0) ?: 0
 

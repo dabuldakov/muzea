@@ -14,8 +14,10 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.muzea.R
+import com.example.muzea.data.api.ChatRetrofitClient
 import com.example.muzea.data.api.RetrofitClient
 import com.example.muzea.data.model.VideoResponse
+import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.data.repository.NewsRepository
 import com.example.muzea.data.repository.VideoRepository
 import com.example.muzea.databinding.ActivityCreateNewsBinding
@@ -72,8 +74,9 @@ class CreateNewsActivity : AppCompatActivity() {
     private fun initViewModels() {
         val tokenManager = TokenManager(applicationContext)
         val apiService = RetrofitClient(tokenManager).apiService
+        val chatRepository = ChatRepository(ChatRetrofitClient(tokenManager).apiService, tokenManager)
 
-        newsViewModel = NewsViewModel(NewsRepository(apiService))
+        newsViewModel = NewsViewModel(NewsRepository(apiService), chatRepository)
         videoViewModel = VideoViewModel(VideoRepository(apiService))
     }
 
