@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.muzea.R
 import com.example.muzea.data.api.ChatRetrofitClient
 import com.example.muzea.data.model.MessageResponse
@@ -28,18 +29,34 @@ class ChatConversationFragment : Fragment() {
     private lateinit var adapter: MessageAdapter
     private var chatUuid: String = ""
     private var lastMessageCount = 0
+    private var unreadCount = 0L
+    private var initialScrollDone = false
+    private var pendingScrollPosition: Int? = null
+
+    private val scrollObserver = object : RecyclerView.AdapterDataObserver() {
+        override fun onChanged() = performPendingScroll()
+        override fun onItemRangeInserted(positionStart: Int, itemCount: Int) = performPendingScroll()
+        override fun onItemRangeRemoved(positionStart: Int, itemCount: Int) = performPendingScroll()
+    }
 
     companion object {
         private const val ARG_CHAT_UUID = "chat_uuid"
         private const val ARG_CHAT_TITLE = "chat_title"
         private const val ARG_CHAT_AVATAR = "chat_avatar"
+        private const val ARG_UNREAD_COUNT = "chat_unread_count"
 
-        fun newInstance(chatUuid: String, chatTitle: String, avatarUrl: String? = null): ChatConversationFragment {
+        fun newInstance(
+            chatUuid: String,
+            chatTitle: String,
+            avatarUrl: String? = null,
+            unreadCount: Long = 0L
+        ): ChatConversationFragment {
             return ChatConversationFragment().apply {
                 arguments = Bundle().apply {
                     putString(ARG_CHAT_UUID, chatUuid)
                     putString(ARG_CHAT_TITLE, chatTitle)
                     putString(ARG_CHAT_AVATAR, avatarUrl)
+                    putLong(ARG_UNREAD_COUNT, unreadCount)
                 }
             }
         }
@@ -58,6 +75,7 @@ class ChatConversationFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         chatUuid = arguments?.getString(ARG_CHAT_UUID) ?: ""
         val chatTitle = arguments?.getString(ARG_CHAT_TITLE) ?: "Chat"
+        unreadCount = arguments?.getLong(ARG_UNREAD_COUNT, 0L) ?: 0L
 
         binding.tvTitle.text = chatTitle
         AvatarLoader.load(binding.ivAvatar, arguments?.getString(ARG_CHAT_AVATAR))
@@ -80,10 +98,22 @@ class ChatConversationFragment : Fragment() {
 
     private fun setupRecyclerView() {
         adapter = MessageAdapter(viewModel.myUserUuid)
+        adapter.registerAdapterDataObserver(scrollObserver)
         binding.recyclerViewMessages.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = this@ChatConversationFragment.adapter
         }
+    }
+
+    private fun performPendingScroll() {
+        val position = pendingScrollPosition ?: return
+        pendingScrollPosition = null
+        binding.recyclerViewMessages.scrollToPosition(position)
+    }
+
+    private fun isAtBottom(): Boolean {
+        val layoutManager = binding.recyclerViewMessages.layoutManager as? LinearLayoutManager ?: return true
+        return layoutManager.findLastVisibleItemPosition() >= adapter.itemCount - 2
     }
 
     private fun setupInput() {
@@ -105,11 +135,22 @@ class ChatConversationFragment : Fragment() {
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.messages.collect { messages ->
+                val wasAtBottom = isAtBottom()
                 adapter.updateList(messages)
                 updateEmptyState(messages)
-                if (messages.size > lastMessageCount) {
-                    if (messages.isNotEmpty()) {
-                        binding.recyclerViewMessages.scrollToPosition(messages.size - 1)
+
+                if (messages.isNotEmpty() && !initialScrollDone) {
+                    initialScrollDone = true
+                    val target = if (unreadCount > 0) {
+                        (messages.size - unreadCount).toInt().coerceIn(0, messages.size - 1)
+                    } else {
+                        messages.size - 1
+                    }
+                    pendingScrollPosition = target
+                } else if (messages.size > lastMessageCount) {
+                    val lastIsMine = messages.last().senderUuid == viewModel.myUserUuid
+                    if (lastIsMine || wasAtBottom) {
+                        pendingScrollPosition = messages.size - 1
                     }
                 }
                 lastMessageCount = messages.size
@@ -171,6 +212,9 @@ class ChatConversationFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        if (::adapter.isInitialized) {
+            adapter.unregisterAdapterDataObserver(scrollObserver)
+        }
         super.onDestroyView()
         _binding = null
     }
