@@ -70,6 +70,22 @@ class NewsRepository constructor(
         }
     }
 
+    suspend fun deleteNews(id: Long): Flow<NetworkResult<Unit>> = flow {
+        emit(NetworkResult.Loading())
+        try {
+            val response = apiService.deleteNews(id)
+            if (response.isSuccessful) {
+                emit(NetworkResult.Success(Unit))
+            } else if (response.code() == 403) {
+                emit(NetworkResult.Error("Only the author can delete this news"))
+            } else {
+                emit(NetworkResult.Error("Failed to delete news: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            emit(NetworkResult.Error("Network error: ${e.message}"))
+        }
+    }
+
     suspend fun downloadImage(imageUrl: String): Flow<NetworkResult<Bitmap>> = flow {
         emit(NetworkResult.Loading())
         try {

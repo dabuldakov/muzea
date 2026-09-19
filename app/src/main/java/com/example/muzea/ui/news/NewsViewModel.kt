@@ -28,6 +28,9 @@ class NewsViewModel(
     private val _createNewsResult = MutableSharedFlow<NetworkResult<NewsCreateResponse>>()
     val createNewsResult: SharedFlow<NetworkResult<NewsCreateResponse>> = _createNewsResult.asSharedFlow()
 
+    private val _deleteNewsResult = MutableSharedFlow<NetworkResult<Unit>>()
+    val deleteNewsResult: SharedFlow<NetworkResult<Unit>> = _deleteNewsResult.asSharedFlow()
+
     private var pageSize = 20
 
     private var isContactsLoaded = false
@@ -142,6 +145,14 @@ class NewsViewModel(
         viewModelScope.launch {
             newsRepository.createNews(title, content, videoId, imageFile).collect { result ->
                 _createNewsResult.emit(result)
+            }
+        }
+    }
+
+    fun deleteNews(id: Long) {
+        viewModelScope.launch {
+            newsRepository.deleteNews(id).collect { result ->
+                _deleteNewsResult.emit(result)
             }
         }
     }

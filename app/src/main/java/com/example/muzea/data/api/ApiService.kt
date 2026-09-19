@@ -63,6 +63,11 @@ interface ApiService {
         @Part image: MultipartBody.Part?
     ): Response<NewsCreateResponse>
 
+    @DELETE("/api/news/{id}")
+    suspend fun deleteNews(
+        @Path("id") id: Long
+    ): Response<Unit>
+
     // User endpoints
     @GET("/api/users/me")
     suspend fun getCurrentUser(): Response<UserResponse>

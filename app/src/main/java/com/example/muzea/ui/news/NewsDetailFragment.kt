@@ -4,6 +4,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
@@ -28,6 +30,7 @@ class NewsDetailFragment : Fragment() {
 
     private lateinit var viewModel: NewsViewModel
     private var newsId: Long = 0
+    private var myUsername: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -43,6 +46,7 @@ class NewsDetailFragment : Fragment() {
 
         // Создаем ViewModel вручную
         val tokenManager = TokenManager(requireContext())
+        myUsername = tokenManager.getUsername()
         val apiService = RetrofitClient(tokenManager).apiService
         val newsRepository = NewsRepository(apiService)
         val chatApiService = ChatRetrofitClient(tokenManager).apiService
@@ -79,6 +83,31 @@ class NewsDetailFragment : Fragment() {
                 }
             }
         }
+
+        lifecycleScope.launch {
+            viewModel.deleteNewsResult.collect { result ->
+                when (result) {
+                    is NetworkResult.Loading -> binding.btnDeleteNews.isEnabled = false
+                    is NetworkResult.Success -> {
+                        Toast.makeText(requireContext(), "News deleted", Toast.LENGTH_SHORT).show()
+                        parentFragmentManager.popBackStack()
+                    }
+                    is NetworkResult.Error -> {
+                        binding.btnDeleteNews.isEnabled = true
+                        Toast.makeText(requireContext(), result.message, Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun confirmDelete() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Delete news")
+            .setMessage("Delete this news permanently?")
+            .setPositiveButton("Delete") { _, _ -> viewModel.deleteNews(newsId) }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun displayNews(news: NewsResponse) {
@@ -86,6 +115,11 @@ class NewsDetailFragment : Fragment() {
         binding.tvContent.text = news.content
         binding.tvAuthor.text = "By: ${news.author}"
         binding.tvDate.text = news.publishedAt
+
+        val canDelete = !myUsername.isNullOrEmpty() && news.author == myUsername
+        binding.btnDeleteNews.visibility = if (canDelete) View.VISIBLE else View.GONE
+        binding.btnDeleteNews.isEnabled = true
+        binding.btnDeleteNews.setOnClickListener { confirmDelete() }
 
         if (!news.imageUrl.isNullOrEmpty()) {
             Glide.with(requireContext())

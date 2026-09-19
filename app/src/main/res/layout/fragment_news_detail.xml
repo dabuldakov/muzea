@@ -113,6 +113,15 @@
                 android:textSize="16sp"
                 android:lineSpacingExtra="4dp" />
 
+            <Button
+                android:id="@+id/btnDeleteNews"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/delete_news"
+                android:backgroundTint="@color/red"
+                android:visibility="gone" />
+
         </LinearLayout>
 
         <TextView
