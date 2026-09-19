@@ -1,9 +1,11 @@
 package com.example.muzea.data.repository
 
 import com.example.muzea.data.api.ChatApiService
+import com.example.muzea.data.model.AddContactRequest
 import com.example.muzea.data.model.ChatLoginRequest
 import com.example.muzea.data.model.ChatRegisterRequest
 import com.example.muzea.data.model.ChatResponse
+import com.example.muzea.data.model.ContactResponse
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
 import kotlinx.coroutines.flow.Flow
@@ -34,6 +36,59 @@ class ChatRepository(
                 emit(NetworkResult.Success(response.body()!!))
             } else {
                 emit(NetworkResult.Error("Failed to load chats: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            emit(NetworkResult.Error("Network error: ${e.message}"))
+        }
+    }
+
+    suspend fun loadContacts(): Flow<NetworkResult<List<ContactResponse>>> = flow {
+        emit(NetworkResult.Loading())
+        try {
+            if (!ensureChatAuth()) {
+                emit(NetworkResult.Error("Chat auth failed. Please log in again."))
+                return@flow
+            }
+
+            var response = apiService.getContacts()
+            if (response.code() == 401) {
+                tokenManager.clearChatToken()
+                if (ensureChatAuth()) {
+                    response = apiService.getContacts()
+                }
+            }
+
+            if (response.isSuccessful && response.body() != null) {
+                emit(NetworkResult.Success(response.body()!!))
+            } else {
+                emit(NetworkResult.Error("Failed to load contacts: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            emit(NetworkResult.Error("Network error: ${e.message}"))
+        }
+    }
+
+    suspend fun addContactByUsername(username: String): Flow<NetworkResult<ContactResponse>> = flow {
+        emit(NetworkResult.Loading())
+        try {
+            if (!ensureChatAuth()) {
+                emit(NetworkResult.Error("Chat auth failed. Please log in again."))
+                return@flow
+            }
+
+            val userResponse = apiService.getUserByUsername(username)
+            if (!userResponse.isSuccessful || userResponse.body() == null) {
+                emit(NetworkResult.Error("User not found: $username"))
+                return@flow
+            }
+
+            val userUuid = userResponse.body()!!.userUuid
+            val response = apiService.addContact(AddContactRequest(userUuid, null))
+
+            if (response.isSuccessful && response.body() != null) {
+                emit(NetworkResult.Success(response.body()!!))
+            } else {
+                emit(NetworkResult.Error("Failed to add contact: ${response.message()}"))
             }
         } catch (e: Exception) {
             emit(NetworkResult.Error("Network error: ${e.message}"))

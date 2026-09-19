@@ -9,6 +9,10 @@
         android:icon="@drawable/ic_chat"
         android:title="Chat" />
     <item
+        android:id="@+id/contactFragment"
+        android:icon="@android:drawable/ic_menu_manage"
+        android:title="Contacts" />
+    <item
         android:id="@+id/videoListFragment"
         android:icon="@android:drawable/ic_menu_gallery"
         android:title="Videos" />
