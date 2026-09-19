@@ -49,11 +49,19 @@ class TokenManager(
         return prefs.getString("chat_token", null)
     }
 
+    fun saveChatTokenUser(username: String) {
+        prefs.edit().putString("chat_token_user", username).apply()
+    }
+
+    fun getChatTokenUser(): String? {
+        return prefs.getString("chat_token_user", null)
+    }
+
     fun clearChatToken() {
-        prefs.edit().remove("chat_token").apply()
+        prefs.edit().remove("chat_token").remove("chat_token_user").apply()
     }
 
     fun clearToken() {
-        prefs.edit().remove("auth_token").remove("username").remove("chat_token").apply()
+        prefs.edit().remove("auth_token").remove("username").remove("chat_token").remove("chat_token_user").apply()
     }
 }

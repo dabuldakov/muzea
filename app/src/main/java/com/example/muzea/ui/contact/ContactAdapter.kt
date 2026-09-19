@@ -14,11 +14,13 @@ import com.example.muzea.data.model.ContactResponse
 import com.example.muzea.databinding.ItemContactBinding
 import com.example.muzea.utils.Constants
 
-class ContactAdapter : ListAdapter<ContactResponse, ContactAdapter.ContactViewHolder>(ContactDiffCallback()) {
+class ContactAdapter(
+    private val onItemClick: (ContactResponse) -> Unit
+) : ListAdapter<ContactResponse, ContactAdapter.ContactViewHolder>(ContactDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ContactViewHolder {
         val binding = ItemContactBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return ContactViewHolder(binding)
+        return ContactViewHolder(binding, onItemClick)
     }
 
     override fun onBindViewHolder(holder: ContactViewHolder, position: Int) {
@@ -26,10 +28,13 @@ class ContactAdapter : ListAdapter<ContactResponse, ContactAdapter.ContactViewHo
     }
 
     class ContactViewHolder(
-        private val binding: ItemContactBinding
+        private val binding: ItemContactBinding,
+        private val onItemClick: (ContactResponse) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(contact: ContactResponse) {
+            binding.root.setOnClickListener { onItemClick(contact) }
+
             binding.tvContactName.text = contact.displayName()
             binding.tvContactUsername.text = contact.username ?: ""
 

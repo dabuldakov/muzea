@@ -10,6 +10,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.example.muzea.R
 import com.example.muzea.data.api.ChatRetrofitClient
 import com.example.muzea.data.model.ContactResponse
@@ -44,6 +45,7 @@ class ContactListFragment : Fragment() {
         setupFab()
         observeContacts()
         observeAddContact()
+        observeCreateChat()
         loadContacts()
     }
 
@@ -55,11 +57,20 @@ class ContactListFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        adapter = ContactAdapter()
+        adapter = ContactAdapter { contact -> onContactClick(contact) }
         binding.recyclerViewContacts.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = this@ContactListFragment.adapter
         }
+    }
+
+    private fun onContactClick(contact: ContactResponse) {
+        val userUuid = contact.contactUserUuid
+        if (userUuid.isNullOrEmpty()) {
+            Toast.makeText(requireContext(), "Cannot create chat: no user uuid", Toast.LENGTH_SHORT).show()
+            return
+        }
+        viewModel.createPrivateChat(userUuid)
     }
 
     private fun setupSwipeRefresh() {
@@ -125,6 +136,32 @@ class ContactListFragment : Fragment() {
                     }
                 }
             }
+        }
+    }
+
+    private fun observeCreateChat() {
+        lifecycleScope.launch {
+            viewModel.createChatResult.collect { result ->
+                when (result) {
+                    is NetworkResult.Loading -> {
+                        Toast.makeText(requireContext(), "Creating chat...", Toast.LENGTH_SHORT).show()
+                    }
+                    is NetworkResult.Success -> {
+                        Toast.makeText(requireContext(), "Private chat created", Toast.LENGTH_SHORT).show()
+                        switchToChatTab()
+                    }
+                    is NetworkResult.Error -> {
+                        Toast.makeText(requireContext(), result.message ?: "Failed to create chat", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun switchToChatTab() {
+        val bottomNav = activity?.findViewById<BottomNavigationView>(R.id.bottomNavigation)
+        if (bottomNav != null && bottomNav.selectedItemId != R.id.chatFragment) {
+            bottomNav.selectedItemId = R.id.chatFragment
         }
     }
 

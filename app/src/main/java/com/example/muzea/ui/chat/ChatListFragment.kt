@@ -51,13 +51,24 @@ class ChatListFragment : Fragment() {
     private fun setupRecyclerView() {
         adapter = ChatAdapter(
             onItemClick = { chatUuid ->
-                Toast.makeText(requireContext(), "Opening chat: $chatUuid", Toast.LENGTH_SHORT).show()
+                openChat(chatUuid)
             }
         )
         binding.recyclerViewChats.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = this@ChatListFragment.adapter
         }
+    }
+
+    private fun openChat(chatUuid: String) {
+        val chat = adapter.currentList.firstOrNull { it.chatUuid == chatUuid }
+        val title = chat?.title ?: "Chat"
+
+        val fragment = ChatConversationFragment.newInstance(chatUuid, title)
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .addToBackStack(null)
+            .commit()
     }
 
     private fun setupSwipeRefresh() {

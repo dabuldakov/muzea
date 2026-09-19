@@ -6,6 +6,9 @@ import com.example.muzea.data.model.ChatLoginRequest
 import com.example.muzea.data.model.ChatRegisterRequest
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.model.ContactResponse
+import com.example.muzea.data.model.CreatePrivateChatRequest
+import com.example.muzea.data.model.MessageResponse
+import com.example.muzea.data.model.SendMessageRequest
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
 import kotlinx.coroutines.flow.Flow
@@ -95,10 +98,97 @@ class ChatRepository(
         }
     }
 
-    private suspend fun ensureChatAuth(): Boolean {
-        if (!tokenManager.getChatToken().isNullOrEmpty()) return true
+    suspend fun createPrivateChat(userUuid: String): Flow<NetworkResult<ChatResponse>> = flow {
+        emit(NetworkResult.Loading())
+        try {
+            if (!ensureChatAuth()) {
+                emit(NetworkResult.Error("Chat auth failed. Please log in again."))
+                return@flow
+            }
 
-        val username = tokenManager.getUsername()
+            var response = apiService.createPrivateChat(CreatePrivateChatRequest(userUuid))
+            if (response.code() == 401) {
+                tokenManager.clearChatToken()
+                if (ensureChatAuth()) {
+                    response = apiService.createPrivateChat(CreatePrivateChatRequest(userUuid))
+                }
+            }
+
+            if (response.isSuccessful && response.body() != null) {
+                emit(NetworkResult.Success(response.body()!!))
+            } else {
+                emit(NetworkResult.Error("Failed to create chat: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            emit(NetworkResult.Error("Network error: ${e.message}"))
+        }
+    }
+
+    suspend fun loadMessages(chatUuid: String): Flow<NetworkResult<List<MessageResponse>>> = flow {
+        emit(NetworkResult.Loading())
+        try {
+            if (!ensureChatAuth()) {
+                emit(NetworkResult.Error("Chat auth failed. Please log in again."))
+                return@flow
+            }
+
+            var response = apiService.getMessages(chatUuid)
+            if (response.code() == 401) {
+                tokenManager.clearChatToken()
+                if (ensureChatAuth()) {
+                    response = apiService.getMessages(chatUuid)
+                }
+            }
+
+            if (response.isSuccessful && response.body() != null) {
+                val content = response.body()!!.content
+                emit(NetworkResult.Success(content))
+            } else {
+                emit(NetworkResult.Error("Failed to load messages: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            emit(NetworkResult.Error("Network error: ${e.message}"))
+        }
+    }
+
+    suspend fun sendMessage(chatUuid: String, text: String): Flow<NetworkResult<MessageResponse>> = flow {
+        emit(NetworkResult.Loading())
+        try {
+            if (!ensureChatAuth()) {
+                emit(NetworkResult.Error("Chat auth failed. Please log in again."))
+                return@flow
+            }
+
+            var response = apiService.sendMessage(chatUuid, SendMessageRequest(text))
+            if (response.code() == 401) {
+                tokenManager.clearChatToken()
+                if (ensureChatAuth()) {
+                    response = apiService.sendMessage(chatUuid, SendMessageRequest(text))
+                }
+            }
+
+            if (response.isSuccessful && response.body() != null) {
+                emit(NetworkResult.Success(response.body()!!))
+            } else {
+                emit(NetworkResult.Error("Failed to send message: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            emit(NetworkResult.Error("Network error: ${e.message}"))
+        }
+    }
+
+    private suspend fun ensureChatAuth(): Boolean {
+        val currentUsername = tokenManager.getUsername()
+
+        if (!tokenManager.getChatToken().isNullOrEmpty()) {
+            if (currentUsername != null && tokenManager.getChatTokenUser() != currentUsername) {
+                tokenManager.clearChatToken()
+            } else {
+                return true
+            }
+        }
+
+        val username = currentUsername
         val password = tokenManager.getPassword()
         if (username.isNullOrEmpty() || password.isNullOrEmpty()) return false
 
@@ -109,6 +199,7 @@ class ChatRepository(
         val response = apiService.login(ChatLoginRequest(username, password))
         if (response.isSuccessful && response.body() != null) {
             tokenManager.saveChatToken(response.body()!!.token)
+            tokenManager.saveChatTokenUser(username)
             true
         } else {
             false
@@ -122,6 +213,7 @@ class ChatRepository(
         val response = apiService.register(ChatRegisterRequest(username, email, password))
         if (response.isSuccessful && response.body() != null) {
             tokenManager.saveChatToken(response.body()!!.token)
+            tokenManager.saveChatTokenUser(username)
             true
         } else {
             false
