@@ -6,7 +6,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.muzea.R
 import com.example.muzea.data.api.ChatRetrofitClient
@@ -15,6 +17,8 @@ import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.databinding.FragmentChatListBinding
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 class ChatListFragment : Fragment() {
@@ -40,6 +44,18 @@ class ChatListFragment : Fragment() {
         setupSwipeRefresh()
         observeViewModel()
         loadChats()
+        startAutoRefresh()
+    }
+
+    private fun startAutoRefresh() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                while (isActive) {
+                    delay(AUTO_REFRESH_MS)
+                    loadChats()
+                }
+            }
+        }
     }
 
     private fun initViewModel() {
@@ -95,7 +111,8 @@ class ChatListFragment : Fragment() {
     }
 
     private fun handleLoadingState() {
-        if (!binding.swipeRefresh.isRefreshing) {
+        // Не мигаем прогрессом при фоновом автообновлении, если список уже показан.
+        if (!binding.swipeRefresh.isRefreshing && adapter.itemCount == 0) {
             binding.progressBar.visibility = View.VISIBLE
         }
     }
@@ -141,5 +158,9 @@ class ChatListFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private companion object {
+        private const val AUTO_REFRESH_MS = 8_000L
     }
 }

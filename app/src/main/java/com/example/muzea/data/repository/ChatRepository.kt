@@ -77,6 +77,22 @@ class ChatRepository(
         }
     }
 
+    suspend fun getTotalUnreadCount(): Flow<NetworkResult<Long>> = flow {
+        emit(NetworkResult.Loading())
+        try {
+            val response = authenticatedRequest { apiService.getTotalUnreadCount() }
+            if (response.isSuccessful && response.body() != null) {
+                emit(NetworkResult.Success(response.body()!!.count))
+            } else {
+                emit(NetworkResult.Error("Failed to load unread count: ${response.message()}"))
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            emit(NetworkResult.Error("Network error: ${e.message}"))
+        }
+    }
+
     suspend fun loadChats(): Flow<NetworkResult<List<ChatResponse>>> = flow {
         emit(NetworkResult.Loading())
         try {

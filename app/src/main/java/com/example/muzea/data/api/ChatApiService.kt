@@ -55,6 +55,9 @@ interface ChatApiService {
     @GET("/api/chats")
     suspend fun getChats(): Response<List<ChatResponse>>
 
+    @GET("/api/chats/unread-count/all")
+    suspend fun getTotalUnreadCount(): Response<com.example.muzea.data.model.UnreadCountResponse>
+
     @GET("/api/contacts")
     suspend fun getContacts(): Response<List<ContactResponse>>
 

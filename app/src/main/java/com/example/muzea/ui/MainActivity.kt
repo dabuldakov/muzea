@@ -7,17 +7,29 @@ import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.muzea.R
+import com.example.muzea.data.api.ChatRetrofitClient
+import com.example.muzea.data.repository.ChatAuthManager
+import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.databinding.ActivityMainBinding
 import com.example.muzea.ui.chat.ChatListFragment
 import com.example.muzea.ui.contact.ContactListFragment
 import com.example.muzea.ui.news.NewsListFragment
 import com.example.muzea.ui.profile.ProfileFragment
 import com.example.muzea.ui.video.VideoListFragment
+import com.example.muzea.utils.NetworkResult
+import com.example.muzea.utils.TokenManager
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private lateinit var chatRepository: ChatRepository
 
     private val requestNotificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -37,6 +49,40 @@ class MainActivity : AppCompatActivity() {
         }
 
         setupBottomNavigation()
+        setupUnreadBadge()
+    }
+
+    private fun setupUnreadBadge() {
+        val tokenManager = TokenManager(applicationContext)
+        val apiService = ChatRetrofitClient(tokenManager).apiService
+        chatRepository = ChatRepository(apiService, ChatAuthManager(apiService, tokenManager))
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (isActive) {
+                    refreshUnreadBadge()
+                    delay(UNREAD_REFRESH_INTERVAL_MS)
+                }
+            }
+        }
+    }
+
+    private suspend fun refreshUnreadBadge() {
+        chatRepository.getTotalUnreadCount().collect { result ->
+            if (result is NetworkResult.Success) {
+                updateChatBadge(result.data ?: 0L)
+            }
+        }
+    }
+
+    private fun updateChatBadge(count: Long) {
+        if (count > 0) {
+            val badge = binding.bottomNavigation.getOrCreateBadge(R.id.chatFragment)
+            badge.isVisible = true
+            badge.number = count.coerceAtMost(999).toInt()
+        } else {
+            binding.bottomNavigation.removeBadge(R.id.chatFragment)
+        }
     }
 
     private fun requestNotificationPermissionIfNeeded() {
@@ -81,5 +127,9 @@ class MainActivity : AppCompatActivity() {
             .replace(R.id.fragment_container, fragment)
             .addToBackStack(null)
             .commit()
+    }
+
+    private companion object {
+        private const val UNREAD_REFRESH_INTERVAL_MS = 10_000L
     }
 }

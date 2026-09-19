@@ -13,6 +13,7 @@ import com.example.muzea.data.model.FcmTokenRequest
 import com.example.muzea.data.model.MessageResponse
 import com.example.muzea.data.model.PageResponse
 import com.example.muzea.data.model.SendMessageRequest
+import com.example.muzea.data.model.UnreadCountResponse
 import com.example.muzea.utils.ChatTokenStore
 import kotlinx.coroutines.test.runTest
 import okhttp3.ResponseBody.Companion.toResponseBody
@@ -61,6 +62,9 @@ class ChatAuthManagerTest {
             error("unused")
 
         override suspend fun registerFcmToken(request: FcmTokenRequest): Response<Unit> =
+            error("unused")
+
+        override suspend fun getTotalUnreadCount(): Response<UnreadCountResponse> =
             error("unused")
     }
 

@@ -20,11 +20,19 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val tokenManager = TokenManager(applicationContext)
+        // Уже авторизованы (в т.ч. при переходе из пуш-уведомления) — сразу на главный экран.
+        if (!tokenManager.getToken().isNullOrEmpty() && !tokenManager.getUsername().isNullOrEmpty()) {
+            startActivity(Intent(this, MainActivity::class.java))
+            finish()
+            return
+        }
+
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         // Инициализация ViewModel ДО observeViewModel
-        val tokenManager = TokenManager(applicationContext)
         val apiService = RetrofitClient(tokenManager).apiService
         val authRepository = AuthRepository(apiService, tokenManager)
         viewModel = AuthViewModel(authRepository)
