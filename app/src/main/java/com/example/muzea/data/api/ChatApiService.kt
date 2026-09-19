@@ -28,6 +28,11 @@ interface ChatApiService {
     @GET("/api/users/me")
     suspend fun getMyProfile(): Response<ChatUserResponse>
 
+    @retrofit2.http.PUT("/api/users/me/fcm-token")
+    suspend fun registerFcmToken(
+        @Body request: com.example.muzea.data.model.FcmTokenRequest
+    ): Response<Unit>
+
     @Multipart
     @POST("/api/users/me/avatar")
     suspend fun uploadAvatar(

@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">muzea</string>
     <string name="delete_news">Delete news</string>
+    <string name="chat_channel_id">chat_messages</string>
+    <string name="chat_channel_name">Messages</string>
+    <string name="chat_channel_description">Notifications about new chat messages</string>
 </resources>

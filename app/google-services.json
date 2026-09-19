@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "852486675776",
+    "project_id": "muzea-chat",
+    "storage_bucket": "muzea-chat.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:852486675776:android:8c1e7373b73f2353efeea5",
+        "android_client_info": {
+          "package_name": "com.example.muzea"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgkyoXFQ8zhOhEkSY5rjtinjsQFbXRzH8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

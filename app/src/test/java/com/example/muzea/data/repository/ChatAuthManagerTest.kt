@@ -9,6 +9,7 @@ import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.model.ChatUserResponse
 import com.example.muzea.data.model.ContactResponse
 import com.example.muzea.data.model.CreatePrivateChatRequest
+import com.example.muzea.data.model.FcmTokenRequest
 import com.example.muzea.data.model.MessageResponse
 import com.example.muzea.data.model.PageResponse
 import com.example.muzea.data.model.SendMessageRequest
@@ -57,6 +58,9 @@ class ChatAuthManagerTest {
             error("unused")
 
         override suspend fun markMessagesAsRead(chatUuid: String, upToMessageUuid: String): Response<Unit> =
+            error("unused")
+
+        override suspend fun registerFcmToken(request: FcmTokenRequest): Response<Unit> =
             error("unused")
     }
 

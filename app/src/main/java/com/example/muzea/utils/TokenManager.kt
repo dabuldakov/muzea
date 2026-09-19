@@ -2,12 +2,37 @@ package com.example.muzea.utils
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Build
+import java.util.UUID
 
 class TokenManager(
     context: Context
-) : ChatTokenStore {
+) : ChatTokenStore, FcmTokenStore {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+
+    override fun getDeviceId(): String {
+        prefs.getString("device_id", null)?.let { return it }
+        val id = UUID.randomUUID().toString()
+        prefs.edit().putString("device_id", id).apply()
+        return id
+    }
+
+    override fun getDeviceName(): String = "${Build.MANUFACTURER} ${Build.MODEL}".trim()
+
+    override fun getDeviceType(): String = "ANDROID"
+
+    override fun getFcmToken(): String? = prefs.getString("fcm_token", null)
+
+    override fun saveFcmToken(token: String) {
+        prefs.edit().putString("fcm_token", token).apply()
+    }
+
+    override fun getRegisteredFcmToken(): String? = prefs.getString("fcm_token_registered", null)
+
+    override fun saveRegisteredFcmToken(token: String) {
+        prefs.edit().putString("fcm_token_registered", token).apply()
+    }
 
     fun saveToken(token: String) {
         prefs.edit().putString("auth_token", token).apply()
