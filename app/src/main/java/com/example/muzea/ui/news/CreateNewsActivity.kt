@@ -17,6 +17,7 @@ import com.example.muzea.R
 import com.example.muzea.data.api.ChatRetrofitClient
 import com.example.muzea.data.api.RetrofitClient
 import com.example.muzea.data.model.VideoResponse
+import com.example.muzea.data.repository.ChatAuthManager
 import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.data.repository.NewsRepository
 import com.example.muzea.data.repository.VideoRepository
@@ -38,6 +39,7 @@ class CreateNewsActivity : AppCompatActivity() {
     private var selectedImageFile: File? = null
     private var videosList: List<VideoResponse> = emptyList()
     private var isLoadingVideos = false
+    private var myUsername: String? = null
 
     private companion object {
         private const val IMAGE_PREFIX = "news_image_"
@@ -73,8 +75,10 @@ class CreateNewsActivity : AppCompatActivity() {
 
     private fun initViewModels() {
         val tokenManager = TokenManager(applicationContext)
+        myUsername = tokenManager.getUsername()
         val apiService = RetrofitClient(tokenManager).apiService
-        val chatRepository = ChatRepository(ChatRetrofitClient(tokenManager).apiService, tokenManager)
+        val chatApiService = ChatRetrofitClient(tokenManager).apiService
+        val chatRepository = ChatRepository(chatApiService, ChatAuthManager(chatApiService, tokenManager))
 
         newsViewModel = NewsViewModel(NewsRepository(apiService), chatRepository)
         videoViewModel = VideoViewModel(VideoRepository(apiService))
@@ -166,7 +170,7 @@ class CreateNewsActivity : AppCompatActivity() {
         showProgressBar(true)
 
         lifecycleScope.launch {
-            videoViewModel.loadVideos()
+            videoViewModel.loadVideos(myUsername)
             videoViewModel.videosResult.collect { result ->
                 isLoadingVideos = false
                 showProgressBar(false)

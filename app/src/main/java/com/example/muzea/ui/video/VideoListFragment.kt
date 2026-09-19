@@ -23,6 +23,7 @@ class VideoListFragment : Fragment() {
 
     private lateinit var viewModel: VideoViewModel
     private lateinit var adapter: VideoAdapter
+    private var myUsername: String? = null
 
     private companion object {
         private const val SPAN_COUNT = 2
@@ -48,6 +49,7 @@ class VideoListFragment : Fragment() {
 
     private fun initViewModel() {
         val tokenManager = TokenManager(requireContext())
+        myUsername = tokenManager.getUsername()
         val apiService = RetrofitClient(tokenManager).apiService
         val videoRepository = VideoRepository(apiService)
         viewModel = VideoViewModel(videoRepository)
@@ -74,7 +76,7 @@ class VideoListFragment : Fragment() {
     }
 
     private fun loadVideos() {
-        viewModel.loadVideos()
+        viewModel.loadVideos(myUsername)
     }
 
     private fun observeViewModel() {

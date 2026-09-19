@@ -10,6 +10,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.muzea.R
 import com.example.muzea.data.api.ChatRetrofitClient
+import com.example.muzea.data.repository.ChatAuthManager
 import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.databinding.FragmentChatListBinding
 import com.example.muzea.utils.NetworkResult
@@ -44,7 +45,7 @@ class ChatListFragment : Fragment() {
     private fun initViewModel() {
         val tokenManager = TokenManager(requireContext())
         val apiService = ChatRetrofitClient(tokenManager).apiService
-        val chatRepository = ChatRepository(apiService, tokenManager)
+        val chatRepository = ChatRepository(apiService, ChatAuthManager(apiService, tokenManager))
         viewModel = ChatViewModel(chatRepository)
     }
 

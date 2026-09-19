@@ -5,7 +5,7 @@ import android.content.SharedPreferences
 
 class TokenManager(
     context: Context
-) {
+) : ChatTokenStore {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
 
@@ -21,7 +21,7 @@ class TokenManager(
         prefs.edit().putString("username", username).apply()
     }
 
-    fun getUsername(): String? {
+    override fun getUsername(): String? {
         return prefs.getString("username", null)
     }
 
@@ -29,7 +29,7 @@ class TokenManager(
         prefs.edit().putString("email", email).apply()
     }
 
-    fun getEmail(): String? {
+    override fun getEmail(): String? {
         return prefs.getString("email", null)
     }
 
@@ -37,27 +37,27 @@ class TokenManager(
         prefs.edit().putString("password", password).apply()
     }
 
-    fun getPassword(): String? {
+    override fun getPassword(): String? {
         return prefs.getString("password", null)
     }
 
-    fun saveChatToken(token: String) {
+    override fun saveChatToken(token: String) {
         prefs.edit().putString("chat_token", token).apply()
     }
 
-    fun getChatToken(): String? {
+    override fun getChatToken(): String? {
         return prefs.getString("chat_token", null)
     }
 
-    fun saveChatTokenUser(username: String) {
+    override fun saveChatTokenUser(username: String) {
         prefs.edit().putString("chat_token_user", username).apply()
     }
 
-    fun getChatTokenUser(): String? {
+    override fun getChatTokenUser(): String? {
         return prefs.getString("chat_token_user", null)
     }
 
-    fun clearChatToken() {
+    override fun clearChatToken() {
         prefs.edit().remove("chat_token").remove("chat_token_user").apply()
     }
 

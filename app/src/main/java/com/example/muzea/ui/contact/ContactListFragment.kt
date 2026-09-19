@@ -14,6 +14,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.example.muzea.R
 import com.example.muzea.data.api.ChatRetrofitClient
 import com.example.muzea.data.model.ContactResponse
+import com.example.muzea.data.repository.ChatAuthManager
 import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.databinding.FragmentContactListBinding
 import com.example.muzea.utils.NetworkResult
@@ -52,7 +53,7 @@ class ContactListFragment : Fragment() {
     private fun initViewModel() {
         val tokenManager = TokenManager(requireContext())
         val apiService = ChatRetrofitClient(tokenManager).apiService
-        val chatRepository = ChatRepository(apiService, tokenManager)
+        val chatRepository = ChatRepository(apiService, ChatAuthManager(apiService, tokenManager))
         viewModel = ContactViewModel(chatRepository)
     }
 

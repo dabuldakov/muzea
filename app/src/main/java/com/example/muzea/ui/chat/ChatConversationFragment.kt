@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.muzea.R
 import com.example.muzea.data.api.ChatRetrofitClient
 import com.example.muzea.data.model.MessageResponse
+import com.example.muzea.data.repository.ChatAuthManager
 import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.databinding.FragmentChatConversationBinding
 import com.example.muzea.utils.TokenManager
@@ -69,7 +70,7 @@ class ChatConversationFragment : Fragment() {
     private fun initViewModel() {
         val tokenManager = TokenManager(requireContext())
         val apiService = ChatRetrofitClient(tokenManager).apiService
-        val chatRepository = ChatRepository(apiService, tokenManager)
+        val chatRepository = ChatRepository(apiService, ChatAuthManager(apiService, tokenManager))
         viewModel = ChatConversationViewModel(chatUuid, chatRepository, extractMyUserUuid(tokenManager))
     }
 

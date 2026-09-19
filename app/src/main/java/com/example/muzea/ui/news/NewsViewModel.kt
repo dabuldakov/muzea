@@ -33,7 +33,6 @@ class NewsViewModel(
     private var isContactsLoaded = false
     private var contactUsernames = emptySet<String>()
     private var ownUsername: String? = null
-    private var filterByContacts = false
 
     private var isLoading = false
     private var endReached = false
@@ -53,7 +52,7 @@ class NewsViewModel(
 
             if (!isContactsLoaded) {
                 isContactsLoaded = true
-                filterByContacts = loadContactUsernames()
+                contactUsernames = loadContactUsernames()
             }
 
             fillFeed()
@@ -70,21 +69,18 @@ class NewsViewModel(
         }
     }
 
-    private suspend fun loadContactUsernames(): Boolean {
+    private suspend fun loadContactUsernames(): Set<String> {
         return try {
             val result = chatRepository.loadContacts().firstTerminal()
             when (result) {
-                is NetworkResult.Success -> {
-                    contactUsernames = (result.data ?: emptyList())
-                        .mapNotNull { (it.username ?: it.contactName)?.trim() }
-                        .filter { it.isNotEmpty() }
-                        .toSet()
-                    true
-                }
-                else -> false
+                is NetworkResult.Success -> (result.data ?: emptyList())
+                    .mapNotNull { (it.username ?: it.contactName)?.trim() }
+                    .filter { it.isNotEmpty() }
+                    .toSet()
+                else -> emptySet()
             }
         } catch (e: Exception) {
-            false
+            emptySet()
         }
     }
 
@@ -131,9 +127,7 @@ class NewsViewModel(
     }
 
     private fun visibleNews(): List<NewsResponse> {
-        if (!filterByContacts) return rawNewsCache.toList()
-        val me = ownUsername?.trim()
-        return rawNewsCache.filter { it.author.trim() in contactUsernames || it.author.trim() == me }
+        return NewsFeedFilter.filterByContacts(rawNewsCache, contactUsernames, ownUsername)
     }
 
     fun loadNewsById(id: Long) {

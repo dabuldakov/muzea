@@ -14,6 +14,7 @@ import com.example.muzea.R
 import com.example.muzea.data.api.ChatRetrofitClient
 import com.example.muzea.data.api.RetrofitClient
 import com.example.muzea.data.model.NewsResponse
+import com.example.muzea.data.repository.ChatAuthManager
 import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.data.repository.NewsRepository
 import com.example.muzea.databinding.FragmentNewsListBinding
@@ -61,7 +62,8 @@ class NewsListFragment : Fragment() {
         myUsername = tokenManager.getUsername()
         val apiService = RetrofitClient(tokenManager).apiService
         val newsRepository = NewsRepository(apiService)
-        val chatRepository = ChatRepository(ChatRetrofitClient(tokenManager).apiService, tokenManager)
+        val chatApiService = ChatRetrofitClient(tokenManager).apiService
+        val chatRepository = ChatRepository(chatApiService, ChatAuthManager(chatApiService, tokenManager))
         viewModel = NewsViewModel(newsRepository, chatRepository)
     }
 

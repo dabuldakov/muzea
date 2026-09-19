@@ -15,7 +15,7 @@ class VideoViewModel(
     private val videoRepository: VideoRepository
 ) : ViewModel() {
 
-    private val _videosResult = MutableSharedFlow<NetworkResult<List<VideoResponse>>>()
+    private val _videosResult = MutableSharedFlow<NetworkResult<List<VideoResponse>>>(replay = 1)
     val videosResult: SharedFlow<NetworkResult<List<VideoResponse>>> = _videosResult.asSharedFlow()
 
     private val _videoDetailResult = MutableSharedFlow<NetworkResult<VideoResponse>>()
@@ -24,12 +24,30 @@ class VideoViewModel(
     private val _uploadResult = MutableSharedFlow<NetworkResult<VideoResponse>>()
     val uploadResult: SharedFlow<NetworkResult<VideoResponse>> = _uploadResult.asSharedFlow()
 
-    fun loadVideos() {
+    private var isLoading = false
+
+    fun loadVideos(ownUsername: String? = null) {
+        if (isLoading) return
         viewModelScope.launch {
+            isLoading = true
+            _videosResult.emit(NetworkResult.Loading())
+
             videoRepository.getVideos().collect { result ->
-                _videosResult.emit(result)
+                when (result) {
+                    is NetworkResult.Success -> {
+                        val raw = result.data ?: emptyList()
+                        _videosResult.emit(NetworkResult.Success(visibleVideos(raw, ownUsername)))
+                    }
+                    is NetworkResult.Error -> _videosResult.emit(result)
+                    is NetworkResult.Loading -> Unit
+                }
             }
+            isLoading = false
         }
+    }
+
+    private fun visibleVideos(raw: List<VideoResponse>, ownUsername: String?): List<VideoResponse> {
+        return VideoFeedFilter.filterOwn(raw, ownUsername)
     }
 
     fun loadVideoById(id: Long) {
