@@ -55,6 +55,9 @@ class ChatAuthManagerTest {
 
         override suspend fun sendMessage(chatUuid: String, request: SendMessageRequest): Response<MessageResponse> =
             error("unused")
+
+        override suspend fun markMessagesAsRead(chatUuid: String, upToMessageUuid: String): Response<Unit> =
+            error("unused")
     }
 
     private open class FakeTokenStore : ChatTokenStore {

@@ -67,6 +67,16 @@ class ChatRepository(
         return response
     }
 
+    suspend fun markMessagesAsRead(chatUuid: String, upToMessageUuid: String): Boolean {
+        return try {
+            authenticatedRequest { apiService.markMessagesAsRead(chatUuid, upToMessageUuid) }.isSuccessful
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     suspend fun loadChats(): Flow<NetworkResult<List<ChatResponse>>> = flow {
         emit(NetworkResult.Loading())
         try {

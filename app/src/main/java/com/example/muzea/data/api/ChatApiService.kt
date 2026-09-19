@@ -80,4 +80,10 @@ interface ChatApiService {
         @Path("chatUuid") chatUuid: String,
         @Body request: SendMessageRequest
     ): Response<MessageResponse>
+
+    @POST("/api/messages/{chatUuid}/read")
+    suspend fun markMessagesAsRead(
+        @Path("chatUuid") chatUuid: String,
+        @Query("upToMessageUuid") upToMessageUuid: String
+    ): Response<Unit>
 }

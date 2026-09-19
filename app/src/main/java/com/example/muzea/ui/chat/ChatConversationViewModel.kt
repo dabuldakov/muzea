@@ -35,6 +35,7 @@ class ChatConversationViewModel(
     val sendError: SharedFlow<String> = _sendError.asSharedFlow()
 
     private var pollingJob: Job? = null
+    private var lastMarkedReadUuid: String? = null
 
     init {
         refresh()
@@ -64,7 +65,7 @@ class ChatConversationViewModel(
         if (trimmed.isEmpty()) return
 
         val optimistic = MessageResponse(
-            messageUuid = "local-" + System.currentTimeMillis(),
+            messageUuid = LOCAL_PREFIX + System.currentTimeMillis(),
             chatUuid = chatUuid,
             senderId = null,
             senderUuid = myUserUuid,
@@ -107,6 +108,20 @@ class ChatConversationViewModel(
         for (m in incoming) merged[m.messageUuid] = m
         for (m in _messages.value) merged[m.messageUuid] = m
         _messages.value = merged.values.toList().sortedWith(MessageComparator())
+        markLatestAsRead()
+    }
+
+    private fun markLatestAsRead() {
+        val latest = _messages.value.lastOrNull {
+            it.messageUuid.isNotBlank() && !it.messageUuid.startsWith(LOCAL_PREFIX)
+        } ?: return
+        if (latest.messageUuid == lastMarkedReadUuid) return
+        lastMarkedReadUuid = latest.messageUuid
+        viewModelScope.launch {
+            if (!chatRepository.markMessagesAsRead(chatUuid, latest.messageUuid)) {
+                lastMarkedReadUuid = null
+            }
+        }
     }
 
     private class MessageComparator : Comparator<MessageResponse> {
@@ -136,5 +151,9 @@ class ChatConversationViewModel(
     override fun onCleared() {
         pollingJob?.cancel()
         super.onCleared()
+    }
+
+    companion object {
+        private const val LOCAL_PREFIX = "local-"
     }
 }
