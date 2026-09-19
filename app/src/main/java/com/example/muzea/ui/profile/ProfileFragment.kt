@@ -1,6 +1,18 @@
 package com.example.muzea.ui.profile
 
 import android.os.Bundle
+import android.net.Uri
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import com.example.muzea.data.api.ChatRetrofitClient
+import com.example.muzea.data.repository.ChatAuthManager
+import com.example.muzea.data.repository.ChatRepository
+import com.example.muzea.utils.AvatarLoader
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.withContext
+import java.io.File
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -22,6 +34,10 @@ class ProfileFragment : Fragment() {
 
     private lateinit var viewModel: ProfileViewModel
     private var isEditing = false
+    private lateinit var avatarViewModel: AvatarViewModel
+    private val pickAvatar = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null && _binding != null) uploadAvatar(uri)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -40,6 +56,34 @@ class ProfileFragment : Fragment() {
         val apiService = RetrofitClient(tokenManager).apiService
         val userRepository = UserRepository(apiService)
         viewModel = ProfileViewModel(userRepository, tokenManager)
+        val chatApi = ChatRetrofitClient(tokenManager).apiService
+        val chatRepository = ChatRepository(chatApi, ChatAuthManager(chatApi, tokenManager))
+        avatarViewModel = ViewModelProvider(this, object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T = AvatarViewModel(chatRepository) as T
+        })[AvatarViewModel::class.java]
+
+        binding.btnChangeAvatar.setOnClickListener { pickAvatar.launch(arrayOf("image/jpeg", "image/png")) }
+        binding.btnDeleteAvatar.setOnClickListener { avatarViewModel.delete() }
+        binding.btnRetryAvatar.setOnClickListener { avatarViewModel.load() }
+        viewLifecycleOwner.lifecycleScope.launch {
+            avatarViewModel.state.collect { result ->
+                val loading = result is NetworkResult.Loading
+                binding.avatarProgress.visibility = if (loading) View.VISIBLE else View.GONE
+                binding.btnChangeAvatar.isEnabled = !loading
+                binding.btnDeleteAvatar.isEnabled = !loading
+                binding.tvAvatarError.visibility = if (result is NetworkResult.Error) View.VISIBLE else View.GONE
+                binding.btnRetryAvatar.visibility = if (result is NetworkResult.Error) View.VISIBLE else View.GONE
+                when (result) {
+                    is NetworkResult.Success -> {
+                        AvatarLoader.load(binding.ivAvatar, result.data?.avatarUrl)
+                        binding.btnDeleteAvatar.isEnabled = !result.data?.avatarUrl.isNullOrBlank()
+                    }
+                    is NetworkResult.Error -> binding.tvAvatarError.text = result.message
+                    is NetworkResult.Loading -> Unit
+                }
+            }
+        }
 
         setupClickListeners()
         observeViewModel()
@@ -57,6 +101,42 @@ class ProfileFragment : Fragment() {
 
         binding.btnLogout.setOnClickListener {
             logout()
+        }
+    }
+
+    private fun uploadAvatar(uri: Uri) {
+        val context = requireContext().applicationContext
+        viewLifecycleOwner.lifecycleScope.launch {
+            var file: File? = null
+            try {
+                val mimeType = context.contentResolver.getType(uri) ?: "image/jpeg"
+                withContext(Dispatchers.IO) {
+                    val target = File.createTempFile("avatar_", ".image", context.cacheDir)
+                    file = target
+                    val input = context.contentResolver.openInputStream(uri) ?: error("Cannot open image")
+                    input.use { source ->
+                        target.outputStream().use { output ->
+                            val buffer = ByteArray(8192)
+                            var total = 0L
+                            while (true) {
+                                val count = source.read(buffer)
+                                if (count < 0) break
+                                total += count
+                                check(total <= 5 * 1024 * 1024) { "Choose an image up to 5 MB" }
+                                output.write(buffer, 0, count)
+                            }
+                        }
+                    }
+                }
+                avatarViewModel.upload(file!!, mimeType)
+                file = null // ViewModel owns the temporary file until the request completes.
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Toast.makeText(context, e.message ?: "Cannot open image", Toast.LENGTH_LONG).show()
+            } finally {
+                file?.delete()
+            }
         }
     }
 
@@ -86,7 +166,7 @@ class ProfileFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.userProfileResult.collect { result ->
                 when (result) {
                     is NetworkResult.Loading -> {
@@ -105,7 +185,7 @@ class ProfileFragment : Fragment() {
             }
         }
 
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.updateProfileResult.collect { result ->
                 when (result) {
                     is NetworkResult.Loading -> {

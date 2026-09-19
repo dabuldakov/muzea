@@ -16,6 +16,7 @@ import com.example.muzea.data.repository.ChatAuthManager
 import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.databinding.FragmentChatConversationBinding
 import com.example.muzea.utils.TokenManager
+import com.example.muzea.utils.AvatarLoader
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
@@ -31,12 +32,14 @@ class ChatConversationFragment : Fragment() {
     companion object {
         private const val ARG_CHAT_UUID = "chat_uuid"
         private const val ARG_CHAT_TITLE = "chat_title"
+        private const val ARG_CHAT_AVATAR = "chat_avatar"
 
-        fun newInstance(chatUuid: String, chatTitle: String): ChatConversationFragment {
+        fun newInstance(chatUuid: String, chatTitle: String, avatarUrl: String? = null): ChatConversationFragment {
             return ChatConversationFragment().apply {
                 arguments = Bundle().apply {
                     putString(ARG_CHAT_UUID, chatUuid)
                     putString(ARG_CHAT_TITLE, chatTitle)
+                    putString(ARG_CHAT_AVATAR, avatarUrl)
                 }
             }
         }
@@ -57,6 +60,7 @@ class ChatConversationFragment : Fragment() {
         val chatTitle = arguments?.getString(ARG_CHAT_TITLE) ?: "Chat"
 
         binding.tvTitle.text = chatTitle
+        AvatarLoader.load(binding.ivAvatar, arguments?.getString(ARG_CHAT_AVATAR))
         binding.btnBack.setOnClickListener {
             requireActivity().supportFragmentManager.popBackStack()
         }
@@ -99,7 +103,7 @@ class ChatConversationFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.messages.collect { messages ->
                 adapter.updateList(messages)
                 updateEmptyState(messages)
@@ -112,7 +116,7 @@ class ChatConversationFragment : Fragment() {
             }
         }
 
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.isLoading.collect { loading ->
                 if (loading && adapter.currentList.isEmpty()) {
                     binding.progressBar.visibility = View.VISIBLE
@@ -122,7 +126,7 @@ class ChatConversationFragment : Fragment() {
             }
         }
 
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.error.collect { error ->
                 if (error != null && adapter.currentList.isEmpty()) {
                     binding.tvError.text = error
@@ -135,7 +139,7 @@ class ChatConversationFragment : Fragment() {
             }
         }
 
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.sendError.collect { message ->
                 Toast.makeText(requireContext(), "Error: $message", Toast.LENGTH_LONG).show()
             }

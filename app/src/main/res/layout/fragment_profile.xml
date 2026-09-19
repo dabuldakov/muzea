@@ -28,6 +28,43 @@
 
         </com.google.android.material.card.MaterialCardView>
 
+        <Button
+            android:id="@+id/btnChangeAvatar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/change_avatar" />
+
+        <Button
+            android:id="@+id/btnDeleteAvatar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/delete_avatar" />
+
+        <ProgressBar
+            android:id="@+id/avatarProgress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvAvatarError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@color/red"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btnRetryAvatar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/retry_avatar"
+            android:visibility="gone" />
+
         <!-- Username -->
         <TextView
             android:id="@+id/tvUsername"

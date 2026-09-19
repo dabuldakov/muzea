@@ -6,12 +6,9 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.example.muzea.R
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.databinding.ItemChatBinding
-import com.example.muzea.utils.Constants
+import com.example.muzea.utils.AvatarLoader
 
 class ChatAdapter(
     private val onItemClick: (String) -> Unit
@@ -66,20 +63,7 @@ class ChatAdapter(
         }
 
         private fun loadAvatar(chat: ChatResponse) {
-            val url = chat.avatarUrl?.let { resolveUrl(it) }
-            if (!url.isNullOrEmpty()) {
-                Glide.with(binding.root.context)
-                    .load(url)
-                    .circleCrop()
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .placeholder(R.drawable.ic_default_avatar)
-                    .error(R.drawable.ic_default_avatar)
-                    .into(binding.ivAvatar)
-            }
-        }
-
-        private fun resolveUrl(url: String): String {
-            return if (url.startsWith("http")) url else Constants.CHAT_BASE_URL.trimEnd('/') + url
+            AvatarLoader.load(binding.ivAvatar, chat.avatarUrl)
         }
 
         private fun formatTime(iso: String): String {

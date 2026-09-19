@@ -10,11 +10,62 @@ import com.example.muzea.data.model.SendMessageRequest
 import com.example.muzea.utils.NetworkResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flowOn
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
+import com.example.muzea.data.model.AvatarResponse
 
 class ChatRepository(
     private val apiService: ChatApiService,
     private val chatAuthManager: ChatAuthManager
 ) {
+
+    suspend fun loadAvatar(): Flow<NetworkResult<AvatarResponse>> = avatarRequest {
+        val response = authenticatedRequest { apiService.getMyProfile() }
+        check(response.isSuccessful && response.body() != null) { "Could not load avatar (${response.code()})" }
+        AvatarResponse(response.body()!!.avatarUrl)
+    }
+
+    suspend fun uploadAvatar(file: File, mimeType: String): Flow<NetworkResult<AvatarResponse>> = avatarRequest {
+        val part = MultipartBody.Part.createFormData("file", file.name, file.asRequestBody(mimeType.toMediaType()))
+        val response = authenticatedRequest { apiService.uploadAvatar(part) }
+        check(response.isSuccessful && response.body()?.avatarUrl != null) {
+            "Could not upload avatar (${response.code()}). Use a JPEG or PNG image up to 5 MB."
+        }
+        response.body()!!
+    }
+
+    suspend fun deleteAvatar(): Flow<NetworkResult<AvatarResponse>> = avatarRequest {
+        val response = authenticatedRequest { apiService.deleteAvatar() }
+        check(response.isSuccessful) { "Could not delete avatar (${response.code()})" }
+        AvatarResponse(null)
+    }
+
+    private fun avatarRequest(action: suspend () -> AvatarResponse): Flow<NetworkResult<AvatarResponse>> = flow {
+        emit(NetworkResult.Loading())
+        try {
+            emit(NetworkResult.Success(action()))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            emit(NetworkResult.Error(e.message ?: "Avatar request failed"))
+        }
+    }.flowOn(Dispatchers.IO)
+
+    private suspend fun <T> authenticatedRequest(action: suspend () -> retrofit2.Response<T>): retrofit2.Response<T> {
+        check(chatAuthManager.isAuthenticated()) { "Chat auth failed. Please log in again." }
+        var response = action()
+        if (response.code() == 401) {
+            chatAuthManager.invalidate()
+            check(chatAuthManager.isAuthenticated()) { "Chat auth failed. Please log in again." }
+            response = action()
+        }
+        return response
+    }
 
     suspend fun loadChats(): Flow<NetworkResult<List<ChatResponse>>> = flow {
         emit(NetworkResult.Loading())

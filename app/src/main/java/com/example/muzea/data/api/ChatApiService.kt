@@ -1,6 +1,7 @@
 package com.example.muzea.data.api
 
 import com.example.muzea.data.model.AddContactRequest
+import com.example.muzea.data.model.AvatarResponse
 import com.example.muzea.data.model.ChatAuthResponse
 import com.example.muzea.data.model.ChatLoginRequest
 import com.example.muzea.data.model.ChatRegisterRequest
@@ -14,11 +15,27 @@ import com.example.muzea.data.model.SendMessageRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.DELETE
+import retrofit2.http.Multipart
+import retrofit2.http.Part
+import okhttp3.MultipartBody
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface ChatApiService {
+
+    @GET("/api/users/me")
+    suspend fun getMyProfile(): Response<ChatUserResponse>
+
+    @Multipart
+    @POST("/api/users/me/avatar")
+    suspend fun uploadAvatar(
+        @Part file: MultipartBody.Part
+    ): Response<AvatarResponse>
+
+    @DELETE("/api/users/me/avatar")
+    suspend fun deleteAvatar(): Response<Unit>
 
     @POST("/api/auth/login")
     suspend fun login(

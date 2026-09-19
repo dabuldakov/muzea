@@ -65,7 +65,7 @@ class ChatListFragment : Fragment() {
         val chat = adapter.currentList.firstOrNull { it.chatUuid == chatUuid }
         val title = chat?.title ?: "Chat"
 
-        val fragment = ChatConversationFragment.newInstance(chatUuid, title)
+        val fragment = ChatConversationFragment.newInstance(chatUuid, title, chat?.avatarUrl)
         parentFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)
             .addToBackStack(null)

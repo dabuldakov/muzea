@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.muzea.R
 import com.example.muzea.data.model.MessageResponse
+import com.example.muzea.utils.AvatarLoader
 import com.example.muzea.databinding.ItemMessageIncomingBinding
 import com.example.muzea.databinding.ItemMessageOutgoingBinding
 
@@ -50,6 +51,7 @@ class MessageAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(message: MessageResponse) {
+            AvatarLoader.load(binding.ivAvatar, message.senderAvatar)
             binding.tvMessage.text = message.text ?: ""
 
             if (!message.senderName.isNullOrEmpty()) {
