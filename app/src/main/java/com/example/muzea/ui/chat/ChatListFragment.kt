@@ -1,0 +1,133 @@
+package com.example.muzea.ui.chat
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Toast
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.muzea.R
+import com.example.muzea.data.api.ChatRetrofitClient
+import com.example.muzea.data.repository.ChatRepository
+import com.example.muzea.databinding.FragmentChatListBinding
+import com.example.muzea.utils.NetworkResult
+import com.example.muzea.utils.TokenManager
+import kotlinx.coroutines.launch
+
+class ChatListFragment : Fragment() {
+
+    private var _binding: FragmentChatListBinding? = null
+    private val binding get() = _binding!!
+    private lateinit var viewModel: ChatViewModel
+    private lateinit var adapter: ChatAdapter
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentChatListBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        initViewModel()
+        setupRecyclerView()
+        setupSwipeRefresh()
+        observeViewModel()
+        loadChats()
+    }
+
+    private fun initViewModel() {
+        val tokenManager = TokenManager(requireContext())
+        val apiService = ChatRetrofitClient(tokenManager).apiService
+        val chatRepository = ChatRepository(apiService, tokenManager)
+        viewModel = ChatViewModel(chatRepository)
+    }
+
+    private fun setupRecyclerView() {
+        adapter = ChatAdapter(
+            onItemClick = { chatUuid ->
+                Toast.makeText(requireContext(), "Opening chat: $chatUuid", Toast.LENGTH_SHORT).show()
+            }
+        )
+        binding.recyclerViewChats.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = this@ChatListFragment.adapter
+        }
+    }
+
+    private fun setupSwipeRefresh() {
+        binding.swipeRefresh.setOnRefreshListener {
+            loadChats()
+        }
+    }
+
+    private fun loadChats() {
+        viewModel.loadChats()
+    }
+
+    private fun observeViewModel() {
+        lifecycleScope.launch {
+            viewModel.chatsResult.collect { result ->
+                when (result) {
+                    is NetworkResult.Loading -> handleLoadingState()
+                    is NetworkResult.Success -> handleSuccessState(result.data ?: emptyList())
+                    is NetworkResult.Error -> handleErrorState(result.message ?: "Unknown error")
+                }
+            }
+        }
+    }
+
+    private fun handleLoadingState() {
+        if (!binding.swipeRefresh.isRefreshing) {
+            binding.progressBar.visibility = View.VISIBLE
+        }
+    }
+
+    private fun handleSuccessState(chats: List<com.example.muzea.data.model.ChatResponse>) {
+        binding.progressBar.visibility = View.GONE
+        binding.swipeRefresh.isRefreshing = false
+
+        adapter.updateList(chats)
+        updateEmptyState()
+    }
+
+    private fun handleErrorState(message: String) {
+        binding.progressBar.visibility = View.GONE
+        binding.swipeRefresh.isRefreshing = false
+
+        if (adapter.currentList.isEmpty()) {
+            binding.tvError.text = message
+            binding.tvError.visibility = View.VISIBLE
+            binding.recyclerViewChats.visibility = View.GONE
+        } else {
+            Toast.makeText(requireContext(), "Error: $message", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun updateEmptyState() {
+        if (adapter.currentList.isEmpty()) {
+            binding.tvEmpty.visibility = View.VISIBLE
+            binding.recyclerViewChats.visibility = View.GONE
+            binding.tvError.visibility = View.GONE
+        } else {
+            binding.tvEmpty.visibility = View.GONE
+            binding.recyclerViewChats.visibility = View.VISIBLE
+            binding.tvError.visibility = View.GONE
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        loadChats()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}

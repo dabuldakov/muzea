@@ -5,6 +5,10 @@
         android:icon="@android:drawable/ic_menu_agenda"
         android:title="News" />
     <item
+        android:id="@+id/chatFragment"
+        android:icon="@drawable/ic_chat"
+        android:title="Chat" />
+    <item
         android:id="@+id/videoListFragment"
         android:icon="@android:drawable/ic_menu_gallery"
         android:title="Videos" />

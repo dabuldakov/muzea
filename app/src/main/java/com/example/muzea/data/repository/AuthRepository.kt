@@ -21,6 +21,7 @@ class AuthRepository(
                 val authResponse = response.body()!!
                 tokenManager.saveToken(authResponse.token)
                 tokenManager.saveUsername(authResponse.username)
+                tokenManager.savePassword(password)
                 emit(NetworkResult.Success(authResponse.token))
             } else {
                 emit(NetworkResult.Error("Login failed: ${response.message()}"))
@@ -43,6 +44,8 @@ class AuthRepository(
                 val authResponse = response.body()!!
                 tokenManager.saveToken(authResponse.token)
                 tokenManager.saveUsername(authResponse.username)
+                tokenManager.saveEmail(email)
+                tokenManager.savePassword(password)
                 emit(NetworkResult.Success(authResponse.token))
             } else {
                 emit(NetworkResult.Error("Registration failed: ${response.message()}"))

@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.example.muzea.R
 import com.example.muzea.databinding.ActivityMainBinding
+import com.example.muzea.ui.chat.ChatListFragment
 import com.example.muzea.ui.news.NewsListFragment
 import com.example.muzea.ui.profile.ProfileFragment
 import com.example.muzea.ui.video.VideoListFragment
@@ -32,6 +33,10 @@ class MainActivity : AppCompatActivity() {
             when (menuItem.itemId) {
                 R.id.newsListFragment -> {
                     replaceFragment(NewsListFragment())
+                    true
+                }
+                R.id.chatFragment -> {
+                    replaceFragment(ChatListFragment())
                     true
                 }
                 R.id.videoListFragment -> {
