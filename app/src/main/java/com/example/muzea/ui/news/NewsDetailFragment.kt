@@ -18,7 +18,7 @@ import com.example.muzea.data.model.NewsResponse
 import com.example.muzea.data.repository.ChatAuthManager
 import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.data.repository.NewsRepository
-import com.example.muzea.utils.Constants
+import com.example.muzea.utils.MediaUrl
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
 import kotlinx.coroutines.launch
@@ -123,7 +123,7 @@ class NewsDetailFragment : Fragment() {
 
         if (!news.imageUrl.isNullOrEmpty()) {
             Glide.with(requireContext())
-                .load(Constants.BASE_URL + news.imageUrl)
+                .load(MediaUrl.main(news.imageUrl))
                 .centerCrop()
                 .diskCacheStrategy(DiskCacheStrategy.ALL)
                 .placeholder(R.drawable.placeholder_image)

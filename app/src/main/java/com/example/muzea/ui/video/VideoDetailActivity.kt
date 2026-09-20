@@ -9,7 +9,6 @@ import androidx.media3.exoplayer.ExoPlayer
 import com.example.muzea.data.api.RetrofitClient
 import com.example.muzea.data.repository.VideoRepository
 import com.example.muzea.databinding.ActivityVideoDetailBinding
-import com.example.muzea.utils.Constants
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
 import com.example.muzea.utils.VideoPlayerHelper
@@ -82,7 +81,7 @@ class VideoDetailActivity : AppCompatActivity() {
         binding.tvUploader.text = "Uploaded by: ${video.uploadedBy}"
         binding.tvDate.text = video.uploadedAt
 
-        val fullVideoUrl = Constants.BASE_URL + video.url
+        val fullVideoUrl = video.getFullVideoUrl(com.example.muzea.utils.Constants.BASE_URL)
         initializePlayer(fullVideoUrl)
     }
 

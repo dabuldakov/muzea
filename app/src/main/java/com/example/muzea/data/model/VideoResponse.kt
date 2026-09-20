@@ -27,10 +27,10 @@ data class VideoResponse(
     val uploadedAt: String
 ) {
     fun getFullThumbnailUrl(baseUrl: String): String? {
-        return if (thumbnailUrl.isNullOrEmpty()) null else baseUrl + thumbnailUrl
+        return com.example.muzea.utils.MediaUrl.absolute(baseUrl, thumbnailUrl)
     }
 
     fun getFullVideoUrl(baseUrl: String): String {
-        return if (url.startsWith("http")) url else baseUrl + url
+        return com.example.muzea.utils.MediaUrl.absolute(baseUrl, url) ?: url
     }
 }

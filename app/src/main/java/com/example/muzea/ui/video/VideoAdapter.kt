@@ -8,7 +8,7 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.muzea.R
 import com.example.muzea.data.model.VideoResponse
 import com.example.muzea.databinding.ItemVideoBinding
-import com.example.muzea.utils.Constants
+import com.example.muzea.utils.MediaUrl
 
 class VideoAdapter(
     private val onItemClick: (Long) -> Unit
@@ -47,7 +47,7 @@ class VideoAdapter(
         }
 
         private fun loadThumbnail(video: VideoResponse) {
-            val thumbnailUrl = video.thumbnailUrl?.let { Constants.BASE_URL + it }
+            val thumbnailUrl = MediaUrl.main(video.thumbnailUrl)
 
             Glide.with(binding.root.context)
                 .load(thumbnailUrl)
