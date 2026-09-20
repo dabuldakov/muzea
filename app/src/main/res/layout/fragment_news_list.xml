@@ -13,7 +13,9 @@
             android:id="@+id/recyclerViewNews"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="8dp" />
+            android:clipToPadding="false"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp" />
 
         <TextView
             android:id="@+id/tvEmpty"
@@ -29,7 +31,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:textColor="@color/red"
+            android:textColor="?attr/colorError"
             android:textSize="14sp"
             android:visibility="gone" />
 
@@ -45,9 +47,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"
-            android:layout_margin="16dp"
-            android:src="@android:drawable/ic_input_add"
-            app:fabSize="normal" />     
+            android:layout_margin="20dp"
+            app:backgroundTint="?attr/colorPrimary"
+            app:fabSize="normal"
+            app:tint="@color/white"
+            android:src="@drawable/ic_add" />     
 
     </FrameLayout>
 

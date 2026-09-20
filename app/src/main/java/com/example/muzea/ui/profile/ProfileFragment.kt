@@ -145,7 +145,6 @@ class ProfileFragment : Fragment() {
         binding.btnEditProfile.text = "Save"
         binding.etFullName.isEnabled = true
         binding.etEmail.isEnabled = true
-        binding.btnEditProfile.setBackgroundColor(requireContext().getColor(android.R.color.holo_green_dark))
     }
 
     private fun saveChanges() {
@@ -220,7 +219,6 @@ class ProfileFragment : Fragment() {
         binding.btnEditProfile.text = "Edit Profile"
         binding.etFullName.isEnabled = false
         binding.etEmail.isEnabled = false
-        binding.btnEditProfile.setBackgroundColor(requireContext().getColor(android.R.color.holo_blue_dark))
     }
 
     private fun logout() {
