@@ -8,6 +8,7 @@ import com.example.muzea.utils.NetworkResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody
 
 class VideoRepository (
@@ -49,7 +50,11 @@ class VideoRepository (
     ): Flow<NetworkResult<VideoResponse>> = flow {
         emit(NetworkResult.Loading())
         try {
-            val response = apiService.uploadVideo(title, description, filePart)
+            val response = apiService.uploadVideo(
+                title.toRequestBody(),
+                description?.toRequestBody(),
+                filePart
+            )
             if (response.isSuccessful && response.body() != null) {
                 emit(NetworkResult.Success(response.body()!!))
             } else {

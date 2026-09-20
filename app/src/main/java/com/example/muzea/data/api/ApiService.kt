@@ -31,8 +31,8 @@ interface ApiService {
     @Multipart
     @POST("/api/videos/upload")
     suspend fun uploadVideo(
-        @Part("title") title: String,
-        @Part("description") description: String?,
+        @Part("title") title: okhttp3.RequestBody,
+        @Part("description") description: okhttp3.RequestBody?,
         @Part file: MultipartBody.Part
     ): Response<VideoResponse>
 
@@ -57,8 +57,8 @@ interface ApiService {
     @Multipart
     @POST("/api/news")
     suspend fun createNews(
-        @Part("title") title: String,
-        @Part("content") content: String,
+        @Part("title") title: okhttp3.RequestBody,
+        @Part("content") content: okhttp3.RequestBody,
         @Part("videoId") videoId: Long?,
         @Part image: MultipartBody.Part?
     ): Response<NewsCreateResponse>

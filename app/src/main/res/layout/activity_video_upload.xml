@@ -10,6 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="?attr/colorPrimary"
+        android:title="Upload Video"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar" />
 
     <ScrollView
@@ -20,7 +21,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="24dp">
+            android:padding="16dp">
 
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
@@ -55,9 +56,10 @@
             <Button
                 android:id="@+id/btnSelectVideo"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_marginTop="24dp"
                 android:text="Select Video"
+                android:textAllCaps="false"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
             <TextView
@@ -72,10 +74,11 @@
             <Button
                 android:id="@+id/btnUpload"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
                 android:layout_marginTop="24dp"
                 android:enabled="false"
-                android:text="Upload Video" />
+                android:text="Upload Video"
+                android:textAllCaps="false" />
 
             <TextView
                 android:id="@+id/tvProgress"

@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.flow
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 
 class NewsRepository constructor(
@@ -59,7 +60,7 @@ class NewsRepository constructor(
                 MultipartBody.Part.createFormData("image", it.name, requestFile)
             }
 
-            val response = apiService.createNews(title, content, videoId, imagePart)
+            val response = apiService.createNews(title.toRequestBody(), content.toRequestBody(), videoId, imagePart)
             if (response.isSuccessful && response.body() != null) {
                 emit(NetworkResult.Success(response.body()!!))
             } else {
