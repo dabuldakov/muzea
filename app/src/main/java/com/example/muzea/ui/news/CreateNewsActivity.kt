@@ -1,13 +1,11 @@
 package com.example.muzea.ui.news
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -48,19 +46,9 @@ class CreateNewsActivity : AppCompatActivity() {
 
     // Регистрация для выбора изображения из галереи
     private val pickImageLauncher = registerForActivityResult(
-        ActivityResultContracts.GetContent()
+        ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
         uri?.let { handleSelectedImage(it) }
-    }
-
-    // Регистрация для разрешений
-    private val permissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        if (permissions.values.any { !it }) {
-            Toast.makeText(this, "Storage permission required to select images", Toast.LENGTH_LONG)
-                .show()
-        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -88,7 +76,6 @@ class CreateNewsActivity : AppCompatActivity() {
         setupToolbar()
         setupClickListeners()
         observeViewModels()
-        checkPermissions()
     }
 
     private fun setupToolbar() {
@@ -99,7 +86,11 @@ class CreateNewsActivity : AppCompatActivity() {
 
     private fun setupClickListeners() {
         binding.btnSubmit.setOnClickListener { createNews() }
-        binding.btnSelectImage.setOnClickListener { pickImageLauncher.launch("image/*") }
+        binding.btnSelectImage.setOnClickListener {
+            pickImageLauncher.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
+        }
     }
 
     private fun handleSelectedImage(uri: Uri) {
@@ -146,22 +137,6 @@ class CreateNewsActivity : AppCompatActivity() {
             }
         }
         return fileName
-    }
-
-    private fun checkPermissions() {
-        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
-        } else {
-            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
-        }
-
-        val missingPermissions = permissions.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }.toTypedArray()
-
-        if (missingPermissions.isNotEmpty()) {
-            permissionLauncher.launch(missingPermissions)
-        }
     }
 
     private fun loadVideos() {

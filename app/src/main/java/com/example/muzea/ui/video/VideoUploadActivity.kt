@@ -1,15 +1,12 @@
 package com.example.muzea.ui.video
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.widget.Toast
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.muzea.databinding.ActivityVideoUploadBinding
 import com.example.muzea.data.api.RetrofitClient
@@ -30,17 +27,8 @@ class VideoUploadActivity : AppCompatActivity() {
     private var selectedVideoFile: File? = null
 
     private val pickVideoLauncher = registerForActivityResult(
-        ActivityResultContracts.GetContent()
+        ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? -> uri?.let { copyVideoToCache(it) } }
-
-    private val permissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        if (permissions.values.any { !it }) {
-            Toast.makeText(this, "Permissions required", Toast.LENGTH_LONG).show()
-            finish()
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,7 +42,6 @@ class VideoUploadActivity : AppCompatActivity() {
         setupToolbar()
         setupClickListeners()
         observeViewModel()
-        checkPermissions()
     }
 
     private fun setupToolbar() {
@@ -64,22 +51,12 @@ class VideoUploadActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
-        binding.btnSelectVideo.setOnClickListener { pickVideoLauncher.launch("video/*") }
-        binding.btnUpload.setOnClickListener { uploadVideo() }
-    }
-
-    private fun checkPermissions() {
-        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            arrayOf(Manifest.permission.READ_MEDIA_VIDEO)
-        } else {
-            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+        binding.btnSelectVideo.setOnClickListener {
+            pickVideoLauncher.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
+            )
         }
-
-        val needPermissions = permissions.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }.toTypedArray()
-
-        if (needPermissions.isNotEmpty()) permissionLauncher.launch(needPermissions)
+        binding.btnUpload.setOnClickListener { uploadVideo() }
     }
 
     private fun copyVideoToCache(uri: Uri) {

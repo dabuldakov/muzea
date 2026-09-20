@@ -8,17 +8,6 @@
     <!-- Push-уведомления (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Для Android 13+ -->
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <uses-permission android:name="android.permission.CAMERA" />
-
-    <!-- Для старых версий -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-
-    <!-- Для записи видео -->
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-
     <application
         android:name=".MuzeaApplication"
         android:allowBackup="true"
