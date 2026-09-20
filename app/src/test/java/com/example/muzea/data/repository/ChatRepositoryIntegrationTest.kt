@@ -5,6 +5,7 @@ import com.example.muzea.utils.MediaUrl
 import com.example.muzea.utils.NetworkResult
 import com.google.gson.JsonParser
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
@@ -165,5 +166,20 @@ class ChatRepositoryIntegrationTest {
 
         val request = server.takeRequest()
         assertEquals("/api/users/me", request.path)
+    }
+
+    @Test
+    fun `loadContacts surfaces the chat auth failure reason`() = runTest {
+        coEvery { auth.isAuthenticated() } returns false
+        every { auth.lastFailureMessage } returns "Chat account \"xoxo\" already exists on the chat server"
+
+        val result = repo().loadContacts().toList().last()
+
+        assertTrue(result is NetworkResult.Error)
+        assertEquals(
+            "Chat auth failed. Chat account \"xoxo\" already exists on the chat server",
+            (result as NetworkResult.Error).message
+        )
+        assertEquals(0, server.requestCount)
     }
 }

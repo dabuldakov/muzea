@@ -56,12 +56,15 @@ class ChatRepository(
         }
     }.flowOn(Dispatchers.IO)
 
+    private fun authFailureMessage(): String =
+        "Chat auth failed. " + (chatAuthManager.lastFailureMessage ?: "Please log in again.")
+
     private suspend fun <T> authenticatedRequest(action: suspend () -> retrofit2.Response<T>): retrofit2.Response<T> {
-        check(chatAuthManager.isAuthenticated()) { "Chat auth failed. Please log in again." }
+        check(chatAuthManager.isAuthenticated()) { authFailureMessage() }
         var response = action()
         if (response.code() == 401) {
             chatAuthManager.invalidate()
-            check(chatAuthManager.isAuthenticated()) { "Chat auth failed. Please log in again." }
+            check(chatAuthManager.isAuthenticated()) { authFailureMessage() }
             response = action()
         }
         return response
@@ -97,7 +100,7 @@ class ChatRepository(
         emit(NetworkResult.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
-                emit(NetworkResult.Error("Chat auth failed. Please log in again."))
+                emit(NetworkResult.Error(authFailureMessage()))
                 return@flow
             }
 
@@ -123,7 +126,7 @@ class ChatRepository(
         emit(NetworkResult.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
-                emit(NetworkResult.Error("Chat auth failed. Please log in again."))
+                emit(NetworkResult.Error(authFailureMessage()))
                 return@flow
             }
 
@@ -149,7 +152,7 @@ class ChatRepository(
         emit(NetworkResult.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
-                emit(NetworkResult.Error("Chat auth failed. Please log in again."))
+                emit(NetworkResult.Error(authFailureMessage()))
                 return@flow
             }
 
@@ -176,7 +179,7 @@ class ChatRepository(
         emit(NetworkResult.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
-                emit(NetworkResult.Error("Chat auth failed. Please log in again."))
+                emit(NetworkResult.Error(authFailureMessage()))
                 return@flow
             }
 
@@ -202,7 +205,7 @@ class ChatRepository(
         emit(NetworkResult.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
-                emit(NetworkResult.Error("Chat auth failed. Please log in again."))
+                emit(NetworkResult.Error(authFailureMessage()))
                 return@flow
             }
 
@@ -229,7 +232,7 @@ class ChatRepository(
         emit(NetworkResult.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
-                emit(NetworkResult.Error("Chat auth failed. Please log in again."))
+                emit(NetworkResult.Error(authFailureMessage()))
                 return@flow
             }
 

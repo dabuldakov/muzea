@@ -2,7 +2,7 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/newsListFragment"
-        android:icon="@android:drawable/ic_menu_agenda"
+        android:icon="@drawable/ic_news"
         android:title="News" />
     <item
         android:id="@+id/chatFragment"
@@ -10,14 +10,14 @@
         android:title="Chat" />
     <item
         android:id="@+id/contactFragment"
-        android:icon="@android:drawable/ic_menu_manage"
+        android:icon="@drawable/ic_contacts"
         android:title="Contacts" />
     <item
         android:id="@+id/videoListFragment"
-        android:icon="@android:drawable/ic_menu_gallery"
+        android:icon="@drawable/ic_video"
         android:title="Videos" />
     <item
         android:id="@+id/profileFragment"
-        android:icon="@android:drawable/ic_menu_edit"
+        android:icon="@drawable/ic_profile"
         android:title="Profile" />
 </menu>

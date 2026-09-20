@@ -8,6 +8,8 @@ import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -125,5 +127,25 @@ class ChatAuthManagerIntegrationTest {
         server.takeRequest()
         assertEquals("chat-jwt-token", store.getChatToken())
         assertEquals("alice", store.getChatTokenUser())
+    }
+
+    @Test
+    fun `reports conflict when register fails with 409`() = runTest {
+        val store = FakeStore()
+        server.enqueue(MockResponse().setResponseCode(401))
+        server.enqueue(MockResponse().setResponseCode(409))
+
+        val manager = ChatAuthManager(IntegrationTestClient.chatApi(server), store)
+
+        assertFalse(manager.isAuthenticated())
+        assertNotNull(manager.lastFailureMessage)
+        assertTrue(manager.lastFailureMessage!!.contains("already exists"))
+        assertTrue(manager.lastFailureMessage!!.contains("alice"))
+
+        server.takeRequest() // login
+        val register = server.takeRequest()
+        assertEquals("/api/auth/register", register.path)
+        val body = JsonParser().parse(register.body.readUtf8()).asJsonObject
+        assertEquals("alice", body.get("username").asString)
     }
 }

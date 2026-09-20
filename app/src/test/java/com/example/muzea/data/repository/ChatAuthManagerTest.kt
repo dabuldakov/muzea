@@ -17,14 +17,16 @@ import com.example.muzea.data.model.UnreadCountResponse
 import com.example.muzea.utils.ChatTokenStore
 import kotlinx.coroutines.test.runTest
 import okhttp3.ResponseBody.Companion.toResponseBody
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import retrofit2.Response
 
 class ChatAuthManagerTest {
 
-    private class FakeApi(
+    private open class FakeApi(
         var loginResult: Response<ChatAuthResponse>? = null,
         var registerResult: Response<ChatAuthResponse>? = null
     ) : ChatApiService {
@@ -176,6 +178,47 @@ class ChatAuthManagerTest {
         val manager = ChatAuthManager(FakeApi(), store)
 
         assertFalse(manager.isAuthenticated())
+        assertNotNull(manager.lastFailureMessage)
+        assertTrue(manager.lastFailureMessage!!.contains("log in"))
+    }
+
+    @Test
+    fun `isAuthenticated reports conflict when username exists with another password`() = runTest {
+        val store = FakeTokenStore().apply {
+            storedUsername = "erin"
+            storedPassword = "secret"
+            storedEmail = "erin@mail.com"
+        }
+        val api = FakeApi(
+            loginResult = Response.error(401, "".toResponseBody()),
+            registerResult = Response.error(409, "".toResponseBody())
+        )
+        val manager = ChatAuthManager(api, store)
+
+        assertFalse(manager.isAuthenticated())
+        assertNotNull(manager.lastFailureMessage)
+        assertTrue(manager.lastFailureMessage!!.contains("already exists"))
+        assertTrue(manager.lastFailureMessage!!.contains("erin"))
+        assertTrue(store.storedChatToken == null)
+    }
+
+    @Test
+    fun `isAuthenticated reports network failure`() = runTest {
+        val store = FakeTokenStore().apply {
+            storedUsername = "frank"
+            storedPassword = "secret"
+        }
+        val api = object : FakeApi() {
+            override suspend fun login(request: ChatLoginRequest): Response<ChatAuthResponse> =
+                throw java.io.IOException("host unreachable")
+
+            override suspend fun register(request: ChatRegisterRequest): Response<ChatAuthResponse> =
+                throw java.io.IOException("host unreachable")
+        }
+        val manager = ChatAuthManager(api, store)
+
+        assertFalse(manager.isAuthenticated())
+        assertEquals("Cannot reach the chat server.", manager.lastFailureMessage)
     }
 
     @Test

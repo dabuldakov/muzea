@@ -20,7 +20,17 @@ class ChatAuthManager(
 
     private val fcmStore: FcmTokenStore? get() = tokenStore as? FcmTokenStore
 
+    /**
+     * Причина последней неудачной аутентификации (человекочитаемое описание).
+     * null — если аутентификация прошла успешно. Позволяет показать пользователю,
+     * что именно пошло не так (сетевой сбой, конфликт пароля на чат-сервере и т.п.),
+     * вместо обобщённого "Chat auth failed".
+     */
+    var lastFailureMessage: String? = null
+        private set
+
     suspend fun isAuthenticated(): Boolean {
+        lastFailureMessage = null
         val currentUsername = tokenStore.getUsername()
 
         if (!tokenStore.getChatToken().isNullOrEmpty()) {
@@ -34,7 +44,10 @@ class ChatAuthManager(
 
         val username = currentUsername
         val password = tokenStore.getPassword()
-        if (username.isNullOrEmpty() || password.isNullOrEmpty()) return false
+        if (username.isNullOrEmpty() || password.isNullOrEmpty()) {
+            lastFailureMessage = "No saved credentials. Please log in to the app first."
+            return false
+        }
 
         val authenticated = tryLogin(username, password) || tryRegister(username, password)
         if (authenticated) registerFcmTokenIfAny()
@@ -54,9 +67,11 @@ class ChatAuthManager(
             tokenStore.saveChatTokenUser(username)
             true
         } else {
+            lastFailureMessage = "Login rejected by the chat server (HTTP ${response.code()})."
             false
         }
     } catch (e: Exception) {
+        lastFailureMessage = "Cannot reach the chat server."
         false
     }
 
@@ -70,9 +85,17 @@ class ChatAuthManager(
             tokenStore.saveChatTokenUser(username)
             true
         } else {
+            lastFailureMessage = if (response.code() == 409) {
+                "Chat account \"$username\" already exists on the chat server with another " +
+                    "password (likely from an older install). Log in with that password, " +
+                    "or use a different username."
+            } else {
+                "Registration rejected by the chat server (HTTP ${response.code()})."
+            }
             false
         }
     } catch (e: Exception) {
+        lastFailureMessage = "Cannot reach the chat server."
         false
     }
 
