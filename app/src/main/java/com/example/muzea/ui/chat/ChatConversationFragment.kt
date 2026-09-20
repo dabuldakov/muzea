@@ -79,6 +79,9 @@ class ChatConversationFragment : Fragment() {
 
         binding.tvTitle.text = chatTitle
         AvatarLoader.load(binding.ivAvatar, arguments?.getString(ARG_CHAT_AVATAR))
+        binding.tvTitle.setOnClickListener {
+            openGroupSettings(chatTitle)
+        }
         binding.btnBack.setOnClickListener {
             requireActivity().supportFragmentManager.popBackStack()
         }
@@ -94,6 +97,18 @@ class ChatConversationFragment : Fragment() {
         val apiService = ChatRetrofitClient(tokenManager).apiService
         val chatRepository = ChatRepository(apiService, ChatAuthManager(apiService, tokenManager))
         viewModel = ChatConversationViewModel(chatUuid, chatRepository, extractMyUserUuid(tokenManager))
+    }
+
+    private fun openGroupSettings(chatTitle: String) {
+        val fragment = GroupSettingsFragment.newInstance(
+            chatUuid,
+            chatTitle,
+            arguments?.getString(ARG_CHAT_AVATAR)
+        )
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .addToBackStack(null)
+            .commit()
     }
 
     private fun setupRecyclerView() {

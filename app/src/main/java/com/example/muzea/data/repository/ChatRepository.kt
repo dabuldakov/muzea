@@ -3,6 +3,7 @@ package com.example.muzea.data.repository
 import com.example.muzea.data.api.ChatApiService
 import com.example.muzea.data.model.AddContactRequest
 import com.example.muzea.data.model.AddGroupParticipantsRequest
+import com.example.muzea.data.model.ChatParticipantResponse
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.model.ContactResponse
 import com.example.muzea.data.model.CreateGroupChatRequest
@@ -46,6 +47,46 @@ class ChatRepository(
         check(response.isSuccessful) { "Could not delete avatar (${response.code()})" }
         AvatarResponse(null)
     }
+
+    suspend fun uploadChatAvatar(
+        chatUuid: String,
+        file: File,
+        mimeType: String
+    ): Flow<NetworkResult<String>> = flow {
+        emit(NetworkResult.Loading())
+        try {
+            if (!chatAuthManager.isAuthenticated()) {
+                emit(NetworkResult.Error(authFailureMessage()))
+                return@flow
+            }
+
+            val part = MultipartBody.Part.createFormData(
+                "file", file.name, file.asRequestBody(mimeType.toMediaType())
+            )
+            var response = apiService.uploadChatAvatar(chatUuid, part)
+            if (response.code() == 401) {
+                chatAuthManager.invalidate()
+                if (chatAuthManager.isAuthenticated()) {
+                    response = apiService.uploadChatAvatar(chatUuid, part)
+                }
+            }
+
+            if (response.isSuccessful && response.body() != null) {
+                val path = response.body()!!.string().trim()
+                emit(NetworkResult.Success(path))
+            } else {
+                emit(
+                    NetworkResult.Error(
+                        "Failed to upload avatar (${response.code()}). Use a JPEG or PNG image up to 5 MB."
+                    )
+                )
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            emit(NetworkResult.Error("Network error: ${e.message}"))
+        }
+    }.flowOn(Dispatchers.IO)
 
     private fun avatarRequest(action: suspend () -> AvatarResponse): Flow<NetworkResult<AvatarResponse>> = flow {
         emit(NetworkResult.Loading())
@@ -144,6 +185,34 @@ class ChatRepository(
                 emit(NetworkResult.Success(response.body()!!))
             } else {
                 emit(NetworkResult.Error("Failed to load contacts: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            emit(NetworkResult.Error("Network error: ${e.message}"))
+        }
+    }
+
+    suspend fun loadChatParticipants(
+        chatUuid: String
+    ): Flow<NetworkResult<List<ChatParticipantResponse>>> = flow {
+        emit(NetworkResult.Loading())
+        try {
+            if (!chatAuthManager.isAuthenticated()) {
+                emit(NetworkResult.Error(authFailureMessage()))
+                return@flow
+            }
+
+            var response = apiService.getChatParticipants(chatUuid)
+            if (response.code() == 401) {
+                chatAuthManager.invalidate()
+                if (chatAuthManager.isAuthenticated()) {
+                    response = apiService.getChatParticipants(chatUuid)
+                }
+            }
+
+            if (response.isSuccessful && response.body() != null) {
+                emit(NetworkResult.Success(response.body()!!))
+            } else {
+                emit(NetworkResult.Error("Failed to load participants: ${response.message()}"))
             }
         } catch (e: Exception) {
             emit(NetworkResult.Error("Network error: ${e.message}"))

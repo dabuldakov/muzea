@@ -6,6 +6,7 @@ import com.example.muzea.data.model.AvatarResponse
 import com.example.muzea.data.model.ChatAuthResponse
 import com.example.muzea.data.model.ChatLoginRequest
 import com.example.muzea.data.model.ChatRegisterRequest
+import com.example.muzea.data.model.ChatParticipantResponse
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.model.ChatUserResponse
 import com.example.muzea.data.model.ContactResponse
@@ -43,6 +44,13 @@ interface ChatApiService {
 
     @DELETE("/api/users/me/avatar")
     suspend fun deleteAvatar(): Response<Unit>
+
+    @Multipart
+    @POST("/api/chats/{chatUuid}/avatar")
+    suspend fun uploadChatAvatar(
+        @Path("chatUuid") chatUuid: String,
+        @Part file: MultipartBody.Part
+    ): Response<okhttp3.ResponseBody>
 
     @POST("/api/auth/login")
     suspend fun login(
@@ -88,6 +96,11 @@ interface ChatApiService {
         @Path("chatUuid") chatUuid: String,
         @Body request: AddGroupParticipantsRequest
     ): Response<Unit>
+
+    @GET("/api/chats/{chatUuid}/participants")
+    suspend fun getChatParticipants(
+        @Path("chatUuid") chatUuid: String
+    ): Response<List<ChatParticipantResponse>>
 
     @GET("/api/messages/{chatUuid}")
     suspend fun getMessages(

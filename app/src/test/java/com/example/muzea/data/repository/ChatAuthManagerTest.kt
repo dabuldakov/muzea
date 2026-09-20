@@ -49,6 +49,10 @@ class ChatAuthManagerTest {
         override suspend fun getMyProfile(): Response<ChatUserResponse> = error("unused")
         override suspend fun uploadAvatar(file: okhttp3.MultipartBody.Part): Response<com.example.muzea.data.model.AvatarResponse> = error("unused")
         override suspend fun deleteAvatar(): Response<Unit> = error("unused")
+        override suspend fun uploadChatAvatar(
+            chatUuid: String,
+            file: okhttp3.MultipartBody.Part
+        ): Response<okhttp3.ResponseBody> = error("unused")
         override suspend fun getContacts(): Response<List<ContactResponse>> = error("unused")
         override suspend fun addContact(request: AddContactRequest): Response<ContactResponse> = error("unused")
         override suspend fun getUserByUsername(username: String): Response<ChatUserResponse> = error("unused")
@@ -58,6 +62,10 @@ class ChatAuthManagerTest {
             chatUuid: String,
             request: AddGroupParticipantsRequest
         ): Response<Unit> = error("unused")
+
+        override suspend fun getChatParticipants(
+            chatUuid: String
+        ): Response<List<com.example.muzea.data.model.ChatParticipantResponse>> = error("unused")
         override suspend fun getMessages(
             chatUuid: String,
             page: Int,
