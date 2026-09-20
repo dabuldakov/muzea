@@ -1,6 +1,7 @@
 package com.example.muzea.data.api
 
 import com.example.muzea.data.model.AddContactRequest
+import com.example.muzea.data.model.AddGroupParticipantsRequest
 import com.example.muzea.data.model.AvatarResponse
 import com.example.muzea.data.model.ChatAuthResponse
 import com.example.muzea.data.model.ChatLoginRequest
@@ -8,6 +9,7 @@ import com.example.muzea.data.model.ChatRegisterRequest
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.model.ChatUserResponse
 import com.example.muzea.data.model.ContactResponse
+import com.example.muzea.data.model.CreateGroupChatRequest
 import com.example.muzea.data.model.CreatePrivateChatRequest
 import com.example.muzea.data.model.MessageResponse
 import com.example.muzea.data.model.PageResponse
@@ -75,6 +77,17 @@ interface ChatApiService {
     suspend fun createPrivateChat(
         @Body request: CreatePrivateChatRequest
     ): Response<ChatResponse>
+
+    @POST("/api/chats/group")
+    suspend fun createGroupChat(
+        @Body request: CreateGroupChatRequest
+    ): Response<ChatResponse>
+
+    @POST("/api/chats/{chatUuid}/participants")
+    suspend fun addGroupParticipants(
+        @Path("chatUuid") chatUuid: String,
+        @Body request: AddGroupParticipantsRequest
+    ): Response<Unit>
 
     @GET("/api/messages/{chatUuid}")
     suspend fun getMessages(

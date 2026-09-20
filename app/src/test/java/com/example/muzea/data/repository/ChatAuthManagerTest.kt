@@ -2,12 +2,14 @@ package com.example.muzea.data.repository
 
 import com.example.muzea.data.api.ChatApiService
 import com.example.muzea.data.model.AddContactRequest
+import com.example.muzea.data.model.AddGroupParticipantsRequest
 import com.example.muzea.data.model.ChatAuthResponse
 import com.example.muzea.data.model.ChatLoginRequest
 import com.example.muzea.data.model.ChatRegisterRequest
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.model.ChatUserResponse
 import com.example.muzea.data.model.ContactResponse
+import com.example.muzea.data.model.CreateGroupChatRequest
 import com.example.muzea.data.model.CreatePrivateChatRequest
 import com.example.muzea.data.model.FcmTokenRequest
 import com.example.muzea.data.model.MessageResponse
@@ -51,6 +53,11 @@ class ChatAuthManagerTest {
         override suspend fun addContact(request: AddContactRequest): Response<ContactResponse> = error("unused")
         override suspend fun getUserByUsername(username: String): Response<ChatUserResponse> = error("unused")
         override suspend fun createPrivateChat(request: CreatePrivateChatRequest): Response<ChatResponse> = error("unused")
+        override suspend fun createGroupChat(request: CreateGroupChatRequest): Response<ChatResponse> = error("unused")
+        override suspend fun addGroupParticipants(
+            chatUuid: String,
+            request: AddGroupParticipantsRequest
+        ): Response<Unit> = error("unused")
         override suspend fun getMessages(
             chatUuid: String,
             page: Int,

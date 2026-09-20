@@ -2,8 +2,10 @@ package com.example.muzea.data.repository
 
 import com.example.muzea.data.api.ChatApiService
 import com.example.muzea.data.model.AddContactRequest
+import com.example.muzea.data.model.AddGroupParticipantsRequest
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.model.ContactResponse
+import com.example.muzea.data.model.CreateGroupChatRequest
 import com.example.muzea.data.model.CreatePrivateChatRequest
 import com.example.muzea.data.model.MessageResponse
 import com.example.muzea.data.model.SendMessageRequest
@@ -195,6 +197,70 @@ class ChatRepository(
                 emit(NetworkResult.Success(response.body()!!))
             } else {
                 emit(NetworkResult.Error("Failed to create chat: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            emit(NetworkResult.Error("Network error: ${e.message}"))
+        }
+    }
+
+    suspend fun createGroupChat(
+        title: String,
+        memberUuids: List<String>
+    ): Flow<NetworkResult<ChatResponse>> = flow {
+        emit(NetworkResult.Loading())
+        try {
+            if (!chatAuthManager.isAuthenticated()) {
+                emit(NetworkResult.Error(authFailureMessage()))
+                return@flow
+            }
+
+            var response = apiService.createGroupChat(CreateGroupChatRequest(title, memberUuids))
+            if (response.code() == 401) {
+                chatAuthManager.invalidate()
+                if (chatAuthManager.isAuthenticated()) {
+                    response = apiService.createGroupChat(CreateGroupChatRequest(title, memberUuids))
+                }
+            }
+
+            if (response.isSuccessful && response.body() != null) {
+                emit(NetworkResult.Success(response.body()!!))
+            } else {
+                emit(NetworkResult.Error("Failed to create group chat: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            emit(NetworkResult.Error("Network error: ${e.message}"))
+        }
+    }
+
+    suspend fun addGroupParticipants(
+        chatUuid: String,
+        memberUuids: List<String>
+    ): Flow<NetworkResult<Unit>> = flow {
+        emit(NetworkResult.Loading())
+        try {
+            if (!chatAuthManager.isAuthenticated()) {
+                emit(NetworkResult.Error(authFailureMessage()))
+                return@flow
+            }
+
+            var response = apiService.addGroupParticipants(
+                chatUuid,
+                AddGroupParticipantsRequest(memberUuids)
+            )
+            if (response.code() == 401) {
+                chatAuthManager.invalidate()
+                if (chatAuthManager.isAuthenticated()) {
+                    response = apiService.addGroupParticipants(
+                        chatUuid,
+                        AddGroupParticipantsRequest(memberUuids)
+                    )
+                }
+            }
+
+            if (response.isSuccessful) {
+                emit(NetworkResult.Success(Unit))
+            } else {
+                emit(NetworkResult.Error("Failed to add members: ${response.message()}"))
             }
         } catch (e: Exception) {
             emit(NetworkResult.Error("Network error: ${e.message}"))

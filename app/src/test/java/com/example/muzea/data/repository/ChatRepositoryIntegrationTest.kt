@@ -169,6 +169,58 @@ class ChatRepositoryIntegrationTest {
     }
 
     @Test
+    fun `createGroupChat posts title and memberUuids body`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        server.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"chatUuid":"9f3e1a02-2c7b-4c81-a5e9-3f4d1c2b8a07",
+                         "chatType":"GROUP","title":"Team Talks","avatarUrl":null,
+                         "participantCount":1,"lastMessage":null,"unreadCount":0}"""
+                )
+        )
+
+        val result = repo().createGroupChat("Team Talks", emptyList()).toList().last()
+
+        assertTrue(result is NetworkResult.Success)
+        assertEquals("9f3e1a02-2c7b-4c81-a5e9-3f4d1c2b8a07", result.data!!.chatUuid)
+        assertEquals("GROUP", result.data!!.chatType)
+
+        val request = server.takeRequest()
+        assertEquals("/api/chats/group", request.path)
+        assertEquals("POST", request.method)
+        val body = JsonParser().parse(request.body.readUtf8()).asJsonObject
+        assertEquals("Team Talks", body.get("title").asString)
+        // Gson сериализует пустой список как [] — сервер принимает пустую группу.
+        assertTrue(body.get("memberUuids").asJsonArray.size() == 0)
+    }
+
+    @Test
+    fun `addGroupParticipants posts memberUuids to chat participants endpoint`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        server.enqueue(MockResponse().setResponseCode(200))
+
+        val result = repo()
+            .addGroupParticipants(
+                "9f3e1a02-2c7b-4c81-a5e9-3f4d1c2b8a07",
+                listOf("2afcbb98-85bd-4a24-be7d-5e66dbe53933")
+            )
+            .toList()
+            .last()
+
+        assertTrue(result is NetworkResult.Success)
+
+        val request = server.takeRequest()
+        assertEquals("/api/chats/9f3e1a02-2c7b-4c81-a5e9-3f4d1c2b8a07/participants", request.path)
+        assertEquals("POST", request.method)
+        val body = JsonParser().parse(request.body.readUtf8()).asJsonObject
+        val uuids = body.get("memberUuids").asJsonArray
+        assertEquals(1, uuids.size())
+        assertEquals("2afcbb98-85bd-4a24-be7d-5e66dbe53933", uuids.get(0).asString)
+    }
+
+    @Test
     fun `loadContacts surfaces the chat auth failure reason`() = runTest {
         coEvery { auth.isAuthenticated() } returns false
         every { auth.lastFailureMessage } returns "Chat account \"xoxo\" already exists on the chat server"
