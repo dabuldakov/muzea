@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:852486675776:android:6dcc55f24a313d37efeea5",
+        "android_client_info": {
+          "package_name": "com.cyber.muzea"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgkyoXFQ8zhOhEkSY5rjtinjsQFbXRzH8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:852486675776:android:8c1e7373b73f2353efeea5",
         "android_client_info": {
           "package_name": "com.example.muzea"
