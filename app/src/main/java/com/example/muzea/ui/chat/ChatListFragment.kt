@@ -123,7 +123,7 @@ class ChatListFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.chatsResult.collect { result ->
                 when (result) {
                     is NetworkResult.Loading -> handleLoadingState()
@@ -133,7 +133,7 @@ class ChatListFragment : Fragment() {
             }
         }
 
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.createGroupChatResult.collect { result ->
                 when (result) {
                     is NetworkResult.Success -> result.data?.let { showAddMembersDialog(it) }
@@ -144,7 +144,7 @@ class ChatListFragment : Fragment() {
             }
         }
 
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.contactsResult.collect { result ->
                 when (result) {
                     is NetworkResult.Success -> {
@@ -163,7 +163,7 @@ class ChatListFragment : Fragment() {
             }
         }
 
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.addParticipantsResult.collect { result ->
                 when (result) {
                     is NetworkResult.Success ->

@@ -106,7 +106,7 @@ class ContactListFragment : Fragment() {
     }
 
     private fun observeContacts() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.contactsResult.collect { result ->
                 when (result) {
                     is NetworkResult.Loading -> {
@@ -122,7 +122,7 @@ class ContactListFragment : Fragment() {
     }
 
     private fun observeAddContact() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.addContactResult.collect { result ->
                 when (result) {
                     is NetworkResult.Loading -> isAddingContact = true
@@ -141,7 +141,7 @@ class ContactListFragment : Fragment() {
     }
 
     private fun observeCreateChat() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.createChatResult.collect { result ->
                 when (result) {
                     is NetworkResult.Loading -> {

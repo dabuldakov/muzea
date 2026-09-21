@@ -134,7 +134,7 @@ class NewsListFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.newsResult.collect { result ->
                 when (result) {
                     is NetworkResult.Loading -> handleLoadingState()

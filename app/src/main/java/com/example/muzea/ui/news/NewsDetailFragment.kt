@@ -65,7 +65,7 @@ class NewsDetailFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.newsDetailResult.collect { result ->
                 when (result) {
                     is NetworkResult.Loading -> {
@@ -84,7 +84,7 @@ class NewsDetailFragment : Fragment() {
             }
         }
 
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.deleteNewsResult.collect { result ->
                 when (result) {
                     is NetworkResult.Loading -> binding.btnDeleteNews.isEnabled = false

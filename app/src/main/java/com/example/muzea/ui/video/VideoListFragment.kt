@@ -80,7 +80,7 @@ class VideoListFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.videosResult.collect { result ->
                 when (result) {
                     is NetworkResult.Loading -> showLoading(true)
