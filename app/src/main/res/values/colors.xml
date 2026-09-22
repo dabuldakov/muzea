@@ -11,4 +11,5 @@
     <color name="red">#FFFF0000</color>
     <color name="blue">#FF0000FF</color>
     <color name="green">#FF2E7D32</color>
+    <color name="error">#FFB3261E</color>
 </resources>

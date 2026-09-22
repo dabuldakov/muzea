@@ -24,6 +24,9 @@ class VideoViewModel(
     private val _uploadResult = MutableSharedFlow<NetworkResult<VideoResponse>>()
     val uploadResult: SharedFlow<NetworkResult<VideoResponse>> = _uploadResult.asSharedFlow()
 
+    private val _deleteResult = MutableSharedFlow<NetworkResult<Unit>>()
+    val deleteResult: SharedFlow<NetworkResult<Unit>> = _deleteResult.asSharedFlow()
+
     private var isLoading = false
 
     fun loadVideos(ownUsername: String? = null) {
@@ -58,10 +61,18 @@ class VideoViewModel(
         }
     }
 
-    fun uploadVideo(title: String, description: String?, filePart: MultipartBody.Part) {
+    fun uploadVideo(title: String, description: String?, filePart: MultipartBody.Part, thumbnailPart: MultipartBody.Part?) {
         viewModelScope.launch {
-            videoRepository.uploadVideo(title, description, filePart).collect { result ->
+            videoRepository.uploadVideo(title, description, filePart, thumbnailPart).collect { result ->
                 _uploadResult.emit(result)
+            }
+        }
+    }
+
+    fun deleteVideo(id: Long) {
+        viewModelScope.launch {
+            videoRepository.deleteVideo(id).collect { result ->
+                _deleteResult.emit(result)
             }
         }
     }

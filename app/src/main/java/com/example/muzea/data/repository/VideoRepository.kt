@@ -46,14 +46,16 @@ class VideoRepository (
     suspend fun uploadVideo(
         title: String,
         description: String?,
-        filePart: MultipartBody.Part
+        filePart: MultipartBody.Part,
+        thumbnailPart: MultipartBody.Part?
     ): Flow<NetworkResult<VideoResponse>> = flow {
         emit(NetworkResult.Loading())
         try {
             val response = apiService.uploadVideo(
                 title.toRequestBody(),
                 description?.toRequestBody(),
-                filePart
+                filePart,
+                thumbnailPart
             )
             if (response.isSuccessful && response.body() != null) {
                 emit(NetworkResult.Success(response.body()!!))
@@ -73,6 +75,20 @@ class VideoRepository (
                 emit(NetworkResult.Success(response.body()!!))
             } else {
                 emit(NetworkResult.Error("Failed to stream video: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            emit(NetworkResult.Error("Network error: ${e.message}"))
+        }
+    }
+
+    suspend fun deleteVideo(id: Long): Flow<NetworkResult<Unit>> = flow {
+        emit(NetworkResult.Loading())
+        try {
+            val response = apiService.deleteVideo(id)
+            if (response.isSuccessful) {
+                emit(NetworkResult.Success(Unit))
+            } else {
+                emit(NetworkResult.Error("Delete failed: ${response.message()}"))
             }
         } catch (e: Exception) {
             emit(NetworkResult.Error("Network error: ${e.message}"))

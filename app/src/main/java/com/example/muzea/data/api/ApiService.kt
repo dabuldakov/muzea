@@ -33,7 +33,8 @@ interface ApiService {
     suspend fun uploadVideo(
         @Part("title") title: okhttp3.RequestBody,
         @Part("description") description: okhttp3.RequestBody?,
-        @Part file: MultipartBody.Part
+        @Part file: MultipartBody.Part,
+        @Part thumbnail: MultipartBody.Part?
     ): Response<VideoResponse>
 
     @GET("/api/videos/stream/{fileName}")
@@ -41,6 +42,11 @@ interface ApiService {
     suspend fun streamVideo(
         @Path("fileName") fileName: String
     ): Response<okhttp3.ResponseBody>
+
+    @DELETE("/api/videos/{id}")
+    suspend fun deleteVideo(
+        @Path("id") id: Long
+    ): Response<Unit>
 
     // News endpoints
     @GET("/api/news")

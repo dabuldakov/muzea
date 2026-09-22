@@ -5,6 +5,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -46,11 +47,24 @@ class VideoDetailActivity : AppCompatActivity() {
             return
         }
 
+        binding.btnDelete.setOnClickListener { confirmDelete() }
         setupToolbar()
         setupFullscreen()
         setupBackPressHandling()
         observeViewModel()
         viewModel.loadVideoById(videoId)
+    }
+
+    private fun confirmDelete() {
+        AlertDialog.Builder(this)
+            .setTitle("Delete video")
+            .setMessage("Are you sure you want to delete this video?")
+            .setPositiveButton("Delete") { _, _ ->
+                binding.btnDelete.isEnabled = false
+                viewModel.deleteVideo(videoId)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun setupToolbar() {
@@ -143,6 +157,25 @@ class VideoDetailActivity : AppCompatActivity() {
                 }
             }
         }
+
+        lifecycleScope.launch {
+            viewModel.deleteResult.collect { result ->
+                when (result) {
+                    is NetworkResult.Loading -> Unit
+                    is NetworkResult.Success -> {
+                        Toast.makeText(this@VideoDetailActivity, "Video deleted", Toast.LENGTH_SHORT)
+                            .show()
+                        finish()
+                    }
+
+                    is NetworkResult.Error -> {
+                        binding.btnDelete.isEnabled = true
+                        Toast.makeText(this@VideoDetailActivity, result.message, Toast.LENGTH_LONG)
+                            .show()
+                    }
+                }
+            }
+        }
     }
 
     @UnstableApi private fun displayVideo(video: com.example.muzea.data.model.VideoResponse) {
@@ -152,6 +185,14 @@ class VideoDetailActivity : AppCompatActivity() {
         binding.tvLikes.text = "${video.likes ?: 0} likes"
         binding.tvUploader.text = "Uploaded by: ${video.uploadedBy}"
         binding.tvDate.text = video.uploadedAt
+
+        val myUsername = TokenManager(this).getUsername()
+        binding.btnDelete.visibility =
+            if (myUsername != null && video.uploadedBy.trim() == myUsername.trim()) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
 
         val fullVideoUrl = video.getFullVideoUrl(com.example.muzea.utils.Constants.BASE_URL)
         initializePlayer(fullVideoUrl)

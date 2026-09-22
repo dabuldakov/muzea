@@ -1,22 +1,30 @@
 package com.example.muzea.ui.video
 
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.bumptech.glide.Glide
 import com.example.muzea.databinding.ActivityVideoUploadBinding
 import com.example.muzea.data.api.RetrofitClient
 import com.example.muzea.data.repository.VideoRepository
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 
@@ -25,6 +33,7 @@ class VideoUploadActivity : AppCompatActivity() {
     private lateinit var binding: ActivityVideoUploadBinding
     private lateinit var viewModel: VideoViewModel
     private var selectedVideoFile: File? = null
+    private var thumbnailBytes: ByteArray? = null
 
     private val pickVideoLauncher = registerForActivityResult(
         ActivityResultContracts.PickVisualMedia()
@@ -72,6 +81,7 @@ class VideoUploadActivity : AppCompatActivity() {
                 selectedVideoFile = cacheFile
                 binding.tvSelectedFile.text = "Selected: ${cacheFile.name} (${cacheFile.length() / 1024} KB)"
                 binding.btnUpload.isEnabled = true
+                extractThumbnail(cacheFile)
             } else {
                 Toast.makeText(this, "Failed to copy video", Toast.LENGTH_SHORT).show()
             }
@@ -91,6 +101,44 @@ class VideoUploadActivity : AppCompatActivity() {
         return fileName
     }
 
+    private fun extractThumbnail(file: File) {
+        lifecycleScope.launch {
+            val bytes = withContext(Dispatchers.IO) { extractFrameBytes(file) }
+            if (bytes != null && bytes.isNotEmpty()) {
+                thumbnailBytes = bytes
+                Glide.with(this@VideoUploadActivity)
+                    .load(bytes)
+                    .centerCrop()
+                    .into(binding.ivPreview)
+                binding.ivPreview.visibility = View.VISIBLE
+            } else {
+                thumbnailBytes = null
+                binding.ivPreview.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun extractFrameBytes(file: File): ByteArray? {
+        return try {
+            val retriever = MediaMetadataRetriever()
+            try {
+                retriever.setDataSource(file.absolutePath)
+                val frame = retriever.getFrameAtTime(
+                    1_000_000L,
+                    MediaMetadataRetriever.OPTION_CLOSEST_SYNC
+                ) ?: return null
+                return ByteArrayOutputStream().use { out ->
+                    frame.compress(Bitmap.CompressFormat.JPEG, 85, out)
+                    out.toByteArray()
+                }
+            } finally {
+                retriever.release()
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private fun uploadVideo() {
         val title = binding.etTitle.text.toString().trim()
         val description = binding.etDescription.text.toString().trim()
@@ -104,7 +152,14 @@ class VideoUploadActivity : AppCompatActivity() {
                     selectedVideoFile!!.name,
                     selectedVideoFile!!.asRequestBody("video/mp4".toMediaTypeOrNull())
                 )
-                viewModel.uploadVideo(title, description.takeIf { it.isNotEmpty() }, body)
+                val thumbnailPart = thumbnailBytes?.let {
+                    MultipartBody.Part.createFormData(
+                        "thumbnail",
+                        "thumbnail.jpeg",
+                        it.toRequestBody("image/jpeg".toMediaTypeOrNull())
+                    )
+                }
+                viewModel.uploadVideo(title, description.takeIf { it.isNotEmpty() }, body, thumbnailPart)
             }
         }
     }
