@@ -18,6 +18,7 @@ import com.example.muzea.data.model.NewsResponse
 import com.example.muzea.data.repository.ChatAuthManager
 import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.data.repository.NewsRepository
+import com.example.muzea.utils.LocalTimeFormatter
 import com.example.muzea.utils.MediaUrl
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
@@ -114,7 +115,7 @@ class NewsDetailFragment : Fragment() {
         binding.tvTitle.text = news.title
         binding.tvContent.text = news.content
         binding.tvAuthor.text = "By: ${news.author}"
-        binding.tvDate.text = news.publishedAt
+        binding.tvDate.text = LocalTimeFormatter.format(news.publishedAt)
 
         val canDelete = !myUsername.isNullOrEmpty() && news.author == myUsername
         binding.btnDeleteNews.visibility = if (canDelete) View.VISIBLE else View.GONE

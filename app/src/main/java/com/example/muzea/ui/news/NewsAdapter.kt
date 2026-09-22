@@ -11,6 +11,7 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.muzea.R
 import com.example.muzea.data.model.NewsResponse
 import com.example.muzea.databinding.ItemNewsBinding
+import com.example.muzea.utils.LocalTimeFormatter
 import com.example.muzea.utils.MediaUrl
 
 class NewsAdapter(
@@ -35,7 +36,7 @@ class NewsAdapter(
             binding.tvTitle.text = news.title
             binding.tvContent.text = news.content
             binding.tvAuthor.text = news.author
-            binding.tvDate.text = news.publishedAt.substring(0, 10)
+            binding.tvDate.text = LocalTimeFormatter.formatDate(news.publishedAt)
 
             loadImage(news)
 

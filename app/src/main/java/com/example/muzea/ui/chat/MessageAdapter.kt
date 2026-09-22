@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.muzea.R
 import com.example.muzea.data.model.MessageResponse
 import com.example.muzea.utils.AvatarLoader
+import com.example.muzea.utils.ChatTimeFormatter
 import com.example.muzea.databinding.ItemMessageIncomingBinding
 import com.example.muzea.databinding.ItemMessageOutgoingBinding
 
@@ -84,14 +85,7 @@ class MessageAdapter(
         private const val TYPE_OUTGOING = 1
 
         private fun formatTime(iso: String?): String {
-            if (iso.isNullOrEmpty()) return ""
-            return try {
-                val dateTime = iso.substring(0, 19)
-                val parts = dateTime.split("T")
-                parts[0] + " " + parts[1].substring(0, 5)
-            } catch (e: Exception) {
-                iso
-            }
+            return ChatTimeFormatter.format(iso)
         }
     }
 

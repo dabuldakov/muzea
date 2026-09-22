@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.databinding.ItemChatBinding
 import com.example.muzea.utils.AvatarLoader
+import com.example.muzea.utils.ChatTimeFormatter
 
 class ChatAdapter(
     private val onItemClick: (String) -> Unit
@@ -67,13 +68,7 @@ class ChatAdapter(
         }
 
         private fun formatTime(iso: String): String {
-            return try {
-                val dateTime = iso.substring(0, 19)
-                val parts = dateTime.split("T")
-                parts[0] + " " + parts[1].substring(0, 5)
-            } catch (e: Exception) {
-                iso
-            }
+            return ChatTimeFormatter.format(iso)
         }
     }
 
