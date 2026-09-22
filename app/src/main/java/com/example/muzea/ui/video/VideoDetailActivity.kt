@@ -16,6 +16,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import com.example.muzea.data.api.RetrofitClient
 import com.example.muzea.data.repository.VideoRepository
 import com.example.muzea.databinding.ActivityVideoDetailBinding
+import com.example.muzea.utils.LocalTimeFormatter
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
 import com.example.muzea.utils.VideoPlayerHelper
@@ -184,7 +185,7 @@ class VideoDetailActivity : AppCompatActivity() {
         binding.tvViews.text = "${video.views} views"
         binding.tvLikes.text = "${video.likes ?: 0} likes"
         binding.tvUploader.text = "Uploaded by: ${video.uploadedBy}"
-        binding.tvDate.text = video.uploadedAt
+        binding.tvDate.text = LocalTimeFormatter.format(video.uploadedAt)
 
         val myUsername = TokenManager(this).getUsername()
         binding.btnDelete.visibility =
