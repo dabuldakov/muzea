@@ -1,8 +1,14 @@
 package com.example.muzea.ui.video
 
 import android.os.Bundle
+import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
@@ -20,6 +26,8 @@ class VideoDetailActivity : AppCompatActivity() {
     private lateinit var viewModel: VideoViewModel
     private var player: ExoPlayer? = null
     private var videoId: Long = 0
+    private var isFullscreen = false
+    private var originalPlayerHeight = 0
 
     @UnstableApi override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +47,8 @@ class VideoDetailActivity : AppCompatActivity() {
         }
 
         setupToolbar()
+        setupFullscreen()
+        setupBackPressHandling()
         observeViewModel()
         viewModel.loadVideoById(videoId)
     }
@@ -47,6 +57,68 @@ class VideoDetailActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         binding.toolbar.setNavigationOnClickListener { finish() }
+    }
+
+    private fun setupBackPressHandling() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (isFullscreen) {
+                    exitFullscreen()
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        })
+    }
+
+    private fun setupFullscreen() {
+        binding.playerView.setFullscreenButtonClickListener { toggleFullscreen() }
+    }
+
+    private fun toggleFullscreen() {
+        if (isFullscreen) exitFullscreen() else enterFullscreen()
+    }
+
+    private fun enterFullscreen() {
+        isFullscreen = true
+        binding.toolbar.visibility = View.GONE
+        binding.contentScroll.visibility = View.GONE
+
+        val params = binding.playerContainer.layoutParams
+        originalPlayerHeight = params.height
+        params.height = ViewGroup.LayoutParams.MATCH_PARENT
+        binding.playerContainer.layoutParams = params
+
+        hideSystemUi()
+    }
+
+    private fun exitFullscreen() {
+        if (!isFullscreen) return
+        isFullscreen = false
+        binding.toolbar.visibility = View.VISIBLE
+        binding.contentScroll.visibility = View.VISIBLE
+
+        val params = binding.playerContainer.layoutParams
+        params.height = if (originalPlayerHeight > 0) originalPlayerHeight
+        else (DEFAULT_PLAYER_HEIGHT_DP * resources.displayMetrics.density).toInt()
+        binding.playerContainer.layoutParams = params
+
+        showSystemUi()
+    }
+
+    private fun hideSystemUi() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    private fun showSystemUi() {
+        WindowCompat.setDecorFitsSystemWindows(window, true)
+        WindowInsetsControllerCompat(window, window.decorView)
+            .show(WindowInsetsCompat.Type.systemBars())
     }
 
     @UnstableApi private fun observeViewModel() {
@@ -101,10 +173,17 @@ class VideoDetailActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         player?.playWhenReady = false
+        if (isFullscreen) {
+            exitFullscreen()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         VideoPlayerHelper.releasePlayer(player)
+    }
+
+    private companion object {
+        private const val DEFAULT_PLAYER_HEIGHT_DP = 240
     }
 }
