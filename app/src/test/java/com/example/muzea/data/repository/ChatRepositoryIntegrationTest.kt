@@ -161,7 +161,7 @@ class ChatRepositoryIntegrationTest {
             avatarPath
         )
         assertEquals(
-            "http://90.188.89.63:8086/api/avatars/f8ea45c4-6e3c-4b85-8534-c3f3f08d079a/6dccd85f-f355-4b93-bc9a-248c09c917f2.png",
+            "https://chat-muzea.su/api/avatars/f8ea45c4-6e3c-4b85-8534-c3f3f08d079a/6dccd85f-f355-4b93-bc9a-248c09c917f2.png",
             MediaUrl.chat(avatarPath)
         )
 

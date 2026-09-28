@@ -1,6 +1,6 @@
 package com.example.muzea.utils
 
 object Constants {
-    const val BASE_URL = "http://90.188.89.63:8085"
-    const val CHAT_BASE_URL = "http://90.188.89.63:8086"
+    const val BASE_URL = "https://api-muzea.su"
+    const val CHAT_BASE_URL = "https://chat-muzea.su"
 }

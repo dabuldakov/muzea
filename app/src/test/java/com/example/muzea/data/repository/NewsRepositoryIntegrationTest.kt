@@ -31,11 +31,11 @@ class NewsRepositoryIntegrationTest {
     private val liveLikeNewsPage = """
         {"content":[
           {"id":47,"title":"Tomsk","content":"huop",
-           "imageUrl":"http://90.188.89.63:8085/api/news/image/4b1d5b51-07ac-4f75-b400-84551dae5a38.jpeg",
+           "imageUrl":"https://api-muzea.su/api/news/image/4b1d5b51-07ac-4f75-b400-84551dae5a38.jpeg",
            "author":"dabuldakov","publishedAt":"2026-09-20T04:07:36.573072",
            "relatedVideo":{"id":29,"title":"tomsk","description":null,
              "url":"/api/videos/stream/77b0e3ac-137a-4e47-bee4-011294332842.mp4",
-             "thumbnailUrl":"http://90.188.89.63:8085/api/videos/thumbnail/0e8c7c4f-9eb4-463f-b498-39ed65dc00f0.jpeg",
+             "thumbnailUrl":"https://api-muzea.su/api/videos/thumbnail/0e8c7c4f-9eb4-463f-b498-39ed65dc00f0.jpeg",
              "fileSize":29683941,"duration":null,"views":4,"likes":0,
              "uploadedBy":"dabuldakov","uploadedAt":"2026-09-20T04:05:25.802792"}}
         ],
@@ -57,7 +57,7 @@ class NewsRepositoryIntegrationTest {
         assertTrue(result is NetworkResult.Success)
         val news = result.data!!.single()
         assertEquals(
-            "http://90.188.89.63:8085/api/news/image/4b1d5b51-07ac-4f75-b400-84551dae5a38.jpeg",
+            "https://api-muzea.su/api/news/image/4b1d5b51-07ac-4f75-b400-84551dae5a38.jpeg",
             news.imageUrl
         )
         assertNotNull(news.relatedVideo)
@@ -73,7 +73,7 @@ class NewsRepositoryIntegrationTest {
     fun `getNewsById parses single news`() = runTest {
         val single = """
             {"id":47,"title":"Tomsk","content":"huop",
-             "imageUrl":"http://90.188.89.63:8085/api/news/image/4b1d5b51-07ac-4f75-b400-84551dae5a38.jpeg",
+             "imageUrl":"https://api-muzea.su/api/news/image/4b1d5b51-07ac-4f75-b400-84551dae5a38.jpeg",
              "author":"dabuldakov","publishedAt":"2026-09-20T04:07:36.573072","relatedVideo":null}
         """.trimIndent()
         server.enqueue(
@@ -87,7 +87,7 @@ class NewsRepositoryIntegrationTest {
         assertTrue(result is NetworkResult.Success)
         assertEquals(47L, result.data!!.id)
         assertEquals(
-            "http://90.188.89.63:8085/api/news/image/4b1d5b51-07ac-4f75-b400-84551dae5a38.jpeg",
+            "https://api-muzea.su/api/news/image/4b1d5b51-07ac-4f75-b400-84551dae5a38.jpeg",
             result.data!!.imageUrl
         )
 

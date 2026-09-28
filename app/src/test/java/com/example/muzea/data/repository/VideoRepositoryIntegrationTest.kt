@@ -28,7 +28,7 @@ class VideoRepositoryIntegrationTest {
     private val liveLikeVideo = """
         [{"id":29,"title":"tomsk","description":"Tomsk city",
           "url":"/api/videos/stream/77b0e3ac-137a-4e47-bee4-011294332842.mp4",
-          "thumbnailUrl":"http://90.188.89.63:8085/api/videos/thumbnail/0e8c7c4f-9eb4-463f-b498-39ed65dc00f0.jpeg",
+          "thumbnailUrl":"https://api-muzea.su/api/videos/thumbnail/0e8c7c4f-9eb4-463f-b498-39ed65dc00f0.jpeg",
           "fileSize":29683941,"duration":null,"views":4,"likes":0,
           "uploadedBy":"dabuldakov","uploadedAt":"2026-09-20T04:05:25.802792"}]
     """.trimIndent()
@@ -46,7 +46,7 @@ class VideoRepositoryIntegrationTest {
         assertTrue(result is NetworkResult.Success)
         val video = result.data!!.single()
         assertEquals(
-            "http://90.188.89.63:8085/api/videos/thumbnail/0e8c7c4f-9eb4-463f-b498-39ed65dc00f0.jpeg",
+            "https://api-muzea.su/api/videos/thumbnail/0e8c7c4f-9eb4-463f-b498-39ed65dc00f0.jpeg",
             video.thumbnailUrl
         )
         assertEquals("/api/videos/stream/77b0e3ac-137a-4e47-bee4-011294332842.mp4", video.url)
@@ -55,7 +55,7 @@ class VideoRepositoryIntegrationTest {
         assertEquals(video.thumbnailUrl, MediaUrl.main(video.thumbnailUrl))
         // А плеер строит стрим через MediaUrl — относительный адрес должен склеиваться с базой.
         assertEquals(
-            "http://90.188.89.63:8085/api/videos/stream/77b0e3ac-137a-4e47-bee4-011294332842.mp4",
+            "https://api-muzea.su/api/videos/stream/77b0e3ac-137a-4e47-bee4-011294332842.mp4",
             MediaUrl.main(video.url)
         )
 

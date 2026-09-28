@@ -4,7 +4,7 @@ package com.example.muzea.utils
  * Приводит путь медиа к абсолютному URL.
  *
  * Сервер отдаёт imageUrl/thumbnailUrl как полные абсолютные адреса
- * (например "http://90.188.89.63:8085/api/news/image/....jpeg"), а endpoint'ы
+ * (например "https://api-muzea.su/api/news/image/....jpeg"), а endpoint'ы
  * стриминга — как относительные ("/api/videos/stream/....mp4") или аватары —
  * ("/api/avatars/....png"). Префиксация базового URL поверх уже абсолютного
  * адреса ломает загрузку изображений, поэтому здесь единая логика разрешения.

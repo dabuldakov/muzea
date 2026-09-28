@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Весь трафик приложения идёт только по HTTPS (api-muzea.su, chat-muzea.su,
+  muzea.su). Открытые HTTP-соединения запрещены на всех версиях Android
+  (minSdk 24), а не только на 28+, где это поведение по умолчанию.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>
