@@ -34,6 +34,14 @@
         </activity>
 
         <activity
+            android:name=".ui.auth.ConsentActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.profile.OperatorInfoActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".ui.auth.RegisterActivity"
             android:exported="false" />
 

@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older than API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+   Автобэкап отключён для учётных данных: логина, email, пароля и токенов.
+   Они не должны покидать устройство (в т.ч. в Google Drive), поэтому
+   sharedpref "app_prefs" (обычные настройки) и "secure_prefs" (шифрованные
+   учётные данные, ключ мастер-ключа живёт в Keystore и не переносится)
+   исключены из облачного бэкапа и переноса на другое устройство.
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <exclude domain="sharedpref" path="app_prefs.xml"/>
+    <exclude domain="sharedpref" path="app_prefs"/>
+    <exclude domain="sharedpref" path="secure_prefs.xml"/>
+    <exclude domain="sharedpref" path="secure_prefs"/>
 </full-backup-content>

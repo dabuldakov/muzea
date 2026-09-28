@@ -49,6 +49,7 @@ class ChatAuthManagerTest {
         override suspend fun getMyProfile(): Response<ChatUserResponse> = error("unused")
         override suspend fun uploadAvatar(file: okhttp3.MultipartBody.Part): Response<com.example.muzea.data.model.AvatarResponse> = error("unused")
         override suspend fun deleteAvatar(): Response<Unit> = error("unused")
+        override suspend fun deleteAccount(): Response<Unit> = error("unused")
         override suspend fun uploadChatAvatar(
             chatUuid: String,
             file: okhttp3.MultipartBody.Part

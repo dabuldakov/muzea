@@ -48,6 +48,26 @@ class ChatRepository(
         AvatarResponse(null)
     }
 
+    /**
+     * Полное удаление аккаунта на чат-сервере.
+     *
+     * Намеренно без [authenticatedRequest]: после удаления сервер отвечает 401,
+     * а повторная аутентификация в [ChatAuthManager] зарегистрировала бы заново
+     * аккаунт с тем же именем. Поэтому 401 и 404 здесь считаются успехом —
+     * аккаунта уже нет. true означает, что данных на сервере не осталось.
+     */
+    suspend fun deleteAccount(): Boolean {
+        return try {
+            check(chatAuthManager.isAuthenticated()) { authFailureMessage() }
+            val response = apiService.deleteAccount()
+            response.isSuccessful || response.code() == 401 || response.code() == 404
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     suspend fun uploadChatAvatar(
         chatUuid: String,
         file: File,

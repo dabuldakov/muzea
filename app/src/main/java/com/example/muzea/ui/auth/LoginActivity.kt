@@ -9,17 +9,30 @@ import com.example.muzea.databinding.ActivityLoginBinding
 import com.example.muzea.data.api.RetrofitClient
 import com.example.muzea.data.repository.AuthRepository
 import com.example.muzea.ui.MainActivity
+import com.example.muzea.utils.ConsentManager
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
 import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
 
+    private companion object {
+        const val POLICY_URL = "https://muzea.su/privacy"
+        const val TERMS_URL = "https://muzea.su/terms"
+    }
+
     private lateinit var binding: ActivityLoginBinding
     private lateinit var viewModel: AuthViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Без согласия на обработку персональных данных приложение не запускается (ст. 9 ФЗ-152).
+        if (!ConsentManager.isAccepted(this)) {
+            startActivity(Intent(this, ConsentActivity::class.java))
+            finish()
+            return
+        }
 
         val tokenManager = TokenManager(applicationContext)
         // Уже авторизованы (в т.ч. при переходе из пуш-уведомления) — сразу на главный экран.
@@ -56,6 +69,13 @@ class LoginActivity : AppCompatActivity() {
         binding.tvRegister.setOnClickListener {
             startActivity(Intent(this, RegisterActivity::class.java))
         }
+
+        binding.tvLegalTerms.setOnClickListener { openLegalDocument(TERMS_URL) }
+        binding.tvLegalPolicy.setOnClickListener { openLegalDocument(POLICY_URL) }
+    }
+
+    private fun openLegalDocument(url: String) {
+        runCatching { startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))) }
     }
 
     private fun observeViewModel() {

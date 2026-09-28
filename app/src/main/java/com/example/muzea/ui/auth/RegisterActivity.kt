@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.example.muzea.R
 import com.example.muzea.databinding.ActivityRegisterBinding
 import com.example.muzea.data.api.RetrofitClient
 import com.example.muzea.data.repository.AuthRepository
@@ -14,6 +15,11 @@ import com.example.muzea.utils.TokenManager
 import kotlinx.coroutines.launch
 
 class RegisterActivity : AppCompatActivity() {
+
+    private companion object {
+        const val POLICY_URL = "https://muzea.su/privacy"
+        const val TERMS_URL = "https://muzea.su/terms"
+    }
 
     private lateinit var binding: ActivityRegisterBinding
     private lateinit var viewModel: AuthViewModel
@@ -34,7 +40,16 @@ class RegisterActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
+        binding.tvRegisterTerms.setOnClickListener { openLegalDocument(TERMS_URL) }
+        binding.tvRegisterPolicy.setOnClickListener { openLegalDocument(POLICY_URL) }
+
         binding.btnRegister.setOnClickListener {
+            if (!binding.cbConsent.isChecked) {
+                binding.cbConsent.error = getString(R.string.consent_required)
+                Toast.makeText(this, R.string.consent_required, Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+
             val username = binding.etUsername.text.toString().trim()
             val email = binding.etEmail.text.toString().trim()
             val password = binding.etPassword.text.toString().trim()
@@ -49,6 +64,10 @@ class RegisterActivity : AppCompatActivity() {
         binding.tvLogin.setOnClickListener {
             finish()
         }
+    }
+
+    private fun openLegalDocument(url: String) {
+        runCatching { startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))) }
     }
 
     private fun validateInput(

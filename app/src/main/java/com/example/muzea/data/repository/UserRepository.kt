@@ -55,4 +55,28 @@ class UserRepository(
             emit(NetworkResult.Error("Network error: ${e.message}"))
         }
     }
+
+    /**
+     * Удаление новостей, видео и профиля на основном бэкенде.
+     *
+     * 404 считается успехом: аккаунт мог быть удалён при предыдущей попытке,
+     * где чат-сервер отвечает раньше основного. Повторять удаление нужно
+     * иначе — данные на одном из серверов остались бы навсегда.
+     */
+    suspend fun deleteAccount(
+        userId: Long
+    ): Flow<NetworkResult<Unit>> = flow {
+        emit(NetworkResult.Loading())
+        try {
+            val response = apiService.deleteUser(userId)
+            if (response.isSuccessful || response.code() == 404) {
+                emit(NetworkResult.Success(Unit))
+            } else {
+                emit(NetworkResult.Error("Delete failed: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("UserRepository", "Delete error: ${e.message}", e)
+            emit(NetworkResult.Error("Network error: ${e.message}"))
+        }
+    }
 }

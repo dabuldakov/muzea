@@ -168,6 +168,26 @@
                 app:cornerRadius="10dp" />
 
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOperatorInfo"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/operator_info_title"
+                android:textColor="@color/gray"
+                android:textSize="14sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDeleteAccount"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/delete_account"
+                android:textColor="?attr/colorError"
+                android:textSize="14sp" />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnLogout"
                 style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="match_parent"

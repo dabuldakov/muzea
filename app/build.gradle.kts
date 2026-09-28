@@ -13,8 +13,8 @@ android {
         applicationId = "com.cyber.muzea"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -84,6 +84,9 @@ dependencies {
     // Permissions
     implementation("com.karumi:dexter:6.2.3")
 
+    // Шифрование учётных данных в локальном хранилище (Android Keystore)
+    implementation("androidx.security:security-crypto:1.1.0-beta01")
+
     // Swipe to refresh
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 
@@ -95,8 +98,9 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 
     // push google (BOM 32.7.4 совместим с Kotlin 1.9.20; 34.x требует Kotlin 2.x)
+    // firebase-analytics намеренно не подключается: аналитика не используется,
+    // а SDK автоматически собирает и передаёт данные за пределы РФ.
     implementation(platform("com.google.firebase:firebase-bom:32.7.4"))
-    implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-messaging")
 }
 

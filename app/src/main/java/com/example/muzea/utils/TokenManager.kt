@@ -8,8 +8,25 @@ import java.util.UUID
 class TokenManager(
     context: Context
 ) : ChatTokenStore, FcmTokenStore {
+    private val appContext: Context = context.applicationContext
     private val prefs: SharedPreferences =
-        context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        appContext.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+
+    init {
+        migrateLegacyPassword()
+    }
+
+    /**
+     * Ранее пароль лежал в app_prefs открытым текстом. Переносим его в шифрованное
+     * хранилище и удаляем из обычных настроек.
+     */
+    private fun migrateLegacyPassword() {
+        val legacy = prefs.getString("password", null) ?: return
+        if (!legacy.isNullOrEmpty()) {
+            SecurePasswordStore.save(appContext, legacy)
+        }
+        prefs.edit().remove("password").apply()
+    }
 
     override fun getDeviceId(): String {
         prefs.getString("device_id", null)?.let { return it }
@@ -59,11 +76,11 @@ class TokenManager(
     }
 
     fun savePassword(password: String) {
-        prefs.edit().putString("password", password).apply()
+        SecurePasswordStore.save(appContext, password)
     }
 
     override fun getPassword(): String? {
-        return prefs.getString("password", null)
+        return SecurePasswordStore.load(appContext)
     }
 
     override fun saveChatToken(token: String) {
@@ -88,5 +105,15 @@ class TokenManager(
 
     fun clearToken() {
         prefs.edit().remove("auth_token").remove("username").remove("chat_token").remove("chat_token_user").apply()
+        SecurePasswordStore.clear(appContext)
+    }
+
+    /**
+     * Полная очистка локальных данных пользователя — при удалении аккаунта
+     * или отзыве согласия на обработку персональных данных.
+     */
+    fun clearAll() {
+        prefs.edit().clear().apply()
+        SecurePasswordStore.clear(appContext)
     }
 }

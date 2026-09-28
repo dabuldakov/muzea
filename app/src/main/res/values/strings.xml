@@ -5,4 +5,38 @@
     <string name="chat_channel_id">chat_messages</string>
     <string name="chat_channel_name">Messages</string>
     <string name="chat_channel_description">Notifications about new chat messages</string>
+
+    <!-- Правовая информация -->
+    <string name="policy_url">https://muzea.su/privacy</string>
+    <string name="terms_url">https://muzea.su/terms</string>
+    <string name="operator_email">dabuldakov@mail.ru</string>
+    <string name="operator_phone">+7 913 800-24-16</string>
+    <string name="operator_name">Булдаков Дмитрий Александрович</string>
+    <string name="operator_inn">ИНН 701712666930</string>
+    <string name="operator_address">Томская область, г. Томск, ул. Пушкина, д. 61/3, кв. 267</string>
+    <string name="operator_status">Физическое лицо, оператор персональных данных</string>
+
+    <string name="consent_title">Условия и обработка персональных данных</string>
+    <string name="consent_body">Чтобы пользоваться приложением «muzea», нужно принять условия использования и дать согласие на обработку персональных данных.\n\nСостав данных: логин, ФИО, адрес электронной почты, пароль от учётной записи, идентификатор и модель устройства, токен устройства для доставки push-уведомлений, текст сообщений в чатах, состав групп и их участников, статус «в сети» и время последнего визита, список контактов, изображения, публикации и видео, технические данные аккаунта.\n\nЦели: регистрация и вход, обмен сообщениями, push-уведомления, показ профиля другим пользователям, размещение публикаций и видео, обслуживание обращений.\n\nТокен устройства для push-уведомлений передаётся сервисам Google (Google Ireland Limited, Ирландия) — это трансграничная передача. Другие персональные данные за пределы России не передаются.\n\nСогласие можно отозвать в профиле («Удалить аккаунт») или письмом на %1$s — тогда обработка прекращается и данные уничтожаются в течение 10 рабочих дней.</string>
+    <string name="consent_accept">Принять и продолжить</string>
+    <string name="consent_decline">Не принимать</string>
+    <string name="consent_open_terms">Открыть Пользовательское соглашение</string>
+    <string name="consent_open_policy">Открыть Политику обработки персональных данных</string>
+
+    <string name="register_consent_checkbox">Я принимаю Пользовательское соглашение и Политику обработки персональных данных</string>
+    <string name="consent_required">Нужно принять условия и политику обработки персональных данных</string>
+    <string name="login_legal_note">Продолжая, вы принимаете Пользовательское соглашение и Политику обработки персональных данных</string>
+
+    <string name="operator_info_title">Оператор персональных данных</string>
+    <string name="operator_info_intro">Персональные данные пользователей обрабатывает:</string>
+
+    <string name="delete_account">Удалить аккаунт</string>
+    <string name="delete_account_title">Удалить аккаунт?</string>
+    <string name="delete_account_message">Профиль, сообщения, публикации и видео будут удалены, обработка персональных данных прекратится. Отменить удаление нельзя.</string>
+    <string name="delete_account_done">Аккаунт и данные удалены</string>
+    <string name="delete_account_failed">Не удалось удалить данные на сервере. Напишите на %1$s, и мы удалим их вручную в течение 10 рабочих дней.</string>
+    <string name="delete_account_chat_failed">Не удалось удалить переписку на сервере чата. Проверьте подключение и повторите попытку.</string>
+    <string name="delete_account_logout">Выйти из приложения</string>
+    <string name="action_cancel">Отмена</string>
+    <string name="action_delete">Удалить</string>
 </resources>

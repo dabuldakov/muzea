@@ -45,6 +45,13 @@ interface ChatApiService {
     @DELETE("/api/users/me/avatar")
     suspend fun deleteAvatar(): Response<Unit>
 
+    /**
+     * Полное удаление аккаунта на чат-сервере вместе с сообщениями, контактами,
+     * вложениями и FCM-токенами.
+     */
+    @DELETE("/api/users/me")
+    suspend fun deleteAccount(): Response<Unit>
+
     @Multipart
     @POST("/api/chats/{chatUuid}/avatar")
     suspend fun uploadChatAvatar(

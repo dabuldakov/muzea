@@ -49,6 +49,33 @@
         android:textColor="@color/purple_500"
         android:textSize="14sp" />
 
+    <TextView
+        android:id="@+id/tvLegalNote"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="@string/login_legal_note"
+        android:textAlignment="center"
+        android:textColor="@color/gray"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/tvLegalTerms"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/consent_open_terms"
+        android:textColor="@color/purple_500"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/tvLegalPolicy"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/consent_open_policy"
+        android:textColor="@color/purple_500"
+        android:textSize="12sp" />
+
     <ProgressBar
         android:id="@+id/progressBar"
         android:layout_width="wrap_content"

@@ -84,6 +84,12 @@ interface ApiService {
         @Body request: UpdateUserRequest
     ): Response<UserResponse>
 
+    /** Удаление аккаунта и всех связанных персональных данных (отзыв согласия, ст. 14 ФЗ-152). */
+    @DELETE("/api/users/{id}")
+    suspend fun deleteUser(
+        @Path("id") id: Long
+    ): Response<Unit>
+
     @GET
     @Streaming
     suspend fun downloadFile(@Url url: String): Response<ResponseBody>

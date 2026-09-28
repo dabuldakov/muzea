@@ -19,7 +19,9 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.example.muzea.R
 import com.example.muzea.databinding.FragmentProfileBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.example.muzea.data.api.RetrofitClient
 import com.example.muzea.data.repository.UserRepository
 import com.example.muzea.ui.auth.LoginActivity
@@ -55,9 +57,14 @@ class ProfileFragment : Fragment() {
         val tokenManager = TokenManager(requireContext())
         val apiService = RetrofitClient(tokenManager).apiService
         val userRepository = UserRepository(apiService)
-        viewModel = ProfileViewModel(userRepository, tokenManager)
         val chatApi = ChatRetrofitClient(tokenManager).apiService
         val chatRepository = ChatRepository(chatApi, ChatAuthManager(chatApi, tokenManager))
+        viewModel = ProfileViewModel(
+            requireActivity().application,
+            userRepository,
+            chatRepository,
+            tokenManager
+        )
         avatarViewModel = ViewModelProvider(this, object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T = AvatarViewModel(chatRepository) as T
@@ -102,6 +109,23 @@ class ProfileFragment : Fragment() {
         binding.btnLogout.setOnClickListener {
             logout()
         }
+
+        binding.btnOperatorInfo.setOnClickListener {
+            startActivity(android.content.Intent(requireContext(), OperatorInfoActivity::class.java))
+        }
+
+        binding.btnDeleteAccount.setOnClickListener {
+            confirmDeleteAccount()
+        }
+    }
+
+    private fun confirmDeleteAccount() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.delete_account_title)
+            .setMessage(R.string.delete_account_message)
+            .setNegativeButton(R.string.action_cancel, null)
+            .setPositiveButton(R.string.action_delete) { _, _ -> viewModel.deleteAccount() }
+            .show()
     }
 
     private fun uploadAvatar(uri: Uri) {
@@ -203,6 +227,31 @@ class ProfileFragment : Fragment() {
                 }
             }
         }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.deleteAccountResult.collect { result ->
+                when (result) {
+                    is NetworkResult.Loading -> {
+                        binding.progressBar.visibility = View.VISIBLE
+                        binding.btnDeleteAccount.isEnabled = false
+                    }
+                    is NetworkResult.Success -> {
+                        binding.progressBar.visibility = View.GONE
+                        Toast.makeText(requireContext(), R.string.delete_account_done, Toast.LENGTH_LONG).show()
+                        goToLogin()
+                    }
+                    is NetworkResult.Error -> {
+                        binding.progressBar.visibility = View.GONE
+                        binding.btnDeleteAccount.isEnabled = true
+                        MaterialAlertDialogBuilder(requireContext())
+                            .setTitle(R.string.delete_account_title)
+                            .setMessage(getString(R.string.delete_account_failed, getString(R.string.operator_email)))
+                            .setNegativeButton(R.string.action_cancel, null)
+                            .setPositiveButton(R.string.delete_account_logout) { _, _ -> logout() }
+                            .show()
+                    }
+                }
+            }
+        }
     }
 
     private fun displayUserProfile(user: com.example.muzea.data.model.UserResponse) {
@@ -224,6 +273,10 @@ class ProfileFragment : Fragment() {
     private fun logout() {
         val tokenManager = TokenManager(requireContext())
         tokenManager.clearToken()
+        goToLogin()
+    }
+
+    private fun goToLogin() {
         val intent = android.content.Intent(requireContext(), LoginActivity::class.java)
         intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
