@@ -172,7 +172,11 @@ class ContactListFragment : Fragment() {
                     binding.swipeRefresh.isRefreshing = false
                 }
                 adapter.updateList(contacts)
-                updateEmptyState()
+                // Пустоту определяем по самому списку, а не по adapter.currentList:
+                // ListAdapter.submitList применяет DiffUtil асинхронно, поэтому
+                // currentList сразу после вызова ещё пуст, и список ошибочно
+                // прятался (recycler GONE) — контакты «исчезали».
+                updateEmptyState(contacts.isNotEmpty())
             }
         }
     }
@@ -236,23 +240,27 @@ class ContactListFragment : Fragment() {
         binding.progressBar.visibility = View.GONE
         binding.swipeRefresh.isRefreshing = false
 
-        if (adapter.currentList.isEmpty()) {
+        // Опираемся на состояние ViewModel, а не на adapter.currentList — он
+        // отстаёт из-за асинхронного DiffUtil. И прячем экран «нет контактов»,
+        // иначе сбой выглядел бы как пустой список.
+        if (viewModel.contacts.value.isEmpty()) {
             binding.tvError.text = message
             binding.tvError.visibility = View.VISIBLE
+            binding.tvEmpty.visibility = View.GONE
             binding.recyclerViewContacts.visibility = View.GONE
         } else {
             Toast.makeText(requireContext(), "Error: $message", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun updateEmptyState() {
-        if (adapter.currentList.isEmpty()) {
-            binding.tvEmpty.visibility = View.VISIBLE
-            binding.recyclerViewContacts.visibility = View.GONE
-            binding.tvError.visibility = View.GONE
-        } else {
+    private fun updateEmptyState(hasContacts: Boolean) {
+        if (hasContacts) {
             binding.tvEmpty.visibility = View.GONE
             binding.recyclerViewContacts.visibility = View.VISIBLE
+            binding.tvError.visibility = View.GONE
+        } else {
+            binding.tvEmpty.visibility = View.VISIBLE
+            binding.recyclerViewContacts.visibility = View.GONE
             binding.tvError.visibility = View.GONE
         }
     }
