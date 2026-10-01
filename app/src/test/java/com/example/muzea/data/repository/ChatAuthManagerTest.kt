@@ -55,6 +55,11 @@ class ChatAuthManagerTest {
             file: okhttp3.MultipartBody.Part
         ): Response<okhttp3.ResponseBody> = error("unused")
         override suspend fun getContacts(): Response<List<ContactResponse>> = error("unused")
+        override suspend fun logout(): Response<Unit> = Response.success(Unit)
+        override suspend fun sendHeartbeat(): Response<Unit> = Response.success(Unit)
+        override suspend fun getPresence(
+            userUuids: List<String>
+        ): Response<List<com.example.muzea.data.model.PresenceResponse>> = error("unused")
         override suspend fun addContact(request: AddContactRequest): Response<ContactResponse> = error("unused")
         override suspend fun getUserByUsername(username: String): Response<ChatUserResponse> = error("unused")
         override suspend fun createPrivateChat(request: CreatePrivateChatRequest): Response<ChatResponse> = error("unused")

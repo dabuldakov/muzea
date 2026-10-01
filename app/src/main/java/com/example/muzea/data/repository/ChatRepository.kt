@@ -9,6 +9,7 @@ import com.example.muzea.data.model.ContactResponse
 import com.example.muzea.data.model.CreateGroupChatRequest
 import com.example.muzea.data.model.CreatePrivateChatRequest
 import com.example.muzea.data.model.MessageResponse
+import com.example.muzea.data.model.PresenceResponse
 import com.example.muzea.data.model.SendMessageRequest
 import com.example.muzea.utils.NetworkResult
 import kotlinx.coroutines.flow.Flow
@@ -26,6 +27,15 @@ class ChatRepository(
     private val apiService: ChatApiService,
     private val chatAuthManager: ChatAuthManager
 ) {
+
+    private companion object {
+        /**
+         * Размер чанка batch-запроса статусов. Держим заметно ниже серверного
+         * лимита (200), чтобы URL со списком UUID не разрастался до проблем
+         * у прокси и серверов.
+         */
+        const val PRESENCE_BATCH_SIZE = 100
+    }
 
     suspend fun loadAvatar(): Flow<NetworkResult<AvatarResponse>> = avatarRequest {
         val response = authenticatedRequest { apiService.getMyProfile() }
@@ -209,6 +219,80 @@ class ChatRepository(
         } catch (e: Exception) {
             emit(NetworkResult.Error("Network error: ${e.message}"))
         }
+    }
+
+    /**
+     * Heartbeat «я на переднем плане».
+     *
+     * Тихий метод без Flow: ошибки здесь нечего показывать пользователю —
+     * упавший heartbeat означает лишь «статус обновится чуть позже», а окно
+     * TTL специально шире интервала. Возвращаем признак успеха, чтобы
+     * вызывающий мог отличить сетевую проблему от штатной отправки.
+     */
+    suspend fun sendHeartbeat(): Boolean = try {
+        if (!chatAuthManager.isAuthenticated()) {
+            false
+        } else {
+            apiService.sendHeartbeat().isSuccessful
+        }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        false
+    }
+
+    /**
+     * Пакетный статус присутствия по UUID.
+     *
+     * Бэкенд ограничивает размер пачки, поэтому список режется на чанки и
+     * ответы склеиваются: иначе запрос на 300 контактов упал бы с 400.
+     * Пустой вход даёт пустой результат без обращения к сети.
+     */
+    suspend fun loadPresence(userUuids: List<String>): Map<String, PresenceResponse> {
+        val wanted = userUuids.filter { it.isNotBlank() }.distinct()
+        if (wanted.isEmpty()) return emptyMap()
+
+        val result = LinkedHashMap<String, PresenceResponse>()
+        for (chunk in wanted.chunked(PRESENCE_BATCH_SIZE)) {
+            try {
+                var response = apiService.getPresence(chunk)
+                if (response.code() == 401) {
+                    chatAuthManager.invalidate()
+                    if (!chatAuthManager.isAuthenticated()) return result
+                    response = apiService.getPresence(chunk)
+                }
+                if (response.isSuccessful) {
+                    response.body()?.forEach { result[it.userUuid] = it }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Частичный результат лучше пустого: контакты, чей статус
+                // пришёл, покажут реальное состояние, остальные — прошлый.
+                Unit
+            }
+        }
+        return result
+    }
+
+    /**
+     * Серверный разлогин.
+     *
+     * Вызывается перед очисткой локального токена: пока сессия жива, сервер
+     * считает пользователя онлайн, и его статус «залипнет» в чужих контактах.
+     */
+    suspend fun logout(): Boolean = try {
+        if (chatAuthManager.isAuthenticated()) {
+            apiService.logout().isSuccessful
+        } else {
+            true
+        }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        // Разлогин нельзя отменять из-за сети: локальные токены всё равно
+        // чистим вызывающий код, сервер же догасит сессию по TTL.
+        true
     }
 
     suspend fun loadChatParticipants(

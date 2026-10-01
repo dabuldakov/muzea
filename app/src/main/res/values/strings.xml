@@ -39,4 +39,12 @@
     <string name="delete_account_logout">Выйти из приложения</string>
     <string name="action_cancel">Отмена</string>
     <string name="action_delete">Удалить</string>
+
+    <string name="presence_online">в сети</string>
+    <string name="presence_offline">офлайн</string>
+    <string name="presence_last_seen_just_now">был(а) только что</string>
+    <string name="presence_last_seen_minutes">был(а) %1$d мин назад</string>
+    <string name="presence_last_seen_hours">был(а) %1$d ч назад</string>
+    <string name="presence_last_seen_days">был(а) %1$d дн назад</string>
+    <string name="presence_last_seen_at">был(а) в сети %1$s</string>
 </resources>

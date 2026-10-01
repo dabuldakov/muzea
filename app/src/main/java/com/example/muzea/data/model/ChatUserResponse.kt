@@ -17,6 +17,8 @@ data class ChatUserResponse(
     val fullName: String?,
     @SerializedName("avatarUrl")
     val avatarUrl: String?,
-    @SerializedName("isOnline")
+    // Бэкенд отдаёт "online" (@JsonProperty на boolean-поле isOnline),
+    // поэтому "isOnline" здесь всегда давало бы false.
+    @SerializedName("online")
     val isOnline: Boolean
 )

@@ -14,6 +14,7 @@ import com.example.muzea.data.model.CreateGroupChatRequest
 import com.example.muzea.data.model.CreatePrivateChatRequest
 import com.example.muzea.data.model.MessageResponse
 import com.example.muzea.data.model.PageResponse
+import com.example.muzea.data.model.PresenceResponse
 import com.example.muzea.data.model.SendMessageRequest
 import retrofit2.Response
 import retrofit2.http.Body
@@ -68,6 +69,34 @@ interface ChatApiService {
     suspend fun register(
         @Body request: ChatRegisterRequest
     ): Response<ChatAuthResponse>
+
+    /**
+     * Серверный разлогин. Обязателен, а не «просто почистить токен локально»:
+     * без него сессия остаётся живой и сервер считает пользователя онлайн.
+     */
+    @POST("/api/auth/logout")
+    suspend fun logout(): Response<Unit>
+
+    /**
+     * Heartbeat «я на переднем плане». Продлевает окно онлайна на сервере.
+     *
+     * Отправляется, пока приложение видно, с интервалом больше серверного TTL
+     * с запасом: несколько пропущенных запросов не должны гасить статус.
+     */
+    @POST("/api/presence/heartbeat")
+    suspend fun sendHeartbeat(): Response<Unit>
+
+    /**
+     * Пакетный статус присутствия для списка контактов.
+     *
+     * Отдельный лёгкий запрос вместо перезагрузки /api/contacts: список контактов
+     * нужен редко, статус нужен постоянно. Бэкенд ограничивает размер пачки,
+     * поэтому клиент режет список на чанки.
+     */
+    @GET("/api/presence")
+    suspend fun getPresence(
+        @Query("userUuids") userUuids: List<String>
+    ): Response<List<PresenceResponse>>
 
     @GET("/api/chats")
     suspend fun getChats(): Response<List<ChatResponse>>

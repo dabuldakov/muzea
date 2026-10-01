@@ -21,7 +21,11 @@ data class ContactResponse(
     val avatarUrl: String?,
     @SerializedName("contactName")
     val contactName: String?,
-    @SerializedName("isOnline")
+    // Имя ключа обязано совпадать с бэкендом: ContactDto помечает поле
+    // @JsonProperty("online"), поэтому в JSON приходит "online", а не "isOnline".
+    // Со старым "isOnline" Gson молча подставлял false — «в сети» не горел ни
+    // у кого. Держим @SerializedName("online") синхронно с ContactDto.
+    @SerializedName("online")
     val isOnline: Boolean,
     @SerializedName("lastSeenAt")
     val lastSeenAt: String?,

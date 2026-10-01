@@ -50,6 +50,27 @@ class MainActivity : AppCompatActivity() {
 
         setupBottomNavigation()
         setupUnreadBadge()
+        startPresenceHeartbeat()
+    }
+
+    /**
+     * Heartbeat «приложение на переднем плане» на всё приложение.
+     *
+     * Именно он, а не список контактов, продлевает серверное окно «в сети»:
+     * пользователь может час читать новости, ни разу не открыв контакты, и всё
+     * это время должен оставаться «в сети». Цикл привязан к STARTED, поэтому в
+     * фоне и после сворачивания приложения запросов нет — сервер догасит
+     * статус сам по TTL.
+     */
+    private fun startPresenceHeartbeat() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (isActive) {
+                    chatRepository.sendHeartbeat()
+                    delay(HEARTBEAT_INTERVAL_MS)
+                }
+            }
+        }
     }
 
     private fun setupUnreadBadge() {
@@ -131,5 +152,12 @@ class MainActivity : AppCompatActivity() {
 
     private companion object {
         private const val UNREAD_REFRESH_INTERVAL_MS = 10_000L
+
+        /**
+         * Интервал heartbeat. Сервер считает пользователя онлайном 45 секунд
+         * после последнего heartbeat, поэтому 15 секунд переживают потерю пары
+         * запросов в плохой сети и при этом не грузят сервер зря.
+         */
+        private const val HEARTBEAT_INTERVAL_MS = 15_000L
     }
 }

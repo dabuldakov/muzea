@@ -8,7 +8,9 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.example.muzea.R
@@ -19,9 +21,20 @@ import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.databinding.FragmentContactListBinding
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class ContactListFragment : Fragment() {
+
+    private companion object {
+        /**
+         * Интервал опроса статусов контактов.
+         *
+         * Сервер держит «онлайн» 45 секунд после последнего heartbeat, поэтому
+         * 20 секунд дают запас: пара пропущенных запросов не гасит индикатор.
+         */
+        const val PRESENCE_POLL_INTERVAL_MS = 20_000L
+    }
 
     private var _binding: FragmentContactListBinding? = null
     private val binding get() = _binding!!
@@ -45,9 +58,30 @@ class ContactListFragment : Fragment() {
         setupSwipeRefresh()
         setupFab()
         observeContacts()
+        observeContactList()
         observeAddContact()
         observeCreateChat()
+        startPresencePolling()
         loadContacts()
+    }
+
+    /**
+     * Опрос статусов, пока экран на переднем плане.
+     *
+     * repeatOnLifecycle(STARTED) сам останавливает и возобновляет цикл, поэтому
+     * в фоне запросов нет, а при возврате на экран первый запрос уходит сразу,
+     * не дожидаясь интервала. Heartbeat при этом шлёт MainActivity: он нужен
+     * всему приложению, а не только этому экрану.
+     */
+    private fun startPresencePolling() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (true) {
+                    viewModel.refreshPresence()
+                    delay(PRESENCE_POLL_INTERVAL_MS)
+                }
+            }
+        }
     }
 
     private fun initViewModel() {
@@ -114,9 +148,31 @@ class ContactListFragment : Fragment() {
                             binding.progressBar.visibility = View.VISIBLE
                         }
                     }
-                    is NetworkResult.Success -> handleSuccessState(result.data ?: emptyList())
+                    is NetworkResult.Success -> handleSuccessState()
                     is NetworkResult.Error -> handleErrorState(result.message ?: "Unknown error")
                 }
+            }
+        }
+    }
+
+    /**
+     * Единственный источник данных для списка.
+     *
+     * Список контактов и обновления статуса приходят разными потоками
+     * (contactsResult — разовые загрузки, contacts — частые опросы), но в
+     * адаптер попадает только этот StateFlow. Иначе два конкуренных
+     * обновления списка перетирали бы друг друга, и индикатор «в сети»
+     * мигал бы между старым и новым состоянием.
+     */
+    private fun observeContactList() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.contacts.collect { contacts ->
+                if (contacts.isNotEmpty()) {
+                    binding.progressBar.visibility = View.GONE
+                    binding.swipeRefresh.isRefreshing = false
+                }
+                adapter.updateList(contacts)
+                updateEmptyState()
             }
         }
     }
@@ -166,12 +222,14 @@ class ContactListFragment : Fragment() {
         }
     }
 
-    private fun handleSuccessState(contacts: List<ContactResponse>) {
+    /**
+     * Список отдан адаптеру из observeContactList — здесь только снимаем
+     * оверлей загрузки и свайп-рефреш, чтобы разовые загрузки и частые опросы
+     * статуса не трогали список конкурентно.
+     */
+    private fun handleSuccessState() {
         binding.progressBar.visibility = View.GONE
         binding.swipeRefresh.isRefreshing = false
-
-        adapter.updateList(contacts)
-        updateEmptyState()
     }
 
     private fun handleErrorState(message: String) {

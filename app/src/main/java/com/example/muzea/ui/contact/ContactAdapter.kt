@@ -11,6 +11,8 @@ import com.example.muzea.R
 import com.example.muzea.data.model.ContactResponse
 import com.example.muzea.databinding.ItemContactBinding
 import com.example.muzea.utils.AvatarLoader
+import com.example.muzea.utils.LastSeenFormatter
+import com.example.muzea.utils.LocalTimeFormatter
 
 class ContactAdapter(
     private val onItemClick: (ContactResponse) -> Unit
@@ -36,15 +38,50 @@ class ContactAdapter(
             binding.tvContactName.text = contact.displayName()
             binding.tvContactUsername.text = contact.username ?: ""
 
-            binding.tvContactStatus.text = if (contact.isOnline) "online" else "offline"
-            val statusColor = if (contact.isOnline) {
-                ContextCompat.getColor(binding.root.context, R.color.green)
-            } else {
-                ContextCompat.getColor(binding.root.context, R.color.gray)
-            }
-            binding.tvContactStatus.setTextColor(statusColor)
+            bindStatus(contact)
 
             loadAvatar(contact)
+        }
+
+        private fun bindStatus(contact: ContactResponse) {
+            val context = binding.root.context
+            if (contact.isOnline) {
+                binding.tvContactStatus.setText(R.string.presence_online)
+                binding.tvContactStatus.setTextColor(
+                    ContextCompat.getColor(context, R.color.green)
+                )
+                // Точка статусa нужна только рядом с «в сети»: у офлайна
+                // подпись уже несёт время последнего визита.
+                binding.viewOnlineDot.visibility = View.VISIBLE
+            } else {
+                binding.tvContactStatus.text = lastSeenText(contact)
+                binding.tvContactStatus.setTextColor(
+                    ContextCompat.getColor(context, R.color.gray)
+                )
+                binding.viewOnlineDot.visibility = View.INVISIBLE
+            }
+        }
+
+        /**
+         * «был(а) N мин назад» — тем полезнее, чем свежее статус.
+         * Дальше суток точная минута ни о чём не говорит, поэтому
+         * показываем календарное время, как в остальных экранах.
+         */
+        private fun lastSeenText(contact: ContactResponse): String {
+            val context = binding.root.context
+            val iso = contact.lastSeenAt
+            if (iso.isNullOrEmpty()) return context.getString(R.string.presence_offline)
+
+            val minutes = LastSeenFormatter.minutesAgo(iso) ?: return context.getString(R.string.presence_offline)
+            return when {
+                minutes < 1L -> context.getString(R.string.presence_last_seen_just_now)
+                minutes < 60L -> context.getString(R.string.presence_last_seen_minutes, minutes.toInt())
+                minutes < 24 * 60L -> context.getString(R.string.presence_last_seen_hours, (minutes / 60L).toInt())
+                else -> context.getString(
+                    R.string.presence_last_seen_at,
+                    LocalTimeFormatter.format(iso)
+                )
+            }
         }
 
         private fun loadAvatar(contact: ContactResponse) {
@@ -52,8 +89,15 @@ class ContactAdapter(
         }
     }
 
+    /**
+     * Простая отправка списка, а не submitList(null) + submitList(list).
+     *
+     * Обнуление списка перед следующим прогоном принудительно пересоздавало
+     * все ViewHolder-ы: список мигал, анимации пропадали и позиция прокрутки
+     * сбрасывалась. Именно с этим обновлением приходил и статус «в сети» —
+     * список дёргался каждые 20 секунд.
+     */
     fun updateList(newList: List<ContactResponse>) {
-        submitList(null)
         submitList(newList)
     }
 

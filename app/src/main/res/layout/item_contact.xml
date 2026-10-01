@@ -50,14 +50,30 @@
 
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/tvContactStatus"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:text="offline"
-            android:textColor="@color/gray"
-            android:textSize="12sp" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <View
+                android:id="@+id/viewOnlineDot"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/bg_online_dot"
+                android:visibility="invisible" />
+
+            <TextView
+                android:id="@+id/tvContactStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/presence_offline"
+                android:textColor="@color/gray"
+                android:textSize="12sp" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
