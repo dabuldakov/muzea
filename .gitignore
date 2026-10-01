@@ -10,6 +10,8 @@
 .DS_Store
 /build
 /captures
+# Готовые APK — артефакт сборки, в git не храним
+/app/release/
 .externalNativeBuild
 .cxx
 local.properties
