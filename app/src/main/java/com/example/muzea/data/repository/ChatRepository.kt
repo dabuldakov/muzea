@@ -186,7 +186,9 @@ class ChatRepository(
             }
 
             if (response.isSuccessful && response.body() != null) {
-                emit(NetworkResult.Success(response.body()!!))
+                val content = response.body()!!
+                ChatListCache.put(content)
+                emit(NetworkResult.Success(content))
             } else {
                 emit(NetworkResult.Error("Failed to load chats: ${response.message()}"))
             }
@@ -194,6 +196,12 @@ class ChatRepository(
             emit(NetworkResult.Error("Network error: ${e.message}"))
         }
     }
+
+    /**
+     * Мгновенный доступ к последнему известному списку чатов без обращения к сети.
+     * Используется, чтобы список открывался сразу, а обновление шло фоном.
+     */
+    fun cachedChats(): List<ChatResponse> = ChatListCache.get()
 
     suspend fun loadContacts(): Flow<NetworkResult<List<ContactResponse>>> = flow {
         emit(NetworkResult.Loading())
@@ -458,6 +466,7 @@ class ChatRepository(
 
             if (response.isSuccessful && response.body() != null) {
                 val content = response.body()!!.content
+                ChatMessagesCache.put(chatUuid, content)
                 emit(NetworkResult.Success(content))
             } else {
                 emit(NetworkResult.Error("Failed to load messages: ${response.message()}"))
@@ -466,6 +475,12 @@ class ChatRepository(
             emit(NetworkResult.Error("Network error: ${e.message}"))
         }
     }
+
+    /**
+     * Мгновенный доступ к уже загруженной переписке без обращения к сети.
+     * Используется, чтобы чат открывался сразу, а обновление шло фоном.
+     */
+    fun cachedMessages(chatUuid: String): List<MessageResponse> = ChatMessagesCache.get(chatUuid)
 
     suspend fun sendMessage(chatUuid: String, text: String): Flow<NetworkResult<MessageResponse>> = flow {
         emit(NetworkResult.Loading())

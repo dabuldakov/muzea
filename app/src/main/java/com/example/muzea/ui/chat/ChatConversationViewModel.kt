@@ -22,7 +22,9 @@ class ChatConversationViewModel(
     val myUserUuid: String?
 ) : ViewModel() {
 
-    private val _messages = MutableStateFlow<List<MessageResponse>>(emptyList())
+    // Стартуем с кэша: при повторном входе переписка видна сразу, а refresh()
+    // и опрос догружают свежие сообщения фоном.
+    private val _messages = MutableStateFlow(chatRepository.cachedMessages(chatUuid))
     val messages: StateFlow<List<MessageResponse>> = _messages.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
@@ -38,23 +40,29 @@ class ChatConversationViewModel(
     private var lastMarkedReadUuid: String? = null
 
     init {
-        refresh()
+        // Опрос сам выполняет первый запрос, поэтому отдельный refresh() в init
+        // был бы вторым обращением к серверу подряд при каждом входе в чат.
         startPolling()
     }
 
+    /** Разовая загрузка вне цикла опроса: pull-to-refresh и ручное обновление. */
     fun refresh() {
-        viewModelScope.launch {
-            chatRepository.loadMessages(chatUuid).collect { result ->
-                when (result) {
-                    is NetworkResult.Loading -> _isLoading.value = true
-                    is NetworkResult.Success -> {
-                        _isLoading.value = false
-                        mergeMessages(result.data ?: emptyList())
-                    }
-                    is NetworkResult.Error -> {
-                        _isLoading.value = false
-                        _error.value = result.message
-                    }
+        viewModelScope.launch { loadOnce() }
+    }
+
+    private suspend fun loadOnce() {
+        chatRepository.loadMessages(chatUuid).collect { result ->
+            when (result) {
+                // Спиннер показываем только когда показать нечего: переписка из
+                // кэша уже на экране, и мигать индикатором при входе незачем.
+                is NetworkResult.Loading -> _isLoading.value = _messages.value.isEmpty()
+                is NetworkResult.Success -> {
+                    _isLoading.value = false
+                    mergeMessages(result.data ?: emptyList())
+                }
+                is NetworkResult.Error -> {
+                    _isLoading.value = false
+                    _error.value = result.message
                 }
             }
         }
@@ -138,12 +146,8 @@ class ChatConversationViewModel(
     private fun startPolling() {
         pollingJob = viewModelScope.launch {
             while (isActive) {
-                delay(3000)
-                chatRepository.loadMessages(chatUuid).collect { result ->
-                    if (result is NetworkResult.Success) {
-                        mergeMessages(result.data ?: emptyList())
-                    }
-                }
+                loadOnce()
+                delay(POLL_INTERVAL_MS)
             }
         }
     }
@@ -155,5 +159,6 @@ class ChatConversationViewModel(
 
     companion object {
         private const val LOCAL_PREFIX = "local-"
+        private const val POLL_INTERVAL_MS = 3_000L
     }
 }

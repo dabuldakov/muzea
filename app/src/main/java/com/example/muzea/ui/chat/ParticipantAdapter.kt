@@ -47,7 +47,6 @@ class ParticipantAdapter(
     }
 
     fun updateList(newList: List<ChatParticipantResponse>) {
-        submitList(null)
         submitList(newList)
     }
 

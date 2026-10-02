@@ -10,6 +10,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
 import com.example.muzea.R
 import com.example.muzea.data.api.ChatRetrofitClient
 import com.example.muzea.data.repository.ChatAuthManager
@@ -44,7 +46,11 @@ class MainActivity : AppCompatActivity() {
         // Показываем первый фрагмент
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, NewsListFragment())
+                .add(
+                    R.id.fragment_container,
+                    NewsListFragment(),
+                    TAB_TAGS.getValue(R.id.newsListFragment)
+                )
                 .commit()
         }
 
@@ -117,40 +123,69 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupBottomNavigation() {
         binding.bottomNavigation.setOnItemSelectedListener { menuItem ->
-            when (menuItem.itemId) {
-                R.id.newsListFragment -> {
-                    replaceFragment(NewsListFragment())
-                    true
-                }
-                R.id.chatFragment -> {
-                    replaceFragment(ChatListFragment())
-                    true
-                }
-                R.id.contactFragment -> {
-                    replaceFragment(ContactListFragment())
-                    true
-                }
-                R.id.videoListFragment -> {
-                    replaceFragment(VideoListFragment())
-                    true
-                }
-                R.id.profileFragment -> {
-                    replaceFragment(ProfileFragment())
-                    true
-                }
-                else -> false
-            }
+            showTab(menuItem.itemId)
+            true
         }
     }
 
-    private fun replaceFragment(fragment: androidx.fragment.app.Fragment) {
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, fragment)
-            .addToBackStack(null)
-            .commit()
+    /**
+     * Переключение вкладок без пересоздания фрагментов.
+     *
+     * Вкладки один раз добавляются в контейнер и дальше только прячутся и
+     * показываются, поэтому их View, адаптеры и прокрутка живут всё время.
+     * Переключение мгновенное: пользователь сразу видит уже загруженный список,
+     * а данные обновляются в фоне (опрос/onHiddenChanged). Старый вариант с
+     * replace() уничтожал View вкладки на каждом переключении и заново грузил
+     * контент — отсюда была задержка.
+     */
+    private fun showTab(itemId: Int) {
+        val tag = TAB_TAGS[itemId] ?: return
+
+        // Закрываем экраны, открытые поверх вкладок (новость, чат, настройки
+        // группы), чтобы новая вкладка не оказалась под ними.
+        supportFragmentManager.popBackStackImmediate(
+            null,
+            FragmentManager.POP_BACK_STACK_INCLUSIVE
+        )
+
+        val fragmentManager = supportFragmentManager
+        val target = fragmentManager.findFragmentByTag(tag)
+        val transaction = fragmentManager.beginTransaction().setReorderingAllowed(true)
+
+        for ((id, otherTag) in TAB_TAGS) {
+            if (id == itemId) continue
+            fragmentManager.findFragmentByTag(otherTag)?.let { other ->
+                if (!other.isHidden) transaction.hide(other)
+            }
+        }
+
+        if (target == null) {
+            transaction.add(R.id.fragment_container, createTabFragment(itemId), tag)
+        } else {
+            transaction.show(target)
+        }
+
+        transaction.commit()
+    }
+
+    private fun createTabFragment(itemId: Int): Fragment = when (itemId) {
+        R.id.newsListFragment -> NewsListFragment()
+        R.id.chatFragment -> ChatListFragment()
+        R.id.contactFragment -> ContactListFragment()
+        R.id.videoListFragment -> VideoListFragment()
+        R.id.profileFragment -> ProfileFragment()
+        else -> NewsListFragment()
     }
 
     private companion object {
+        private val TAB_TAGS = mapOf(
+            R.id.newsListFragment to "tab_news",
+            R.id.chatFragment to "tab_chat",
+            R.id.contactFragment to "tab_contacts",
+            R.id.videoListFragment to "tab_videos",
+            R.id.profileFragment to "tab_profile"
+        )
+
         private const val UNREAD_REFRESH_INTERVAL_MS = 10_000L
 
         /**

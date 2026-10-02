@@ -12,6 +12,7 @@
 /captures
 # Готовые APK — артефакт сборки, в git не храним
 /app/release/
+/app/debug/
 
 # Ключ подписи release-сборок и его параметры — только локально и в GitHub Secrets
 /keystore.properties

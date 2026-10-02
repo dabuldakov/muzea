@@ -72,8 +72,14 @@ class ChatAdapter(
         }
     }
 
+    /**
+     * Простая отправка списка, а не submitList(null) + submitList(list).
+     *
+     * Обнуление списка перед следующим прогоном пересоздавало все ViewHolder-ы,
+     * и список чатов мигал при каждом фоновом обновлении (каждые 8 секунд).
+     * DiffUtil сам точечно обновляет изменившиеся строки.
+     */
     fun updateList(newList: List<ChatResponse>) {
-        submitList(null)
         submitList(newList)
     }
 

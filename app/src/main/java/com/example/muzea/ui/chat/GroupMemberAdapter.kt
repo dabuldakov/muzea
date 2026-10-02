@@ -63,7 +63,6 @@ class GroupMemberAdapter(
     }
 
     fun updateList(newList: List<ContactResponse>) {
-        submitList(null)
         submitList(newList)
     }
 

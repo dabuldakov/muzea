@@ -7,15 +7,17 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.muzea.R
 import com.example.muzea.data.api.ChatRetrofitClient
 import com.example.muzea.data.model.MessageResponse
 import com.example.muzea.data.repository.ChatAuthManager
 import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.databinding.FragmentChatConversationBinding
+import com.example.muzea.ui.openDetailScreen
 import com.example.muzea.utils.TokenManager
 import com.example.muzea.utils.AvatarLoader
 import kotlinx.coroutines.launch
@@ -96,7 +98,17 @@ class ChatConversationFragment : Fragment() {
         val tokenManager = TokenManager(requireContext())
         val apiService = ChatRetrofitClient(tokenManager).apiService
         val chatRepository = ChatRepository(apiService, ChatAuthManager(apiService, tokenManager))
-        viewModel = ChatConversationViewModel(chatUuid, chatRepository, extractMyUserUuid(tokenManager))
+        // ViewModel получаем через провайдер, чтобы при закрытии чата вызывался
+        // onCleared() и трёхсекундный опрос гарантированно останавливался.
+        viewModel = ViewModelProvider(this, object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                ChatConversationViewModel(
+                    chatUuid,
+                    chatRepository,
+                    extractMyUserUuid(tokenManager)
+                ) as T
+        })[ChatConversationViewModel::class.java]
     }
 
     private fun openGroupSettings(chatTitle: String) {
@@ -105,10 +117,7 @@ class ChatConversationFragment : Fragment() {
             chatTitle,
             arguments?.getString(ARG_CHAT_AVATAR)
         )
-        parentFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, fragment)
-            .addToBackStack(null)
-            .commit()
+        openDetailScreen(fragment)
     }
 
     private fun setupRecyclerView() {
@@ -147,6 +156,31 @@ class ChatConversationFragment : Fragment() {
         }
     }
 
+    /**
+     * Единая отрисовка экрана переписки.
+     *
+     * Список берём из ViewModel, потому что [androidx.recyclerview.widget.ListAdapter]
+     * обновляет currentList асинхронно: опираясь на него, мы сразу после
+     * submitList() считали бы экран пустым и спрятали бы переписку.
+     */
+    private fun renderConversationState() {
+        val hasMessages = viewModel.messages.value.isNotEmpty()
+        val loading = viewModel.isLoading.value
+        val error = viewModel.error.value
+
+        binding.progressBar.visibility = if (loading && !hasMessages) View.VISIBLE else View.GONE
+
+        if (error != null && !hasMessages) {
+            binding.tvError.text = error
+            binding.tvError.visibility = View.VISIBLE
+            binding.recyclerViewMessages.visibility = View.GONE
+        } else {
+            binding.tvError.visibility = View.GONE
+            binding.recyclerViewMessages.visibility =
+                if (hasMessages) View.VISIBLE else View.GONE
+        }
+    }
+
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.messages.collect { messages ->
@@ -172,27 +206,14 @@ class ChatConversationFragment : Fragment() {
             }
         }
 
+        // Опираемся на данные ViewModel, а не на adapter.currentList: submitList()
+        // обновляет список асинхронно, и сразу после него адаптер ещё пуст.
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.isLoading.collect { loading ->
-                if (loading && adapter.currentList.isEmpty()) {
-                    binding.progressBar.visibility = View.VISIBLE
-                } else {
-                    binding.progressBar.visibility = View.GONE
-                }
-            }
+            viewModel.isLoading.collect { renderConversationState() }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.error.collect { error ->
-                if (error != null && adapter.currentList.isEmpty()) {
-                    binding.tvError.text = error
-                    binding.tvError.visibility = View.VISIBLE
-                    binding.recyclerViewMessages.visibility = View.GONE
-                } else if (error != null) {
-                    binding.tvError.visibility = View.GONE
-                    binding.recyclerViewMessages.visibility = View.VISIBLE
-                }
-            }
+            viewModel.error.collect { renderConversationState() }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {

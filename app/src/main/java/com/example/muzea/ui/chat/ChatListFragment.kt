@@ -11,19 +11,23 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.muzea.R
 import com.example.muzea.data.api.ChatRetrofitClient
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.model.ContactResponse
 import com.example.muzea.data.repository.ChatAuthManager
+import com.example.muzea.data.repository.ChatMessagesCache
 import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.databinding.FragmentChatListBinding
+import com.example.muzea.ui.openDetailScreen
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -33,9 +37,17 @@ class ChatListFragment : Fragment() {
     private var _binding: FragmentChatListBinding? = null
     private val binding get() = _binding!!
     private lateinit var viewModel: ChatViewModel
+    private lateinit var chatRepository: ChatRepository
     private lateinit var adapter: ChatAdapter
     private var membersAdapter: GroupMemberAdapter? = null
     private var membersDialog: AlertDialog? = null
+    private var prefetchJob: Job? = null
+
+    /**
+     * Последняя ошибка загрузки списка. Показывается вместо пустого состояния,
+     * чтобы отличать «чатов нет» от «не удалось загрузить».
+     */
+    private var lastChatsError: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -71,8 +83,15 @@ class ChatListFragment : Fragment() {
     private fun initViewModel() {
         val tokenManager = TokenManager(requireContext())
         val apiService = ChatRetrofitClient(tokenManager).apiService
-        val chatRepository = ChatRepository(apiService, ChatAuthManager(apiService, tokenManager))
-        viewModel = ChatViewModel(chatRepository)
+        val repository = ChatRepository(apiService, ChatAuthManager(apiService, tokenManager))
+        chatRepository = repository
+        // ViewModel получаем через провайдер: список чатов тогда переживает
+        // пересоздание экрана и не перезапрашивается при каждом показе.
+        viewModel = ViewModelProvider(this, object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                ChatViewModel(repository) as T
+        })[ChatViewModel::class.java]
     }
 
     private fun setupRecyclerView() {
@@ -106,10 +125,7 @@ class ChatListFragment : Fragment() {
             avatarUrl,
             0L
         )
-        parentFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, fragment)
-            .addToBackStack(null)
-            .commit()
+        openDetailScreen(fragment)
     }
 
     private fun setupSwipeRefresh() {
@@ -123,12 +139,23 @@ class ChatListFragment : Fragment() {
     }
 
     private fun observeViewModel() {
+        // Список идёт из StateFlow: значение доступно сразу при подписке, поэтому
+        // экран рисует кэш немедленно, без мигания индикатора загрузки.
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.chatsResult.collect { result ->
-                when (result) {
-                    is NetworkResult.Loading -> handleLoadingState()
-                    is NetworkResult.Success -> handleSuccessState(result.data ?: emptyList())
-                    is NetworkResult.Error -> handleErrorState(result.message ?: "Unknown error")
+            viewModel.chats.collect { chats -> renderChats(chats) }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.isLoadingChats.collect {
+                renderState(viewModel.chats.value)
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.chatsError.collect { error ->
+                if (error != null) {
+                    handleErrorState(error)
+                    viewModel.chatsErrorShown()
                 }
             }
         }
@@ -256,45 +283,97 @@ class ChatListFragment : Fragment() {
         navigationToConversation(chat.chatUuid, chat.title ?: "Group", chat.avatarUrl)
     }
 
-    private fun handleLoadingState() {
-        // Не мигаем прогрессом при фоновом автообновлении, если список уже показан.
-        if (!binding.swipeRefresh.isRefreshing && adapter.itemCount == 0) {
-            binding.progressBar.visibility = View.VISIBLE
+    /**
+     * Отрисовка списка.
+     *
+     * Спиннер здесь не трогаем: его показывает подписка на
+     * [ChatViewModel.isLoadingChats] и только когда показать пока нечего.
+     */
+    private fun renderChats(chats: List<ChatResponse>) {
+        binding.swipeRefresh.isRefreshing = false
+        lastChatsError = null
+        adapter.updateList(chats)
+        renderState(chats)
+        prefetchChatMessages(chats)
+    }
+
+    /**
+     * Прогрузка переписок в фоне.
+     *
+     * Пока пользователь смотрит список, по одному в фоне подтягиваем сообщения
+     * тех чатов, которых ещё нет в кэше. Тогда при входе переписка показывается
+     * мгновенно, а не с индикатором загрузки. Уже закэшированные и уже
+     * запущенные чаты пропускаем, список ограничиваем, чтобы не заваливать
+     * сервер запросами.
+     */
+    private fun prefetchChatMessages(chats: List<ChatResponse>) {
+        val targets = chats.asSequence()
+            .map { it.chatUuid }
+            .filter { it.isNotBlank() && !ChatMessagesCache.has(it) }
+            .take(MAX_PREFETCH_PER_PASS)
+            .toList()
+
+        if (targets.isEmpty() || prefetchJob?.isActive == true) return
+
+        prefetchJob = viewLifecycleOwner.lifecycleScope.launch {
+            for (chatUuid in targets) {
+                chatRepository.loadMessages(chatUuid).collect { }
+                delay(PREFETCH_DELAY_MS)
+            }
         }
     }
 
-    private fun handleSuccessState(chats: List<ChatResponse>) {
-        binding.progressBar.visibility = View.GONE
-        binding.swipeRefresh.isRefreshing = false
-
-        adapter.updateList(chats)
-        updateEmptyState()
-    }
-
     private fun handleErrorState(message: String) {
-        binding.progressBar.visibility = View.GONE
+        lastChatsError = message
         binding.swipeRefresh.isRefreshing = false
 
-        if (adapter.currentList.isEmpty()) {
-            binding.tvError.text = message
-            binding.tvError.visibility = View.VISIBLE
-            binding.recyclerViewChats.visibility = View.GONE
+        val chats = viewModel.chats.value
+        if (chats.isEmpty()) {
+            renderState(chats)
         } else {
+            // Список из кэша остаётся на экране, сообщаем тостом и не затираем его.
             Toast.makeText(requireContext(), "Error: $message", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun updateEmptyState() {
-        if (adapter.currentList.isEmpty()) {
-            binding.tvEmpty.visibility = View.VISIBLE
-            binding.recyclerViewChats.visibility = View.GONE
-            binding.tvError.visibility = View.GONE
-        } else {
-            binding.tvEmpty.visibility = View.GONE
-            binding.recyclerViewChats.visibility = View.VISIBLE
-            binding.tvError.visibility = View.GONE
+    /**
+     * Единственное место, где состояние списка превращается в видимость view'ов.
+     * Решение принимается по данным из [chatListViewState], а не по состоянию
+     * адаптера: submitList() обновляет список асинхронно.
+     */
+    private fun renderState(chats: List<ChatResponse>) {
+        when (chatListViewState(chats, viewModel.isLoadingChats.value, lastChatsError)) {
+            ChatListViewState.LIST -> {
+                binding.tvEmpty.visibility = View.GONE
+                binding.tvError.visibility = View.GONE
+                binding.recyclerViewChats.visibility = View.VISIBLE
+                binding.progressBar.visibility = View.GONE
+            }
+
+            ChatListViewState.LOADING -> {
+                binding.tvEmpty.visibility = View.GONE
+                binding.tvError.visibility = View.GONE
+                binding.recyclerViewChats.visibility = View.GONE
+                binding.progressBar.visibility = View.VISIBLE
+            }
+
+            ChatListViewState.ERROR -> {
+                binding.tvEmpty.visibility = View.GONE
+                binding.tvError.visibility = View.VISIBLE
+                binding.tvError.text = lastChatsError
+                binding.recyclerViewChats.visibility = View.GONE
+                binding.progressBar.visibility = View.GONE
+            }
+
+            ChatListViewState.EMPTY -> {
+                binding.tvEmpty.visibility = View.VISIBLE
+                binding.tvError.visibility = View.GONE
+                binding.recyclerViewChats.visibility = View.GONE
+                binding.progressBar.visibility = View.GONE
+            }
         }
     }
+
 
     private fun dp(value: Int): Int =
         (value * resources.displayMetrics.density).toInt()
@@ -311,5 +390,7 @@ class ChatListFragment : Fragment() {
 
     private companion object {
         private const val AUTO_REFRESH_MS = 8_000L
+        private const val MAX_PREFETCH_PER_PASS = 20
+        private const val PREFETCH_DELAY_MS = 250L
     }
 }

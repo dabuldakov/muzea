@@ -10,7 +10,6 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.muzea.R
 import com.example.muzea.data.api.ChatRetrofitClient
 import com.example.muzea.data.api.RetrofitClient
 import com.example.muzea.data.model.NewsResponse
@@ -18,6 +17,7 @@ import com.example.muzea.data.repository.ChatAuthManager
 import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.data.repository.NewsRepository
 import com.example.muzea.databinding.FragmentNewsListBinding
+import com.example.muzea.ui.openDetailScreen
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
 import kotlinx.coroutines.launch
@@ -81,10 +81,7 @@ class NewsListFragment : Fragment() {
         val fragment = NewsDetailFragment().apply {
             arguments = Bundle().apply { putLong("newsId", newsId) }
         }
-        parentFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, fragment)
-            .addToBackStack(null)
-            .commit()
+        openDetailScreen(fragment)
     }
 
     private fun setupPagination() {
@@ -111,7 +108,7 @@ class NewsListFragment : Fragment() {
     private fun refreshNews() {
         if (isRefreshing) return
         isRefreshing = true
-        adapter.clearItems()
+        // Не чистим список: DiffUtil обновит строки на месте, и лента не мигает.
         viewModel.loadNews(PAGE_SIZE, myUsername)
     }
 
@@ -195,5 +192,12 @@ class NewsListFragment : Fragment() {
         super.onResume()
         // Обновляем список при возвращении на экран
         refreshNews()
+    }
+
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        // Вкладка живёт постоянно и при переключении не получает onResume,
+        // поэтому догружаем данные в фоне при каждом показе.
+        if (!hidden) refreshNews()
     }
 }

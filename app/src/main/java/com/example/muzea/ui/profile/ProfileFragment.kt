@@ -277,6 +277,9 @@ class ProfileFragment : Fragment() {
     }
 
     private fun goToLogin() {
+        // Чужие переписки не должны остаться в памяти после смены пользователя.
+        com.example.muzea.data.repository.ChatMessagesCache.clear()
+        com.example.muzea.data.repository.ChatListCache.clear()
         val intent = android.content.Intent(requireContext(), LoginActivity::class.java)
         intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)

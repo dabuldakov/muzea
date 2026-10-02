@@ -143,4 +143,11 @@ class VideoListFragment : Fragment() {
         // Обновляем список при возвращении на экран
         loadVideos()
     }
+
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        // Вкладка живёт постоянно и при переключении не получает onResume,
+        // поэтому догружаем данные в фоне при каждом показе.
+        if (!hidden) loadVideos()
+    }
 }

@@ -1,12 +1,14 @@
 package com.example.muzea.data.repository
 
 import com.example.muzea.data.api.ChatApiService
+import com.example.muzea.data.model.ChatResponse
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import okhttp3.ResponseBody.Companion.toResponseBody
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -58,4 +60,49 @@ class ChatRepositoryReadTest {
 
         assertFalse(repository.markMessagesAsRead("chat-1", "msg-9"))
     }
+
+    @Test
+    fun `fetched chat list lands in the shared cache`() = runTest {
+        ChatListCache.clear()
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.getChats() } returns Response.success(
+            listOf(chat("a", "Anna"), chat("b", "Boris"))
+        )
+
+        repository.loadChats().collect { }
+
+        // Новый экран создаёт свой репозиторий и полагается на этот кэш,
+        // чтобы показать список до ответа сервера.
+        assertEquals(listOf("a", "b"), ChatListCache.get().map { it.chatUuid })
+        assertEquals(listOf("a", "b"), repository.cachedChats().map { it.chatUuid })
+        ChatListCache.clear()
+    }
+
+    @Test
+    fun `failed refresh keeps previously cached chat list`() = runTest {
+        ChatListCache.clear()
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.getChats() } returnsMany listOf(
+            Response.success(listOf(chat("a", "Anna"))),
+            Response.error(500, "boom".toResponseBody())
+        )
+
+        repository.loadChats().collect { }
+        repository.loadChats().collect { }
+
+        assertEquals(listOf("a"), ChatListCache.get().map { it.chatUuid })
+        ChatListCache.clear()
+    }
+
+    private fun chat(uuid: String, title: String) = ChatResponse(
+        chatUuid = uuid,
+        chatType = "PRIVATE",
+        title = title,
+        avatarUrl = null,
+        createdAt = null,
+        updatedAt = null,
+        participantCount = 2L,
+        lastMessage = null,
+        unreadCount = 0L
+    )
 }

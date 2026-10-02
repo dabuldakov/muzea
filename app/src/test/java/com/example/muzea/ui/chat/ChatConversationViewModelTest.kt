@@ -1,0 +1,210 @@
+package com.example.muzea.ui.chat
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import com.example.muzea.data.model.MessageResponse
+import com.example.muzea.data.repository.ChatMessagesCache
+import com.example.muzea.data.repository.ChatRepository
+import com.example.muzea.ui.news.MainDispatcherRule
+import com.example.muzea.utils.NetworkResult
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runTest
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class ChatConversationViewModelTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
+    private val chatRepository = mockk<ChatRepository>()
+    private val chatUuid = "chat-1"
+
+    private fun message(uuid: String, text: String, createdAt: String) = MessageResponse(
+        messageUuid = uuid,
+        chatUuid = chatUuid,
+        senderId = null,
+        senderUuid = "me",
+        senderName = "Me",
+        senderAvatar = null,
+        text = text,
+        messageType = "TEXT",
+        replyToMessageUuid = null,
+        isEdited = false,
+        isDeleted = false,
+        isPinned = false,
+        createdAt = createdAt,
+        updatedAt = null
+    )
+
+    @Before
+    fun setUp() {
+        ChatMessagesCache.clear()
+        // mergeMessages() помечает переписку прочитанной; без заглушки строгий
+        // mockk упадёт на неожиданном вызове.
+        coEvery { chatRepository.markMessagesAsRead(any(), any()) } returns true
+    }
+
+    @After
+    fun tearDown() {
+        ChatMessagesCache.clear()
+    }
+
+    /**
+     * Обёртка собирает ViewModel и обязательно его уничтожает.
+     *
+     * Кэш и сеть описаны параметрами, а не заглушками внутри тела: и
+     * cachedMessages(), и первый запрос выполняются прямо в конструкторе
+     * (опрос стартует в init), поэтому заглушки должны быть готовы заранее.
+     *
+     * store.clear() в finally нужен, чтобы трёхсекундный опрос остановился:
+     * иначе runTest не дойдёт до покоя, планировщик всегда будет видеть
+     * запланированный delay().
+     */
+    private fun withViewModel(
+        cached: List<MessageResponse> = emptyList(),
+        network: Flow<NetworkResult<List<MessageResponse>>> =
+            flowOf(NetworkResult.Success(emptyList())),
+        block: suspend CoroutineScope.(ChatConversationViewModel) -> Unit
+    ) = runTest {
+        every { chatRepository.cachedMessages(chatUuid) } returns cached
+        coEvery { chatRepository.loadMessages(chatUuid) } returns network
+
+        val store = ViewModelStore()
+        val factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                ChatConversationViewModel(chatUuid, chatRepository, "me") as T
+        }
+        try {
+            block(ViewModelProvider(store, factory)[ChatConversationViewModel::class.java])
+        } finally {
+            store.clear()
+        }
+    }
+
+    @Test
+    fun `opening a chat issues exactly one request`() = withViewModel(
+        network = flowOf(NetworkResult.Success(listOf(message("m1", "hi", "2026-01-01T00:00:00"))))
+    ) { viewModel ->
+        // Раньше init звал refresh() и сразу startPolling(), давая два запроса
+        // подряд при каждом входе в чат.
+        assertEquals(1, viewModel.messages.value.size)
+
+        coVerify(exactly = 1) { chatRepository.loadMessages(chatUuid) }
+    }
+
+    @Test
+    fun `cached messages are shown immediately without spinner`() = withViewModel(
+        cached = listOf(message("m1", "cached", "2026-01-01T00:00:00")),
+        network = flowOf(NetworkResult.Success(listOf(message("m1", "cached", "2026-01-01T00:00:00"))))
+    ) { viewModel ->
+        assertEquals("cached", viewModel.messages.value.single().text)
+        assertFalse(viewModel.isLoading.value)
+    }
+
+    @Test
+    fun `fresh messages are merged into cached history`() = withViewModel(
+        cached = listOf(message("m1", "old", "2026-01-01T00:00:00")),
+        network = flowOf(
+            NetworkResult.Success(
+                listOf(
+                    message("m1", "old", "2026-01-01T00:00:00"),
+                    message("m2", "new", "2026-01-02T00:00:00")
+                )
+            )
+        )
+    ) { viewModel ->
+        assertEquals(listOf("old", "new"), viewModel.messages.value.map { it.text })
+    }
+
+    @Test
+    fun `manual refresh adds exactly one more request`() = withViewModel { viewModel ->
+        viewModel.refresh()
+
+        coVerify(exactly = 2) { chatRepository.loadMessages(chatUuid) }
+    }
+
+    @Test
+    fun `failure does not wipe cached messages`() = withViewModel(
+        cached = listOf(message("m1", "cached", "2026-01-01T00:00:00")),
+        network = flowOf(NetworkResult.Error("network down"))
+    ) { viewModel ->
+        assertEquals("cached", viewModel.messages.value.single().text)
+        assertEquals("network down", viewModel.error.value)
+        assertFalse(viewModel.isLoading.value)
+    }
+
+    @Test
+    fun `spinner turns off after loading finishes`() = withViewModel(
+        network = flowOf(NetworkResult.Loading(), NetworkResult.Success(emptyList()))
+    ) { viewModel ->
+        assertFalse(viewModel.isLoading.value)
+    }
+
+    @Test
+    fun `spinner never shows when cached messages are available`() = withViewModel(
+        cached = listOf(message("m1", "cached", "2026-01-01T00:00:00")),
+        network = flowOf(NetworkResult.Loading(), NetworkResult.Success(emptyList()))
+    ) { viewModel ->
+        // Даже если сервер сначала отвечает Loading, экран уже показывает
+        // переписку из кэша, поэтому мигать индикатором нельзя.
+        assertFalse(viewModel.isLoading.value)
+    }
+
+    @Test
+    fun `optimistic message is replaced by server copy`() = withViewModel { viewModel ->
+        coEvery { chatRepository.sendMessage(chatUuid, "hello") } returns flowOf(
+            NetworkResult.Success(message("server-1", "hello", "2026-01-01T00:00:00"))
+        )
+
+        viewModel.sendText("hello")
+
+        assertEquals(1, viewModel.messages.value.size)
+        assertEquals("server-1", viewModel.messages.value.single().messageUuid)
+    }
+
+    @Test
+    fun `send failure keeps optimistic message and reports error`() = withViewModel { viewModel ->
+        coEvery { chatRepository.sendMessage(chatUuid, "hello") } returns flowOf(
+            NetworkResult.Error("send failed")
+        )
+
+        // Подписка возникает до отправки: sendError одноразовый и позднему
+        // подписчику событие не доставит — ровно как работает экран чата.
+        val errors = mutableListOf<String>()
+        // Unconfined нужен, чтобы подписчик обработал значение сразу в потоке
+        // отправителя: иначе он проснётся только на планировщике runTest, и до
+        // проверки мы не дожидаемся ни одной ошибки.
+        val collector = launch(Dispatchers.Unconfined, start = CoroutineStart.UNDISPATCHED) {
+            viewModel.sendError.collect { errors += it }
+        }
+
+        viewModel.sendText("hello")
+        // collect на одноразовом потоке не завершается сам, поэтому подписку
+        // отменяем. К моменту отмены отправка уже разобрана: диспетчер теста
+        // выполняет корутины незамедлительно.
+        collector.cancel()
+
+        assertEquals(1, viewModel.messages.value.size)
+        assertTrue(viewModel.messages.value.single().messageUuid.startsWith("local-"))
+        assertEquals(listOf("send failed"), errors)
+    }
+}

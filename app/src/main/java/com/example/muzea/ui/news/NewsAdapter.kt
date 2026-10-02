@@ -64,7 +64,6 @@ class NewsAdapter(
     }
 
     fun updateList(newList: List<NewsResponse>) {
-        submitList(null)
         submitList(newList)
     }
 
