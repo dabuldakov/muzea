@@ -1,0 +1,182 @@
+name: Release
+
+# Релиз собирается при пуше тега вида v1.0.2 (тег обязан совпадать с versionName
+# в app/build.gradle.kts) или вручную из вкладки Actions.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Тег релиза, например v1.0.2'
+        required: true
+      release_notes:
+        description: 'Что изменилось в этой версии'
+        required: false
+
+permissions:
+  contents: write
+
+# Секреты доступны всем шагам: без них Gradle подпишет APK отладочным ключом,
+# и пользователи не смогут обновляться поверх уже установленного приложения.
+env:
+  MUZEA_KEYSTORE_PATH: ${{ github.workspace }}/keystore/muzea.jks
+  MUZEA_KEYSTORE_PASSWORD: ${{ secrets.MUZEA_KEYSTORE_PASSWORD }}
+  MUZEA_KEY_ALIAS: ${{ secrets.MUZEA_KEY_ALIAS }}
+  MUZEA_KEY_PASSWORD: ${{ secrets.MUZEA_KEY_PASSWORD }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Определить тег и версию
+        id: meta
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            tag="$INPUT_TAG"
+          else
+            tag="$REF_NAME"
+          fi
+          case "$tag" in
+            v*) version="${tag#v}" ;;
+            *)  echo "::error::Тег '$tag' должен начинаться с 'v' (например v1.0.2)"; exit 1 ;;
+          esac
+          if ! printf '%s' "$version" | grep -qP '^[0-9]+(\.[0-9]+)*(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::Недопустимый номер версии: '$version'"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Сверить versionName с тегом
+        working-directory: app
+        run: |
+          expected="$(grep -oP 'versionName\s*=\s*"\K[^"]+' build.gradle.kts)"
+          actual="${{ steps.meta.outputs.version }}"
+          if [ "$expected" != "$actual" ]; then
+            echo "::error::versionName в build.gradle.kts — '$expected', а в теге — '$actual'. Поправь одно из двух."
+            exit 1
+          fi
+          echo "versionName совпадает с тегом: $expected"
+
+      - name: Восстановить ключ подписи
+        env:
+          MUZEA_KEYSTORE_BASE64: ${{ secrets.MUZEA_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$MUZEA_KEYSTORE_BASE64" ]; then
+            echo "::error::Не задан secret MUZEA_KEYSTORE_BASE64 — им закодирован файл muzea.jks."
+            exit 1
+          fi
+          mkdir -p keystore
+          # -i (--ignore-garbage) нужен, потому что значение секрета приходит
+          # копипастом из веб-интерфейса и может прийти с пробелами по краям
+          # или с висячим \r — без этого флага декодирование падает.
+          printf '%s' "$MUZEA_KEYSTORE_BASE64" | base64 --decode --ignore-garbage > keystore/muzea.jks
+          chmod 600 keystore/muzea.jks
+          echo "Восстановлено $(stat -c%s keystore/muzea.jks) байт"
+
+      - name: Проверить, что секреты на месте
+        run: |
+          for var in MUZEA_KEYSTORE_PASSWORD MUZEA_KEY_ALIAS MUZEA_KEY_PASSWORD; do
+            if [ -z "${!var}" ]; then
+              echo "::error::Не задан secret $var"
+              exit 1
+            fi
+          done
+          # keytool проверяет только пароль хранилища. У muzea.jks он совпадает
+          # с паролем ключа, так что MUZEA_KEY_PASSWORD этой проверкой покрыт.
+          # Если когда-то разойдутся, ошибится сборка — точнее всего на шаге
+          # «Собрать APK и AAB».
+          size="$(stat -c%s "$MUZEA_KEYSTORE_PATH")"
+          if [ "$size" -lt 512 ]; then
+            echo "::error::Восстановлено всего $size байт. Похоже, MUZEA_KEYSTORE_BASE64 вставлен не полностью — нужен весь файл muzea.jks целиком, закодированный в base64."
+            exit 1
+          fi
+          if ! keytool -list -keystore "$MUZEA_KEYSTORE_PATH" \
+               -storepass "$MUZEA_KEYSTORE_PASSWORD" -alias "$MUZEA_KEY_ALIAS" > /dev/null 2>&1; then
+            echo "::error::keytool не открыл хранилище. Либо MUZEA_KEYSTORE_PASSWORD / MUZEA_KEY_PASSWORD введены неверно, либо MUZEA_KEY_ALIAS='$MUZEA_KEY_ALIAS' не совпадает с реальным алиасом ключа. Список алиасов:"
+            keytool -list -keystore "$MUZEA_KEYSTORE_PATH" \
+              -storepass "$MUZEA_KEYSTORE_PASSWORD" 2>/dev/null | sed -n '/Your keystore contains/,/^$/p'
+            exit 1
+          fi
+          echo "Ключ восстановлен и открывается: $size байт, алиас $MUZEA_KEY_ALIAS"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Кэш Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: Собрать APK и AAB
+        run: ./gradlew --no-daemon clean bundleRelease assembleRelease
+
+      - name: Проверить, что APK подписан ключом muzea.jks
+        env:
+          # Отпечаток сертификата, которым уже подписана текущая версия.
+          # Публичное значение: расхождение означает, что в secrets попал другой
+          # ключ, и пользователи не смогут обновить приложение поверх старого.
+          EXPECTED_SHA256: 96c7cd196b3542bcfc7a30eb94793eabcd948ebcc460d81fac21081075d6f734
+        run: |
+          apksigner="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)"
+          if [ -z "$apksigner" ]; then
+            echo "::error::apksigner не найден в ANDROID_HOME/build-tools"
+            exit 1
+          fi
+          "$apksigner" verify --print-certs \
+            app/build/outputs/apk/release/app-release.apk | tee certs.txt
+          actual="$(grep -oP 'certificate SHA-256 digest: \K\S+' certs.txt | head -1)"
+          if [ "$actual" != "$EXPECTED_SHA256" ]; then
+            echo "::error::APK подписан не тем ключом. Ожидался отпечаток $EXPECTED_SHA256, получен ${actual:-<не найден>}. Проверь secrets MUZEA_KEYSTORE_*."
+            exit 1
+          fi
+          echo "Ключ совпадает с muzea.jks — обновление поверх старой версии возможно."
+
+      - name: Разложить артефакты по именам
+        run: |
+          mkdir -p dist
+          version="${{ steps.meta.outputs.version }}"
+          cp app/build/outputs/apk/release/app-release.apk "dist/muzea-$version.apk"
+          cp app/build/outputs/bundle/release/app-release.aab "dist/muzea-$version.aab"
+          ls -lh dist
+
+      - name: Опубликовать релиз на GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          REPO: ${{ github.repository }}
+          NOTES: ${{ inputs.release_notes }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          title="muzea $VERSION"
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            notes="$NOTES"
+            [ -n "$notes" ] || notes="Сборка $VERSION."
+            gh release create "$TAG" "dist/muzea-$VERSION.apk" "dist/muzea-$VERSION.aab" \
+              --repo "$REPO" --title "$title" --notes "$notes"
+          else
+            gh release create "$TAG" "dist/muzea-$VERSION.apk" "dist/muzea-$VERSION.aab" \
+              --repo "$REPO" --title "$title" --generate-notes
+          fi
+          echo "Релиз опубликован: https://github.com/$REPO/releases/tag/$TAG"
+
+      - name: Удалить ключ с раннера
+        if: always()
+        run: shred -u keystore/muzea.jks 2>/dev/null || rm -f keystore/muzea.jks

@@ -1,9 +1,31 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("kotlin-kapt")
     id("com.google.gms.google-services")
 }
+
+// Ключ подписи release-сборок. Источники в порядке приоритета:
+//   1) переменные окружения (их ставит GitHub Actions из secrets репозитория);
+//   2) файл keystore.properties в корне проекта (в git не хранится);
+//   3) debug-подпись — чтобы сборка не падала, если ключ не настроен.
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) {
+        file.inputStream().use { load(it) }
+    }
+}
+
+fun releaseSecret(name: String): String? =
+    System.getenv(name)?.takeIf { it.isNotBlank() } ?: keystoreProperties.getProperty(name)?.takeIf { it.isNotBlank() }
+
+val releaseStorePath = releaseSecret("MUZEA_KEYSTORE_PATH")
+val releaseSigningReady = releaseStorePath != null &&
+    releaseSecret("MUZEA_KEYSTORE_PASSWORD") != null &&
+    releaseSecret("MUZEA_KEY_ALIAS") != null &&
+    releaseSecret("MUZEA_KEY_PASSWORD") != null
 
 android {
     namespace = "com.example.muzea"
@@ -13,14 +35,35 @@ android {
         applicationId = "com.cyber.muzea"
         minSdk = 24
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 3
+        versionName = "1.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (releaseSigningReady) {
+            create("release") {
+                storeFile = file(releaseStorePath!!)
+                storePassword = releaseSecret("MUZEA_KEYSTORE_PASSWORD")
+                keyAlias = releaseSecret("MUZEA_KEY_ALIAS")
+                keyPassword = releaseSecret("MUZEA_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = if (releaseSigningReady) {
+                signingConfigs.getByName("release")
+            } else {
+                logger.warn(
+                    "MUZEA: ключ подписи не настроен, release-сборка будет подписана " +
+                        "отладочным ключом. Установить настоящий ключ можно через " +
+                        "keystore.properties или переменные MUZEA_KEYSTORE_*."
+                )
+                signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
