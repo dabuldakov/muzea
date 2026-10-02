@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Новая картинка приходит уже со своим фоном, поэтому она лежит слоем
+  background на все 108dp. Маска лаунчера обрезает только фон — содержимое
+  значка не теряется и не обрезается по кругу/скруглённому квадрату.
+
+  foreground прозрачный: своего слоя с логотипом у картинки нет.
+  Тег monochrome убран — для тематических значков нужен отдельный
+  одноцветный слой, старый ic_launcher_foreground к новому значку отношения
+  не имеет.
+-->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@drawable/ic_launcher_background"/>
-    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
-    <monochrome android:drawable="@mipmap/ic_launcher_foreground"/>
+    <background android:drawable="@mipmap/ic_launcher_bg"/>
+    <foreground android:drawable="@android:color/transparent"/>
 </adaptive-icon>
