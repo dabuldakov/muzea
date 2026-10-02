@@ -53,6 +53,18 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Тот же ключ, что и у релиза. Иначе сборка из Android Studio не
+            // встанет поверх установленной релизной (INSTALL_FAILED_UPDATE_
+            // INCOMPATIBLE), а релизная — поверх отладочной. Флаг DEBUGGABLE
+            // при этом сохраняется, так что в Google Play и RuStore такая
+            // сборка всё равно не пройдёт.
+            signingConfig = if (releaseSigningReady) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+        }
         release {
             signingConfig = if (releaseSigningReady) {
                 signingConfigs.getByName("release")
