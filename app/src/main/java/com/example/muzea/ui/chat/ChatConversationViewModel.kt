@@ -21,6 +21,13 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/** Единое состояние экрана переписки. */
+data class ChatConversationUiState(
+    val messages: List<Message> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
+
 @HiltViewModel
 class ChatConversationViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
@@ -37,16 +44,10 @@ class ChatConversationViewModel @Inject constructor(
     // открытии чата порядок был бы перевёрнут до первого сетевого обновления.
     private val reducer = ChatMessageReducer()
 
-    private val _messages = MutableStateFlow(
-        reducer.seed(messageRepository.cachedMessages(chatUuid))
+    private val _uiState = MutableStateFlow(
+        ChatConversationUiState(messages = reducer.seed(messageRepository.cachedMessages(chatUuid)))
     )
-    val messages: StateFlow<List<Message>> = _messages.asStateFlow()
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
+    val uiState: StateFlow<ChatConversationUiState> = _uiState.asStateFlow()
 
     private val _sendError = MutableSharedFlow<String>()
     val sendError: SharedFlow<String> = _sendError.asSharedFlow()
@@ -70,15 +71,16 @@ class ChatConversationViewModel @Inject constructor(
             when (result) {
                 // Спиннер показываем только когда показать нечего: переписка из
                 // кэша уже на экране, и мигать индикатором при входе незачем.
-                is NetworkResult.Loading -> _isLoading.value = _messages.value.isEmpty()
+                is NetworkResult.Loading -> _uiState.value =
+                    _uiState.value.copy(isLoading = _uiState.value.messages.isEmpty())
+
                 is NetworkResult.Success -> {
-                    _isLoading.value = false
+                    _uiState.value = _uiState.value.copy(isLoading = false)
                     mergeMessages(result.data ?: emptyList())
                 }
-                is NetworkResult.Error -> {
-                    _isLoading.value = false
-                    _error.value = result.message
-                }
+
+                is NetworkResult.Error -> _uiState.value =
+                    _uiState.value.copy(isLoading = false, error = result.message)
             }
         }
     }
@@ -127,17 +129,21 @@ class ChatConversationViewModel @Inject constructor(
      * при отправке список мигал. Теперь это обычное изменение содержимого.
      */
     private fun applyServerEcho(localUuid: String, serverMessage: Message) {
-        _messages.value = reducer.applyServerEcho(_messages.value, localUuid, serverMessage)
+        _uiState.value = _uiState.value.copy(
+            messages = reducer.applyServerEcho(_uiState.value.messages, localUuid, serverMessage)
+        )
         markLatestAsRead()
     }
 
     private fun mergeMessages(incoming: List<Message>) {
-        _messages.value = reducer.merge(_messages.value, incoming)
+        _uiState.value = _uiState.value.copy(
+            messages = reducer.merge(_uiState.value.messages, incoming)
+        )
         markLatestAsRead()
     }
 
     private fun markLatestAsRead() {
-        val latest = _messages.value.lastOrNull {
+        val latest = _uiState.value.messages.lastOrNull {
             it.messageUuid.isNotBlank() && !it.messageUuid.startsWith(LOCAL_PREFIX)
         } ?: return
         if (latest.messageUuid == lastMarkedReadUuid) return

@@ -149,15 +149,13 @@ class ChatConversationFragment : Fragment() {
      * обновляет currentList асинхронно: опираясь на него, мы сразу после
      * submitList() считали бы экран пустым и спрятали бы переписку.
      */
-    private fun renderConversationState() {
-        val hasMessages = viewModel.messages.value.isNotEmpty()
-        val loading = viewModel.isLoading.value
-        val error = viewModel.error.value
+    private fun renderConversationState(state: ChatConversationUiState) {
+        val hasMessages = state.messages.isNotEmpty()
 
-        binding.progressBar.visibility = if (loading && !hasMessages) View.VISIBLE else View.GONE
+        binding.progressBar.visibility = if (state.isLoading && !hasMessages) View.VISIBLE else View.GONE
 
-        if (error != null && !hasMessages) {
-            binding.tvError.text = error
+        if (state.error != null && !hasMessages) {
+            binding.tvError.text = state.error
             binding.tvError.visibility = View.VISIBLE
             binding.recyclerViewMessages.visibility = View.GONE
         } else {
@@ -169,10 +167,12 @@ class ChatConversationFragment : Fragment() {
 
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.messages.collect { messages ->
+            viewModel.uiState.collect { state ->
+                val messages = state.messages
                 val wasAtBottom = isAtBottom()
                 adapter.updateList(messages)
                 updateEmptyState(messages)
+                renderConversationState(state)
 
                 if (messages.isNotEmpty() && !initialScrollDone) {
                     initialScrollDone = true
@@ -190,16 +190,6 @@ class ChatConversationFragment : Fragment() {
                 }
                 lastMessageCount = messages.size
             }
-        }
-
-        // Опираемся на данные ViewModel, а не на adapter.currentList: submitList()
-        // обновляет список асинхронно, и сразу после него адаптер ещё пуст.
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.isLoading.collect { renderConversationState() }
-        }
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.error.collect { renderConversationState() }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {

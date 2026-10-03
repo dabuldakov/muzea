@@ -115,7 +115,7 @@ class ChatConversationViewModelTest {
     ) { viewModel ->
         // Раньше init звал refresh() и сразу startPolling(), давая два запроса
         // подряд при каждом входе в чат.
-        assertEquals(1, viewModel.messages.value.size)
+        assertEquals(1, viewModel.uiState.value.messages.size)
 
         coVerify(exactly = 1) { messageRepository.loadMessages(chatUuid) }
     }
@@ -125,8 +125,8 @@ class ChatConversationViewModelTest {
         cached = listOf(message("m1", "cached", "2026-01-01T00:00:00")),
         network = flowOf(NetworkResult.Success(listOf(message("m1", "cached", "2026-01-01T00:00:00"))))
     ) { viewModel ->
-        assertEquals("cached", viewModel.messages.value.single().text)
-        assertFalse(viewModel.isLoading.value)
+        assertEquals("cached", viewModel.uiState.value.messages.single().text)
+        assertFalse(viewModel.uiState.value.isLoading)
     }
 
     @Test
@@ -141,7 +141,7 @@ class ChatConversationViewModelTest {
             )
         )
     ) { viewModel ->
-        assertEquals(listOf("old", "new"), viewModel.messages.value.map { it.text })
+        assertEquals(listOf("old", "new"), viewModel.uiState.value.messages.map { it.text })
     }
 
     @Test
@@ -156,16 +156,16 @@ class ChatConversationViewModelTest {
         cached = listOf(message("m1", "cached", "2026-01-01T00:00:00")),
         network = flowOf(NetworkResult.Error("network down"))
     ) { viewModel ->
-        assertEquals("cached", viewModel.messages.value.single().text)
-        assertEquals("network down", viewModel.error.value)
-        assertFalse(viewModel.isLoading.value)
+        assertEquals("cached", viewModel.uiState.value.messages.single().text)
+        assertEquals("network down", viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isLoading)
     }
 
     @Test
     fun `spinner turns off after loading finishes`() = withViewModel(
         network = flowOf(NetworkResult.Loading(), NetworkResult.Success(emptyList()))
     ) { viewModel ->
-        assertFalse(viewModel.isLoading.value)
+        assertFalse(viewModel.uiState.value.isLoading)
     }
 
     @Test
@@ -175,7 +175,7 @@ class ChatConversationViewModelTest {
     ) { viewModel ->
         // Даже если сервер сначала отвечает Loading, экран уже показывает
         // переписку из кэша, поэтому мигать индикатором нельзя.
-        assertFalse(viewModel.isLoading.value)
+        assertFalse(viewModel.uiState.value.isLoading)
     }
 
     @Test
@@ -188,7 +188,7 @@ class ChatConversationViewModelTest {
 
         // Идентификатор локального пузыря сохраняется, чтобы DiffUtil не
         // удалял и не вставлял строку заново (иначе список мигает).
-        val sent = viewModel.messages.value.single()
+        val sent = viewModel.uiState.value.messages.single()
         assertTrue(sent.messageUuid.startsWith("local-"))
         assertEquals("hello", sent.text)
         assertEquals("2026-01-01T00:00:00", sent.createdAt)
@@ -201,7 +201,7 @@ class ChatConversationViewModelTest {
             flowOf(NetworkResult.Success(serverCopy))
 
         viewModel.sendText("hello")
-        assertEquals(1, viewModel.messages.value.size)
+        assertEquals(1, viewModel.uiState.value.messages.size)
 
         // Следующий опрос возвращает серверную копию — она уже показана
         // локальным пузырём и не должна появиться второй строкой.
@@ -209,8 +209,8 @@ class ChatConversationViewModelTest {
             flowOf(NetworkResult.Success(listOf(serverCopy)))
         viewModel.refresh()
 
-        assertEquals(1, viewModel.messages.value.size)
-        assertEquals("hello", viewModel.messages.value.single().text)
+        assertEquals(1, viewModel.uiState.value.messages.size)
+        assertEquals("hello", viewModel.uiState.value.messages.single().text)
     }
 
     @Test
@@ -223,7 +223,7 @@ class ChatConversationViewModelTest {
         ),
         network = flowOf(NetworkResult.Success(emptyList()))
     ) { viewModel ->
-        assertEquals(listOf("older", "newer"), viewModel.messages.value.map { it.text })
+        assertEquals(listOf("older", "newer"), viewModel.uiState.value.messages.map { it.text })
     }
 
     @Test
@@ -248,8 +248,8 @@ class ChatConversationViewModelTest {
         // выполняет корутины незамедлительно.
         collector.cancel()
 
-        assertEquals(1, viewModel.messages.value.size)
-        assertTrue(viewModel.messages.value.single().messageUuid.startsWith("local-"))
+        assertEquals(1, viewModel.uiState.value.messages.size)
+        assertTrue(viewModel.uiState.value.messages.single().messageUuid.startsWith("local-"))
         assertEquals(listOf("send failed"), errors)
     }
 }
