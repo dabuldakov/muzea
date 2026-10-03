@@ -79,25 +79,22 @@ class LoginActivity : AppCompatActivity() {
 
     private fun observeViewModel() {
         lifecycleScope.launch {
-            viewModel.loginResult.collect { result ->
-                when (result) {
-                    is NetworkResult.Loading -> {
-                        binding.btnLogin.isEnabled = false
-                        binding.progressBar.visibility = android.view.View.VISIBLE
-                    }
-                    is NetworkResult.Success -> {
-                        binding.btnLogin.isEnabled = true
-                        binding.progressBar.visibility = android.view.View.GONE
-                        Toast.makeText(this@LoginActivity, "Login successful", Toast.LENGTH_SHORT).show()
-                        startActivity(Intent(this@LoginActivity, MainActivity::class.java))
-                        finish()
-                    }
-                    is NetworkResult.Error -> {
-                        binding.btnLogin.isEnabled = true
-                        binding.progressBar.visibility = android.view.View.GONE
-                        Toast.makeText(this@LoginActivity, result.message, Toast.LENGTH_LONG).show()
-                    }
+            viewModel.uiState.collect { state ->
+                binding.btnLogin.isEnabled = !state.isLoading
+                binding.progressBar.visibility =
+                    if (state.isLoading) android.view.View.VISIBLE else android.view.View.GONE
+                state.error?.let {
+                    Toast.makeText(this@LoginActivity, it, Toast.LENGTH_LONG).show()
+                    viewModel.consumeError()
                 }
+            }
+        }
+
+        lifecycleScope.launch {
+            viewModel.authenticated.collect {
+                Toast.makeText(this@LoginActivity, "Login successful", Toast.LENGTH_SHORT).show()
+                startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                finish()
             }
         }
     }

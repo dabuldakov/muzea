@@ -96,25 +96,22 @@ class RegisterActivity : AppCompatActivity() {
 
     private fun observeViewModel() {
         lifecycleScope.launch {
-            viewModel.registerResult.collect { result ->
-                when (result) {
-                    is NetworkResult.Loading -> {
-                        binding.btnRegister.isEnabled = false
-                        binding.progressBar.visibility = android.view.View.VISIBLE
-                    }
-                    is NetworkResult.Success -> {
-                        binding.btnRegister.isEnabled = true
-                        binding.progressBar.visibility = android.view.View.GONE
-                        Toast.makeText(this@RegisterActivity, "Registration successful", Toast.LENGTH_SHORT).show()
-                        startActivity(Intent(this@RegisterActivity, MainActivity::class.java))
-                        finish()
-                    }
-                    is NetworkResult.Error -> {
-                        binding.btnRegister.isEnabled = true
-                        binding.progressBar.visibility = android.view.View.GONE
-                        Toast.makeText(this@RegisterActivity, result.message, Toast.LENGTH_LONG).show()
-                    }
+            viewModel.uiState.collect { state ->
+                binding.btnRegister.isEnabled = !state.isLoading
+                binding.progressBar.visibility =
+                    if (state.isLoading) android.view.View.VISIBLE else android.view.View.GONE
+                state.error?.let {
+                    Toast.makeText(this@RegisterActivity, it, Toast.LENGTH_LONG).show()
+                    viewModel.consumeError()
                 }
+            }
+        }
+
+        lifecycleScope.launch {
+            viewModel.authenticated.collect {
+                Toast.makeText(this@RegisterActivity, "Registration successful", Toast.LENGTH_SHORT).show()
+                startActivity(Intent(this@RegisterActivity, MainActivity::class.java))
+                finish()
             }
         }
     }
