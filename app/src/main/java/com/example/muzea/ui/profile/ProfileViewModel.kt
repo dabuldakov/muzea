@@ -12,12 +12,22 @@ import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+/** Состояние экрана профиля. */
+data class ProfileUiState(
+    val user: User? = null,
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
@@ -27,8 +37,8 @@ class ProfileViewModel @Inject constructor(
     private val tokenManager: TokenManager
 ) : ViewModel() {
 
-    private val _userProfileResult = MutableSharedFlow<NetworkResult<User>>()
-    val userProfileResult: SharedFlow<NetworkResult<User>> = _userProfileResult.asSharedFlow()
+    private val _profileState = MutableStateFlow(ProfileUiState())
+    val profileState: StateFlow<ProfileUiState> = _profileState.asStateFlow()
 
     private val _updateProfileResult = MutableSharedFlow<NetworkResult<User>>()
     val updateProfileResult: SharedFlow<NetworkResult<User>> = _updateProfileResult.asSharedFlow()
@@ -41,11 +51,22 @@ class ProfileViewModel @Inject constructor(
     fun loadUserProfile() {
         viewModelScope.launch {
             userRepository.getCurrentUser().collect { result ->
-                val user = (result as? NetworkResult.Success)?.data
-                if (user != null) {
-                    currentUserId = user.id
+                when (result) {
+                    is NetworkResult.Loading ->
+                        _profileState.value = _profileState.value.copy(isLoading = true, error = null)
+
+                    is NetworkResult.Success -> {
+                        val user = result.data
+                        if (user != null) currentUserId = user.id
+                        _profileState.value = ProfileUiState(user = user, isLoading = false)
+                    }
+
+                    is NetworkResult.Error ->
+                        _profileState.value = _profileState.value.copy(
+                            isLoading = false,
+                            error = result.message
+                        )
                 }
-                _userProfileResult.emit(result)
             }
         }
     }

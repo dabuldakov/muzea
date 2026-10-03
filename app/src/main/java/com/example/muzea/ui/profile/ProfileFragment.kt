@@ -203,22 +203,7 @@ class ProfileFragment : Fragment() {
 
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.userProfileResult.collect { result ->
-                when (result) {
-                    is NetworkResult.Loading -> {
-                        binding.progressBar.visibility = View.VISIBLE
-                    }
-                    is NetworkResult.Success -> {
-                        binding.progressBar.visibility = View.GONE
-                        displayUserProfile(result.data!!)
-                    }
-                    is NetworkResult.Error -> {
-                        binding.progressBar.visibility = View.GONE
-                        binding.tvError.text = result.message
-                        binding.tvError.visibility = View.VISIBLE
-                    }
-                }
-            }
+            viewModel.profileState.collect { renderProfile(it) }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -264,6 +249,17 @@ class ProfileFragment : Fragment() {
                     }
                 }
             }
+        }
+    }
+
+    private fun renderProfile(state: ProfileUiState) {
+        binding.progressBar.visibility = if (state.isLoading) View.VISIBLE else View.GONE
+        state.user?.let { displayUserProfile(it) }
+        if (state.error != null) {
+            binding.tvError.text = state.error
+            binding.tvError.visibility = View.VISIBLE
+        } else {
+            binding.tvError.visibility = View.GONE
         }
     }
 
