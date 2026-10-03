@@ -59,8 +59,8 @@ class ChatViewModelTest {
 
         val viewModel = ChatViewModel(chatRepository, contactRepository)
 
-        assertEquals(listOf("a", "b"), viewModel.chats.value.map { it.chatUuid })
-        assertFalse(viewModel.isLoadingChats.value)
+        assertEquals(listOf("a", "b"), viewModel.uiState.value.chats.map { it.chatUuid })
+        assertFalse(viewModel.uiState.value.isLoading)
         coVerify(exactly = 0) { chatRepository.loadChats() }
     }
 
@@ -70,8 +70,8 @@ class ChatViewModelTest {
 
         val viewModel = ChatViewModel(chatRepository, contactRepository)
 
-        assertTrue(viewModel.chats.value.isEmpty())
-        assertTrue(viewModel.isLoadingChats.value)
+        assertTrue(viewModel.uiState.value.chats.isEmpty())
+        assertTrue(viewModel.uiState.value.isLoading)
     }
 
     @Test
@@ -84,8 +84,8 @@ class ChatViewModelTest {
         val viewModel = ChatViewModel(chatRepository, contactRepository)
         viewModel.loadChats()
 
-        assertEquals(listOf("fresh-1", "fresh-2"), viewModel.chats.value.map { it.chatUuid })
-        assertFalse(viewModel.isLoadingChats.value)
+        assertEquals(listOf("fresh-1", "fresh-2"), viewModel.uiState.value.chats.map { it.chatUuid })
+        assertFalse(viewModel.uiState.value.isLoading)
     }
 
     @Test
@@ -99,7 +99,7 @@ class ChatViewModelTest {
         viewModel.loadChats()
 
         // Подписчик появляется уже после загрузки — StateFlow обязан отдать значение.
-        val seen = viewModel.chats.first()
+        val seen = viewModel.uiState.value.chats
         assertEquals(listOf("fresh"), seen.map { it.chatUuid })
         coVerify(exactly = 1) { chatRepository.loadChats() }
     }
@@ -148,9 +148,9 @@ class ChatViewModelTest {
         val viewModel = ChatViewModel(chatRepository, contactRepository)
         viewModel.loadChats()
 
-        assertEquals(listOf("cached"), viewModel.chats.value.map { it.chatUuid })
-        assertFalse(viewModel.isLoadingChats.value)
-        assertTrue(viewModel.chatsError.first { it != null }!!.contains("network down"))
+        assertEquals(listOf("cached"), viewModel.uiState.value.chats.map { it.chatUuid })
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertTrue(viewModel.uiState.value.error!!.contains("network down"))
     }
 
     @Test
@@ -163,8 +163,8 @@ class ChatViewModelTest {
         val viewModel = ChatViewModel(chatRepository, contactRepository)
         viewModel.loadChats()
 
-        assertFalse(viewModel.isLoadingChats.value)
-        assertEquals("network down", viewModel.chatsError.first { it != null })
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertEquals("network down", viewModel.uiState.value.error)
     }
 
     @Test
@@ -175,8 +175,8 @@ class ChatViewModelTest {
         val viewModel = ChatViewModel(chatRepository, contactRepository)
         viewModel.loadChats()
 
-        assertTrue(viewModel.chats.value.isEmpty())
-        assertFalse(viewModel.isLoadingChats.value)
+        assertTrue(viewModel.uiState.value.chats.isEmpty())
+        assertFalse(viewModel.uiState.value.isLoading)
     }
 
 }

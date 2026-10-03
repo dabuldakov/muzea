@@ -49,7 +49,6 @@ class ChatListFragment : Fragment() {
      * Последняя ошибка загрузки списка. Показывается вместо пустого состояния,
      * чтобы отличать «чатов нет» от «не удалось загрузить».
      */
-    private var lastChatsError: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -126,25 +125,8 @@ class ChatListFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        // Список идёт из StateFlow: значение доступно сразу при подписке, поэтому
-        // экран рисует кэш немедленно, без мигания индикатора загрузки.
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.chats.collect { chats -> renderChats(chats) }
-        }
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.isLoadingChats.collect {
-                renderState(viewModel.chats.value)
-            }
-        }
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.chatsError.collect { error ->
-                if (error != null) {
-                    handleErrorState(error)
-                    viewModel.chatsErrorShown()
-                }
-            }
+            viewModel.uiState.collect { renderState(it) }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -271,20 +253,6 @@ class ChatListFragment : Fragment() {
     }
 
     /**
-     * Отрисовка списка.
-     *
-     * Спиннер здесь не трогаем: его показывает подписка на
-     * [ChatViewModel.isLoadingChats] и только когда показать пока нечего.
-     */
-    private fun renderChats(chats: List<Chat>) {
-        binding.swipeRefresh.isRefreshing = false
-        lastChatsError = null
-        adapter.updateList(chats)
-        renderState(chats)
-        prefetchChatMessages(chats)
-    }
-
-    /**
      * Прогрузка переписок в фоне.
      *
      * Пока пользователь смотрит список, по одному в фоне подтягиваем сообщения
@@ -310,26 +278,17 @@ class ChatListFragment : Fragment() {
         }
     }
 
-    private fun handleErrorState(message: String) {
-        lastChatsError = message
-        binding.swipeRefresh.isRefreshing = false
-
-        val chats = viewModel.chats.value
-        if (chats.isEmpty()) {
-            renderState(chats)
-        } else {
-            // Список из кэша остаётся на экране, сообщаем тостом и не затираем его.
-            Toast.makeText(requireContext(), "Error: $message", Toast.LENGTH_SHORT).show()
-        }
-    }
-
     /**
      * Единственное место, где состояние списка превращается в видимость view'ов.
      * Решение принимается по данным из [chatListViewState], а не по состоянию
      * адаптера: submitList() обновляет список асинхронно.
      */
-    private fun renderState(chats: List<Chat>) {
-        when (chatListViewState(chats, viewModel.isLoadingChats.value, lastChatsError)) {
+    private fun renderState(state: ChatListUiState) {
+        binding.swipeRefresh.isRefreshing = false
+        adapter.updateList(state.chats)
+        prefetchChatMessages(state.chats)
+
+        when (chatListViewState(state.chats, state.isLoading, state.error)) {
             ChatListViewState.LIST -> {
                 binding.tvEmpty.visibility = View.GONE
                 binding.tvError.visibility = View.GONE
@@ -347,7 +306,7 @@ class ChatListFragment : Fragment() {
             ChatListViewState.ERROR -> {
                 binding.tvEmpty.visibility = View.GONE
                 binding.tvError.visibility = View.VISIBLE
-                binding.tvError.text = lastChatsError
+                binding.tvError.text = state.error
                 binding.recyclerViewChats.visibility = View.GONE
                 binding.progressBar.visibility = View.GONE
             }
@@ -359,8 +318,13 @@ class ChatListFragment : Fragment() {
                 binding.progressBar.visibility = View.GONE
             }
         }
-    }
 
+        // Список из кэша остаётся на экране — сообщаем тостом и не затираем его.
+        if (state.error != null && state.chats.isNotEmpty()) {
+            Toast.makeText(requireContext(), state.error, Toast.LENGTH_SHORT).show()
+            viewModel.chatsErrorShown()
+        }
+    }
 
     private fun dp(value: Int): Int =
         (value * resources.displayMetrics.density).toInt()
