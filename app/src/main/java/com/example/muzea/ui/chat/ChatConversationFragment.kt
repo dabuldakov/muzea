@@ -13,7 +13,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.example.muzea.domain.model.Message
 import com.example.muzea.databinding.FragmentChatConversationBinding
-import com.example.muzea.ui.openDetailScreen
+import com.example.muzea.ui.navigation.navigator
 import com.example.muzea.utils.AvatarLoader
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -80,7 +80,7 @@ class ChatConversationFragment : Fragment() {
             openGroupSettings(chatTitle)
         }
         binding.btnBack.setOnClickListener {
-            requireActivity().supportFragmentManager.popBackStack()
+            navigator.back()
         }
 
         setupRecyclerView()
@@ -89,12 +89,7 @@ class ChatConversationFragment : Fragment() {
     }
 
     private fun openGroupSettings(chatTitle: String) {
-        val fragment = GroupSettingsFragment.newInstance(
-            chatUuid,
-            chatTitle,
-            arguments?.getString(ARG_CHAT_AVATAR)
-        )
-        openDetailScreen(fragment)
+        navigator.openGroupSettings(chatUuid, chatTitle, arguments?.getString(ARG_CHAT_AVATAR))
     }
 
     private fun setupRecyclerView() {

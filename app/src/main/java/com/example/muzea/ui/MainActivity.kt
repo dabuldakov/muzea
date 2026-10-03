@@ -15,10 +15,14 @@ import androidx.fragment.app.FragmentManager
 import com.example.muzea.R
 import com.example.muzea.domain.repository.ChatSessionRepository
 import com.example.muzea.databinding.ActivityMainBinding
+import com.example.muzea.ui.chat.ChatConversationFragment
 import com.example.muzea.ui.chat.ChatListFragment
+import com.example.muzea.ui.chat.GroupSettingsFragment
 import com.example.muzea.ui.contact.ContactListFragment
+import com.example.muzea.ui.news.NewsDetailFragment
 import com.example.muzea.ui.news.NewsListFragment
 import com.example.muzea.ui.profile.ProfileFragment
+import com.example.muzea.ui.navigation.Navigator
 import com.example.muzea.ui.video.VideoListFragment
 import com.example.muzea.utils.NetworkResult
 import dagger.hilt.android.AndroidEntryPoint
@@ -28,7 +32,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), Navigator {
 
     private lateinit var binding: ActivityMainBinding
 
@@ -164,6 +168,42 @@ class MainActivity : AppCompatActivity() {
         }
 
         transaction.commit()
+    }
+
+    override fun openConversation(
+        chatUuid: String,
+        title: String,
+        avatarUrl: String?,
+        unreadCount: Long
+    ) {
+        openDetail(ChatConversationFragment.newInstance(chatUuid, title, avatarUrl, unreadCount))
+    }
+
+    override fun openGroupSettings(chatUuid: String, title: String, avatarUrl: String?) {
+        openDetail(GroupSettingsFragment.newInstance(chatUuid, title, avatarUrl))
+    }
+
+    override fun openNewsDetail(newsId: Long) {
+        val fragment = NewsDetailFragment().apply {
+            arguments = android.os.Bundle().apply { putLong("newsId", newsId) }
+        }
+        openDetail(fragment)
+    }
+
+    override fun back() {
+        supportFragmentManager.popBackStack()
+    }
+
+    /** Открывает экран поверх текущего, пряча видимый фрагмент (вкладку или деталь). */
+    private fun openDetail(fragment: Fragment) {
+        val fragmentManager = supportFragmentManager
+        val transaction = fragmentManager.beginTransaction().setReorderingAllowed(true)
+        fragmentManager.fragments
+            .filter { it.isAdded && !it.isHidden }
+            .forEach { transaction.hide(it) }
+        transaction.add(R.id.fragment_container, fragment)
+            .addToBackStack(null)
+            .commit()
     }
 
     private fun createTabFragment(itemId: Int): Fragment = when (itemId) {

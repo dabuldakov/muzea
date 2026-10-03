@@ -16,8 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.muzea.domain.model.Chat
 import com.example.muzea.domain.model.Contact
 import com.example.muzea.databinding.FragmentContactListBinding
-import com.example.muzea.ui.chat.ChatConversationFragment
-import com.example.muzea.ui.openDetailScreen
+import com.example.muzea.ui.navigation.navigator
 import com.example.muzea.utils.NetworkResult
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
@@ -196,13 +195,7 @@ class ContactListFragment : Fragment() {
     }
 
     private fun openConversation(chat: Chat) {
-        val fragment = ChatConversationFragment.newInstance(
-            chat.chatUuid,
-            chat.title ?: "Chat",
-            chat.avatarUrl,
-            0L
-        )
-        openDetailScreen(fragment)
+        navigator.openConversation(chat.chatUuid, chat.title ?: "Chat", chat.avatarUrl, 0L)
     }
 
     override fun onResume() {

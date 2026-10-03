@@ -18,6 +18,7 @@ import com.bumptech.glide.Glide
 import com.example.muzea.R
 import com.example.muzea.databinding.FragmentGroupSettingsBinding
 import com.example.muzea.utils.AvatarLoader
+import com.example.muzea.ui.navigation.navigator
 import com.example.muzea.utils.NetworkResult
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
@@ -82,7 +83,7 @@ class GroupSettingsFragment : Fragment() {
         binding.tvTitle.text = arguments?.getString(ARG_CHAT_TITLE) ?: "Group settings"
         AvatarLoader.load(binding.ivHeaderAvatar, chatAvatar)
         binding.btnBack.setOnClickListener {
-            requireActivity().supportFragmentManager.popBackStack()
+            navigator.back()
         }
         val changeAvatar = { pickAvatar.launch(arrayOf("image/jpeg", "image/png")) }
         binding.btnChangeAvatar.setOnClickListener { changeAvatar() }

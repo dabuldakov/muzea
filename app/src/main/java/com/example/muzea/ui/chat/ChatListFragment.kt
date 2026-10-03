@@ -21,7 +21,7 @@ import com.example.muzea.domain.model.Contact
 import com.example.muzea.data.repository.ChatMessagesCache
 import com.example.muzea.domain.repository.MessageRepository
 import com.example.muzea.databinding.FragmentChatListBinding
-import com.example.muzea.ui.openDetailScreen
+import com.example.muzea.ui.navigation.navigator
 import com.example.muzea.utils.NetworkResult
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Job
@@ -105,13 +105,7 @@ class ChatListFragment : Fragment() {
     }
 
     private fun navigationToConversation(chatUuid: String, title: String, avatarUrl: String?) {
-        val fragment = ChatConversationFragment.newInstance(
-            chatUuid,
-            title,
-            avatarUrl,
-            0L
-        )
-        openDetailScreen(fragment)
+        navigator.openConversation(chatUuid, title, avatarUrl, 0L)
     }
 
     private fun setupSwipeRefresh() {
