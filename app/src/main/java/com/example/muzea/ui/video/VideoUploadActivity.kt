@@ -9,14 +9,13 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.muzea.databinding.ActivityVideoUploadBinding
-import com.example.muzea.data.api.RetrofitClient
-import com.example.muzea.data.repository.VideoRepository
 import com.example.muzea.utils.NetworkResult
-import com.example.muzea.utils.TokenManager
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -28,10 +27,11 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 
+@AndroidEntryPoint
 class VideoUploadActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityVideoUploadBinding
-    private lateinit var viewModel: VideoViewModel
+    private val viewModel: VideoViewModel by viewModels()
     private var selectedVideoFile: File? = null
     private var thumbnailBytes: ByteArray? = null
 
@@ -43,10 +43,6 @@ class VideoUploadActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityVideoUploadBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        val tokenManager = TokenManager(applicationContext)
-        val apiService = RetrofitClient(tokenManager).apiService
-        viewModel = VideoViewModel(VideoRepository(apiService))
 
         setupToolbar()
         setupClickListeners()

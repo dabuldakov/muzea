@@ -2,6 +2,7 @@ package com.example.muzea.ui.chat
 
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.repository.ChatRepository
+import com.example.muzea.data.repository.ContactRepository
 import com.example.muzea.ui.news.MainDispatcherRule
 import com.example.muzea.utils.NetworkResult
 import io.mockk.coEvery
@@ -29,6 +30,7 @@ class ChatViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val chatRepository = mockk<ChatRepository>()
+    private val contactRepository = mockk<ContactRepository>()
 
     private fun chat(uuid: String) = ChatResponse(
         chatUuid = uuid,
@@ -55,7 +57,7 @@ class ChatViewModelTest {
     fun `cached chats are visible immediately without spinner`() {
         every { chatRepository.cachedChats() } returns listOf(chat("a"), chat("b"))
 
-        val viewModel = ChatViewModel(chatRepository)
+        val viewModel = ChatViewModel(chatRepository, contactRepository)
 
         assertEquals(listOf("a", "b"), viewModel.chats.value.map { it.chatUuid })
         assertFalse(viewModel.isLoadingChats.value)
@@ -66,7 +68,7 @@ class ChatViewModelTest {
     fun `spinner shows only when there is nothing to display`() {
         every { chatRepository.cachedChats() } returns emptyList()
 
-        val viewModel = ChatViewModel(chatRepository)
+        val viewModel = ChatViewModel(chatRepository, contactRepository)
 
         assertTrue(viewModel.chats.value.isEmpty())
         assertTrue(viewModel.isLoadingChats.value)
@@ -79,7 +81,7 @@ class ChatViewModelTest {
             NetworkResult.Success(listOf(chat("fresh-1"), chat("fresh-2")))
         )
 
-        val viewModel = ChatViewModel(chatRepository)
+        val viewModel = ChatViewModel(chatRepository, contactRepository)
         viewModel.loadChats()
 
         assertEquals(listOf("fresh-1", "fresh-2"), viewModel.chats.value.map { it.chatUuid })
@@ -93,7 +95,7 @@ class ChatViewModelTest {
             NetworkResult.Success(listOf(chat("fresh")))
         )
 
-        val viewModel = ChatViewModel(chatRepository)
+        val viewModel = ChatViewModel(chatRepository, contactRepository)
         viewModel.loadChats()
 
         // Подписчик появляется уже после загрузки — StateFlow обязан отдать значение.
@@ -111,7 +113,7 @@ class ChatViewModelTest {
             awaitCancellation()
         }
 
-        val viewModel = ChatViewModel(chatRepository)
+        val viewModel = ChatViewModel(chatRepository, contactRepository)
         // Экран дёргает загрузку из onResume и из автообновления раз в 8 секунд.
         viewModel.loadChats()
         viewModel.loadChats()
@@ -128,7 +130,7 @@ class ChatViewModelTest {
             NetworkResult.Success(listOf(chat("a")))
         )
 
-        val viewModel = ChatViewModel(chatRepository)
+        val viewModel = ChatViewModel(chatRepository, contactRepository)
         viewModel.loadChats()
         viewModel.loadChats()
 
@@ -143,7 +145,7 @@ class ChatViewModelTest {
             NetworkResult.Error("network down")
         )
 
-        val viewModel = ChatViewModel(chatRepository)
+        val viewModel = ChatViewModel(chatRepository, contactRepository)
         viewModel.loadChats()
 
         assertEquals(listOf("cached"), viewModel.chats.value.map { it.chatUuid })
@@ -158,7 +160,7 @@ class ChatViewModelTest {
             NetworkResult.Error("network down")
         )
 
-        val viewModel = ChatViewModel(chatRepository)
+        val viewModel = ChatViewModel(chatRepository, contactRepository)
         viewModel.loadChats()
 
         assertFalse(viewModel.isLoadingChats.value)
@@ -170,7 +172,7 @@ class ChatViewModelTest {
         every { chatRepository.cachedChats() } returns listOf(chat("cached"))
         coEvery { chatRepository.loadChats() } returns flowOf(NetworkResult.Success(emptyList()))
 
-        val viewModel = ChatViewModel(chatRepository)
+        val viewModel = ChatViewModel(chatRepository, contactRepository)
         viewModel.loadChats()
 
         assertTrue(viewModel.chats.value.isEmpty())

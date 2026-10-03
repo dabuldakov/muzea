@@ -6,6 +6,8 @@ import com.example.muzea.data.model.ChatRegisterRequest
 import com.example.muzea.data.model.FcmTokenRequest
 import com.example.muzea.utils.ChatTokenStore
 import com.example.muzea.utils.FcmTokenStore
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Отвечает за аутентификацию на чат-сервере: проверка владельца сохранённого
@@ -13,7 +15,8 @@ import com.example.muzea.utils.FcmTokenStore
  * Выделен из ChatRepository, чтобы у последнего осталась одна ответственность —
  * операции с чатами.
  */
-class ChatAuthManager(
+@Singleton
+class ChatAuthManager @Inject constructor(
     private val apiService: ChatApiService,
     private val tokenStore: ChatTokenStore
 ) {

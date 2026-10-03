@@ -1,5 +1,8 @@
 package com.example.muzea.data.repository
 
+import javax.inject.Inject
+import javax.inject.Singleton
+
 import com.example.muzea.data.api.ApiService
 import com.example.muzea.data.model.LoginRequest
 import com.example.muzea.data.model.RegisterRequest
@@ -8,7 +11,8 @@ import com.example.muzea.utils.TokenManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
-class AuthRepository(
+@Singleton
+class AuthRepository @Inject constructor(
     private val apiService: ApiService,
     private val tokenManager: TokenManager
 ) {

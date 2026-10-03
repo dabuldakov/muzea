@@ -7,21 +7,27 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import com.example.muzea.databinding.FragmentVideoListBinding
-import com.example.muzea.data.api.RetrofitClient
-import com.example.muzea.data.repository.VideoRepository
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class VideoListFragment : Fragment() {
 
     private var _binding: FragmentVideoListBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var viewModel: VideoViewModel
+    private val viewModel: VideoViewModel by viewModels()
+
+    @Inject
+    lateinit var tokenManager: TokenManager
+
     private lateinit var adapter: VideoAdapter
     private var myUsername: String? = null
 
@@ -48,11 +54,7 @@ class VideoListFragment : Fragment() {
     }
 
     private fun initViewModel() {
-        val tokenManager = TokenManager(requireContext())
         myUsername = tokenManager.getUsername()
-        val apiService = RetrofitClient(tokenManager).apiService
-        val videoRepository = VideoRepository(apiService)
-        viewModel = VideoViewModel(videoRepository)
     }
 
     private fun setupRecyclerView() {

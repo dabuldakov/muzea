@@ -1,21 +1,34 @@
 package com.example.muzea.ui.chat
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.muzea.data.model.ChatParticipantResponse
 import com.example.muzea.data.model.ContactResponse
+import com.example.muzea.data.repository.AvatarRepository
 import com.example.muzea.data.repository.ChatRepository
+import com.example.muzea.data.repository.ContactRepository
+import com.example.muzea.data.repository.ChatUserIdentity
 import com.example.muzea.utils.NetworkResult
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import java.io.File
+import javax.inject.Inject
 
-class GroupSettingsViewModel(
-    private val chatUuid: String,
-    private val chatRepository: ChatRepository
+@HiltViewModel
+class GroupSettingsViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    private val chatRepository: ChatRepository,
+    private val contactRepository: ContactRepository,
+    private val avatarRepository: AvatarRepository,
+    chatUserIdentity: ChatUserIdentity
 ) : ViewModel() {
+
+    private val chatUuid: String = savedStateHandle.get<String>(ARG_CHAT_UUID).orEmpty()
+    val myUserUuid: String? = chatUserIdentity.userUuid
 
     private val _participants = MutableSharedFlow<NetworkResult<List<ChatParticipantResponse>>>()
     val participants: SharedFlow<NetworkResult<List<ChatParticipantResponse>>> =
@@ -44,7 +57,7 @@ class GroupSettingsViewModel(
 
     fun loadContacts() {
         viewModelScope.launch {
-            chatRepository.loadContacts().collect { result ->
+            contactRepository.loadContacts().collect { result ->
                 _contactsResult.emit(result)
             }
         }
@@ -66,12 +79,16 @@ class GroupSettingsViewModel(
         avatarUploadActive = true
         viewModelScope.launch {
             try {
-                chatRepository.uploadChatAvatar(chatUuid, file, mimeType)
+                avatarRepository.uploadChatAvatar(chatUuid, file, mimeType)
                     .collect { _avatarState.emit(it) }
             } finally {
                 file.delete()
                 avatarUploadActive = false
             }
         }
+    }
+
+    companion object {
+        const val ARG_CHAT_UUID = "chat_uuid"
     }
 }

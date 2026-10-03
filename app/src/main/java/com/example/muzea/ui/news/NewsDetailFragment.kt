@@ -7,29 +7,32 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.muzea.R
 import com.example.muzea.databinding.FragmentNewsDetailBinding
-import com.example.muzea.data.api.ChatRetrofitClient
-import com.example.muzea.data.api.RetrofitClient
 import com.example.muzea.data.model.NewsResponse
-import com.example.muzea.data.repository.ChatAuthManager
-import com.example.muzea.data.repository.ChatRepository
-import com.example.muzea.data.repository.NewsRepository
 import com.example.muzea.utils.LocalTimeFormatter
 import com.example.muzea.utils.MediaUrl
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class NewsDetailFragment : Fragment() {
 
     private var _binding: FragmentNewsDetailBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var viewModel: NewsViewModel
+    private val viewModel: NewsViewModel by viewModels()
+
+    @Inject
+    lateinit var tokenManager: TokenManager
+
     private var newsId: Long = 0
     private var myUsername: String? = null
 
@@ -45,14 +48,7 @@ class NewsDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Создаем ViewModel вручную
-        val tokenManager = TokenManager(requireContext())
         myUsername = tokenManager.getUsername()
-        val apiService = RetrofitClient(tokenManager).apiService
-        val newsRepository = NewsRepository(apiService)
-        val chatApiService = ChatRetrofitClient(tokenManager).apiService
-        val chatRepository = ChatRepository(chatApiService, ChatAuthManager(chatApiService, tokenManager))
-        viewModel = NewsViewModel(newsRepository, chatRepository)
 
         newsId = arguments?.getLong("newsId", 0) ?: 0
 

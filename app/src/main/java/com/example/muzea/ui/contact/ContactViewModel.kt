@@ -1,10 +1,14 @@
 package com.example.muzea.ui.contact
 
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.model.ContactResponse
 import com.example.muzea.data.repository.ChatRepository
+import com.example.muzea.data.repository.ContactRepository
 import com.example.muzea.utils.NetworkResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -15,8 +19,10 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class ContactViewModel(
-    private val chatRepository: ChatRepository
+@HiltViewModel
+class ContactViewModel @Inject constructor(
+    private val chatRepository: ChatRepository,
+    private val contactRepository: ContactRepository
 ) : ViewModel() {
 
     private val _contactsResult = MutableSharedFlow<NetworkResult<List<ContactResponse>>>()
@@ -41,7 +47,7 @@ class ContactViewModel(
 
     fun loadContacts() {
         viewModelScope.launch {
-            chatRepository.loadContacts().collect { result ->
+            contactRepository.loadContacts().collect { result ->
                 if (result is NetworkResult.Success) {
                     _contacts.value = result.data ?: emptyList()
                 }
@@ -63,7 +69,7 @@ class ContactViewModel(
             if (uuids.isEmpty()) return@launch
 
             val presence = try {
-                chatRepository.loadPresence(uuids)
+                contactRepository.loadPresence(uuids)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -91,7 +97,7 @@ class ContactViewModel(
 
     fun addContact(username: String) {
         viewModelScope.launch {
-            chatRepository.addContactByUsername(username).collect { result ->
+            contactRepository.addContactByUsername(username).collect { result ->
                 _addContactResult.emit(result)
             }
         }

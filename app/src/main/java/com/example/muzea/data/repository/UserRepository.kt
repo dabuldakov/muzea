@@ -1,5 +1,8 @@
 package com.example.muzea.data.repository
 
+import javax.inject.Inject
+import javax.inject.Singleton
+
 import com.example.muzea.data.api.ApiService
 import com.example.muzea.data.model.UpdateUserRequest
 import com.example.muzea.data.model.UserResponse
@@ -7,7 +10,8 @@ import com.example.muzea.utils.NetworkResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
-class UserRepository(
+@Singleton
+class UserRepository @Inject constructor(
     private val apiService: ApiService
 ) {
 

@@ -3,8 +3,9 @@ package com.example.muzea.data.api
 import com.example.muzea.utils.TokenManager
 import okhttp3.Interceptor
 import okhttp3.Response
+import javax.inject.Inject
 
-class AuthInterceptor(
+class AuthInterceptor @Inject constructor(
     private val tokenManager: TokenManager
 ) : Interceptor {
 

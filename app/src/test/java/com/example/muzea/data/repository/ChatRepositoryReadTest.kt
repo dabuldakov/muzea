@@ -18,14 +18,15 @@ class ChatRepositoryReadTest {
 
     private val api = mockk<ChatApiService>()
     private val auth = mockk<ChatAuthManager>(relaxed = true)
-    private val repository = ChatRepository(api, auth)
+    private val chatRepository = ChatRepository(api, auth)
+    private val messageRepository = MessageRepository(api, auth)
 
     @Test
     fun `marks messages as read up to the given message`() = runTest {
         coEvery { auth.isAuthenticated() } returns true
         coEvery { api.markMessagesAsRead("chat-1", "msg-9") } returns Response.success(Unit)
 
-        assertTrue(repository.markMessagesAsRead("chat-1", "msg-9"))
+        assertTrue(messageRepository.markMessagesAsRead("chat-1", "msg-9"))
 
         coVerify(exactly = 1) { api.markMessagesAsRead("chat-1", "msg-9") }
     }
@@ -38,7 +39,7 @@ class ChatRepositoryReadTest {
             Response.success(Unit)
         )
 
-        assertTrue(repository.markMessagesAsRead("chat-1", "msg-9"))
+        assertTrue(messageRepository.markMessagesAsRead("chat-1", "msg-9"))
 
         coVerify(exactly = 2) { api.markMessagesAsRead("chat-1", "msg-9") }
         verify(exactly = 1) { auth.invalidate() }
@@ -48,7 +49,7 @@ class ChatRepositoryReadTest {
     fun `returns false when not authenticated`() = runTest {
         coEvery { auth.isAuthenticated() } returns false
 
-        assertFalse(repository.markMessagesAsRead("chat-1", "msg-9"))
+        assertFalse(messageRepository.markMessagesAsRead("chat-1", "msg-9"))
 
         coVerify(exactly = 0) { api.markMessagesAsRead(any(), any()) }
     }
@@ -58,7 +59,7 @@ class ChatRepositoryReadTest {
         coEvery { auth.isAuthenticated() } returns true
         coEvery { api.markMessagesAsRead("chat-1", "msg-9") } returns Response.error(500, "boom".toResponseBody())
 
-        assertFalse(repository.markMessagesAsRead("chat-1", "msg-9"))
+        assertFalse(messageRepository.markMessagesAsRead("chat-1", "msg-9"))
     }
 
     @Test
@@ -69,12 +70,12 @@ class ChatRepositoryReadTest {
             listOf(chat("a", "Anna"), chat("b", "Boris"))
         )
 
-        repository.loadChats().collect { }
+        chatRepository.loadChats().collect { }
 
         // Новый экран создаёт свой репозиторий и полагается на этот кэш,
         // чтобы показать список до ответа сервера.
         assertEquals(listOf("a", "b"), ChatListCache.get().map { it.chatUuid })
-        assertEquals(listOf("a", "b"), repository.cachedChats().map { it.chatUuid })
+        assertEquals(listOf("a", "b"), chatRepository.cachedChats().map { it.chatUuid })
         ChatListCache.clear()
     }
 
@@ -87,8 +88,8 @@ class ChatRepositoryReadTest {
             Response.error(500, "boom".toResponseBody())
         )
 
-        repository.loadChats().collect { }
-        repository.loadChats().collect { }
+        chatRepository.loadChats().collect { }
+        chatRepository.loadChats().collect { }
 
         assertEquals(listOf("a"), ChatListCache.get().map { it.chatUuid })
         ChatListCache.clear()

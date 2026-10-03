@@ -5,6 +5,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("kotlin-kapt")
     id("com.google.gms.google-services")
+    id("com.google.dagger.hilt.android")
 }
 
 // Ключ подписи release-сборок. Источники в порядке приоритета:
@@ -123,6 +124,10 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
 
+    // DI
+    implementation("com.google.dagger:hilt-android:2.48")
+    kapt("com.google.dagger:hilt-android-compiler:2.48")
+
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
@@ -174,4 +179,9 @@ dependencies {
 configurations.all {
     exclude(group = "androidx.compose")
     exclude(group = "androidx.activity", module = "activity-compose")
+}
+
+kapt {
+    // Hilt: не падать на неоднозначных типах, которые kapt видит как error types.
+    correctErrorTypes = true
 }

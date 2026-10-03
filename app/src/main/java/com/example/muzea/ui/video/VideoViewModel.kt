@@ -1,5 +1,8 @@
 package com.example.muzea.ui.video
 
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.muzea.data.model.VideoResponse
@@ -11,7 +14,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import okhttp3.MultipartBody
 
-class VideoViewModel(
+@HiltViewModel
+class VideoViewModel @Inject constructor(
     private val videoRepository: VideoRepository
 ) : ViewModel() {
 

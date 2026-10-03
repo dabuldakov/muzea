@@ -31,7 +31,9 @@ class ChatRepositoryCacheTest {
 
     private val auth = io.mockk.mockk<ChatAuthManager>(relaxed = true)
 
-    private fun repo() = ChatRepository(IntegrationTestClient.chatApi(server), auth)
+    private fun chatRepo() = ChatRepository(IntegrationTestClient.chatApi(server), auth)
+
+    private fun messageRepo() = MessageRepository(IntegrationTestClient.chatApi(server), auth)
 
     @Before
     fun setUp() {
@@ -74,7 +76,7 @@ class ChatRepositoryCacheTest {
     fun `loadChats stores the list in the cache`() = runTest {
         server.enqueue(json("[$privateChat]"))
 
-        val result = repo().loadChats().toList().last()
+        val result = chatRepo().loadChats().toList().last()
 
         assertTrue(result is NetworkResult.Success)
         assertEquals(listOf("chat-1"), ChatListCache.get().map { it.chatUuid })
@@ -92,18 +94,18 @@ class ChatRepositoryCacheTest {
             )
         )
 
-        val result = repo().loadMessages("chat-1").toList().last()
+        val result = messageRepo().loadMessages("chat-1").toList().last()
 
         assertTrue(result is NetworkResult.Success)
         assertEquals(listOf("m1"), ChatMessagesCache.get("chat-1").map { it.messageUuid })
-        assertEquals(listOf("m1"), repo().cachedMessages("chat-1").map { it.messageUuid })
+        assertEquals(listOf("m1"), messageRepo().cachedMessages("chat-1").map { it.messageUuid })
     }
 
     @Test
     fun `findPrivateChatWith returns cached chat without touching the network`() = runTest {
         PrivateChatCache.put("user-1", chat("chat-1"))
 
-        val found = repo().findPrivateChatWith("user-1")
+        val found = chatRepo().findPrivateChatWith("user-1")
 
         assertEquals("chat-1", found?.chatUuid)
         assertEquals(0, server.requestCount)
@@ -114,7 +116,7 @@ class ChatRepositoryCacheTest {
         server.enqueue(json("[$privateChat]"))
         server.enqueue(json(participants))
 
-        val found = repo().findPrivateChatWith("user-1")
+        val found = chatRepo().findPrivateChatWith("user-1")
 
         assertEquals("chat-1", found?.chatUuid)
         // Кэш заполняется по всем участникам найденного приватного чата.
@@ -122,7 +124,7 @@ class ChatRepositoryCacheTest {
         assertEquals("chat-1", PrivateChatCache.get("me")?.chatUuid)
 
         // Повторный поиск (в т.ч. по другому участнику) уже идёт из кэша.
-        val again = repo().findPrivateChatWith("me")
+        val again = chatRepo().findPrivateChatWith("me")
         assertEquals("chat-1", again?.chatUuid)
         assertEquals(2, server.requestCount)
     }
@@ -132,14 +134,14 @@ class ChatRepositoryCacheTest {
         server.enqueue(json("[$privateChat]"))
         server.enqueue(json("""[{"userUuid":"stranger","online":false}]"""))
 
-        assertNull(repo().findPrivateChatWith("user-1"))
+        assertNull(chatRepo().findPrivateChatWith("user-1"))
     }
 
     @Test
     fun `findPrivateChatWith skips group chats without requesting their participants`() = runTest {
         server.enqueue(json("[$groupChat]"))
 
-        assertNull(repo().findPrivateChatWith("user-1"))
+        assertNull(chatRepo().findPrivateChatWith("user-1"))
         assertEquals(1, server.requestCount)
     }
 
@@ -147,7 +149,7 @@ class ChatRepositoryCacheTest {
     fun `createPrivateChat caches the created chat`() = runTest {
         server.enqueue(json(privateChatJson("chat-new")))
 
-        val result = repo().createPrivateChat("user-9").toList().last()
+        val result = chatRepo().createPrivateChat("user-9").toList().last()
 
         assertTrue(result is NetworkResult.Success)
         assertEquals("chat-new", PrivateChatCache.get("user-9")?.chatUuid)

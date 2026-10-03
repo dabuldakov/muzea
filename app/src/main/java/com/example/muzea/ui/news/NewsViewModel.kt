@@ -1,10 +1,13 @@
 package com.example.muzea.ui.news
 
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.muzea.data.model.NewsCreateResponse
 import com.example.muzea.data.model.NewsResponse
-import com.example.muzea.data.repository.ChatRepository
+import com.example.muzea.data.repository.ContactRepository
 import com.example.muzea.data.repository.NewsRepository
 import com.example.muzea.utils.NetworkResult
 import kotlinx.coroutines.flow.Flow
@@ -14,9 +17,10 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import java.io.File
 
-class NewsViewModel(
+@HiltViewModel
+class NewsViewModel @Inject constructor(
     private val newsRepository: NewsRepository,
-    private val chatRepository: ChatRepository
+    private val contactRepository: ContactRepository
 ) : ViewModel() {
 
     private val _newsResult = MutableSharedFlow<NetworkResult<List<NewsResponse>>>(replay = 1)
@@ -74,7 +78,7 @@ class NewsViewModel(
 
     private suspend fun loadContactUsernames(): Set<String> {
         return try {
-            val result = chatRepository.loadContacts().firstTerminal()
+            val result = contactRepository.loadContacts().firstTerminal()
             when (result) {
                 is NetworkResult.Success -> (result.data ?: emptyList())
                     .mapNotNull { (it.username ?: it.contactName)?.trim() }

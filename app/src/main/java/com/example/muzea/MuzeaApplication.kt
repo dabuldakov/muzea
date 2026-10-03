@@ -5,13 +5,19 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import com.example.muzea.utils.PushTokenRegistrar
+import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 
+@HiltAndroidApp
 class MuzeaApplication : Application() {
+
+    @Inject
+    lateinit var pushTokenRegistrar: PushTokenRegistrar
+
     override fun onCreate() {
         super.onCreate()
-        ServiceLocator.init(this)
         createNotificationChannel()
-        PushTokenRegistrar.sync(this)
+        pushTokenRegistrar.sync()
     }
 
     private fun createNotificationChannel() {

@@ -5,6 +5,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
@@ -15,19 +16,24 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import com.example.muzea.data.api.RetrofitClient
-import com.example.muzea.data.repository.VideoRepository
 import com.example.muzea.databinding.ActivityVideoDetailBinding
 import com.example.muzea.utils.LocalTimeFormatter
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
 import com.example.muzea.utils.VideoPlayerHelper
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class VideoDetailActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityVideoDetailBinding
-    private lateinit var viewModel: VideoViewModel
+    private val viewModel: VideoViewModel by viewModels()
+
+    @Inject
+    lateinit var tokenManager: TokenManager
+
     private var player: ExoPlayer? = null
     private var videoId: Long = 0
     private var isFullscreen = false
@@ -37,11 +43,6 @@ class VideoDetailActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityVideoDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        val tokenManager = TokenManager(applicationContext)
-        val apiService = RetrofitClient(tokenManager).apiService
-        val videoRepository = VideoRepository(apiService)
-        viewModel = VideoViewModel(videoRepository)
 
         videoId = intent.getLongExtra("video_id", 0)
         if (videoId == 0L) {
@@ -189,7 +190,7 @@ class VideoDetailActivity : AppCompatActivity() {
         binding.tvUploader.text = "Uploaded by: ${video.uploadedBy}"
         binding.tvDate.text = LocalTimeFormatter.format(video.uploadedAt)
 
-        val myUsername = TokenManager(this).getUsername()
+        val myUsername = tokenManager.getUsername()
         binding.btnDelete.visibility =
             if (myUsername != null && video.uploadedBy.trim() == myUsername.trim()) {
                 View.VISIBLE
@@ -202,7 +203,6 @@ class VideoDetailActivity : AppCompatActivity() {
     }
 
     @UnstableApi private fun initializePlayer(videoUrl: String) {
-        val tokenManager = TokenManager(this)
         val token = tokenManager.getToken()
 
         if (token == null) {

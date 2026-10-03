@@ -5,22 +5,25 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.muzea.R
 import com.example.muzea.data.model.UserResponse
-import com.example.muzea.data.repository.ChatRepository
+import com.example.muzea.data.repository.ChatSessionRepository
 import com.example.muzea.data.repository.UserRepository
 import com.example.muzea.utils.ConsentManager
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class ProfileViewModel(
+@HiltViewModel
+class ProfileViewModel @Inject constructor(
     private val application: Application,
     private val userRepository: UserRepository,
-    private val chatRepository: ChatRepository,
+    private val chatSessionRepository: ChatSessionRepository,
     private val tokenManager: TokenManager
 ) : ViewModel() {
 
@@ -65,7 +68,7 @@ class ProfileViewModel(
     fun deleteAccount() {
         viewModelScope.launch {
             _deleteAccountResult.emit(NetworkResult.Loading())
-            val chatErased = chatRepository.deleteAccount()
+            val chatErased = chatSessionRepository.deleteAccount()
             val result = userRepository.deleteAccount(currentUserId)
                 .filterNot { it is NetworkResult.Loading }
                 .first()
@@ -96,7 +99,7 @@ class ProfileViewModel(
      */
     fun logout() {
         viewModelScope.launch {
-            chatRepository.logout()
+            chatSessionRepository.logout()
             tokenManager.clearToken()
         }
     }

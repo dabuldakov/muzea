@@ -1,34 +1,29 @@
 package com.example.muzea.ui.chat
 
 import android.os.Bundle
-import android.util.Base64
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
-import com.example.muzea.data.api.ChatRetrofitClient
 import com.example.muzea.data.model.MessageResponse
-import com.example.muzea.data.repository.ChatAuthManager
-import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.databinding.FragmentChatConversationBinding
 import com.example.muzea.ui.openDetailScreen
-import com.example.muzea.utils.TokenManager
 import com.example.muzea.utils.AvatarLoader
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 
+@AndroidEntryPoint
 class ChatConversationFragment : Fragment() {
 
     private var _binding: FragmentChatConversationBinding? = null
     private val binding get() = _binding!!
-    private lateinit var viewModel: ChatConversationViewModel
+    private val viewModel: ChatConversationViewModel by viewModels()
     private lateinit var adapter: MessageAdapter
     private var chatUuid: String = ""
     private var lastMessageCount = 0
@@ -43,7 +38,6 @@ class ChatConversationFragment : Fragment() {
     }
 
     companion object {
-        private const val ARG_CHAT_UUID = "chat_uuid"
         private const val ARG_CHAT_TITLE = "chat_title"
         private const val ARG_CHAT_AVATAR = "chat_avatar"
         private const val ARG_UNREAD_COUNT = "chat_unread_count"
@@ -56,7 +50,7 @@ class ChatConversationFragment : Fragment() {
         ): ChatConversationFragment {
             return ChatConversationFragment().apply {
                 arguments = Bundle().apply {
-                    putString(ARG_CHAT_UUID, chatUuid)
+                    putString(ChatConversationViewModel.ARG_CHAT_UUID, chatUuid)
                     putString(ARG_CHAT_TITLE, chatTitle)
                     putString(ARG_CHAT_AVATAR, avatarUrl)
                     putLong(ARG_UNREAD_COUNT, unreadCount)
@@ -76,7 +70,7 @@ class ChatConversationFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        chatUuid = arguments?.getString(ARG_CHAT_UUID) ?: ""
+        chatUuid = arguments?.getString(ChatConversationViewModel.ARG_CHAT_UUID) ?: ""
         val chatTitle = arguments?.getString(ARG_CHAT_TITLE) ?: "Chat"
         unreadCount = arguments?.getLong(ARG_UNREAD_COUNT, 0L) ?: 0L
 
@@ -89,27 +83,9 @@ class ChatConversationFragment : Fragment() {
             requireActivity().supportFragmentManager.popBackStack()
         }
 
-        initViewModel()
         setupRecyclerView()
         setupInput()
         observeViewModel()
-    }
-
-    private fun initViewModel() {
-        val tokenManager = TokenManager(requireContext())
-        val apiService = ChatRetrofitClient(tokenManager).apiService
-        val chatRepository = ChatRepository(apiService, ChatAuthManager(apiService, tokenManager))
-        // ViewModel получаем через провайдер, чтобы при закрытии чата вызывался
-        // onCleared() и трёхсекундный опрос гарантированно останавливался.
-        viewModel = ViewModelProvider(this, object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                ChatConversationViewModel(
-                    chatUuid,
-                    chatRepository,
-                    extractMyUserUuid(tokenManager)
-                ) as T
-        })[ChatConversationViewModel::class.java]
     }
 
     private fun openGroupSettings(chatTitle: String) {
@@ -242,18 +218,6 @@ class ChatConversationFragment : Fragment() {
             binding.tvEmpty.visibility = View.GONE
             binding.recyclerViewMessages.visibility = View.VISIBLE
             binding.tvError.visibility = View.GONE
-        }
-    }
-
-    private fun extractMyUserUuid(tokenManager: TokenManager): String? {
-        val token = tokenManager.getChatToken() ?: return null
-        return try {
-            val parts = token.split(".")
-            if (parts.size < 2) return null
-            val decoded = Base64.decode(parts[1], Base64.URL_SAFE or Base64.NO_WRAP)
-            JSONObject(String(decoded, Charsets.UTF_8)).getString("sub")
-        } catch (e: Exception) {
-            null
         }
     }
 

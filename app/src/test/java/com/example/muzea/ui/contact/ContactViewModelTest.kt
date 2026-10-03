@@ -2,6 +2,7 @@ package com.example.muzea.ui.contact
 
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.repository.ChatRepository
+import com.example.muzea.data.repository.ContactRepository
 import com.example.muzea.ui.news.MainDispatcherRule
 import com.example.muzea.utils.NetworkResult
 import io.mockk.coEvery
@@ -26,6 +27,7 @@ class ContactViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val chatRepository = mockk<ChatRepository>()
+    private val contactRepository = mockk<ContactRepository>()
 
     private fun chat(uuid: String) = ChatResponse(
         chatUuid = uuid,
@@ -56,7 +58,7 @@ class ContactViewModelTest {
     @Test
     fun `openPrivateChat reuses an existing chat without creating a new one`() = runTest {
         coEvery { chatRepository.findPrivateChatWith("user-1") } returns chat("chat-1")
-        val viewModel = ContactViewModel(chatRepository)
+        val viewModel = ContactViewModel(chatRepository, contactRepository)
 
         val results = collectResults(viewModel) { viewModel.openPrivateChat("user-1") }
 
@@ -70,7 +72,7 @@ class ContactViewModelTest {
         coEvery { chatRepository.findPrivateChatWith("user-1") } returns null
         coEvery { chatRepository.createPrivateChat("user-1") } returns
             flowOf(NetworkResult.Success(chat("chat-new")))
-        val viewModel = ContactViewModel(chatRepository)
+        val viewModel = ContactViewModel(chatRepository, contactRepository)
 
         val results = collectResults(viewModel) { viewModel.openPrivateChat("user-1") }
 
@@ -83,7 +85,7 @@ class ContactViewModelTest {
         coEvery { chatRepository.findPrivateChatWith("user-1") } returns null
         coEvery { chatRepository.createPrivateChat("user-1") } returns
             flowOf(NetworkResult.Error("boom"))
-        val viewModel = ContactViewModel(chatRepository)
+        val viewModel = ContactViewModel(chatRepository, contactRepository)
 
         val results = collectResults(viewModel) { viewModel.openPrivateChat("user-1") }
 

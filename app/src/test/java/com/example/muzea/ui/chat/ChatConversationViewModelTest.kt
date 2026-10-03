@@ -1,11 +1,13 @@
 package com.example.muzea.ui.chat
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import com.example.muzea.data.model.MessageResponse
 import com.example.muzea.data.repository.ChatMessagesCache
-import com.example.muzea.data.repository.ChatRepository
+import com.example.muzea.data.repository.MessageRepository
+import com.example.muzea.data.repository.ChatUserIdentity
 import com.example.muzea.ui.news.MainDispatcherRule
 import com.example.muzea.utils.NetworkResult
 import io.mockk.coEvery
@@ -34,7 +36,7 @@ class ChatConversationViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private val chatRepository = mockk<ChatRepository>()
+    private val messageRepository = mockk<MessageRepository>()
     private val chatUuid = "chat-1"
 
     private fun message(uuid: String, text: String, createdAt: String) = MessageResponse(
@@ -59,7 +61,7 @@ class ChatConversationViewModelTest {
         ChatMessagesCache.clear()
         // mergeMessages() помечает переписку прочитанной; без заглушки строгий
         // mockk упадёт на неожиданном вызове.
-        coEvery { chatRepository.markMessagesAsRead(any(), any()) } returns true
+        coEvery { messageRepository.markMessagesAsRead(any(), any()) } returns true
     }
 
     @After
@@ -84,14 +86,21 @@ class ChatConversationViewModelTest {
             flowOf(NetworkResult.Success(emptyList())),
         block: suspend CoroutineScope.(ChatConversationViewModel) -> Unit
     ) = runTest {
-        every { chatRepository.cachedMessages(chatUuid) } returns cached
-        coEvery { chatRepository.loadMessages(chatUuid) } returns network
+        every { messageRepository.cachedMessages(chatUuid) } returns cached
+        coEvery { messageRepository.loadMessages(chatUuid) } returns network
+
+        val savedStateHandle = SavedStateHandle(
+            mapOf(ChatConversationViewModel.ARG_CHAT_UUID to chatUuid)
+        )
+        val identity = object : ChatUserIdentity {
+            override val userUuid: String? = "me"
+        }
 
         val store = ViewModelStore()
         val factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                ChatConversationViewModel(chatUuid, chatRepository, "me") as T
+                ChatConversationViewModel(savedStateHandle, messageRepository, identity) as T
         }
         try {
             block(ViewModelProvider(store, factory)[ChatConversationViewModel::class.java])
@@ -108,7 +117,7 @@ class ChatConversationViewModelTest {
         // подряд при каждом входе в чат.
         assertEquals(1, viewModel.messages.value.size)
 
-        coVerify(exactly = 1) { chatRepository.loadMessages(chatUuid) }
+        coVerify(exactly = 1) { messageRepository.loadMessages(chatUuid) }
     }
 
     @Test
@@ -139,7 +148,7 @@ class ChatConversationViewModelTest {
     fun `manual refresh adds exactly one more request`() = withViewModel { viewModel ->
         viewModel.refresh()
 
-        coVerify(exactly = 2) { chatRepository.loadMessages(chatUuid) }
+        coVerify(exactly = 2) { messageRepository.loadMessages(chatUuid) }
     }
 
     @Test
@@ -171,7 +180,7 @@ class ChatConversationViewModelTest {
 
     @Test
     fun `optimistic bubble is updated in place by the server echo`() = withViewModel { viewModel ->
-        coEvery { chatRepository.sendMessage(chatUuid, "hello") } returns flowOf(
+        coEvery { messageRepository.sendMessage(chatUuid, "hello") } returns flowOf(
             NetworkResult.Success(message("server-1", "hello", "2026-01-01T00:00:00"))
         )
 
@@ -188,7 +197,7 @@ class ChatConversationViewModelTest {
     @Test
     fun `server echo is not duplicated by the next poll`() = withViewModel { viewModel ->
         val serverCopy = message("server-1", "hello", "2026-01-01T00:00:00")
-        coEvery { chatRepository.sendMessage(chatUuid, "hello") } returns
+        coEvery { messageRepository.sendMessage(chatUuid, "hello") } returns
             flowOf(NetworkResult.Success(serverCopy))
 
         viewModel.sendText("hello")
@@ -196,7 +205,7 @@ class ChatConversationViewModelTest {
 
         // Следующий опрос возвращает серверную копию — она уже показана
         // локальным пузырём и не должна появиться второй строкой.
-        coEvery { chatRepository.loadMessages(chatUuid) } returns
+        coEvery { messageRepository.loadMessages(chatUuid) } returns
             flowOf(NetworkResult.Success(listOf(serverCopy)))
         viewModel.refresh()
 
@@ -219,7 +228,7 @@ class ChatConversationViewModelTest {
 
     @Test
     fun `send failure keeps optimistic message and reports error`() = withViewModel { viewModel ->
-        coEvery { chatRepository.sendMessage(chatUuid, "hello") } returns flowOf(
+        coEvery { messageRepository.sendMessage(chatUuid, "hello") } returns flowOf(
             NetworkResult.Error("send failed")
         )
 

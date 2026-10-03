@@ -2,7 +2,6 @@ package com.example.muzea.ui.chat
 
 import android.net.Uri
 import android.os.Bundle
-import android.util.Base64
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,30 +10,28 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.muzea.R
-import com.example.muzea.data.api.ChatRetrofitClient
-import com.example.muzea.data.repository.ChatAuthManager
-import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.databinding.FragmentGroupSettingsBinding
 import com.example.muzea.utils.AvatarLoader
 import com.example.muzea.utils.NetworkResult
-import com.example.muzea.utils.TokenManager
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 import java.io.File
 
+@AndroidEntryPoint
 class GroupSettingsFragment : Fragment() {
 
     private var _binding: FragmentGroupSettingsBinding? = null
     private val binding get() = _binding!!
-    private lateinit var viewModel: GroupSettingsViewModel
+    private val viewModel: GroupSettingsViewModel by viewModels()
     private lateinit var adapter: ParticipantAdapter
     private var chatUuid: String = ""
     private var chatAvatar: String? = null
@@ -92,22 +89,13 @@ class GroupSettingsFragment : Fragment() {
         binding.ivHeaderAvatar.setOnClickListener { changeAvatar() }
         binding.btnAddMembers.setOnClickListener { showAddMembersDialog() }
 
-        initViewModel()
         setupRecyclerView()
         observeViewModel()
         viewModel.loadParticipants()
     }
 
-    private fun initViewModel() {
-        val tokenManager = TokenManager(requireContext())
-        val apiService = ChatRetrofitClient(tokenManager).apiService
-        val chatRepository = ChatRepository(apiService, ChatAuthManager(apiService, tokenManager))
-        viewModel = GroupSettingsViewModel(chatUuid, chatRepository)
-    }
-
     private fun setupRecyclerView() {
-        val tokenManager = TokenManager(requireContext())
-        adapter = ParticipantAdapter(extractMyUserUuid(tokenManager))
+        adapter = ParticipantAdapter(viewModel.myUserUuid)
         binding.recyclerViewParticipants.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = this@GroupSettingsFragment.adapter
@@ -273,18 +261,6 @@ class GroupSettingsFragment : Fragment() {
                     }
                 }
             }
-        }
-    }
-
-    private fun extractMyUserUuid(tokenManager: TokenManager): String? {
-        val token = tokenManager.getChatToken() ?: return null
-        return try {
-            val parts = token.split(".")
-            if (parts.size < 2) return null
-            val decoded = Base64.decode(parts[1], Base64.URL_SAFE or Base64.NO_WRAP)
-            JSONObject(String(decoded, Charsets.UTF_8)).getString("sub")
-        } catch (e: Exception) {
-            null
         }
     }
 

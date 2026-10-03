@@ -17,7 +17,7 @@ class ChatAvatarRepositoryTest {
     @get:Rule val temporaryFolder = TemporaryFolder()
     private val api = mockk<ChatApiService>()
     private val auth = mockk<ChatAuthManager>(relaxed = true)
-    private val repository = ChatRepository(api, auth)
+    private val repository = AvatarRepository(api, auth)
 
     @Test
     fun `upload retries expired chat token and returns avatar URL`() = runTest {

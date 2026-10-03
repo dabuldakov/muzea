@@ -32,7 +32,11 @@ class ChatRepositoryIntegrationTest {
 
     private val auth = mockk<ChatAuthManager>(relaxed = true)
 
-    private fun repo() = ChatRepository(IntegrationTestClient.chatApi(server), auth)
+    private fun chatRepo() = ChatRepository(IntegrationTestClient.chatApi(server), auth)
+
+    private fun contactRepo() = ContactRepository(IntegrationTestClient.chatApi(server), auth)
+
+    private fun avatarRepo() = AvatarRepository(IntegrationTestClient.chatApi(server), auth)
 
     private val liveLikeContact = """
         {"contactUuid":"d040b46f-891d-4823-992f-384cfe5af824",
@@ -65,7 +69,7 @@ class ChatRepositoryIntegrationTest {
                 .setBody(liveLikeContact)
         )
 
-        val result = repo().addContactByUsername("itest_audit_02").toList().last()
+        val result = contactRepo().addContactByUsername("itest_audit_02").toList().last()
 
         assertTrue(result is NetworkResult.Success)
         assertEquals(
@@ -92,7 +96,7 @@ class ChatRepositoryIntegrationTest {
         coEvery { auth.isAuthenticated() } returns true
         server.enqueue(MockResponse().setResponseCode(404))
 
-        val result = repo().addContactByUsername("no-such-user").toList().last()
+        val result = contactRepo().addContactByUsername("no-such-user").toList().last()
 
         assertTrue(result is NetworkResult.Error)
         assertEquals("User not found: no-such-user", (result as NetworkResult.Error).message)
@@ -107,7 +111,7 @@ class ChatRepositoryIntegrationTest {
                 .setBody(liveLikeChat)
         )
 
-        val result = repo().createPrivateChat("2afcbb98-85bd-4a24-be7d-5e66dbe53933").toList().last()
+        val result = chatRepo().createPrivateChat("2afcbb98-85bd-4a24-be7d-5e66dbe53933").toList().last()
 
         assertTrue(result is NetworkResult.Success)
         assertEquals("7b0b15f8-6b3c-4c2d-a9e2-2e1e32de9b1f", result.data!!.chatUuid)
@@ -128,7 +132,7 @@ class ChatRepositoryIntegrationTest {
                 .setBody("[$liveLikeContact]")
         )
 
-        val result = repo().loadContacts().toList().last()
+        val result = contactRepo().loadContacts().toList().last()
 
         assertTrue(result is NetworkResult.Success)
         val contact = result.data!!.single()
@@ -152,7 +156,7 @@ class ChatRepositoryIntegrationTest {
                 )
         )
 
-        val result = repo().loadAvatar().toList().last()
+        val result = avatarRepo().loadAvatar().toList().last()
 
         assertTrue(result is NetworkResult.Success)
         val avatarPath = result.data!!.avatarUrl
@@ -182,7 +186,7 @@ class ChatRepositoryIntegrationTest {
                 )
         )
 
-        val result = repo().createGroupChat("Team Talks", emptyList()).toList().last()
+        val result = chatRepo().createGroupChat("Team Talks", emptyList()).toList().last()
 
         assertTrue(result is NetworkResult.Success)
         assertEquals("9f3e1a02-2c7b-4c81-a5e9-3f4d1c2b8a07", result.data!!.chatUuid)
@@ -202,7 +206,7 @@ class ChatRepositoryIntegrationTest {
         coEvery { auth.isAuthenticated() } returns true
         server.enqueue(MockResponse().setResponseCode(200))
 
-        val result = repo()
+        val result = chatRepo()
             .addGroupParticipants(
                 "9f3e1a02-2c7b-4c81-a5e9-3f4d1c2b8a07",
                 listOf("2afcbb98-85bd-4a24-be7d-5e66dbe53933")
@@ -233,7 +237,7 @@ class ChatRepositoryIntegrationTest {
         val file = File.createTempFile("chat_avatar_", ".png")
         file.writeBytes(byteArrayOf(0x89.toByte()))
 
-        val result = repo()
+        val result = avatarRepo()
             .uploadChatAvatar("9f3e1a02-2c7b-4c81-a5e9-3f4d1c2b8a07", file, "image/png")
             .toList()
             .last()
@@ -268,7 +272,7 @@ class ChatRepositoryIntegrationTest {
                 )
         )
 
-        val result = repo()
+        val result = chatRepo()
             .loadChatParticipants("2131d822-1188-4a24-936a-1ad7c9c0cac0")
             .toList()
             .last()
@@ -290,7 +294,7 @@ class ChatRepositoryIntegrationTest {
         coEvery { auth.isAuthenticated() } returns false
         every { auth.lastFailureMessage } returns "Chat account \"xoxo\" already exists on the chat server"
 
-        val result = repo().loadContacts().toList().last()
+        val result = contactRepo().loadContacts().toList().last()
 
         assertTrue(result is NetworkResult.Error)
         assertEquals(

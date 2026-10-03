@@ -1,10 +1,14 @@
 package com.example.muzea.ui.chat
 
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.model.ContactResponse
 import com.example.muzea.data.repository.ChatRepository
+import com.example.muzea.data.repository.ContactRepository
 import com.example.muzea.utils.NetworkResult
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -15,8 +19,10 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class ChatViewModel(
-    private val chatRepository: ChatRepository
+@HiltViewModel
+class ChatViewModel @Inject constructor(
+    private val chatRepository: ChatRepository,
+    private val contactRepository: ContactRepository
 ) : ViewModel() {
 
     /**
@@ -104,7 +110,7 @@ private val _chatsError = MutableStateFlow<String?>(null)
 
     fun loadContacts() {
         viewModelScope.launch {
-            chatRepository.loadContacts().collect { result ->
+            contactRepository.loadContacts().collect { result ->
                 _contactsResult.value = result
             }
         }

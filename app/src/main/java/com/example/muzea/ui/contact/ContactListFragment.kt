@@ -8,23 +8,22 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.muzea.data.api.ChatRetrofitClient
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.model.ContactResponse
-import com.example.muzea.data.repository.ChatAuthManager
-import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.databinding.FragmentContactListBinding
 import com.example.muzea.ui.chat.ChatConversationFragment
 import com.example.muzea.ui.openDetailScreen
 import com.example.muzea.utils.NetworkResult
-import com.example.muzea.utils.TokenManager
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class ContactListFragment : Fragment() {
 
     private companion object {
@@ -39,7 +38,7 @@ class ContactListFragment : Fragment() {
 
     private var _binding: FragmentContactListBinding? = null
     private val binding get() = _binding!!
-    private lateinit var viewModel: ContactViewModel
+    private val viewModel: ContactViewModel by viewModels()
     private lateinit var adapter: ContactAdapter
     private var isAddingContact = false
 
@@ -54,7 +53,6 @@ class ContactListFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        initViewModel()
         setupRecyclerView()
         setupSwipeRefresh()
         setupFab()
@@ -83,13 +81,6 @@ class ContactListFragment : Fragment() {
                 }
             }
         }
-    }
-
-    private fun initViewModel() {
-        val tokenManager = TokenManager(requireContext())
-        val apiService = ChatRetrofitClient(tokenManager).apiService
-        val chatRepository = ChatRepository(apiService, ChatAuthManager(apiService, tokenManager))
-        viewModel = ContactViewModel(chatRepository)
     }
 
     private fun setupRecyclerView() {

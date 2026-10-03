@@ -10,34 +10,36 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.muzea.data.api.ChatRetrofitClient
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.model.ContactResponse
-import com.example.muzea.data.repository.ChatAuthManager
 import com.example.muzea.data.repository.ChatMessagesCache
-import com.example.muzea.data.repository.ChatRepository
+import com.example.muzea.data.repository.MessageRepository
 import com.example.muzea.databinding.FragmentChatListBinding
 import com.example.muzea.ui.openDetailScreen
 import com.example.muzea.utils.NetworkResult
-import com.example.muzea.utils.TokenManager
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class ChatListFragment : Fragment() {
 
     private var _binding: FragmentChatListBinding? = null
     private val binding get() = _binding!!
-    private lateinit var viewModel: ChatViewModel
-    private lateinit var chatRepository: ChatRepository
+    private val viewModel: ChatViewModel by viewModels()
+
+    @Inject
+    lateinit var messageRepository: MessageRepository
+
     private lateinit var adapter: ChatAdapter
     private var membersAdapter: GroupMemberAdapter? = null
     private var membersDialog: AlertDialog? = null
@@ -60,7 +62,6 @@ class ChatListFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        initViewModel()
         setupRecyclerView()
         setupSwipeRefresh()
         setupCreateGroupFab()
@@ -78,20 +79,6 @@ class ChatListFragment : Fragment() {
                 }
             }
         }
-    }
-
-    private fun initViewModel() {
-        val tokenManager = TokenManager(requireContext())
-        val apiService = ChatRetrofitClient(tokenManager).apiService
-        val repository = ChatRepository(apiService, ChatAuthManager(apiService, tokenManager))
-        chatRepository = repository
-        // ViewModel получаем через провайдер: список чатов тогда переживает
-        // пересоздание экрана и не перезапрашивается при каждом показе.
-        viewModel = ViewModelProvider(this, object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                ChatViewModel(repository) as T
-        })[ChatViewModel::class.java]
     }
 
     private fun setupRecyclerView() {
@@ -317,7 +304,7 @@ class ChatListFragment : Fragment() {
 
         prefetchJob = viewLifecycleOwner.lifecycleScope.launch {
             for (chatUuid in targets) {
-                chatRepository.loadMessages(chatUuid).collect { }
+                messageRepository.loadMessages(chatUuid).collect { }
                 delay(PREFETCH_DELAY_MS)
             }
         }

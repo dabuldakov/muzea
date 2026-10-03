@@ -1,0 +1,98 @@
+package com.example.muzea.data.repository
+
+import com.example.muzea.core.DefaultDispatcherProvider
+import com.example.muzea.core.DispatcherProvider
+import com.example.muzea.data.api.ChatApiService
+import com.example.muzea.data.model.AvatarResponse
+import com.example.muzea.utils.NetworkResult
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/** Аватары пользователя и чатов. */
+@Singleton
+class AvatarRepository @Inject constructor(
+    private val apiService: ChatApiService,
+    private val chatAuthManager: ChatAuthManager,
+    private val dispatchers: DispatcherProvider = DefaultDispatcherProvider()
+) {
+
+    suspend fun loadAvatar(): Flow<NetworkResult<AvatarResponse>> = avatarRequest {
+        val response = chatAuthManager.authenticatedRequest { apiService.getMyProfile() }
+        check(response.isSuccessful && response.body() != null) { "Could not load avatar (${response.code()})" }
+        AvatarResponse(response.body()!!.avatarUrl)
+    }
+
+    suspend fun uploadAvatar(file: File, mimeType: String): Flow<NetworkResult<AvatarResponse>> = avatarRequest {
+        val part = MultipartBody.Part.createFormData("file", file.name, file.asRequestBody(mimeType.toMediaType()))
+        val response = chatAuthManager.authenticatedRequest { apiService.uploadAvatar(part) }
+        check(response.isSuccessful && response.body()?.avatarUrl != null) {
+            "Could not upload avatar (${response.code()}). Use a JPEG or PNG image up to 5 MB."
+        }
+        response.body()!!
+    }
+
+    suspend fun deleteAvatar(): Flow<NetworkResult<AvatarResponse>> = avatarRequest {
+        val response = chatAuthManager.authenticatedRequest { apiService.deleteAvatar() }
+        check(response.isSuccessful) { "Could not delete avatar (${response.code()})" }
+        AvatarResponse(null)
+    }
+
+    suspend fun uploadChatAvatar(
+        chatUuid: String,
+        file: File,
+        mimeType: String
+    ): Flow<NetworkResult<String>> = flow {
+        emit(NetworkResult.Loading())
+        try {
+            if (!chatAuthManager.isAuthenticated()) {
+                emit(NetworkResult.Error(chatAuthManager.authFailureMessage()))
+                return@flow
+            }
+
+            val part = MultipartBody.Part.createFormData(
+                "file", file.name, file.asRequestBody(mimeType.toMediaType())
+            )
+            var response = apiService.uploadChatAvatar(chatUuid, part)
+            if (response.code() == 401) {
+                chatAuthManager.invalidate()
+                if (chatAuthManager.isAuthenticated()) {
+                    response = apiService.uploadChatAvatar(chatUuid, part)
+                }
+            }
+
+            if (response.isSuccessful && response.body() != null) {
+                val path = response.body()!!.string().trim()
+                emit(NetworkResult.Success(path))
+            } else {
+                emit(
+                    NetworkResult.Error(
+                        "Failed to upload avatar (${response.code()}). Use a JPEG or PNG image up to 5 MB."
+                    )
+                )
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            emit(NetworkResult.Error("Network error: ${e.message}"))
+        }
+    }.flowOn(dispatchers.io)
+
+    private fun avatarRequest(action: suspend () -> AvatarResponse): Flow<NetworkResult<AvatarResponse>> = flow {
+        emit(NetworkResult.Loading())
+        try {
+            emit(NetworkResult.Success(action()))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            emit(NetworkResult.Error(e.message ?: "Avatar request failed"))
+        }
+    }.flowOn(dispatchers.io)
+}

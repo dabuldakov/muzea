@@ -1,5 +1,8 @@
 package com.example.muzea.data.repository
 
+import javax.inject.Inject
+import javax.inject.Singleton
+
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import com.example.muzea.data.api.ApiService
@@ -14,7 +17,8 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 
-class NewsRepository constructor(
+@Singleton
+class NewsRepository @Inject constructor(
     private val apiService: ApiService
 ) {
 

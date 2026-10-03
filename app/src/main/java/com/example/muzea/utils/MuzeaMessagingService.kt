@@ -14,11 +14,17 @@ import com.example.muzea.R
 import com.example.muzea.ui.MainActivity
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MuzeaMessagingService : FirebaseMessagingService() {
 
+    @Inject
+    lateinit var pushTokenRegistrar: PushTokenRegistrar
+
     override fun onNewToken(token: String) {
-        PushTokenRegistrar.register(this, token)
+        pushTokenRegistrar.register(token)
     }
 
     override fun onMessageReceived(message: RemoteMessage) {

@@ -1,9 +1,12 @@
 package com.example.muzea.ui.profile
 
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.muzea.data.model.AvatarResponse
-import com.example.muzea.data.repository.ChatRepository
+import com.example.muzea.data.repository.AvatarRepository
 import com.example.muzea.utils.NetworkResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,7 +14,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.io.File
 
-class AvatarViewModel(private val repository: ChatRepository) : ViewModel() {
+@HiltViewModel
+class AvatarViewModel @Inject constructor(private val repository: AvatarRepository) : ViewModel() {
     private val _state = MutableStateFlow<NetworkResult<AvatarResponse>>(NetworkResult.Loading())
     val state = _state.asStateFlow()
     private var busy = false

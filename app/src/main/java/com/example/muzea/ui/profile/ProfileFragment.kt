@@ -3,11 +3,6 @@ package com.example.muzea.ui.profile
 import android.os.Bundle
 import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import com.example.muzea.data.api.ChatRetrofitClient
-import com.example.muzea.data.repository.ChatAuthManager
-import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.utils.AvatarLoader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
@@ -18,26 +13,32 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.example.muzea.R
 import com.example.muzea.databinding.FragmentProfileBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.example.muzea.data.api.RetrofitClient
-import com.example.muzea.data.repository.UserRepository
 import com.example.muzea.ui.auth.LoginActivity
 import com.example.muzea.utils.CacheManager
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class ProfileFragment : Fragment() {
 
     private var _binding: FragmentProfileBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var viewModel: ProfileViewModel
+    private val viewModel: ProfileViewModel by viewModels()
+    private val avatarViewModel: AvatarViewModel by viewModels()
+
+    @Inject
+    lateinit var tokenManager: TokenManager
+
     private var isEditing = false
-    private lateinit var avatarViewModel: AvatarViewModel
     private val pickAvatar = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null && _binding != null) uploadAvatar(uri)
     }
@@ -53,23 +54,6 @@ class ProfileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        // Создаем ViewModel вручную
-        val tokenManager = TokenManager(requireContext())
-        val apiService = RetrofitClient(tokenManager).apiService
-        val userRepository = UserRepository(apiService)
-        val chatApi = ChatRetrofitClient(tokenManager).apiService
-        val chatRepository = ChatRepository(chatApi, ChatAuthManager(chatApi, tokenManager))
-        viewModel = ProfileViewModel(
-            requireActivity().application,
-            userRepository,
-            chatRepository,
-            tokenManager
-        )
-        avatarViewModel = ViewModelProvider(this, object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T = AvatarViewModel(chatRepository) as T
-        })[AvatarViewModel::class.java]
 
         binding.btnChangeAvatar.setOnClickListener { pickAvatar.launch(arrayOf("image/jpeg", "image/png")) }
         binding.btnDeleteAvatar.setOnClickListener { avatarViewModel.delete() }
@@ -300,7 +284,6 @@ class ProfileFragment : Fragment() {
     }
 
     private fun logout() {
-        val tokenManager = TokenManager(requireContext())
         tokenManager.clearToken()
         goToLogin()
     }

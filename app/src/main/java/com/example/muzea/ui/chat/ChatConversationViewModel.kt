@@ -1,10 +1,13 @@
 package com.example.muzea.ui.chat
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.muzea.data.model.MessageResponse
-import com.example.muzea.data.repository.ChatRepository
+import com.example.muzea.data.repository.MessageRepository
+import com.example.muzea.data.repository.ChatUserIdentity
 import com.example.muzea.utils.NetworkResult
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -15,19 +18,24 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class ChatConversationViewModel(
-    private val chatUuid: String,
-    private val chatRepository: ChatRepository,
-    val myUserUuid: String?
+@HiltViewModel
+class ChatConversationViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    private val messageRepository: MessageRepository,
+    chatUserIdentity: ChatUserIdentity
 ) : ViewModel() {
+
+    private val chatUuid: String = savedStateHandle.get<String>(ARG_CHAT_UUID).orEmpty()
+    val myUserUuid: String? = chatUserIdentity.userUuid
 
     // Стартуем с кэша: при повторном входе переписка видна сразу, а refresh()
     // и опрос догружают свежие сообщения фоном. Кэш хранит сообщения в порядке
     // сервера (сначала новые), поэтому сортируем их до показа — иначе при
     // открытии чата порядок был бы перевёрнут до первого сетевого обновления.
     private val _messages = MutableStateFlow(
-        chatRepository.cachedMessages(chatUuid).sortedWith(MessageComparator())
+        messageRepository.cachedMessages(chatUuid).sortedWith(MessageComparator())
     )
     val messages: StateFlow<List<MessageResponse>> = _messages.asStateFlow()
 
@@ -60,7 +68,7 @@ class ChatConversationViewModel(
     }
 
     private suspend fun loadOnce() {
-        chatRepository.loadMessages(chatUuid).collect { result ->
+        messageRepository.loadMessages(chatUuid).collect { result ->
             when (result) {
                 // Спиннер показываем только когда показать нечего: переписка из
                 // кэша уже на экране, и мигать индикатором при входе незачем.
@@ -100,7 +108,7 @@ class ChatConversationViewModel(
         mergeMessages(listOf(optimistic))
 
         viewModelScope.launch {
-            chatRepository.sendMessage(chatUuid, trimmed).collect { result ->
+            messageRepository.sendMessage(chatUuid, trimmed).collect { result ->
                 when (result) {
                     is NetworkResult.Success -> {
                         applyServerEcho(optimistic.messageUuid, result.data!!)
@@ -153,7 +161,7 @@ class ChatConversationViewModel(
         if (latest.messageUuid == lastMarkedReadUuid) return
         lastMarkedReadUuid = latest.messageUuid
         viewModelScope.launch {
-            if (!chatRepository.markMessagesAsRead(chatUuid, latest.messageUuid)) {
+            if (!messageRepository.markMessagesAsRead(chatUuid, latest.messageUuid)) {
                 lastMarkedReadUuid = null
             }
         }
@@ -185,6 +193,7 @@ class ChatConversationViewModel(
     }
 
     companion object {
+        const val ARG_CHAT_UUID = "chat_uuid"
         private const val LOCAL_PREFIX = "local-"
         private const val POLL_INTERVAL_MS = 3_000L
     }

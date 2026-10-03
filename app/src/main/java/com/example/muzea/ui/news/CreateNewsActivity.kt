@@ -7,31 +7,32 @@ import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.muzea.R
-import com.example.muzea.data.api.ChatRetrofitClient
-import com.example.muzea.data.api.RetrofitClient
 import com.example.muzea.data.model.VideoResponse
-import com.example.muzea.data.repository.ChatAuthManager
-import com.example.muzea.data.repository.ChatRepository
-import com.example.muzea.data.repository.NewsRepository
-import com.example.muzea.data.repository.VideoRepository
 import com.example.muzea.databinding.ActivityCreateNewsBinding
 import com.example.muzea.ui.video.VideoViewModel
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class CreateNewsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityCreateNewsBinding
-    private lateinit var newsViewModel: NewsViewModel
-    private lateinit var videoViewModel: VideoViewModel
+    private val newsViewModel: NewsViewModel by viewModels()
+    private val videoViewModel: VideoViewModel by viewModels()
+
+    @Inject
+    lateinit var tokenManager: TokenManager
 
     private var selectedVideoId: Long? = null
     private var selectedImageFile: File? = null
@@ -62,14 +63,7 @@ class CreateNewsActivity : AppCompatActivity() {
     }
 
     private fun initViewModels() {
-        val tokenManager = TokenManager(applicationContext)
         myUsername = tokenManager.getUsername()
-        val apiService = RetrofitClient(tokenManager).apiService
-        val chatApiService = ChatRetrofitClient(tokenManager).apiService
-        val chatRepository = ChatRepository(chatApiService, ChatAuthManager(chatApiService, tokenManager))
-
-        newsViewModel = NewsViewModel(NewsRepository(apiService), chatRepository)
-        videoViewModel = VideoViewModel(VideoRepository(apiService))
     }
 
     private fun setupUI() {

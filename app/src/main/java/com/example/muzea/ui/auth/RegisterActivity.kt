@@ -3,17 +3,17 @@ package com.example.muzea.ui.auth
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.muzea.R
 import com.example.muzea.databinding.ActivityRegisterBinding
-import com.example.muzea.data.api.RetrofitClient
-import com.example.muzea.data.repository.AuthRepository
 import com.example.muzea.ui.MainActivity
 import com.example.muzea.utils.NetworkResult
-import com.example.muzea.utils.TokenManager
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class RegisterActivity : AppCompatActivity() {
 
     private companion object {
@@ -22,18 +22,12 @@ class RegisterActivity : AppCompatActivity() {
     }
 
     private lateinit var binding: ActivityRegisterBinding
-    private lateinit var viewModel: AuthViewModel
+    private val viewModel: AuthViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityRegisterBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        // Инициализация ViewModel
-        val tokenManager = TokenManager(applicationContext)
-        val apiService = RetrofitClient(tokenManager).apiService
-        val authRepository = AuthRepository(apiService, tokenManager)
-        viewModel = AuthViewModel(authRepository)
 
         setupClickListeners()
         observeViewModel()

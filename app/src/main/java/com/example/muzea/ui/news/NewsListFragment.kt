@@ -7,26 +7,29 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.muzea.data.api.ChatRetrofitClient
-import com.example.muzea.data.api.RetrofitClient
 import com.example.muzea.data.model.NewsResponse
-import com.example.muzea.data.repository.ChatAuthManager
-import com.example.muzea.data.repository.ChatRepository
-import com.example.muzea.data.repository.NewsRepository
 import com.example.muzea.databinding.FragmentNewsListBinding
 import com.example.muzea.ui.openDetailScreen
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class NewsListFragment : Fragment() {
 
     private var _binding: FragmentNewsListBinding? = null
     private val binding get() = _binding!!
-    private lateinit var viewModel: NewsViewModel
+    private val viewModel: NewsViewModel by viewModels()
+
+    @Inject
+    lateinit var tokenManager: TokenManager
+
     private lateinit var adapter: NewsAdapter
 
     private var isLoading = false
@@ -58,13 +61,7 @@ class NewsListFragment : Fragment() {
     }
 
     private fun initViewModel() {
-        val tokenManager = TokenManager(requireContext())
         myUsername = tokenManager.getUsername()
-        val apiService = RetrofitClient(tokenManager).apiService
-        val newsRepository = NewsRepository(apiService)
-        val chatApiService = ChatRetrofitClient(tokenManager).apiService
-        val chatRepository = ChatRepository(chatApiService, ChatAuthManager(chatApiService, tokenManager))
-        viewModel = NewsViewModel(newsRepository, chatRepository)
     }
 
     private fun setupRecyclerView() {

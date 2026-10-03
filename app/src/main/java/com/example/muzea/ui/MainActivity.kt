@@ -13,9 +13,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.example.muzea.R
-import com.example.muzea.data.api.ChatRetrofitClient
-import com.example.muzea.data.repository.ChatAuthManager
-import com.example.muzea.data.repository.ChatRepository
+import com.example.muzea.data.repository.ChatSessionRepository
 import com.example.muzea.databinding.ActivityMainBinding
 import com.example.muzea.ui.chat.ChatListFragment
 import com.example.muzea.ui.contact.ContactListFragment
@@ -23,15 +21,19 @@ import com.example.muzea.ui.news.NewsListFragment
 import com.example.muzea.ui.profile.ProfileFragment
 import com.example.muzea.ui.video.VideoListFragment
 import com.example.muzea.utils.NetworkResult
-import com.example.muzea.utils.TokenManager
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var chatRepository: ChatRepository
+
+    @Inject
+    lateinit var chatSessionRepository: ChatSessionRepository
 
     private val requestNotificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -72,7 +74,7 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 while (isActive) {
-                    chatRepository.sendHeartbeat()
+                    chatSessionRepository.sendHeartbeat()
                     delay(HEARTBEAT_INTERVAL_MS)
                 }
             }
@@ -80,10 +82,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupUnreadBadge() {
-        val tokenManager = TokenManager(applicationContext)
-        val apiService = ChatRetrofitClient(tokenManager).apiService
-        chatRepository = ChatRepository(apiService, ChatAuthManager(apiService, tokenManager))
-
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 while (isActive) {
@@ -95,7 +93,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun refreshUnreadBadge() {
-        chatRepository.getTotalUnreadCount().collect { result ->
+        chatSessionRepository.getTotalUnreadCount().collect { result ->
             if (result is NetworkResult.Success) {
                 updateChatBadge(result.data ?: 0L)
             }
