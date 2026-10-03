@@ -34,7 +34,7 @@
                 android:layout_height="wrap_content"
                 android:letterSpacing="0.01"
                 android:lineSpacingExtra="2dp"
-                android:text="News Title"
+                android:text="@string/label_news_title"
                 android:textColor="@android:color/black"
                 android:textFontWeight="600"
                 android:textSize="17sp" />
@@ -47,7 +47,7 @@
                 android:ellipsize="end"
                 android:lineSpacingExtra="2dp"
                 android:maxLines="2"
-                android:text="News content preview..."
+                android:text="@string/news_content_preview"
                 android:textColor="@color/gray"
                 android:textSize="14sp" />
 
@@ -62,7 +62,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Author"
+                    android:text="@string/label_author"
                     android:textColor="@color/gray"
                     android:textSize="12sp" />
 
@@ -70,7 +70,7 @@
                     android:id="@+id/tvDate"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Date"
+                    android:text="@string/label_date"
                     android:textColor="@color/gray"
                     android:textSize="12sp" />
 

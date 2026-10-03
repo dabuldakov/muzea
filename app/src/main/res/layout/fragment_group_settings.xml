@@ -19,7 +19,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Back"
+            android:contentDescription="@string/action_back"
             android:src="@android:drawable/ic_menu_revert"
             android:tint="@android:color/white" />
 
@@ -42,7 +42,7 @@
             android:layout_weight="1"
             android:ellipsize="end"
             android:maxLines="1"
-            android:text="Group settings"
+            android:text="@string/group_settings_title"
             android:textColor="@android:color/white"
             android:textSize="18sp"
             android:textStyle="bold" />
@@ -61,7 +61,7 @@
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:layout_weight="1"
-            android:text="Change avatar"
+            android:text="@string/group_change_avatar"
             android:textAllCaps="false" />
 
         <Button
@@ -70,7 +70,7 @@
             android:layout_height="48dp"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:text="Add members"
+            android:text="@string/group_add_members"
             android:textAllCaps="false" />
 
     </LinearLayout>
@@ -82,7 +82,7 @@
         android:paddingTop="4dp"
         android:paddingEnd="16dp"
         android:paddingBottom="8dp"
-        android:text="Participants"
+        android:text="@string/group_participants"
         android:textSize="14sp"
         android:textStyle="bold" />
 
@@ -101,7 +101,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="No participants"
+            android:text="@string/group_participants_empty"
             android:textSize="16sp"
             android:visibility="gone" />
 

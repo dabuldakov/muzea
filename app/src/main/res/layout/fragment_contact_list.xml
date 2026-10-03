@@ -20,7 +20,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="No contacts yet"
+            android:text="@string/contact_list_empty"
             android:textSize="16sp"
             android:visibility="gone" />
 

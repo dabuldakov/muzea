@@ -26,7 +26,7 @@
                 android:id="@+id/tvTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="News Title"
+                android:text="@string/label_news_title"
                 android:textSize="22sp"
                 android:textStyle="bold" />
 
@@ -41,7 +41,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Author"
+                    android:text="@string/label_author"
                     android:textColor="@color/gray"
                     android:textSize="14sp" />
 
@@ -49,7 +49,7 @@
                     android:id="@+id/tvDate"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Date"
+                    android:text="@string/label_date"
                     android:textColor="@color/gray"
                     android:textSize="14sp" />
 
@@ -87,7 +87,7 @@
                             android:id="@+id/tvVideoTitle"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Related Video"
+                            android:text="@string/label_related_video"
                             android:textSize="14sp"
                             android:textStyle="bold" />
 
@@ -96,7 +96,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
-                            android:text="Watch Now"
+                            android:text="@string/video_watch_now"
                             android:textSize="12sp" />
 
                     </LinearLayout>
@@ -109,7 +109,7 @@
                 android:id="@+id/tvContent"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="News content"
+                android:text="@string/label_news_content"
                 android:textSize="16sp"
                 android:lineSpacingExtra="4dp" />
 

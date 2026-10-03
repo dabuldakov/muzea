@@ -26,7 +26,7 @@
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Title"
+                android:hint="@string/hint_title"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -42,7 +42,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:hint="Content"
+                android:hint="@string/hint_content"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -60,7 +60,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="News Image (Optional)"
+                android:text="@string/create_news_image_label"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
@@ -86,7 +86,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="8dp"
-                android:text="Select Image"
+                android:text="@string/create_news_select_image"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:textAllCaps="false" />
 
@@ -95,7 +95,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="No image selected"
+                android:text="@string/create_news_no_image"
                 android:textSize="12sp"
                 android:gravity="center"
                 android:textColor="@color/gray" />
@@ -105,7 +105,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:hint="Related Video (Optional)"
+                android:hint="@string/hint_related_video"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 app:endIconMode="clear_text">
 
@@ -122,7 +122,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:layout_marginTop="24dp"
-                android:text="Create News"
+                android:text="@string/create_news_submit"
                 android:textAllCaps="false" />
 
             <TextView
