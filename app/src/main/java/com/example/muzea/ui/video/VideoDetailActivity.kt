@@ -11,6 +11,8 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.muzea.data.api.RetrofitClient
@@ -203,13 +205,25 @@ class VideoDetailActivity : AppCompatActivity() {
         val tokenManager = TokenManager(this)
         val token = tokenManager.getToken()
 
-        if (token != null) {
-            player = VideoPlayerHelper.createPlayerWithAuth(this, videoUrl, token)
-            binding.playerView.player = player
-        } else {
+        if (token == null) {
             Toast.makeText(this, "Authentication required", Toast.LENGTH_SHORT).show()
             finish()
+            return
         }
+
+        val newPlayer = VideoPlayerHelper.createPlayerWithAuth(this, videoUrl, token)
+        // Без этого сбой воспроизведения выглядел бы как молчаливый чёрный экран.
+        newPlayer.addListener(object : Player.Listener {
+            override fun onPlayerError(error: PlaybackException) {
+                Toast.makeText(
+                    this@VideoDetailActivity,
+                    "Не удалось воспроизвести видео (${error.errorCodeName})",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        })
+        player = newPlayer
+        binding.playerView.player = newPlayer
     }
 
     override fun onPause() {
