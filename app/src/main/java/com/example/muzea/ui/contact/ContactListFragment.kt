@@ -56,8 +56,7 @@ class ContactListFragment : Fragment() {
         setupRecyclerView()
         setupSwipeRefresh()
         setupFab()
-        observeContacts()
-        observeContactList()
+        observeUiState()
         observeAddContact()
         observeCreateChat()
         startPresencePolling()
@@ -131,44 +130,34 @@ class ContactListFragment : Fragment() {
         viewModel.loadContacts()
     }
 
-    private fun observeContacts() {
+    private fun observeUiState() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.contactsResult.collect { result ->
-                when (result) {
-                    is NetworkResult.Loading -> {
-                        if (!binding.swipeRefresh.isRefreshing) {
-                            binding.progressBar.visibility = View.VISIBLE
-                        }
-                    }
-                    is NetworkResult.Success -> handleSuccessState()
-                    is NetworkResult.Error -> handleErrorState(result.message ?: "Unknown error")
-                }
-            }
+            viewModel.uiState.collect { render(it) }
         }
     }
 
-    /**
-     * Единственный источник данных для списка.
-     *
-     * Список контактов и обновления статуса приходят разными потоками
-     * (contactsResult — разовые загрузки, contacts — частые опросы), но в
-     * адаптер попадает только этот StateFlow. Иначе два конкуренных
-     * обновления списка перетирали бы друг друга, и индикатор «в сети»
-     * мигал бы между старым и новым состоянием.
-     */
-    private fun observeContactList() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.contacts.collect { contacts ->
-                if (contacts.isNotEmpty()) {
-                    binding.progressBar.visibility = View.GONE
-                    binding.swipeRefresh.isRefreshing = false
-                }
-                adapter.updateList(contacts)
-                // Пустоту определяем по самому списку, а не по adapter.currentList:
-                // ListAdapter.submitList применяет DiffUtil асинхронно, поэтому
-                // currentList сразу после вызова ещё пуст, и список ошибочно
-                // прятался (recycler GONE) — контакты «исчезали».
-                updateEmptyState(contacts.isNotEmpty())
+    private fun render(state: ContactListUiState) {
+        binding.swipeRefresh.isRefreshing = false
+        binding.progressBar.visibility =
+            if (state.isLoading && state.contacts.isEmpty()) View.VISIBLE else View.GONE
+
+        adapter.updateList(state.contacts)
+        val hasContacts = state.contacts.isNotEmpty()
+
+        if (!hasContacts && state.error != null) {
+            binding.tvError.text = state.error
+            binding.tvError.visibility = View.VISIBLE
+            binding.tvEmpty.visibility = View.GONE
+            binding.recyclerViewContacts.visibility = View.GONE
+        } else {
+            binding.tvError.visibility = View.GONE
+            // Пустоту определяем по самому списку, а не по adapter.currentList:
+            // ListAdapter.submitList применяет DiffUtil асинхронно.
+            binding.tvEmpty.visibility = if (hasContacts || state.isLoading) View.GONE else View.VISIBLE
+            binding.recyclerViewContacts.visibility = if (hasContacts) View.VISIBLE else View.GONE
+            state.error?.let {
+                Toast.makeText(requireContext(), "Error: $it", Toast.LENGTH_SHORT).show()
+                viewModel.consumeError()
             }
         }
     }
@@ -214,45 +203,6 @@ class ContactListFragment : Fragment() {
             0L
         )
         openDetailScreen(fragment)
-    }
-
-    /**
-     * Список отдан адаптеру из observeContactList — здесь только снимаем
-     * оверлей загрузки и свайп-рефреш, чтобы разовые загрузки и частые опросы
-     * статуса не трогали список конкурентно.
-     */
-    private fun handleSuccessState() {
-        binding.progressBar.visibility = View.GONE
-        binding.swipeRefresh.isRefreshing = false
-    }
-
-    private fun handleErrorState(message: String) {
-        binding.progressBar.visibility = View.GONE
-        binding.swipeRefresh.isRefreshing = false
-
-        // Опираемся на состояние ViewModel, а не на adapter.currentList — он
-        // отстаёт из-за асинхронного DiffUtil. И прячем экран «нет контактов»,
-        // иначе сбой выглядел бы как пустой список.
-        if (viewModel.contacts.value.isEmpty()) {
-            binding.tvError.text = message
-            binding.tvError.visibility = View.VISIBLE
-            binding.tvEmpty.visibility = View.GONE
-            binding.recyclerViewContacts.visibility = View.GONE
-        } else {
-            Toast.makeText(requireContext(), "Error: $message", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun updateEmptyState(hasContacts: Boolean) {
-        if (hasContacts) {
-            binding.tvEmpty.visibility = View.GONE
-            binding.recyclerViewContacts.visibility = View.VISIBLE
-            binding.tvError.visibility = View.GONE
-        } else {
-            binding.tvEmpty.visibility = View.VISIBLE
-            binding.recyclerViewContacts.visibility = View.GONE
-            binding.tvError.visibility = View.GONE
-        }
     }
 
     override fun onResume() {

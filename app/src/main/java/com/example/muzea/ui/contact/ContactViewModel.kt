@@ -1,15 +1,13 @@
 package com.example.muzea.ui.contact
 
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.muzea.domain.model.Chat
 import com.example.muzea.domain.model.Contact
-import com.example.muzea.domain.usecase.OpenPrivateChatUseCase
 import com.example.muzea.domain.repository.ContactRepository
+import com.example.muzea.domain.usecase.OpenPrivateChatUseCase
 import com.example.muzea.utils.NetworkResult
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +16,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+/** Единое состояние списка контактов (список + загрузка + ошибка). */
+data class ContactListUiState(
+    val contacts: List<Contact> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
 
 @HiltViewModel
 class ContactViewModel @Inject constructor(
@@ -25,8 +31,8 @@ class ContactViewModel @Inject constructor(
     private val openPrivateChatUseCase: OpenPrivateChatUseCase
 ) : ViewModel() {
 
-    private val _contactsResult = MutableSharedFlow<NetworkResult<List<Contact>>>()
-    val contactsResult: SharedFlow<NetworkResult<List<Contact>>> = _contactsResult.asSharedFlow()
+    private val _uiState = MutableStateFlow(ContactListUiState())
+    val uiState: StateFlow<ContactListUiState> = _uiState.asStateFlow()
 
     private val _addContactResult = MutableSharedFlow<NetworkResult<Contact>>()
     val addContactResult: SharedFlow<NetworkResult<Contact>> = _addContactResult.asSharedFlow()
@@ -34,38 +40,43 @@ class ContactViewModel @Inject constructor(
     private val _createChatResult = MutableSharedFlow<NetworkResult<Chat>>()
     val createChatResult: SharedFlow<NetworkResult<Chat>> = _createChatResult.asSharedFlow()
 
-    /**
-     * Актуальный список контактов вместе со статусом «в сети».
-     *
-     * Отдельный StateFlow, а не расширение contactsResult: список контактов
-     * меняется редко, а статус — каждые несколько секунд. Смешали бы в одном
-     * потоке — пришлось бы перезагружать /api/contacts ради смены индикатора,
-     * то есть дёргать тяжёлый запрос каждые 20 секунд.
-     */
-    private val _contacts = MutableStateFlow<List<Contact>>(emptyList())
-    val contacts: StateFlow<List<Contact>> = _contacts.asStateFlow()
-
     fun loadContacts() {
         viewModelScope.launch {
             contactRepository.loadContacts().collect { result ->
-                if (result is NetworkResult.Success) {
-                    _contacts.value = result.data ?: emptyList()
+                when (result) {
+                    is NetworkResult.Loading -> _uiState.value =
+                        _uiState.value.copy(isLoading = _uiState.value.contacts.isEmpty())
+
+                    is NetworkResult.Success -> _uiState.value = _uiState.value.copy(
+                        contacts = result.data ?: emptyList(),
+                        isLoading = false,
+                        error = null
+                    )
+
+                    is NetworkResult.Error -> _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = result.message ?: "Unknown error"
+                    )
                 }
-                _contactsResult.emit(result)
             }
         }
     }
 
+    /** Ошибку показали — сбрасываем, чтобы не повторялась. */
+    fun consumeError() {
+        _uiState.value = _uiState.value.copy(error = null)
+    }
+
     /**
-     * Обновляет только статусы, не трогая сам список контактов.
+     * Обновляет только статусы, не трогая состав списка.
      *
-     * Порядок и состав элементов сохраняются: меняется лишь пара полей у
-     * контактов, чей статус реально обновился, поэтому DiffUtil перерисовывает
-     * только эти строки и не сбрасывает скролл.
+     * Порядок и элементы сохраняются: меняется лишь пара полей у контактов,
+     * чей статус реально обновился, поэтому DiffUtil перерисовывает только эти
+     * строки и не сбрасывает скролл.
      */
     fun refreshPresence() {
         viewModelScope.launch {
-            val uuids = _contacts.value.mapNotNull { it.contactUserUuid }
+            val uuids = _uiState.value.contacts.mapNotNull { it.contactUserUuid }
             if (uuids.isEmpty()) return@launch
 
             val presence = try {
@@ -80,18 +91,20 @@ class ContactViewModel @Inject constructor(
             // rewrite в false показал бы неверный статус у всех подряд.
             if (presence.isEmpty()) return@launch
 
-            _contacts.value = _contacts.value.map { contact ->
-                val uuid = contact.contactUserUuid
-                val fresh = uuid?.let { presence[it] }
-                if (fresh == null) {
-                    contact
-                } else {
-                    contact.copy(
-                        isOnline = fresh.online,
-                        lastSeenAt = fresh.lastSeenAt ?: contact.lastSeenAt
-                    )
+            _uiState.value = _uiState.value.copy(
+                contacts = _uiState.value.contacts.map { contact ->
+                    val uuid = contact.contactUserUuid
+                    val fresh = uuid?.let { presence[it] }
+                    if (fresh == null) {
+                        contact
+                    } else {
+                        contact.copy(
+                            isOnline = fresh.online,
+                            lastSeenAt = fresh.lastSeenAt ?: contact.lastSeenAt
+                        )
+                    }
                 }
-            }
+            )
         }
     }
 

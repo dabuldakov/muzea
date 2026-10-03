@@ -1,6 +1,8 @@
 package com.example.muzea.ui.contact
 
 import com.example.muzea.domain.model.Chat
+import com.example.muzea.domain.model.Contact
+import com.example.muzea.domain.model.Presence
 import com.example.muzea.domain.repository.ChatRepository
 import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.domain.usecase.OpenPrivateChatUseCase
@@ -17,6 +19,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -92,5 +96,60 @@ class ContactViewModelTest {
 
         assertTrue(results.last() is NetworkResult.Error)
         assertEquals("boom", (results.last() as NetworkResult.Error).message)
+    }
+
+    private fun contact(uuid: String, online: Boolean = false) = Contact(
+        contactUuid = "c-$uuid",
+        contactUserId = null,
+        contactUserUuid = uuid,
+        username = uuid,
+        firstName = null,
+        lastName = null,
+        fullName = null,
+        avatarUrl = null,
+        contactName = uuid,
+        isOnline = online,
+        lastSeenAt = null,
+        addedAt = null
+    )
+
+    @Test
+    fun `loadContacts exposes contacts in state`() = runTest {
+        coEvery { contactRepository.loadContacts() } returns flowOf(
+            NetworkResult.Success(listOf(contact("a"), contact("b")))
+        )
+        val viewModel = ContactViewModel(contactRepository, OpenPrivateChatUseCase(chatRepository))
+
+        viewModel.loadContacts()
+
+        assertEquals(listOf("a", "b"), viewModel.uiState.value.contacts.map { it.contactUserUuid })
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `loadContacts exposes error`() = runTest {
+        coEvery { contactRepository.loadContacts() } returns flowOf(NetworkResult.Error("boom"))
+        val viewModel = ContactViewModel(contactRepository, OpenPrivateChatUseCase(chatRepository))
+
+        viewModel.loadContacts()
+        assertEquals("boom", viewModel.uiState.value.error)
+
+        viewModel.consumeError()
+        assertNull(viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `refreshPresence updates online flag`() = runTest {
+        coEvery { contactRepository.loadContacts() } returns flowOf(
+            NetworkResult.Success(listOf(contact("a")))
+        )
+        coEvery { contactRepository.loadPresence(listOf("a")) } returns
+            mapOf("a" to Presence(online = true, lastSeenAt = "2026-01-01T00:00:00"))
+        val viewModel = ContactViewModel(contactRepository, OpenPrivateChatUseCase(chatRepository))
+
+        viewModel.loadContacts()
+        viewModel.refreshPresence()
+
+        assertTrue(viewModel.uiState.value.contacts.single().isOnline)
     }
 }
