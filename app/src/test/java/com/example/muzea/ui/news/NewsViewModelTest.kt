@@ -83,9 +83,7 @@ class NewsViewModelTest {
         val viewModel = NewsViewModel(newsRepository, contactRepository)
         viewModel.loadNews(pageSize = 20, ownUsername = "vovan")
 
-        val success = viewModel.newsResult.first()
-        assertTrue(success is NetworkResult.Success)
-        assertEquals(listOf(1L, 2L, 4L), success.data!!.map { it.id })
+        assertEquals(listOf(1L, 2L, 4L), viewModel.feedState.value.news.map { it.id })
     }
 
     @Test
@@ -102,9 +100,7 @@ class NewsViewModelTest {
         val viewModel = NewsViewModel(newsRepository, contactRepository)
         viewModel.loadNews(pageSize = 20, ownUsername = "vovan")
 
-        val success = viewModel.newsResult.first()
-        assertTrue(success is NetworkResult.Success)
-        assertEquals(listOf(21L, 22L), success.data!!.map { it.id })
+        assertEquals(listOf(21L, 22L), viewModel.feedState.value.news.map { it.id })
 
         coVerify { newsRepository.getNews(1, 20) }
     }
@@ -118,9 +114,7 @@ class NewsViewModelTest {
         val viewModel = NewsViewModel(newsRepository, contactRepository)
         viewModel.loadNews(pageSize = 20, ownUsername = "vovan")
 
-        val success = viewModel.newsResult.first()
-        assertTrue(success is NetworkResult.Success)
-        assertEquals(listOf(3L), success.data!!.map { it.id })
+        assertEquals(listOf(3L), viewModel.feedState.value.news.map { it.id })
     }
 
     @Test
@@ -133,7 +127,7 @@ class NewsViewModelTest {
         val viewModel = NewsViewModel(newsRepository, contactRepository)
         viewModel.loadNews(pageSize = 20, ownUsername = "vovan")
 
-        assertTrue(viewModel.newsResult.first() is NetworkResult.Error)
+        assertTrue(viewModel.feedState.value.error != null)
     }
 
     @Test
@@ -147,8 +141,6 @@ class NewsViewModelTest {
         val viewModel = NewsViewModel(newsRepository, contactRepository)
         viewModel.loadNews(pageSize = 20, ownUsername = null)
 
-        val success = viewModel.newsResult.first()
-        assertTrue(success is NetworkResult.Success)
-        assertTrue(success.data!!.isEmpty())
+        assertTrue(viewModel.feedState.value.news.isEmpty())
     }
 }

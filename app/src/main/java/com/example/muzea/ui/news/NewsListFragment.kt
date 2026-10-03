@@ -14,7 +14,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.muzea.domain.model.News
 import com.example.muzea.databinding.FragmentNewsListBinding
 import com.example.muzea.ui.openDetailScreen
-import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -32,8 +31,6 @@ class NewsListFragment : Fragment() {
 
     private lateinit var adapter: NewsAdapter
 
-    private var isLoading = false
-    private var isRefreshing = false
     private var myUsername: String? = null
 
     private companion object {
@@ -84,7 +81,8 @@ class NewsListFragment : Fragment() {
     private fun setupPagination() {
         val scrollListener = object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                if (dy <= 0 || isLoading || isRefreshing) return
+                val state = viewModel.feedState.value
+                if (dy <= 0 || state.isLoading || state.isRefreshing || state.endReached) return
 
                 val layoutManager = recyclerView.layoutManager as LinearLayoutManager
                 val lastVisiblePosition = layoutManager.findLastVisibleItemPosition()
@@ -103,17 +101,11 @@ class NewsListFragment : Fragment() {
     }
 
     private fun refreshNews() {
-        if (isRefreshing) return
-        isRefreshing = true
         // Не чистим список: DiffUtil обновит строки на месте, и лента не мигает.
-        viewModel.loadNews(PAGE_SIZE, myUsername)
+        viewModel.loadNews(PAGE_SIZE, myUsername, fromRefresh = true)
     }
 
     private fun loadNews() {
-        if (isLoading) return
-        if (adapter.currentList.isEmpty()) {
-            binding.progressBar.visibility = View.VISIBLE
-        }
         viewModel.loadNews(PAGE_SIZE, myUsername)
     }
 
@@ -129,54 +121,31 @@ class NewsListFragment : Fragment() {
 
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.newsResult.collect { result ->
-                when (result) {
-                    is NetworkResult.Loading -> handleLoadingState()
-                    is NetworkResult.Success -> handleSuccessState(result.data ?: emptyList())
-                    is NetworkResult.Error -> handleErrorState(result.message ?: "Unknown error")
-                }
-            }
+            viewModel.feedState.collect { render(it) }
         }
     }
 
-    private fun handleLoadingState() {
-        val showProgress = !binding.swipeRefresh.isRefreshing && !isRefreshing && adapter.currentList.isEmpty()
-        if (showProgress) {
-            binding.progressBar.visibility = View.VISIBLE
-        }
-    }
+    private fun render(state: NewsFeedUiState) {
+        binding.swipeRefresh.isRefreshing = state.isRefreshing
+        binding.progressBar.visibility =
+            if (state.isLoading && state.news.isEmpty() && !state.isRefreshing) View.VISIBLE else View.GONE
 
-    private fun handleSuccessState(newNews: List<News>) {
-        binding.progressBar.visibility = View.GONE
-        binding.swipeRefresh.isRefreshing = false
-        isLoading = false
-        isRefreshing = false
+        adapter.submitList(state.news)
+        val hasNews = state.news.isNotEmpty()
 
-        adapter.submitList(newNews)
-
-        if (newNews.isEmpty()) {
-            binding.tvEmpty.visibility = View.VISIBLE
-            binding.recyclerViewNews.visibility = View.GONE
-            binding.tvError.visibility = View.GONE
-        } else {
-            binding.tvEmpty.visibility = View.GONE
-            binding.recyclerViewNews.visibility = View.VISIBLE
-            binding.tvError.visibility = View.GONE
-        }
-    }
-
-    private fun handleErrorState(message: String) {
-        binding.progressBar.visibility = View.GONE
-        binding.swipeRefresh.isRefreshing = false
-        isLoading = false
-        isRefreshing = false
-
-        if (adapter.currentList.isEmpty()) {
-            binding.tvError.text = message
+        if (!hasNews && state.error != null) {
+            binding.tvError.text = state.error
             binding.tvError.visibility = View.VISIBLE
+            binding.tvEmpty.visibility = View.GONE
             binding.recyclerViewNews.visibility = View.GONE
         } else {
-            Toast.makeText(requireContext(), "Error: $message", Toast.LENGTH_SHORT).show()
+            binding.tvError.visibility = View.GONE
+            binding.tvEmpty.visibility = if (hasNews || state.isLoading) View.GONE else View.VISIBLE
+            binding.recyclerViewNews.visibility = if (hasNews) View.VISIBLE else View.GONE
+            state.error?.let {
+                Toast.makeText(requireContext(), "Error: $it", Toast.LENGTH_SHORT).show()
+                viewModel.consumeError()
+            }
         }
     }
 

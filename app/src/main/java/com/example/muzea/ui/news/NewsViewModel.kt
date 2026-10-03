@@ -1,8 +1,5 @@
 package com.example.muzea.ui.news
 
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.muzea.core.firstTerminal
@@ -10,11 +7,25 @@ import com.example.muzea.domain.model.News
 import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.domain.repository.NewsRepository
 import com.example.muzea.utils.NetworkResult
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.File
+import javax.inject.Inject
+
+/** Единое состояние ленты новостей. */
+data class NewsFeedUiState(
+    val news: List<News> = emptyList(),
+    val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
+    val endReached: Boolean = false,
+    val error: String? = null
+)
 
 @HiltViewModel
 class NewsViewModel @Inject constructor(
@@ -22,8 +33,8 @@ class NewsViewModel @Inject constructor(
     private val contactRepository: ContactRepository
 ) : ViewModel() {
 
-    private val _newsResult = MutableSharedFlow<NetworkResult<List<News>>>(replay = 1)
-    val newsResult: SharedFlow<NetworkResult<List<News>>> = _newsResult.asSharedFlow()
+    private val _feedState = MutableStateFlow(NewsFeedUiState())
+    val feedState: StateFlow<NewsFeedUiState> = _feedState.asStateFlow()
 
     private val _newsDetailResult = MutableSharedFlow<NetworkResult<News>>()
     val newsDetailResult: SharedFlow<NetworkResult<News>> = _newsDetailResult.asSharedFlow()
@@ -35,7 +46,6 @@ class NewsViewModel @Inject constructor(
     val deleteNewsResult: SharedFlow<NetworkResult<Unit>> = _deleteNewsResult.asSharedFlow()
 
     private var pageSize = 20
-
     private var isContactsLoaded = false
     private var contactUsernames = emptySet<String>()
     private var ownUsername: String? = null
@@ -45,7 +55,12 @@ class NewsViewModel @Inject constructor(
     private var nextPage = 0
     private val rawNewsCache = mutableListOf<News>()
 
-    fun loadNews(pageSize: Int = 20, ownUsername: String? = null, forceRefreshContacts: Boolean = true) {
+    fun loadNews(
+        pageSize: Int = 20,
+        ownUsername: String? = null,
+        forceRefreshContacts: Boolean = true,
+        fromRefresh: Boolean = false
+    ) {
         if (isLoading) return
         this.pageSize = pageSize
         this.ownUsername = ownUsername
@@ -55,6 +70,11 @@ class NewsViewModel @Inject constructor(
             endReached = false
             nextPage = 0
             rawNewsCache.clear()
+            _feedState.value = _feedState.value.copy(
+                isLoading = true,
+                isRefreshing = fromRefresh,
+                error = null
+            )
 
             if (!isContactsLoaded) {
                 isContactsLoaded = true
@@ -63,6 +83,11 @@ class NewsViewModel @Inject constructor(
 
             fillFeed()
             isLoading = false
+            _feedState.value = _feedState.value.copy(
+                isLoading = false,
+                isRefreshing = false,
+                endReached = endReached
+            )
         }
     }
 
@@ -70,9 +95,16 @@ class NewsViewModel @Inject constructor(
         if (isLoading || endReached) return
         viewModelScope.launch {
             isLoading = true
+            _feedState.value = _feedState.value.copy(isLoading = true)
             fillFeed()
             isLoading = false
+            _feedState.value = _feedState.value.copy(isLoading = false, endReached = endReached)
         }
+    }
+
+    /** Ошибку показали — сбрасываем, чтобы не повторялась. */
+    fun consumeError() {
+        _feedState.value = _feedState.value.copy(error = null)
     }
 
     private suspend fun loadContactUsernames(): Set<String> {
@@ -94,7 +126,7 @@ class NewsViewModel @Inject constructor(
         while (!endReached) {
             val items = fetchRawPage(nextPage)
             if (items == null) {
-                _newsResult.emit(NetworkResult.Error("Failed to load news"))
+                _feedState.value = _feedState.value.copy(error = "Failed to load news")
                 return
             }
 
@@ -107,7 +139,7 @@ class NewsViewModel @Inject constructor(
             }
 
             val visible = visibleNews()
-            _newsResult.emit(NetworkResult.Success(visible))
+            _feedState.value = _feedState.value.copy(news = visible, error = null)
 
             if (visible.size >= pageSize) return
             if (endReached) return
