@@ -124,7 +124,7 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
 
-      - name: Прогнать unit-тесты
+      - name: Тест перед релизом (unit)
         run: ./gradlew --no-daemon testDebugUnitTest
 
       - name: Собрать APK и AAB

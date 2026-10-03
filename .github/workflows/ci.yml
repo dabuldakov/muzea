@@ -1,4 +1,4 @@
-name: CI
+name: CI — тесты перед релизом
 
 # Тесты на каждый пуш в main и на все pull request. Релизный workflow
 # (release.yml) отдельный и запускается только по тегу.
@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   test:
+    name: Тест перед релизом
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
