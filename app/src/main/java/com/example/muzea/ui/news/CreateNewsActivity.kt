@@ -13,7 +13,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.muzea.R
-import com.example.muzea.data.model.VideoResponse
+import com.example.muzea.domain.model.Video
 import com.example.muzea.databinding.ActivityCreateNewsBinding
 import com.example.muzea.ui.video.VideoViewModel
 import com.example.muzea.utils.NetworkResult
@@ -36,7 +36,7 @@ class CreateNewsActivity : AppCompatActivity() {
 
     private var selectedVideoId: Long? = null
     private var selectedImageFile: File? = null
-    private var videosList: List<VideoResponse> = emptyList()
+    private var videosList: List<Video> = emptyList()
     private var isLoadingVideos = false
     private var myUsername: String? = null
 

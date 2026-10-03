@@ -1,13 +1,8 @@
 package com.example.muzea.data.repository
 
-import javax.inject.Inject
-import javax.inject.Singleton
-
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import com.example.muzea.data.api.ApiService
-import com.example.muzea.data.model.NewsCreateResponse
-import com.example.muzea.data.model.NewsResponse
+import com.example.muzea.data.mapper.toDomain
+import com.example.muzea.domain.model.News
 import com.example.muzea.utils.NetworkResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -16,19 +11,21 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
+import javax.inject.Inject
+import javax.inject.Singleton
 
+/** Реализация [com.example.muzea.domain.repository.NewsRepository]. */
 @Singleton
-class NewsRepository @Inject constructor(
+class NewsRepositoryImpl @Inject constructor(
     private val apiService: ApiService
-) {
+) : com.example.muzea.domain.repository.NewsRepository {
 
-    suspend fun getNews(page: Int = 0, size: Int = 20): Flow<NetworkResult<List<NewsResponse>>> = flow {
+    override suspend fun getNews(page: Int, size: Int): Flow<NetworkResult<List<News>>> = flow {
         emit(NetworkResult.Loading())
         try {
             val response = apiService.getNews(page, size)
             if (response.isSuccessful && response.body() != null) {
-                val pageResponse = response.body()!!
-                emit(NetworkResult.Success(pageResponse.content))
+                emit(NetworkResult.Success(response.body()!!.content.map { it.toDomain() }))
             } else {
                 emit(NetworkResult.Error("Failed to load news: ${response.message()}"))
             }
@@ -37,12 +34,12 @@ class NewsRepository @Inject constructor(
         }
     }
 
-    suspend fun getNewsById(id: Long): Flow<NetworkResult<NewsResponse>> = flow {
+    override suspend fun getNewsById(id: Long): Flow<NetworkResult<News>> = flow {
         emit(NetworkResult.Loading())
         try {
             val response = apiService.getNewsById(id)
             if (response.isSuccessful && response.body() != null) {
-                emit(NetworkResult.Success(response.body()!!))
+                emit(NetworkResult.Success(response.body()!!.toDomain()))
             } else {
                 emit(NetworkResult.Error("Failed to load news: ${response.message()}"))
             }
@@ -51,12 +48,12 @@ class NewsRepository @Inject constructor(
         }
     }
 
-    suspend fun createNews(
+    override suspend fun createNews(
         title: String,
         content: String,
         videoId: Long?,
         imageFile: File?
-    ): Flow<NetworkResult<NewsCreateResponse>> = flow {
+    ): Flow<NetworkResult<Long>> = flow {
         emit(NetworkResult.Loading())
         try {
             val imagePart = imageFile?.let {
@@ -66,7 +63,7 @@ class NewsRepository @Inject constructor(
 
             val response = apiService.createNews(title.toRequestBody(), content.toRequestBody(), videoId, imagePart)
             if (response.isSuccessful && response.body() != null) {
-                emit(NetworkResult.Success(response.body()!!))
+                emit(NetworkResult.Success(response.body()!!.id))
             } else {
                 emit(NetworkResult.Error("Failed to create news: ${response.message()}"))
             }
@@ -75,7 +72,7 @@ class NewsRepository @Inject constructor(
         }
     }
 
-    suspend fun deleteNews(id: Long): Flow<NetworkResult<Unit>> = flow {
+    override suspend fun deleteNews(id: Long): Flow<NetworkResult<Unit>> = flow {
         emit(NetworkResult.Loading())
         try {
             val response = apiService.deleteNews(id)
@@ -85,22 +82,6 @@ class NewsRepository @Inject constructor(
                 emit(NetworkResult.Error("Only the author can delete this news"))
             } else {
                 emit(NetworkResult.Error("Failed to delete news: ${response.message()}"))
-            }
-        } catch (e: Exception) {
-            emit(NetworkResult.Error("Network error: ${e.message}"))
-        }
-    }
-
-    suspend fun downloadImage(imageUrl: String): Flow<NetworkResult<Bitmap>> = flow {
-        emit(NetworkResult.Loading())
-        try {
-            val response = apiService.downloadFile(imageUrl)
-            if (response.isSuccessful && response.body() != null) {
-                val bytes = response.body()!!.bytes()
-                val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                emit(NetworkResult.Success(bitmap))
-            } else {
-                emit(NetworkResult.Error("Failed to load news image"))
             }
         } catch (e: Exception) {
             emit(NetworkResult.Error("Network error: ${e.message}"))

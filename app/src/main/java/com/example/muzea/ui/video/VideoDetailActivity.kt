@@ -182,7 +182,7 @@ class VideoDetailActivity : AppCompatActivity() {
         }
     }
 
-    @UnstableApi private fun displayVideo(video: com.example.muzea.data.model.VideoResponse) {
+    @UnstableApi private fun displayVideo(video: com.example.muzea.domain.model.Video) {
         binding.tvTitle.text = video.title
         binding.tvDescription.text = video.description ?: "No description"
         binding.tvViews.text = "${video.views} views"

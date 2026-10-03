@@ -5,10 +5,9 @@ import javax.inject.Inject
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.muzea.data.model.NewsCreateResponse
-import com.example.muzea.data.model.NewsResponse
+import com.example.muzea.domain.model.News
 import com.example.muzea.domain.repository.ContactRepository
-import com.example.muzea.data.repository.NewsRepository
+import com.example.muzea.domain.repository.NewsRepository
 import com.example.muzea.utils.NetworkResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -23,14 +22,14 @@ class NewsViewModel @Inject constructor(
     private val contactRepository: ContactRepository
 ) : ViewModel() {
 
-    private val _newsResult = MutableSharedFlow<NetworkResult<List<NewsResponse>>>(replay = 1)
-    val newsResult: SharedFlow<NetworkResult<List<NewsResponse>>> = _newsResult.asSharedFlow()
+    private val _newsResult = MutableSharedFlow<NetworkResult<List<News>>>(replay = 1)
+    val newsResult: SharedFlow<NetworkResult<List<News>>> = _newsResult.asSharedFlow()
 
-    private val _newsDetailResult = MutableSharedFlow<NetworkResult<NewsResponse>>()
-    val newsDetailResult: SharedFlow<NetworkResult<NewsResponse>> = _newsDetailResult.asSharedFlow()
+    private val _newsDetailResult = MutableSharedFlow<NetworkResult<News>>()
+    val newsDetailResult: SharedFlow<NetworkResult<News>> = _newsDetailResult.asSharedFlow()
 
-    private val _createNewsResult = MutableSharedFlow<NetworkResult<NewsCreateResponse>>()
-    val createNewsResult: SharedFlow<NetworkResult<NewsCreateResponse>> = _createNewsResult.asSharedFlow()
+    private val _createNewsResult = MutableSharedFlow<NetworkResult<Long>>()
+    val createNewsResult: SharedFlow<NetworkResult<Long>> = _createNewsResult.asSharedFlow()
 
     private val _deleteNewsResult = MutableSharedFlow<NetworkResult<Unit>>()
     val deleteNewsResult: SharedFlow<NetworkResult<Unit>> = _deleteNewsResult.asSharedFlow()
@@ -44,7 +43,7 @@ class NewsViewModel @Inject constructor(
     private var isLoading = false
     private var endReached = false
     private var nextPage = 0
-    private val rawNewsCache = mutableListOf<NewsResponse>()
+    private val rawNewsCache = mutableListOf<News>()
 
     fun loadNews(pageSize: Int = 20, ownUsername: String? = null, forceRefreshContacts: Boolean = true) {
         if (isLoading) return
@@ -115,7 +114,7 @@ class NewsViewModel @Inject constructor(
         }
     }
 
-    private suspend fun fetchRawPage(page: Int): List<NewsResponse>? {
+    private suspend fun fetchRawPage(page: Int): List<News>? {
         val result = newsRepository.getNews(page, pageSize).firstTerminal()
         return when (result) {
             is NetworkResult.Success -> result.data ?: emptyList()
@@ -133,7 +132,7 @@ class NewsViewModel @Inject constructor(
         return result
     }
 
-    private fun visibleNews(): List<NewsResponse> {
+    private fun visibleNews(): List<News> {
         return NewsFeedFilter.filterByContacts(rawNewsCache, contactUsernames, ownUsername)
     }
 

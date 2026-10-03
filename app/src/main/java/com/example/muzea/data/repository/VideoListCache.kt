@@ -1,6 +1,6 @@
 package com.example.muzea.data.repository
 
-import com.example.muzea.data.model.VideoResponse
+import com.example.muzea.domain.model.Video
 
 /**
  * Кэш списка видео в памяти процесса.
@@ -16,16 +16,16 @@ object VideoListCache {
 
     private const val MAX_VIDEOS = 200
 
-    private val videos = LinkedHashMap<Long, VideoResponse>()
+    private val videos = LinkedHashMap<Long, Video>()
 
     @Synchronized
-    fun get(): List<VideoResponse> = videos.values.toList()
+    fun get(): List<Video> = videos.values.toList()
 
     @Synchronized
     fun has(): Boolean = videos.isNotEmpty()
 
     @Synchronized
-    fun put(list: List<VideoResponse>) {
+    fun put(list: List<Video>) {
         videos.clear()
         for (video in list) {
             videos[video.id] = video

@@ -1,7 +1,7 @@
 package com.example.muzea.ui.video
 
-import com.example.muzea.data.model.VideoResponse
-import com.example.muzea.data.repository.VideoRepository
+import com.example.muzea.domain.model.Video
+import com.example.muzea.domain.repository.VideoRepository
 import com.example.muzea.utils.NetworkResult
 import io.mockk.coEvery
 import io.mockk.every
@@ -45,7 +45,7 @@ class VideoViewModelTest {
         every { videoRepository.cachedVideos() } returns emptyList()
     }
 
-    private fun video(id: Long, uploadedBy: String) = VideoResponse(
+    private fun video(id: Long, uploadedBy: String) = Video(
         id = id,
         title = "Title $id",
         description = null,
@@ -122,7 +122,7 @@ class VideoViewModelTest {
         )
 
         val viewModel = VideoViewModel(videoRepository)
-        val events = mutableListOf<NetworkResult<List<VideoResponse>>>()
+        val events = mutableListOf<NetworkResult<List<Video>>>()
         val collector = launch(Dispatchers.Unconfined, start = CoroutineStart.UNDISPATCHED) {
             viewModel.videosResult.collect { events += it }
         }
@@ -135,7 +135,7 @@ class VideoViewModelTest {
         assertTrue(first is NetworkResult.Success)
         assertEquals(
             listOf(7L),
-            (first as NetworkResult.Success<List<VideoResponse>>).data!!.map { it.id }
+            (first as NetworkResult.Success<List<Video>>).data!!.map { it.id }
         )
     }
 }

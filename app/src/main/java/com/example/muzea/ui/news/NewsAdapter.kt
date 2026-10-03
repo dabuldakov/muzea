@@ -9,14 +9,14 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.muzea.R
-import com.example.muzea.data.model.NewsResponse
+import com.example.muzea.domain.model.News
 import com.example.muzea.databinding.ItemNewsBinding
 import com.example.muzea.utils.LocalTimeFormatter
 import com.example.muzea.utils.MediaUrl
 
 class NewsAdapter(
     private val onItemClick: (Long) -> Unit
-) : ListAdapter<NewsResponse, NewsAdapter.NewsViewHolder>(NewsDiffCallback()) {
+) : ListAdapter<News, NewsAdapter.NewsViewHolder>(NewsDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NewsViewHolder {
         val binding = ItemNewsBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -32,7 +32,7 @@ class NewsAdapter(
         private val onItemClick: (Long) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(news: NewsResponse) {
+        fun bind(news: News) {
             binding.tvTitle.text = news.title
             binding.tvContent.text = news.content
             binding.tvAuthor.text = news.author
@@ -45,7 +45,7 @@ class NewsAdapter(
             }
         }
 
-        private fun loadImage(news: NewsResponse) {
+        private fun loadImage(news: News) {
             val imageUrl = MediaUrl.main(news.imageUrl)
 
             if (!imageUrl.isNullOrEmpty()) {
@@ -63,7 +63,7 @@ class NewsAdapter(
         }
     }
 
-    fun updateList(newList: List<NewsResponse>) {
+    fun updateList(newList: List<News>) {
         submitList(newList)
     }
 
@@ -71,12 +71,12 @@ class NewsAdapter(
         submitList(emptyList())
     }
 
-    class NewsDiffCallback : DiffUtil.ItemCallback<NewsResponse>() {
-        override fun areItemsTheSame(oldItem: NewsResponse, newItem: NewsResponse): Boolean {
+    class NewsDiffCallback : DiffUtil.ItemCallback<News>() {
+        override fun areItemsTheSame(oldItem: News, newItem: News): Boolean {
             return oldItem.id == newItem.id
         }
 
-        override fun areContentsTheSame(oldItem: NewsResponse, newItem: NewsResponse): Boolean {
+        override fun areContentsTheSame(oldItem: News, newItem: News): Boolean {
             return oldItem == newItem
         }
     }

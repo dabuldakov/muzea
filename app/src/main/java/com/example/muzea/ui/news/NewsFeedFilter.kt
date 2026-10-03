@@ -1,6 +1,6 @@
 package com.example.muzea.ui.news
 
-import com.example.muzea.data.model.NewsResponse
+import com.example.muzea.domain.model.News
 
 /**
  * Чистая функция фильтрации ленты новостей: оставляет только новости авторов,
@@ -12,10 +12,10 @@ import com.example.muzea.data.model.NewsResponse
 object NewsFeedFilter {
 
     fun filterByContacts(
-        news: List<NewsResponse>,
+        news: List<News>,
         contactUsernames: Set<String>,
         ownUsername: String?
-    ): List<NewsResponse> {
+    ): List<News> {
         val contacts = contactUsernames
             .mapNotNull { it.trim() }
             .filter { it.isNotEmpty() }

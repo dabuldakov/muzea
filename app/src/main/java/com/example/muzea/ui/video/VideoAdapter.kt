@@ -6,7 +6,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.muzea.R
-import com.example.muzea.data.model.VideoResponse
+import com.example.muzea.domain.model.Video
 import com.example.muzea.databinding.ItemVideoBinding
 import com.example.muzea.utils.MediaUrl
 
@@ -14,9 +14,9 @@ class VideoAdapter(
     private val onItemClick: (Long) -> Unit
 ) : RecyclerView.Adapter<VideoAdapter.VideoViewHolder>() {
 
-    private var videos: List<VideoResponse> = emptyList()
+    private var videos: List<Video> = emptyList()
 
-    fun submitList(newList: List<VideoResponse>) {
+    fun submitList(newList: List<Video>) {
         videos = newList
         notifyDataSetChanged()
     }
@@ -37,7 +37,7 @@ class VideoAdapter(
         private val onItemClick: (Long) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(video: VideoResponse) {
+        fun bind(video: Video) {
             with(binding) {
                 tvTitle.text = video.title
                 tvViews.text = "${video.views} views"
@@ -46,7 +46,7 @@ class VideoAdapter(
             itemView.setOnClickListener { onItemClick(video.id) }
         }
 
-        private fun loadThumbnail(video: VideoResponse) {
+        private fun loadThumbnail(video: Video) {
             val thumbnailUrl = MediaUrl.main(video.thumbnailUrl)
 
             Glide.with(binding.root.context)

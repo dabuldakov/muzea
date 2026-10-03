@@ -6,7 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.bumptech.glide.Glide
 import com.example.muzea.domain.model.Chat
 import com.example.muzea.domain.model.Message
-import com.example.muzea.data.model.VideoResponse
+import com.example.muzea.domain.model.Video
 import com.example.muzea.data.repository.ChatListCache
 import com.example.muzea.data.repository.ChatMessagesCache
 import com.example.muzea.data.repository.PrivateChatCache
@@ -136,7 +136,7 @@ class CacheManagerTest {
         unreadCount = 0L
     )
 
-    private fun video() = VideoResponse(
+    private fun video() = Video(
         id = 1L,
         title = "v",
         description = null,

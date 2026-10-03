@@ -99,7 +99,7 @@ class VideoListFragment : Fragment() {
         binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
     }
 
-    private fun handleSuccess(videos: List<com.example.muzea.data.model.VideoResponse>?) {
+    private fun handleSuccess(videos: List<com.example.muzea.domain.model.Video>?) {
         showLoading(false)
 
         val videoList = videos ?: emptyList()

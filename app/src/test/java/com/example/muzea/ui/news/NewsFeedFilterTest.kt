@@ -1,13 +1,13 @@
 package com.example.muzea.ui.news
 
-import com.example.muzea.data.model.NewsResponse
+import com.example.muzea.domain.model.News
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NewsFeedFilterTest {
 
-    private fun news(id: Long, author: String) = NewsResponse(
+    private fun news(id: Long, author: String) = News(
         id = id,
         title = "Title $id",
         content = "Content $id",

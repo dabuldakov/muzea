@@ -1,13 +1,13 @@
 package com.example.muzea.ui.video
 
-import com.example.muzea.data.model.VideoResponse
+import com.example.muzea.domain.model.Video
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class VideoFeedFilterTest {
 
-    private fun video(id: Long, uploadedBy: String) = VideoResponse(
+    private fun video(id: Long, uploadedBy: String) = Video(
         id = id,
         title = "Title $id",
         description = null,

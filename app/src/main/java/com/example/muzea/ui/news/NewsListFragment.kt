@@ -11,7 +11,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.muzea.data.model.NewsResponse
+import com.example.muzea.domain.model.News
 import com.example.muzea.databinding.FragmentNewsListBinding
 import com.example.muzea.ui.openDetailScreen
 import com.example.muzea.utils.NetworkResult
@@ -146,7 +146,7 @@ class NewsListFragment : Fragment() {
         }
     }
 
-    private fun handleSuccessState(newNews: List<NewsResponse>) {
+    private fun handleSuccessState(newNews: List<News>) {
         binding.progressBar.visibility = View.GONE
         binding.swipeRefresh.isRefreshing = false
         isLoading = false

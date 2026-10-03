@@ -5,8 +5,8 @@ import javax.inject.Inject
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.muzea.data.model.VideoResponse
-import com.example.muzea.data.repository.VideoRepository
+import com.example.muzea.domain.model.Video
+import com.example.muzea.domain.repository.VideoRepository
 import com.example.muzea.utils.NetworkResult
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -19,14 +19,14 @@ class VideoViewModel @Inject constructor(
     private val videoRepository: VideoRepository
 ) : ViewModel() {
 
-    private val _videosResult = MutableSharedFlow<NetworkResult<List<VideoResponse>>>(replay = 1)
-    val videosResult: SharedFlow<NetworkResult<List<VideoResponse>>> = _videosResult.asSharedFlow()
+    private val _videosResult = MutableSharedFlow<NetworkResult<List<Video>>>(replay = 1)
+    val videosResult: SharedFlow<NetworkResult<List<Video>>> = _videosResult.asSharedFlow()
 
-    private val _videoDetailResult = MutableSharedFlow<NetworkResult<VideoResponse>>()
-    val videoDetailResult: SharedFlow<NetworkResult<VideoResponse>> = _videoDetailResult.asSharedFlow()
+    private val _videoDetailResult = MutableSharedFlow<NetworkResult<Video>>()
+    val videoDetailResult: SharedFlow<NetworkResult<Video>> = _videoDetailResult.asSharedFlow()
 
-    private val _uploadResult = MutableSharedFlow<NetworkResult<VideoResponse>>()
-    val uploadResult: SharedFlow<NetworkResult<VideoResponse>> = _uploadResult.asSharedFlow()
+    private val _uploadResult = MutableSharedFlow<NetworkResult<Video>>()
+    val uploadResult: SharedFlow<NetworkResult<Video>> = _uploadResult.asSharedFlow()
 
     private val _deleteResult = MutableSharedFlow<NetworkResult<Unit>>()
     val deleteResult: SharedFlow<NetworkResult<Unit>> = _deleteResult.asSharedFlow()
@@ -63,7 +63,7 @@ class VideoViewModel @Inject constructor(
         }
     }
 
-    private fun visibleVideos(raw: List<VideoResponse>, ownUsername: String?): List<VideoResponse> {
+    private fun visibleVideos(raw: List<Video>, ownUsername: String?): List<Video> {
         return VideoFeedFilter.filterOwn(raw, ownUsername)
     }
 

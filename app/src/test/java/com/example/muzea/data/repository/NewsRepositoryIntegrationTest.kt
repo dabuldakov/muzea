@@ -26,7 +26,7 @@ class NewsRepositoryIntegrationTest {
     @get:Rule
     val server = MockWebServer()
 
-    private val repository get() = NewsRepository(IntegrationTestClient.mainApi(server))
+    private val repository get() = NewsRepositoryImpl(IntegrationTestClient.mainApi(server))
 
     private val liveLikeNewsPage = """
         {"content":[

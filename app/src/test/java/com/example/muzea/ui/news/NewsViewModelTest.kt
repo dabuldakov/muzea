@@ -1,9 +1,9 @@
 package com.example.muzea.ui.news
 
 import com.example.muzea.domain.model.Contact
-import com.example.muzea.data.model.NewsResponse
+import com.example.muzea.domain.model.News
 import com.example.muzea.domain.repository.ContactRepository
-import com.example.muzea.data.repository.NewsRepository
+import com.example.muzea.domain.repository.NewsRepository
 import com.example.muzea.utils.NetworkResult
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -42,7 +42,7 @@ class NewsViewModelTest {
     private val newsRepository = mockk<NewsRepository>()
     private val contactRepository = mockk<ContactRepository>()
 
-    private fun news(id: Long, author: String) = NewsResponse(
+    private fun news(id: Long, author: String) = News(
         id = id,
         title = "Title $id",
         content = "Content $id",

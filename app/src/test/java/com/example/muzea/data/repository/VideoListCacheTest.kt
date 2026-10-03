@@ -1,6 +1,6 @@
 package com.example.muzea.data.repository
 
-import com.example.muzea.data.model.VideoResponse
+import com.example.muzea.domain.model.Video
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -10,7 +10,7 @@ import org.junit.Test
 
 class VideoListCacheTest {
 
-    private fun video(id: Long) = VideoResponse(
+    private fun video(id: Long) = Video(
         id = id,
         title = "Title $id",
         description = null,

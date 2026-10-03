@@ -23,7 +23,7 @@ class VideoRepositoryIntegrationTest {
     @get:Rule
     val server = MockWebServer()
 
-    private val repository get() = VideoRepository(IntegrationTestClient.mainApi(server))
+    private val repository get() = VideoRepositoryImpl(IntegrationTestClient.mainApi(server))
 
     private val liveLikeVideo = """
         [{"id":29,"title":"tomsk","description":"Tomsk city",

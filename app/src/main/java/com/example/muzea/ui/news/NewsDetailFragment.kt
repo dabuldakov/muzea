@@ -13,7 +13,7 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.muzea.R
 import com.example.muzea.databinding.FragmentNewsDetailBinding
-import com.example.muzea.data.model.NewsResponse
+import com.example.muzea.domain.model.News
 import com.example.muzea.utils.LocalTimeFormatter
 import com.example.muzea.utils.MediaUrl
 import com.example.muzea.utils.NetworkResult
@@ -107,7 +107,7 @@ class NewsDetailFragment : Fragment() {
             .show()
     }
 
-    private fun displayNews(news: NewsResponse) {
+    private fun displayNews(news: News) {
         binding.tvTitle.text = news.title
         binding.tvContent.text = news.content
         binding.tvAuthor.text = "By: ${news.author}"
