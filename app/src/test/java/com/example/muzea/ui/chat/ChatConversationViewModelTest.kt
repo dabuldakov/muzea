@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModelStore
 import com.example.muzea.domain.model.Message
 import com.example.muzea.data.repository.ChatMessagesCache
 import com.example.muzea.domain.repository.MessageRepository
-import com.example.muzea.data.repository.ChatUserIdentity
+import com.example.muzea.domain.ChatUserIdentity
 import com.example.muzea.ui.news.MainDispatcherRule
 import com.example.muzea.utils.NetworkResult
 import io.mockk.coEvery

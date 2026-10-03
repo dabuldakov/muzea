@@ -1,4 +1,4 @@
-package com.example.muzea.data.repository
+package com.example.muzea.domain
 
 /**
  * Кто я на чат-сервере (UUID из chat-токена).

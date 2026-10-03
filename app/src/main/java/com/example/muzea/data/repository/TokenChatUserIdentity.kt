@@ -1,6 +1,7 @@
 package com.example.muzea.data.repository
 
 import android.util.Base64
+import com.example.muzea.domain.ChatUserIdentity
 import com.example.muzea.utils.TokenManager
 import org.json.JSONObject
 import javax.inject.Inject

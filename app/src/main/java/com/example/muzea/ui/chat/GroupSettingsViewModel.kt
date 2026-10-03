@@ -8,7 +8,7 @@ import com.example.muzea.domain.model.Contact
 import com.example.muzea.domain.repository.AvatarRepository
 import com.example.muzea.domain.repository.ChatRepository
 import com.example.muzea.domain.repository.ContactRepository
-import com.example.muzea.data.repository.ChatUserIdentity
+import com.example.muzea.domain.ChatUserIdentity
 import com.example.muzea.utils.NetworkResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow

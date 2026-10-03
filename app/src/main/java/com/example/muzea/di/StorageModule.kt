@@ -1,6 +1,6 @@
 package com.example.muzea.di
 
-import com.example.muzea.data.repository.ChatUserIdentity
+import com.example.muzea.domain.ChatUserIdentity
 import com.example.muzea.data.repository.TokenChatUserIdentity
 import com.example.muzea.utils.ChatTokenStore
 import com.example.muzea.utils.FcmTokenStore

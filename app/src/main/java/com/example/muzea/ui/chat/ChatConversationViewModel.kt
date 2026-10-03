@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.muzea.domain.model.Message
 import com.example.muzea.domain.repository.MessageRepository
-import com.example.muzea.data.repository.ChatUserIdentity
+import com.example.muzea.domain.ChatUserIdentity
 import com.example.muzea.domain.chat.ChatMessageReducer
 import com.example.muzea.utils.NetworkResult
 import dagger.hilt.android.lifecycle.HiltViewModel
