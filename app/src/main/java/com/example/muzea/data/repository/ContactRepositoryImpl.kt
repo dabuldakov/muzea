@@ -1,9 +1,10 @@
 package com.example.muzea.data.repository
 
 import com.example.muzea.data.api.ChatApiService
+import com.example.muzea.data.mapper.toDomain
 import com.example.muzea.data.model.AddContactRequest
-import com.example.muzea.data.model.ContactResponse
-import com.example.muzea.data.model.PresenceResponse
+import com.example.muzea.domain.model.Contact
+import com.example.muzea.domain.model.Presence
 import com.example.muzea.utils.NetworkResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -11,12 +12,12 @@ import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Контакты пользователя и их статусы присутствия. */
+/** Реализация [com.example.muzea.domain.repository.ContactRepository]. */
 @Singleton
-class ContactRepository @Inject constructor(
+class ContactRepositoryImpl @Inject constructor(
     private val apiService: ChatApiService,
     private val chatAuthManager: ChatAuthManager
-) {
+) : com.example.muzea.domain.repository.ContactRepository {
 
     private companion object {
         /**
@@ -27,7 +28,7 @@ class ContactRepository @Inject constructor(
         const val PRESENCE_BATCH_SIZE = 100
     }
 
-    suspend fun loadContacts(): Flow<NetworkResult<List<ContactResponse>>> = flow {
+    override suspend fun loadContacts(): Flow<NetworkResult<List<Contact>>> = flow {
         emit(NetworkResult.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
@@ -44,7 +45,7 @@ class ContactRepository @Inject constructor(
             }
 
             if (response.isSuccessful && response.body() != null) {
-                emit(NetworkResult.Success(response.body()!!))
+                emit(NetworkResult.Success(response.body()!!.map { it.toDomain() }))
             } else {
                 emit(NetworkResult.Error("Failed to load contacts: ${response.message()}"))
             }
@@ -53,7 +54,7 @@ class ContactRepository @Inject constructor(
         }
     }
 
-    suspend fun addContactByUsername(username: String): Flow<NetworkResult<ContactResponse>> = flow {
+    override suspend fun addContactByUsername(username: String): Flow<NetworkResult<Contact>> = flow {
         emit(NetworkResult.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
@@ -71,7 +72,7 @@ class ContactRepository @Inject constructor(
             val response = apiService.addContact(AddContactRequest(userUuid, null))
 
             if (response.isSuccessful && response.body() != null) {
-                emit(NetworkResult.Success(response.body()!!))
+                emit(NetworkResult.Success(response.body()!!.toDomain()))
             } else {
                 emit(NetworkResult.Error("Failed to add contact: ${response.message()}"))
             }
@@ -87,11 +88,11 @@ class ContactRepository @Inject constructor(
      * ответы склеиваются: иначе запрос на 300 контактов упал бы с 400.
      * Пустой вход даёт пустой результат без обращения к сети.
      */
-    suspend fun loadPresence(userUuids: List<String>): Map<String, PresenceResponse> {
+    override suspend fun loadPresence(userUuids: List<String>): Map<String, Presence> {
         val wanted = userUuids.filter { it.isNotBlank() }.distinct()
         if (wanted.isEmpty()) return emptyMap()
 
-        val result = LinkedHashMap<String, PresenceResponse>()
+        val result = LinkedHashMap<String, Presence>()
         for (chunk in wanted.chunked(PRESENCE_BATCH_SIZE)) {
             try {
                 var response = apiService.getPresence(chunk)
@@ -101,7 +102,7 @@ class ContactRepository @Inject constructor(
                     response = apiService.getPresence(chunk)
                 }
                 if (response.isSuccessful) {
-                    response.body()?.forEach { result[it.userUuid] = it }
+                    response.body()?.forEach { result[it.userUuid] = it.toDomain() }
                 }
             } catch (e: CancellationException) {
                 throw e

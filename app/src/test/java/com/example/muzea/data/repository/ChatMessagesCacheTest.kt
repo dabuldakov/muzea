@@ -1,6 +1,6 @@
 package com.example.muzea.data.repository
 
-import com.example.muzea.data.model.MessageResponse
+import com.example.muzea.domain.model.Message
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -10,7 +10,7 @@ import org.junit.Test
 
 class ChatMessagesCacheTest {
 
-    private fun message(uuid: String) = MessageResponse(
+    private fun message(uuid: String) = Message(
         messageUuid = uuid,
         chatUuid = "chat-1",
         senderId = null,

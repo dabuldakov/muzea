@@ -5,13 +5,13 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.example.muzea.data.model.ContactResponse
+import com.example.muzea.domain.model.Contact
 import com.example.muzea.databinding.ItemGroupMemberBinding
 import com.example.muzea.utils.AvatarLoader
 
 class GroupMemberAdapter(
     private val onSelectionChanged: (Int) -> Unit
-) : ListAdapter<ContactResponse, GroupMemberAdapter.GroupMemberViewHolder>(DiffCallback()) {
+) : ListAdapter<Contact, GroupMemberAdapter.GroupMemberViewHolder>(DiffCallback()) {
 
     private val selectedUuids = mutableSetOf<String>()
 
@@ -37,7 +37,7 @@ class GroupMemberAdapter(
         private val binding: ItemGroupMemberBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(contact: ContactResponse) {
+        fun bind(contact: Contact) {
             binding.tvMemberName.text = contact.displayName()
             binding.tvMemberUsername.text = contact.username ?: ""
             AvatarLoader.load(binding.ivAvatar, contact.avatarUrl)
@@ -62,16 +62,16 @@ class GroupMemberAdapter(
         }
     }
 
-    fun updateList(newList: List<ContactResponse>) {
+    fun updateList(newList: List<Contact>) {
         submitList(newList)
     }
 
-    class DiffCallback : DiffUtil.ItemCallback<ContactResponse>() {
-        override fun areItemsTheSame(oldItem: ContactResponse, newItem: ContactResponse): Boolean {
+    class DiffCallback : DiffUtil.ItemCallback<Contact>() {
+        override fun areItemsTheSame(oldItem: Contact, newItem: Contact): Boolean {
             return oldItem.contactUuid == newItem.contactUuid
         }
 
-        override fun areContentsTheSame(oldItem: ContactResponse, newItem: ContactResponse): Boolean {
+        override fun areContentsTheSame(oldItem: Contact, newItem: Contact): Boolean {
             return oldItem == newItem
         }
     }

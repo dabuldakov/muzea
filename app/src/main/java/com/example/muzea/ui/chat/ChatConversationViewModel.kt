@@ -3,8 +3,8 @@ package com.example.muzea.ui.chat
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.muzea.data.model.MessageResponse
-import com.example.muzea.data.repository.MessageRepository
+import com.example.muzea.domain.model.Message
+import com.example.muzea.domain.repository.MessageRepository
 import com.example.muzea.data.repository.ChatUserIdentity
 import com.example.muzea.utils.NetworkResult
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,7 +37,7 @@ class ChatConversationViewModel @Inject constructor(
     private val _messages = MutableStateFlow(
         messageRepository.cachedMessages(chatUuid).sortedWith(MessageComparator())
     )
-    val messages: StateFlow<List<MessageResponse>> = _messages.asStateFlow()
+    val messages: StateFlow<List<Message>> = _messages.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -89,7 +89,7 @@ class ChatConversationViewModel @Inject constructor(
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return
 
-        val optimistic = MessageResponse(
+        val optimistic = Message(
             messageUuid = LOCAL_PREFIX + System.currentTimeMillis(),
             chatUuid = chatUuid,
             senderId = null,
@@ -128,7 +128,7 @@ class ChatConversationViewModel @Inject constructor(
      * вставлялось заново: DiffUtil считал строку другой и перерисовывал её —
      * при отправке список мигал. Теперь это обычное изменение содержимого.
      */
-    private fun applyServerEcho(localUuid: String, serverMessage: MessageResponse) {
+    private fun applyServerEcho(localUuid: String, serverMessage: Message) {
         serverToLocal[serverMessage.messageUuid] = localUuid
         _messages.value = _messages.value
             .map { existing ->
@@ -142,8 +142,8 @@ class ChatConversationViewModel @Inject constructor(
         markLatestAsRead()
     }
 
-    private fun mergeMessages(incoming: List<MessageResponse>) {
-        val merged = LinkedHashMap<String, MessageResponse>()
+    private fun mergeMessages(incoming: List<Message>) {
+        val merged = LinkedHashMap<String, Message>()
         for (m in incoming) {
             // Эхо своих сообщений уже показано локальным пузырём — не дублируем.
             if (serverToLocal.containsKey(m.messageUuid)) continue
@@ -167,8 +167,8 @@ class ChatConversationViewModel @Inject constructor(
         }
     }
 
-    private class MessageComparator : Comparator<MessageResponse> {
-        override fun compare(a: MessageResponse, b: MessageResponse): Int {
+    private class MessageComparator : Comparator<Message> {
+        override fun compare(a: Message, b: Message): Int {
             val ta = a.createdAt ?: ""
             val tb = b.createdAt ?: ""
             if (ta.isEmpty() && tb.isEmpty()) return 0

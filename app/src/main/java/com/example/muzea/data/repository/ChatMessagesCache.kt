@@ -1,6 +1,6 @@
 package com.example.muzea.data.repository
 
-import com.example.muzea.data.model.MessageResponse
+import com.example.muzea.domain.model.Message
 
 /**
  * Кэш сообщений по чатам в памяти процесса.
@@ -15,16 +15,16 @@ object ChatMessagesCache {
 
     private const val MAX_CHATS = 50
 
-    private val messages = LinkedHashMap<String, List<MessageResponse>>()
+    private val messages = LinkedHashMap<String, List<Message>>()
 
     @Synchronized
-    fun get(chatUuid: String): List<MessageResponse> = messages[chatUuid].orEmpty()
+    fun get(chatUuid: String): List<Message> = messages[chatUuid].orEmpty()
 
     @Synchronized
     fun has(chatUuid: String): Boolean = messages.containsKey(chatUuid)
 
     @Synchronized
-    fun put(chatUuid: String, list: List<MessageResponse>) {
+    fun put(chatUuid: String, list: List<Message>) {
         messages.remove(chatUuid)
         messages[chatUuid] = list
         while (messages.size > MAX_CHATS) {

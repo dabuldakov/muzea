@@ -8,15 +8,15 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.muzea.R
-import com.example.muzea.data.model.ContactResponse
+import com.example.muzea.domain.model.Contact
 import com.example.muzea.databinding.ItemContactBinding
 import com.example.muzea.utils.AvatarLoader
 import com.example.muzea.utils.LastSeenFormatter
 import com.example.muzea.utils.LocalTimeFormatter
 
 class ContactAdapter(
-    private val onItemClick: (ContactResponse) -> Unit
-) : ListAdapter<ContactResponse, ContactAdapter.ContactViewHolder>(ContactDiffCallback()) {
+    private val onItemClick: (Contact) -> Unit
+) : ListAdapter<Contact, ContactAdapter.ContactViewHolder>(ContactDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ContactViewHolder {
         val binding = ItemContactBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -29,10 +29,10 @@ class ContactAdapter(
 
     class ContactViewHolder(
         private val binding: ItemContactBinding,
-        private val onItemClick: (ContactResponse) -> Unit
+        private val onItemClick: (Contact) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(contact: ContactResponse) {
+        fun bind(contact: Contact) {
             binding.root.setOnClickListener { onItemClick(contact) }
 
             binding.tvContactName.text = contact.displayName()
@@ -43,7 +43,7 @@ class ContactAdapter(
             loadAvatar(contact)
         }
 
-        private fun bindStatus(contact: ContactResponse) {
+        private fun bindStatus(contact: Contact) {
             val context = binding.root.context
             if (contact.isOnline) {
                 binding.tvContactStatus.setText(R.string.presence_online)
@@ -67,7 +67,7 @@ class ContactAdapter(
          * Дальше суток точная минута ни о чём не говорит, поэтому
          * показываем календарное время, как в остальных экранах.
          */
-        private fun lastSeenText(contact: ContactResponse): String {
+        private fun lastSeenText(contact: Contact): String {
             val context = binding.root.context
             val iso = contact.lastSeenAt
             if (iso.isNullOrEmpty()) return context.getString(R.string.presence_offline)
@@ -84,7 +84,7 @@ class ContactAdapter(
             }
         }
 
-        private fun loadAvatar(contact: ContactResponse) {
+        private fun loadAvatar(contact: Contact) {
             AvatarLoader.load(binding.ivAvatar, contact.avatarUrl)
         }
     }
@@ -97,7 +97,7 @@ class ContactAdapter(
      * сбрасывалась. Именно с этим обновлением приходил и статус «в сети» —
      * список дёргался каждые 20 секунд.
      */
-    fun updateList(newList: List<ContactResponse>) {
+    fun updateList(newList: List<Contact>) {
         submitList(newList)
     }
 
@@ -105,12 +105,12 @@ class ContactAdapter(
         submitList(emptyList())
     }
 
-    class ContactDiffCallback : DiffUtil.ItemCallback<ContactResponse>() {
-        override fun areItemsTheSame(oldItem: ContactResponse, newItem: ContactResponse): Boolean {
+    class ContactDiffCallback : DiffUtil.ItemCallback<Contact>() {
+        override fun areItemsTheSame(oldItem: Contact, newItem: Contact): Boolean {
             return oldItem.contactUuid == newItem.contactUuid
         }
 
-        override fun areContentsTheSame(oldItem: ContactResponse, newItem: ContactResponse): Boolean {
+        override fun areContentsTheSame(oldItem: Contact, newItem: Contact): Boolean {
             return oldItem == newItem
         }
     }

@@ -32,11 +32,11 @@ class ChatRepositoryIntegrationTest {
 
     private val auth = mockk<ChatAuthManager>(relaxed = true)
 
-    private fun chatRepo() = ChatRepository(IntegrationTestClient.chatApi(server), auth)
+    private fun chatRepo() = ChatRepositoryImpl(IntegrationTestClient.chatApi(server), auth)
 
-    private fun contactRepo() = ContactRepository(IntegrationTestClient.chatApi(server), auth)
+    private fun contactRepo() = ContactRepositoryImpl(IntegrationTestClient.chatApi(server), auth)
 
-    private fun avatarRepo() = AvatarRepository(IntegrationTestClient.chatApi(server), auth)
+    private fun avatarRepo() = AvatarRepositoryImpl(IntegrationTestClient.chatApi(server), auth)
 
     private val liveLikeContact = """
         {"contactUuid":"d040b46f-891d-4823-992f-384cfe5af824",

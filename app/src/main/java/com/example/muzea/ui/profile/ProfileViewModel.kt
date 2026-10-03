@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.muzea.R
 import com.example.muzea.data.model.UserResponse
-import com.example.muzea.data.repository.ChatSessionRepository
+import com.example.muzea.domain.repository.ChatSessionRepository
 import com.example.muzea.data.repository.UserRepository
 import com.example.muzea.utils.ConsentManager
 import com.example.muzea.utils.NetworkResult

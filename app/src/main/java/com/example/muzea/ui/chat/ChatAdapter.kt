@@ -6,14 +6,14 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.example.muzea.data.model.ChatResponse
+import com.example.muzea.domain.model.Chat
 import com.example.muzea.databinding.ItemChatBinding
 import com.example.muzea.utils.AvatarLoader
 import com.example.muzea.utils.ChatTimeFormatter
 
 class ChatAdapter(
     private val onItemClick: (String) -> Unit
-) : ListAdapter<ChatResponse, ChatAdapter.ChatViewHolder>(ChatDiffCallback()) {
+) : ListAdapter<Chat, ChatAdapter.ChatViewHolder>(ChatDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ChatViewHolder {
         val binding = ItemChatBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -29,7 +29,7 @@ class ChatAdapter(
         private val onItemClick: (String) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(chat: ChatResponse) {
+        fun bind(chat: Chat) {
             binding.tvChatTitle.text = chat.title ?: "Chat"
 
             val lastMessage = chat.lastMessage
@@ -63,7 +63,7 @@ class ChatAdapter(
             }
         }
 
-        private fun loadAvatar(chat: ChatResponse) {
+        private fun loadAvatar(chat: Chat) {
             AvatarLoader.load(binding.ivAvatar, chat.avatarUrl)
         }
 
@@ -79,7 +79,7 @@ class ChatAdapter(
      * и список чатов мигал при каждом фоновом обновлении (каждые 8 секунд).
      * DiffUtil сам точечно обновляет изменившиеся строки.
      */
-    fun updateList(newList: List<ChatResponse>) {
+    fun updateList(newList: List<Chat>) {
         submitList(newList)
     }
 
@@ -87,12 +87,12 @@ class ChatAdapter(
         submitList(emptyList())
     }
 
-    class ChatDiffCallback : DiffUtil.ItemCallback<ChatResponse>() {
-        override fun areItemsTheSame(oldItem: ChatResponse, newItem: ChatResponse): Boolean {
+    class ChatDiffCallback : DiffUtil.ItemCallback<Chat>() {
+        override fun areItemsTheSame(oldItem: Chat, newItem: Chat): Boolean {
             return oldItem.chatUuid == newItem.chatUuid
         }
 
-        override fun areContentsTheSame(oldItem: ChatResponse, newItem: ChatResponse): Boolean {
+        override fun areContentsTheSame(oldItem: Chat, newItem: Chat): Boolean {
             return oldItem == newItem
         }
     }

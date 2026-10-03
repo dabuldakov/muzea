@@ -1,6 +1,6 @@
 package com.example.muzea.data.repository
 
-import com.example.muzea.data.model.ChatResponse
+import com.example.muzea.domain.model.Chat
 
 /**
  * Кэш соответствия «пользователь → уже существующий приватный чат».
@@ -16,13 +16,13 @@ object PrivateChatCache {
 
     private const val MAX_ENTRIES = 200
 
-    private val byUser = LinkedHashMap<String, ChatResponse>()
+    private val byUser = LinkedHashMap<String, Chat>()
 
     @Synchronized
-    fun get(userUuid: String): ChatResponse? = byUser[userUuid]
+    fun get(userUuid: String): Chat? = byUser[userUuid]
 
     @Synchronized
-    fun put(userUuid: String, chat: ChatResponse) {
+    fun put(userUuid: String, chat: Chat) {
         if (userUuid.isBlank()) return
         byUser.remove(userUuid)
         byUser[userUuid] = chat

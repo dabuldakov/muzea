@@ -1,7 +1,7 @@
 package com.example.muzea.data.repository
 
 import com.example.muzea.data.IntegrationTestClient
-import com.example.muzea.data.model.ChatResponse
+import com.example.muzea.domain.model.Chat
 import com.example.muzea.utils.NetworkResult
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -31,9 +31,9 @@ class ChatRepositoryCacheTest {
 
     private val auth = io.mockk.mockk<ChatAuthManager>(relaxed = true)
 
-    private fun chatRepo() = ChatRepository(IntegrationTestClient.chatApi(server), auth)
+    private fun chatRepo() = ChatRepositoryImpl(IntegrationTestClient.chatApi(server), auth)
 
-    private fun messageRepo() = MessageRepository(IntegrationTestClient.chatApi(server), auth)
+    private fun messageRepo() = MessageRepositoryImpl(IntegrationTestClient.chatApi(server), auth)
 
     @Before
     fun setUp() {
@@ -156,7 +156,7 @@ class ChatRepositoryCacheTest {
         coVerify(exactly = 0) { auth.invalidate() }
     }
 
-    private fun chat(chatUuid: String) = ChatResponse(
+    private fun chat(chatUuid: String) = Chat(
         chatUuid = chatUuid,
         chatType = "PRIVATE",
         title = null,

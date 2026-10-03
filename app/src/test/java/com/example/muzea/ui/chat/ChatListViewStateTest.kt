@@ -1,6 +1,6 @@
 package com.example.muzea.ui.chat
 
-import com.example.muzea.data.model.ChatResponse
+import com.example.muzea.domain.model.Chat
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -15,7 +15,7 @@ import org.junit.Test
  */
 class ChatListViewStateTest {
 
-    private fun chat(uuid: String) = ChatResponse(
+    private fun chat(uuid: String) = Chat(
         chatUuid = uuid,
         chatType = "PRIVATE",
         title = "Chat $uuid",

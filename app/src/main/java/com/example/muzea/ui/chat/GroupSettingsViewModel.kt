@@ -3,11 +3,11 @@ package com.example.muzea.ui.chat
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.muzea.data.model.ChatParticipantResponse
-import com.example.muzea.data.model.ContactResponse
-import com.example.muzea.data.repository.AvatarRepository
-import com.example.muzea.data.repository.ChatRepository
-import com.example.muzea.data.repository.ContactRepository
+import com.example.muzea.domain.model.ChatParticipant
+import com.example.muzea.domain.model.Contact
+import com.example.muzea.domain.repository.AvatarRepository
+import com.example.muzea.domain.repository.ChatRepository
+import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.data.repository.ChatUserIdentity
 import com.example.muzea.utils.NetworkResult
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -30,12 +30,12 @@ class GroupSettingsViewModel @Inject constructor(
     private val chatUuid: String = savedStateHandle.get<String>(ARG_CHAT_UUID).orEmpty()
     val myUserUuid: String? = chatUserIdentity.userUuid
 
-    private val _participants = MutableSharedFlow<NetworkResult<List<ChatParticipantResponse>>>()
-    val participants: SharedFlow<NetworkResult<List<ChatParticipantResponse>>> =
+    private val _participants = MutableSharedFlow<NetworkResult<List<ChatParticipant>>>()
+    val participants: SharedFlow<NetworkResult<List<ChatParticipant>>> =
         _participants.asSharedFlow()
 
-    private val _contactsResult = MutableSharedFlow<NetworkResult<List<ContactResponse>>>()
-    val contactsResult: SharedFlow<NetworkResult<List<ContactResponse>>> =
+    private val _contactsResult = MutableSharedFlow<NetworkResult<List<Contact>>>()
+    val contactsResult: SharedFlow<NetworkResult<List<Contact>>> =
         _contactsResult.asSharedFlow()
 
     private val _addParticipantsResult = MutableSharedFlow<NetworkResult<Unit>>()

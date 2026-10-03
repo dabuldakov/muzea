@@ -1,8 +1,9 @@
 package com.example.muzea.data.repository
 
 import com.example.muzea.data.api.ChatApiService
-import com.example.muzea.data.model.MessageResponse
+import com.example.muzea.data.mapper.toDomain
 import com.example.muzea.data.model.SendMessageRequest
+import com.example.muzea.domain.model.Message
 import com.example.muzea.utils.NetworkResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -10,14 +11,14 @@ import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Сообщения в переписке: загрузка, кэш, отправка и отметка прочитанным. */
+/** Реализация [com.example.muzea.domain.repository.MessageRepository]. */
 @Singleton
-class MessageRepository @Inject constructor(
+class MessageRepositoryImpl @Inject constructor(
     private val apiService: ChatApiService,
     private val chatAuthManager: ChatAuthManager
-) {
+) : com.example.muzea.domain.repository.MessageRepository {
 
-    suspend fun loadMessages(chatUuid: String): Flow<NetworkResult<List<MessageResponse>>> = flow {
+    override suspend fun loadMessages(chatUuid: String): Flow<NetworkResult<List<Message>>> = flow {
         emit(NetworkResult.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
@@ -34,7 +35,7 @@ class MessageRepository @Inject constructor(
             }
 
             if (response.isSuccessful && response.body() != null) {
-                val content = response.body()!!.content
+                val content = response.body()!!.content.map { it.toDomain() }
                 ChatMessagesCache.put(chatUuid, content)
                 emit(NetworkResult.Success(content))
             } else {
@@ -45,13 +46,9 @@ class MessageRepository @Inject constructor(
         }
     }
 
-    /**
-     * Мгновенный доступ к уже загруженной переписке без обращения к сети.
-     * Используется, чтобы чат открывался сразу, а обновление шло фоном.
-     */
-    fun cachedMessages(chatUuid: String): List<MessageResponse> = ChatMessagesCache.get(chatUuid)
+    override fun cachedMessages(chatUuid: String): List<Message> = ChatMessagesCache.get(chatUuid)
 
-    suspend fun sendMessage(chatUuid: String, text: String): Flow<NetworkResult<MessageResponse>> = flow {
+    override suspend fun sendMessage(chatUuid: String, text: String): Flow<NetworkResult<Message>> = flow {
         emit(NetworkResult.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
@@ -68,7 +65,7 @@ class MessageRepository @Inject constructor(
             }
 
             if (response.isSuccessful && response.body() != null) {
-                emit(NetworkResult.Success(response.body()!!))
+                emit(NetworkResult.Success(response.body()!!.toDomain()))
             } else {
                 emit(NetworkResult.Error("Failed to send message: ${response.message()}"))
             }
@@ -77,7 +74,7 @@ class MessageRepository @Inject constructor(
         }
     }
 
-    suspend fun markMessagesAsRead(chatUuid: String, upToMessageUuid: String): Boolean {
+    override suspend fun markMessagesAsRead(chatUuid: String, upToMessageUuid: String): Boolean {
         return try {
             chatAuthManager.authenticatedRequest {
                 apiService.markMessagesAsRead(chatUuid, upToMessageUuid)

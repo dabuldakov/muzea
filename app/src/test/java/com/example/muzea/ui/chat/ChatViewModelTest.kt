@@ -1,8 +1,8 @@
 package com.example.muzea.ui.chat
 
-import com.example.muzea.data.model.ChatResponse
-import com.example.muzea.data.repository.ChatRepository
-import com.example.muzea.data.repository.ContactRepository
+import com.example.muzea.domain.model.Chat
+import com.example.muzea.domain.repository.ChatRepository
+import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.ui.news.MainDispatcherRule
 import com.example.muzea.utils.NetworkResult
 import io.mockk.coEvery
@@ -32,7 +32,7 @@ class ChatViewModelTest {
     private val chatRepository = mockk<ChatRepository>()
     private val contactRepository = mockk<ContactRepository>()
 
-    private fun chat(uuid: String) = ChatResponse(
+    private fun chat(uuid: String) = Chat(
         chatUuid = uuid,
         chatType = "PRIVATE",
         title = "Chat $uuid",

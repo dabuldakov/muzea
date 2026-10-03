@@ -4,9 +4,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
-import com.example.muzea.data.model.MessageResponse
+import com.example.muzea.domain.model.Message
 import com.example.muzea.data.repository.ChatMessagesCache
-import com.example.muzea.data.repository.MessageRepository
+import com.example.muzea.domain.repository.MessageRepository
 import com.example.muzea.data.repository.ChatUserIdentity
 import com.example.muzea.ui.news.MainDispatcherRule
 import com.example.muzea.utils.NetworkResult
@@ -39,7 +39,7 @@ class ChatConversationViewModelTest {
     private val messageRepository = mockk<MessageRepository>()
     private val chatUuid = "chat-1"
 
-    private fun message(uuid: String, text: String, createdAt: String) = MessageResponse(
+    private fun message(uuid: String, text: String, createdAt: String) = Message(
         messageUuid = uuid,
         chatUuid = chatUuid,
         senderId = null,
@@ -81,8 +81,8 @@ class ChatConversationViewModelTest {
      * запланированный delay().
      */
     private fun withViewModel(
-        cached: List<MessageResponse> = emptyList(),
-        network: Flow<NetworkResult<List<MessageResponse>>> =
+        cached: List<Message> = emptyList(),
+        network: Flow<NetworkResult<List<Message>>> =
             flowOf(NetworkResult.Success(emptyList())),
         block: suspend CoroutineScope.(ChatConversationViewModel) -> Unit
     ) = runTest {

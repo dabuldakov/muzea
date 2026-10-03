@@ -1,11 +1,12 @@
 package com.example.muzea.data.repository
 
 import com.example.muzea.data.api.ChatApiService
+import com.example.muzea.data.mapper.toDomain
 import com.example.muzea.data.model.AddGroupParticipantsRequest
-import com.example.muzea.data.model.ChatParticipantResponse
-import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.model.CreateGroupChatRequest
 import com.example.muzea.data.model.CreatePrivateChatRequest
+import com.example.muzea.domain.model.Chat
+import com.example.muzea.domain.model.ChatParticipant
 import com.example.muzea.utils.NetworkResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -13,22 +14,20 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Диалоги: список чатов, создание приватных и групповых, участники.
- *
- * Сообщения, контакты, присутствие, аватары и сессия живут в отдельных
- * репозиториях — раньше всё это было в одном классе на 555 строк.
+ * Реализация [com.example.muzea.domain.repository.ChatRepository]:
+ * диалоги, приватные/групповые чаты и участники.
  */
 @Singleton
-class ChatRepository @Inject constructor(
+class ChatRepositoryImpl @Inject constructor(
     private val apiService: ChatApiService,
     private val chatAuthManager: ChatAuthManager
-) {
+) : com.example.muzea.domain.repository.ChatRepository {
 
     private companion object {
         const val PRIVATE_CHAT_TYPE = "PRIVATE"
     }
 
-    suspend fun loadChats(): Flow<NetworkResult<List<ChatResponse>>> = flow {
+    override suspend fun loadChats(): Flow<NetworkResult<List<Chat>>> = flow {
         emit(NetworkResult.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
@@ -45,7 +44,7 @@ class ChatRepository @Inject constructor(
             }
 
             if (response.isSuccessful && response.body() != null) {
-                val content = response.body()!!
+                val content = response.body()!!.map { it.toDomain() }
                 ChatListCache.put(content)
                 emit(NetworkResult.Success(content))
             } else {
@@ -56,15 +55,11 @@ class ChatRepository @Inject constructor(
         }
     }
 
-    /**
-     * Мгновенный доступ к последнему известному списку чатов без обращения к сети.
-     * Используется, чтобы список открывался сразу, а обновление шло фоном.
-     */
-    fun cachedChats(): List<ChatResponse> = ChatListCache.get()
+    override fun cachedChats(): List<Chat> = ChatListCache.get()
 
-    suspend fun loadChatParticipants(
+    override suspend fun loadChatParticipants(
         chatUuid: String
-    ): Flow<NetworkResult<List<ChatParticipantResponse>>> = flow {
+    ): Flow<NetworkResult<List<ChatParticipant>>> = flow {
         emit(NetworkResult.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
@@ -81,7 +76,7 @@ class ChatRepository @Inject constructor(
             }
 
             if (response.isSuccessful && response.body() != null) {
-                emit(NetworkResult.Success(response.body()!!))
+                emit(NetworkResult.Success(response.body()!!.map { it.toDomain() }))
             } else {
                 emit(NetworkResult.Error("Failed to load participants: ${response.message()}"))
             }
@@ -90,7 +85,7 @@ class ChatRepository @Inject constructor(
         }
     }
 
-    suspend fun createPrivateChat(userUuid: String): Flow<NetworkResult<ChatResponse>> = flow {
+    override suspend fun createPrivateChat(userUuid: String): Flow<NetworkResult<Chat>> = flow {
         emit(NetworkResult.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
@@ -107,7 +102,7 @@ class ChatRepository @Inject constructor(
             }
 
             if (response.isSuccessful && response.body() != null) {
-                val chat = response.body()!!
+                val chat = response.body()!!.toDomain()
                 PrivateChatCache.put(userUuid, chat)
                 emit(NetworkResult.Success(chat))
             } else {
@@ -126,21 +121,21 @@ class ChatRepository @Inject constructor(
      * нужный userUuid. Нужен, чтобы повторное нажатие на контакт открывало
      * существующую переписку, а не создавало дубликат.
      */
-    suspend fun findPrivateChatWith(userUuid: String): ChatResponse? {
+    override suspend fun findPrivateChatWith(userUuid: String): Chat? {
         PrivateChatCache.get(userUuid)?.let { return it }
 
         // Свежий список: только что созданный чат ещё может не успеть попасть
         // в кэш, и мы бы создали дубликат.
-        var chats: List<ChatResponse> = emptyList()
+        var chats: List<Chat> = emptyList()
         loadChats().collect { result ->
             if (result is NetworkResult.Success) chats = result.data ?: emptyList()
         }
 
-        var match: ChatResponse? = null
+        var match: Chat? = null
         for (chat in chats) {
             if (!chat.chatType.equals(PRIVATE_CHAT_TYPE, ignoreCase = true)) continue
 
-            var participants: List<ChatParticipantResponse> = emptyList()
+            var participants: List<ChatParticipant> = emptyList()
             loadChatParticipants(chat.chatUuid).collect { result ->
                 if (result is NetworkResult.Success) participants = result.data ?: emptyList()
             }
@@ -159,10 +154,10 @@ class ChatRepository @Inject constructor(
         return match
     }
 
-    suspend fun createGroupChat(
+    override suspend fun createGroupChat(
         title: String,
         memberUuids: List<String>
-    ): Flow<NetworkResult<ChatResponse>> = flow {
+    ): Flow<NetworkResult<Chat>> = flow {
         emit(NetworkResult.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
@@ -179,7 +174,7 @@ class ChatRepository @Inject constructor(
             }
 
             if (response.isSuccessful && response.body() != null) {
-                emit(NetworkResult.Success(response.body()!!))
+                emit(NetworkResult.Success(response.body()!!.toDomain()))
             } else {
                 emit(NetworkResult.Error("Failed to create group chat: ${response.message()}"))
             }
@@ -188,7 +183,7 @@ class ChatRepository @Inject constructor(
         }
     }
 
-    suspend fun addGroupParticipants(
+    override suspend fun addGroupParticipants(
         chatUuid: String,
         memberUuids: List<String>
     ): Flow<NetworkResult<Unit>> = flow {

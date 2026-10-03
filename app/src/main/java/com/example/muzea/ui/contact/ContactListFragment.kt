@@ -13,8 +13,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.muzea.data.model.ChatResponse
-import com.example.muzea.data.model.ContactResponse
+import com.example.muzea.domain.model.Chat
+import com.example.muzea.domain.model.Contact
 import com.example.muzea.databinding.FragmentContactListBinding
 import com.example.muzea.ui.chat.ChatConversationFragment
 import com.example.muzea.ui.openDetailScreen
@@ -91,7 +91,7 @@ class ContactListFragment : Fragment() {
         }
     }
 
-    private fun onContactClick(contact: ContactResponse) {
+    private fun onContactClick(contact: Contact) {
         val userUuid = contact.contactUserUuid
         if (userUuid.isNullOrEmpty()) {
             Toast.makeText(requireContext(), "Cannot create chat: no user uuid", Toast.LENGTH_SHORT).show()
@@ -206,7 +206,7 @@ class ContactListFragment : Fragment() {
         }
     }
 
-    private fun openConversation(chat: ChatResponse) {
+    private fun openConversation(chat: Chat) {
         val fragment = ChatConversationFragment.newInstance(
             chat.chatUuid,
             chat.title ?: "Chat",

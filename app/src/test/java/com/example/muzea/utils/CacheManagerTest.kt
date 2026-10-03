@@ -4,8 +4,8 @@ import android.app.Application
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.bumptech.glide.Glide
-import com.example.muzea.data.model.ChatResponse
-import com.example.muzea.data.model.MessageResponse
+import com.example.muzea.domain.model.Chat
+import com.example.muzea.domain.model.Message
 import com.example.muzea.data.model.VideoResponse
 import com.example.muzea.data.repository.ChatListCache
 import com.example.muzea.data.repository.ChatMessagesCache
@@ -107,7 +107,7 @@ class CacheManagerTest {
         file.writeBytes(ByteArray(size))
     }
 
-    private fun message() = MessageResponse(
+    private fun message() = Message(
         messageUuid = "m1",
         chatUuid = "chat-1",
         senderId = null,
@@ -124,7 +124,7 @@ class CacheManagerTest {
         updatedAt = null
     )
 
-    private fun chat() = ChatResponse(
+    private fun chat() = Chat(
         chatUuid = "chat-1",
         chatType = "PRIVATE",
         title = null,

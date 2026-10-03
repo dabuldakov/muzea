@@ -5,10 +5,10 @@ import javax.inject.Inject
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.muzea.data.model.ChatResponse
-import com.example.muzea.data.model.ContactResponse
-import com.example.muzea.data.repository.ChatRepository
-import com.example.muzea.data.repository.ContactRepository
+import com.example.muzea.domain.model.Chat
+import com.example.muzea.domain.model.Contact
+import com.example.muzea.domain.repository.ChatRepository
+import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.utils.NetworkResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -25,14 +25,14 @@ class ContactViewModel @Inject constructor(
     private val contactRepository: ContactRepository
 ) : ViewModel() {
 
-    private val _contactsResult = MutableSharedFlow<NetworkResult<List<ContactResponse>>>()
-    val contactsResult: SharedFlow<NetworkResult<List<ContactResponse>>> = _contactsResult.asSharedFlow()
+    private val _contactsResult = MutableSharedFlow<NetworkResult<List<Contact>>>()
+    val contactsResult: SharedFlow<NetworkResult<List<Contact>>> = _contactsResult.asSharedFlow()
 
-    private val _addContactResult = MutableSharedFlow<NetworkResult<ContactResponse>>()
-    val addContactResult: SharedFlow<NetworkResult<ContactResponse>> = _addContactResult.asSharedFlow()
+    private val _addContactResult = MutableSharedFlow<NetworkResult<Contact>>()
+    val addContactResult: SharedFlow<NetworkResult<Contact>> = _addContactResult.asSharedFlow()
 
-    private val _createChatResult = MutableSharedFlow<NetworkResult<ChatResponse>>()
-    val createChatResult: SharedFlow<NetworkResult<ChatResponse>> = _createChatResult.asSharedFlow()
+    private val _createChatResult = MutableSharedFlow<NetworkResult<Chat>>()
+    val createChatResult: SharedFlow<NetworkResult<Chat>> = _createChatResult.asSharedFlow()
 
     /**
      * Актуальный список контактов вместе со статусом «в сети».
@@ -42,8 +42,8 @@ class ContactViewModel @Inject constructor(
      * потоке — пришлось бы перезагружать /api/contacts ради смены индикатора,
      * то есть дёргать тяжёлый запрос каждые 20 секунд.
      */
-    private val _contacts = MutableStateFlow<List<ContactResponse>>(emptyList())
-    val contacts: StateFlow<List<ContactResponse>> = _contacts.asStateFlow()
+    private val _contacts = MutableStateFlow<List<Contact>>(emptyList())
+    val contacts: StateFlow<List<Contact>> = _contacts.asStateFlow()
 
     fun loadContacts() {
         viewModelScope.launch {

@@ -1,6 +1,6 @@
 package com.example.muzea.data.repository
 
-import com.example.muzea.data.model.ChatResponse
+import com.example.muzea.domain.model.Chat
 
 /**
  * Кэш списка чатов в памяти процесса.
@@ -17,16 +17,16 @@ object ChatListCache {
 
     private const val MAX_CHATS = 200
 
-    private val chats = LinkedHashMap<String, ChatResponse>()
+    private val chats = LinkedHashMap<String, Chat>()
 
     @Synchronized
-    fun get(): List<ChatResponse> = chats.values.toList()
+    fun get(): List<Chat> = chats.values.toList()
 
     @Synchronized
     fun has(): Boolean = chats.isNotEmpty()
 
     @Synchronized
-    fun put(list: List<ChatResponse>) {
+    fun put(list: List<Chat>) {
         chats.clear()
         for (chat in list) {
             if (chat.chatUuid.isNotBlank()) {

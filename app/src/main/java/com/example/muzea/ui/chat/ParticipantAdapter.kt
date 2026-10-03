@@ -6,13 +6,13 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.example.muzea.data.model.ChatParticipantResponse
+import com.example.muzea.domain.model.ChatParticipant
 import com.example.muzea.databinding.ItemParticipantBinding
 import com.example.muzea.utils.AvatarLoader
 
 class ParticipantAdapter(
     private val myUserUuid: String?
-) : ListAdapter<ChatParticipantResponse, ParticipantAdapter.ParticipantViewHolder>(DiffCallback()) {
+) : ListAdapter<ChatParticipant, ParticipantAdapter.ParticipantViewHolder>(DiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ParticipantViewHolder {
         val binding = ItemParticipantBinding.inflate(
@@ -29,7 +29,7 @@ class ParticipantAdapter(
         private val binding: ItemParticipantBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(participant: ChatParticipantResponse) {
+        fun bind(participant: ChatParticipant) {
             binding.tvName.text = participant.displayName()
             binding.tvUsername.text = if (myUserUuid != null && participant.userUuid == myUserUuid) {
                 "You"
@@ -46,21 +46,21 @@ class ParticipantAdapter(
         }
     }
 
-    fun updateList(newList: List<ChatParticipantResponse>) {
+    fun updateList(newList: List<ChatParticipant>) {
         submitList(newList)
     }
 
-    class DiffCallback : DiffUtil.ItemCallback<ChatParticipantResponse>() {
+    class DiffCallback : DiffUtil.ItemCallback<ChatParticipant>() {
         override fun areItemsTheSame(
-            oldItem: ChatParticipantResponse,
-            newItem: ChatParticipantResponse
+            oldItem: ChatParticipant,
+            newItem: ChatParticipant
         ): Boolean {
             return oldItem.userUuid == newItem.userUuid
         }
 
         override fun areContentsTheSame(
-            oldItem: ChatParticipantResponse,
-            newItem: ChatParticipantResponse
+            oldItem: ChatParticipant,
+            newItem: ChatParticipant
         ): Boolean {
             return oldItem == newItem
         }

@@ -18,8 +18,8 @@ class ChatRepositoryReadTest {
 
     private val api = mockk<ChatApiService>()
     private val auth = mockk<ChatAuthManager>(relaxed = true)
-    private val chatRepository = ChatRepository(api, auth)
-    private val messageRepository = MessageRepository(api, auth)
+    private val chatRepository = ChatRepositoryImpl(api, auth)
+    private val messageRepository = MessageRepositoryImpl(api, auth)
 
     @Test
     fun `marks messages as read up to the given message`() = runTest {

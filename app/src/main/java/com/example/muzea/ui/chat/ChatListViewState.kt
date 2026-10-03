@@ -1,6 +1,6 @@
 package com.example.muzea.ui.chat
 
-import com.example.muzea.data.model.ChatResponse
+import com.example.muzea.domain.model.Chat
 
 /** Что показывать на экране списка чатов. */
 enum class ChatListViewState {
@@ -29,7 +29,7 @@ enum class ChatListViewState {
  * состояние залипало уже навсегда.
  */
 internal fun chatListViewState(
-    chats: List<ChatResponse>,
+    chats: List<Chat>,
     isLoading: Boolean,
     error: String?
 ): ChatListViewState = when {

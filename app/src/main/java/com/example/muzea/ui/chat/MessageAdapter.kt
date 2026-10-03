@@ -7,7 +7,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.muzea.R
-import com.example.muzea.data.model.MessageResponse
+import com.example.muzea.domain.model.Message
 import com.example.muzea.utils.AvatarLoader
 import com.example.muzea.utils.ChatTimeFormatter
 import com.example.muzea.databinding.ItemMessageIncomingBinding
@@ -15,7 +15,7 @@ import com.example.muzea.databinding.ItemMessageOutgoingBinding
 
 class MessageAdapter(
     private val myUserUuid: String?
-) : ListAdapter<MessageResponse, RecyclerView.ViewHolder>(MessageDiffCallback()) {
+) : ListAdapter<Message, RecyclerView.ViewHolder>(MessageDiffCallback()) {
 
     override fun getItemViewType(position: Int): Int {
         val message = getItem(position)
@@ -42,7 +42,7 @@ class MessageAdapter(
         }
     }
 
-    private fun isMine(message: MessageResponse): Boolean {
+    private fun isMine(message: Message): Boolean {
         val sender = message.senderUuid ?: return false
         return myUserUuid != null && sender == myUserUuid
     }
@@ -51,7 +51,7 @@ class MessageAdapter(
         private val binding: ItemMessageIncomingBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(message: MessageResponse) {
+        fun bind(message: Message) {
             AvatarLoader.load(binding.ivAvatar, message.senderAvatar)
             binding.tvMessage.text = message.text ?: ""
 
@@ -70,13 +70,13 @@ class MessageAdapter(
         private val binding: ItemMessageOutgoingBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(message: MessageResponse) {
+        fun bind(message: Message) {
             binding.tvMessage.text = message.text ?: ""
             binding.tvTime.text = formatTime(message.createdAt)
         }
     }
 
-    fun updateList(newList: List<MessageResponse>) {
+    fun updateList(newList: List<Message>) {
         submitList(newList)
     }
 
@@ -89,12 +89,12 @@ class MessageAdapter(
         }
     }
 
-    class MessageDiffCallback : DiffUtil.ItemCallback<MessageResponse>() {
-        override fun areItemsTheSame(oldItem: MessageResponse, newItem: MessageResponse): Boolean {
+    class MessageDiffCallback : DiffUtil.ItemCallback<Message>() {
+        override fun areItemsTheSame(oldItem: Message, newItem: Message): Boolean {
             return oldItem.messageUuid == newItem.messageUuid
         }
 
-        override fun areContentsTheSame(oldItem: MessageResponse, newItem: MessageResponse): Boolean {
+        override fun areContentsTheSame(oldItem: Message, newItem: Message): Boolean {
             return oldItem == newItem
         }
     }

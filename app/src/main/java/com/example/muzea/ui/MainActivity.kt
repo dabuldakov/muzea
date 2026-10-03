@@ -13,7 +13,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.example.muzea.R
-import com.example.muzea.data.repository.ChatSessionRepository
+import com.example.muzea.domain.repository.ChatSessionRepository
 import com.example.muzea.databinding.ActivityMainBinding
 import com.example.muzea.ui.chat.ChatListFragment
 import com.example.muzea.ui.contact.ContactListFragment

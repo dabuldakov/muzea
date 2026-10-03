@@ -3,7 +3,9 @@ package com.example.muzea.data.repository
 import com.example.muzea.core.DefaultDispatcherProvider
 import com.example.muzea.core.DispatcherProvider
 import com.example.muzea.data.api.ChatApiService
+import com.example.muzea.data.mapper.toDomain
 import com.example.muzea.data.model.AvatarResponse
+import com.example.muzea.domain.model.Avatar
 import com.example.muzea.utils.NetworkResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -16,36 +18,36 @@ import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Аватары пользователя и чатов. */
+/** Реализация [com.example.muzea.domain.repository.AvatarRepository]. */
 @Singleton
-class AvatarRepository @Inject constructor(
+class AvatarRepositoryImpl @Inject constructor(
     private val apiService: ChatApiService,
     private val chatAuthManager: ChatAuthManager,
     private val dispatchers: DispatcherProvider = DefaultDispatcherProvider()
-) {
+) : com.example.muzea.domain.repository.AvatarRepository {
 
-    suspend fun loadAvatar(): Flow<NetworkResult<AvatarResponse>> = avatarRequest {
+    override suspend fun loadAvatar(): Flow<NetworkResult<Avatar>> = avatarRequest {
         val response = chatAuthManager.authenticatedRequest { apiService.getMyProfile() }
         check(response.isSuccessful && response.body() != null) { "Could not load avatar (${response.code()})" }
-        AvatarResponse(response.body()!!.avatarUrl)
+        Avatar(response.body()!!.avatarUrl)
     }
 
-    suspend fun uploadAvatar(file: File, mimeType: String): Flow<NetworkResult<AvatarResponse>> = avatarRequest {
+    override suspend fun uploadAvatar(file: File, mimeType: String): Flow<NetworkResult<Avatar>> = avatarRequest {
         val part = MultipartBody.Part.createFormData("file", file.name, file.asRequestBody(mimeType.toMediaType()))
         val response = chatAuthManager.authenticatedRequest { apiService.uploadAvatar(part) }
         check(response.isSuccessful && response.body()?.avatarUrl != null) {
             "Could not upload avatar (${response.code()}). Use a JPEG or PNG image up to 5 MB."
         }
-        response.body()!!
+        response.body()!!.toDomain()
     }
 
-    suspend fun deleteAvatar(): Flow<NetworkResult<AvatarResponse>> = avatarRequest {
+    override suspend fun deleteAvatar(): Flow<NetworkResult<Avatar>> = avatarRequest {
         val response = chatAuthManager.authenticatedRequest { apiService.deleteAvatar() }
         check(response.isSuccessful) { "Could not delete avatar (${response.code()})" }
-        AvatarResponse(null)
+        AvatarResponse(null).toDomain()
     }
 
-    suspend fun uploadChatAvatar(
+    override suspend fun uploadChatAvatar(
         chatUuid: String,
         file: File,
         mimeType: String
@@ -69,8 +71,7 @@ class AvatarRepository @Inject constructor(
             }
 
             if (response.isSuccessful && response.body() != null) {
-                val path = response.body()!!.string().trim()
-                emit(NetworkResult.Success(path))
+                emit(NetworkResult.Success(response.body()!!.string().trim()))
             } else {
                 emit(
                     NetworkResult.Error(
@@ -85,7 +86,7 @@ class AvatarRepository @Inject constructor(
         }
     }.flowOn(dispatchers.io)
 
-    private fun avatarRequest(action: suspend () -> AvatarResponse): Flow<NetworkResult<AvatarResponse>> = flow {
+    private fun avatarRequest(action: suspend () -> Avatar): Flow<NetworkResult<Avatar>> = flow {
         emit(NetworkResult.Loading())
         try {
             emit(NetworkResult.Success(action()))

@@ -11,7 +11,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
-import com.example.muzea.data.model.MessageResponse
+import com.example.muzea.domain.model.Message
 import com.example.muzea.databinding.FragmentChatConversationBinding
 import com.example.muzea.ui.openDetailScreen
 import com.example.muzea.utils.AvatarLoader
@@ -209,7 +209,7 @@ class ChatConversationFragment : Fragment() {
         }
     }
 
-    private fun updateEmptyState(messages: List<MessageResponse>) {
+    private fun updateEmptyState(messages: List<Message>) {
         if (messages.isEmpty()) {
             binding.tvEmpty.visibility = View.VISIBLE
             binding.recyclerViewMessages.visibility = View.GONE

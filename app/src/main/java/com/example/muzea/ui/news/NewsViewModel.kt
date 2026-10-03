@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.muzea.data.model.NewsCreateResponse
 import com.example.muzea.data.model.NewsResponse
-import com.example.muzea.data.repository.ContactRepository
+import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.data.repository.NewsRepository
 import com.example.muzea.utils.NetworkResult
 import kotlinx.coroutines.flow.Flow

@@ -5,10 +5,10 @@ import javax.inject.Inject
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.muzea.data.model.ChatResponse
-import com.example.muzea.data.model.ContactResponse
-import com.example.muzea.data.repository.ChatRepository
-import com.example.muzea.data.repository.ContactRepository
+import com.example.muzea.domain.model.Chat
+import com.example.muzea.domain.model.Contact
+import com.example.muzea.domain.repository.ChatRepository
+import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.utils.NetworkResult
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -35,7 +35,7 @@ class ChatViewModel @Inject constructor(
      */
     private val cachedChats = chatRepository.cachedChats()
     private val _chats = MutableStateFlow(cachedChats)
-    val chats: StateFlow<List<ChatResponse>> = _chats.asStateFlow()
+    val chats: StateFlow<List<Chat>> = _chats.asStateFlow()
 
     /**
      * Спиннер нужен только когда показать нечего: при непустом кэше или уже
@@ -62,12 +62,12 @@ private val _chatsError = MutableStateFlow<String?>(null)
      * должен сразу показать прошлый список, а не пустоту.
      */
     private val _contactsResult =
-        MutableStateFlow<NetworkResult<List<ContactResponse>>>(NetworkResult.Loading())
-    val contactsResult: StateFlow<NetworkResult<List<ContactResponse>>> =
+        MutableStateFlow<NetworkResult<List<Contact>>>(NetworkResult.Loading())
+    val contactsResult: StateFlow<NetworkResult<List<Contact>>> =
         _contactsResult.asStateFlow()
 
-    private val _createGroupChatResult = MutableSharedFlow<NetworkResult<ChatResponse>>()
-    val createGroupChatResult: SharedFlow<NetworkResult<ChatResponse>> =
+    private val _createGroupChatResult = MutableSharedFlow<NetworkResult<Chat>>()
+    val createGroupChatResult: SharedFlow<NetworkResult<Chat>> =
         _createGroupChatResult.asSharedFlow()
 
     private val _addParticipantsResult = MutableSharedFlow<NetworkResult<Unit>>()

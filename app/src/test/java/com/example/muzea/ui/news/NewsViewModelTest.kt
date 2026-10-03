@@ -1,8 +1,8 @@
 package com.example.muzea.ui.news
 
-import com.example.muzea.data.model.ContactResponse
+import com.example.muzea.domain.model.Contact
 import com.example.muzea.data.model.NewsResponse
-import com.example.muzea.data.repository.ContactRepository
+import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.data.repository.NewsRepository
 import com.example.muzea.utils.NetworkResult
 import io.mockk.coEvery
@@ -52,7 +52,7 @@ class NewsViewModelTest {
         publishedAt = "2026-01-01T00:00:00"
     )
 
-    private fun contact(username: String) = ContactResponse(
+    private fun contact(username: String) = Contact(
         contactUuid = "uuid-$username",
         contactUserId = 1L,
         contactUserUuid = null,

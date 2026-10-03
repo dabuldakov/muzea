@@ -16,10 +16,10 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.muzea.data.model.ChatResponse
-import com.example.muzea.data.model.ContactResponse
+import com.example.muzea.domain.model.Chat
+import com.example.muzea.domain.model.Contact
 import com.example.muzea.data.repository.ChatMessagesCache
-import com.example.muzea.data.repository.MessageRepository
+import com.example.muzea.domain.repository.MessageRepository
 import com.example.muzea.databinding.FragmentChatListBinding
 import com.example.muzea.ui.openDetailScreen
 import com.example.muzea.utils.NetworkResult
@@ -223,7 +223,7 @@ class ChatListFragment : Fragment() {
         dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = false
     }
 
-    private fun showAddMembersDialog(chat: ChatResponse) {
+    private fun showAddMembersDialog(chat: Chat) {
         val recyclerView = RecyclerView(requireContext()).apply {
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -266,7 +266,7 @@ class ChatListFragment : Fragment() {
         viewModel.loadContacts()
     }
 
-    private fun openGroupChat(chat: ChatResponse) {
+    private fun openGroupChat(chat: Chat) {
         navigationToConversation(chat.chatUuid, chat.title ?: "Group", chat.avatarUrl)
     }
 
@@ -276,7 +276,7 @@ class ChatListFragment : Fragment() {
      * Спиннер здесь не трогаем: его показывает подписка на
      * [ChatViewModel.isLoadingChats] и только когда показать пока нечего.
      */
-    private fun renderChats(chats: List<ChatResponse>) {
+    private fun renderChats(chats: List<Chat>) {
         binding.swipeRefresh.isRefreshing = false
         lastChatsError = null
         adapter.updateList(chats)
@@ -293,7 +293,7 @@ class ChatListFragment : Fragment() {
      * запущенные чаты пропускаем, список ограничиваем, чтобы не заваливать
      * сервер запросами.
      */
-    private fun prefetchChatMessages(chats: List<ChatResponse>) {
+    private fun prefetchChatMessages(chats: List<Chat>) {
         val targets = chats.asSequence()
             .map { it.chatUuid }
             .filter { it.isNotBlank() && !ChatMessagesCache.has(it) }
@@ -328,7 +328,7 @@ class ChatListFragment : Fragment() {
      * Решение принимается по данным из [chatListViewState], а не по состоянию
      * адаптера: submitList() обновляет список асинхронно.
      */
-    private fun renderState(chats: List<ChatResponse>) {
+    private fun renderState(chats: List<Chat>) {
         when (chatListViewState(chats, viewModel.isLoadingChats.value, lastChatsError)) {
             ChatListViewState.LIST -> {
                 binding.tvEmpty.visibility = View.GONE

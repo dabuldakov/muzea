@@ -1,8 +1,8 @@
 package com.example.muzea.ui.contact
 
-import com.example.muzea.data.model.ChatResponse
-import com.example.muzea.data.repository.ChatRepository
-import com.example.muzea.data.repository.ContactRepository
+import com.example.muzea.domain.model.Chat
+import com.example.muzea.domain.repository.ChatRepository
+import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.ui.news.MainDispatcherRule
 import com.example.muzea.utils.NetworkResult
 import io.mockk.coEvery
@@ -29,7 +29,7 @@ class ContactViewModelTest {
     private val chatRepository = mockk<ChatRepository>()
     private val contactRepository = mockk<ContactRepository>()
 
-    private fun chat(uuid: String) = ChatResponse(
+    private fun chat(uuid: String) = Chat(
         chatUuid = uuid,
         chatType = "PRIVATE",
         title = null,
@@ -44,8 +44,8 @@ class ContactViewModelTest {
     private fun CoroutineScope.collectResults(
         viewModel: ContactViewModel,
         block: () -> Unit
-    ): List<NetworkResult<ChatResponse>> {
-        val results = mutableListOf<NetworkResult<ChatResponse>>()
+    ): List<NetworkResult<Chat>> {
+        val results = mutableListOf<NetworkResult<Chat>>()
         // Подписка до действия: createChatResult — одноразовый SharedFlow.
         val collector = launch(Dispatchers.Unconfined, start = CoroutineStart.UNDISPATCHED) {
             viewModel.createChatResult.collect { results += it }
