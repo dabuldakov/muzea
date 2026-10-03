@@ -6,7 +6,7 @@ import com.example.muzea.domain.model.Chat
 import com.example.muzea.domain.model.Contact
 import com.example.muzea.domain.repository.ChatRepository
 import com.example.muzea.domain.repository.ContactRepository
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -45,16 +45,16 @@ class ChatViewModel @Inject constructor(
      * должен сразу показать прошлый список, а не пустоту.
      */
     private val _contactsResult =
-        MutableStateFlow<NetworkResult<List<Contact>>>(NetworkResult.Loading())
-    val contactsResult: StateFlow<NetworkResult<List<Contact>>> =
+        MutableStateFlow<Resource<List<Contact>>>(Resource.Loading())
+    val contactsResult: StateFlow<Resource<List<Contact>>> =
         _contactsResult.asStateFlow()
 
-    private val _createGroupChatResult = MutableSharedFlow<NetworkResult<Chat>>()
-    val createGroupChatResult: SharedFlow<NetworkResult<Chat>> =
+    private val _createGroupChatResult = MutableSharedFlow<Resource<Chat>>()
+    val createGroupChatResult: SharedFlow<Resource<Chat>> =
         _createGroupChatResult.asSharedFlow()
 
-    private val _addParticipantsResult = MutableSharedFlow<NetworkResult<Unit>>()
-    val addParticipantsResult: SharedFlow<NetworkResult<Unit>> =
+    private val _addParticipantsResult = MutableSharedFlow<Resource<Unit>>()
+    val addParticipantsResult: SharedFlow<Resource<Unit>> =
         _addParticipantsResult.asSharedFlow()
 
     fun loadChats() {
@@ -65,16 +65,16 @@ class ChatViewModel @Inject constructor(
             chatRepository.loadChats().collect { result ->
                 when (result) {
                     // Спиннер только когда показать нечего.
-                    is NetworkResult.Loading -> _uiState.value =
+                    is Resource.Loading -> _uiState.value =
                         _uiState.value.copy(isLoading = _uiState.value.chats.isEmpty())
 
-                    is NetworkResult.Success -> _uiState.value = _uiState.value.copy(
+                    is Resource.Success -> _uiState.value = _uiState.value.copy(
                         chats = result.data ?: emptyList(),
                         isLoading = false,
                         error = null
                     )
 
-                    is NetworkResult.Error -> _uiState.value = _uiState.value.copy(
+                    is Resource.Error -> _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         // Список из кэша ценнее сообщения об ошибке: не даём
                         // ошибке занять место данных, но и молча не проглатываем.

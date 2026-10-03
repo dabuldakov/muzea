@@ -6,7 +6,7 @@ import com.example.muzea.domain.model.Chat
 import com.example.muzea.domain.model.Contact
 import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.domain.usecase.OpenPrivateChatUseCase
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -34,26 +34,26 @@ class ContactViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ContactListUiState())
     val uiState: StateFlow<ContactListUiState> = _uiState.asStateFlow()
 
-    private val _addContactResult = MutableSharedFlow<NetworkResult<Contact>>()
-    val addContactResult: SharedFlow<NetworkResult<Contact>> = _addContactResult.asSharedFlow()
+    private val _addContactResult = MutableSharedFlow<Resource<Contact>>()
+    val addContactResult: SharedFlow<Resource<Contact>> = _addContactResult.asSharedFlow()
 
-    private val _createChatResult = MutableSharedFlow<NetworkResult<Chat>>()
-    val createChatResult: SharedFlow<NetworkResult<Chat>> = _createChatResult.asSharedFlow()
+    private val _createChatResult = MutableSharedFlow<Resource<Chat>>()
+    val createChatResult: SharedFlow<Resource<Chat>> = _createChatResult.asSharedFlow()
 
     fun loadContacts() {
         viewModelScope.launch {
             contactRepository.loadContacts().collect { result ->
                 when (result) {
-                    is NetworkResult.Loading -> _uiState.value =
+                    is Resource.Loading -> _uiState.value =
                         _uiState.value.copy(isLoading = _uiState.value.contacts.isEmpty())
 
-                    is NetworkResult.Success -> _uiState.value = _uiState.value.copy(
+                    is Resource.Success -> _uiState.value = _uiState.value.copy(
                         contacts = result.data ?: emptyList(),
                         isLoading = false,
                         error = null
                     )
 
-                    is NetworkResult.Error -> _uiState.value = _uiState.value.copy(
+                    is Resource.Error -> _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = result.message ?: "Unknown error"
                     )
@@ -123,7 +123,7 @@ class ContactViewModel @Inject constructor(
      */
     fun openPrivateChat(userUuid: String) {
         viewModelScope.launch {
-            _createChatResult.emit(NetworkResult.Loading())
+            _createChatResult.emit(Resource.Loading())
             _createChatResult.emit(openPrivateChatUseCase(userUuid))
         }
     }

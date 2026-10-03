@@ -9,7 +9,7 @@ import com.example.muzea.data.repository.ChatMessagesCache
 import com.example.muzea.domain.repository.MessageRepository
 import com.example.muzea.domain.ChatUserIdentity
 import com.example.muzea.ui.news.MainDispatcherRule
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -82,8 +82,8 @@ class ChatConversationViewModelTest {
      */
     private fun withViewModel(
         cached: List<Message> = emptyList(),
-        network: Flow<NetworkResult<List<Message>>> =
-            flowOf(NetworkResult.Success(emptyList())),
+        network: Flow<Resource<List<Message>>> =
+            flowOf(Resource.Success(emptyList())),
         block: suspend CoroutineScope.(ChatConversationViewModel) -> Unit
     ) = runTest {
         every { messageRepository.cachedMessages(chatUuid) } returns cached
@@ -111,7 +111,7 @@ class ChatConversationViewModelTest {
 
     @Test
     fun `opening a chat issues exactly one request`() = withViewModel(
-        network = flowOf(NetworkResult.Success(listOf(message("m1", "hi", "2026-01-01T00:00:00"))))
+        network = flowOf(Resource.Success(listOf(message("m1", "hi", "2026-01-01T00:00:00"))))
     ) { viewModel ->
         // Раньше init звал refresh() и сразу startPolling(), давая два запроса
         // подряд при каждом входе в чат.
@@ -123,7 +123,7 @@ class ChatConversationViewModelTest {
     @Test
     fun `cached messages are shown immediately without spinner`() = withViewModel(
         cached = listOf(message("m1", "cached", "2026-01-01T00:00:00")),
-        network = flowOf(NetworkResult.Success(listOf(message("m1", "cached", "2026-01-01T00:00:00"))))
+        network = flowOf(Resource.Success(listOf(message("m1", "cached", "2026-01-01T00:00:00"))))
     ) { viewModel ->
         assertEquals("cached", viewModel.uiState.value.messages.single().text)
         assertFalse(viewModel.uiState.value.isLoading)
@@ -133,7 +133,7 @@ class ChatConversationViewModelTest {
     fun `fresh messages are merged into cached history`() = withViewModel(
         cached = listOf(message("m1", "old", "2026-01-01T00:00:00")),
         network = flowOf(
-            NetworkResult.Success(
+            Resource.Success(
                 listOf(
                     message("m1", "old", "2026-01-01T00:00:00"),
                     message("m2", "new", "2026-01-02T00:00:00")
@@ -154,7 +154,7 @@ class ChatConversationViewModelTest {
     @Test
     fun `failure does not wipe cached messages`() = withViewModel(
         cached = listOf(message("m1", "cached", "2026-01-01T00:00:00")),
-        network = flowOf(NetworkResult.Error("network down"))
+        network = flowOf(Resource.Error("network down"))
     ) { viewModel ->
         assertEquals("cached", viewModel.uiState.value.messages.single().text)
         assertEquals("network down", viewModel.uiState.value.error)
@@ -163,7 +163,7 @@ class ChatConversationViewModelTest {
 
     @Test
     fun `spinner turns off after loading finishes`() = withViewModel(
-        network = flowOf(NetworkResult.Loading(), NetworkResult.Success(emptyList()))
+        network = flowOf(Resource.Loading(), Resource.Success(emptyList()))
     ) { viewModel ->
         assertFalse(viewModel.uiState.value.isLoading)
     }
@@ -171,7 +171,7 @@ class ChatConversationViewModelTest {
     @Test
     fun `spinner never shows when cached messages are available`() = withViewModel(
         cached = listOf(message("m1", "cached", "2026-01-01T00:00:00")),
-        network = flowOf(NetworkResult.Loading(), NetworkResult.Success(emptyList()))
+        network = flowOf(Resource.Loading(), Resource.Success(emptyList()))
     ) { viewModel ->
         // Даже если сервер сначала отвечает Loading, экран уже показывает
         // переписку из кэша, поэтому мигать индикатором нельзя.
@@ -181,7 +181,7 @@ class ChatConversationViewModelTest {
     @Test
     fun `optimistic bubble is updated in place by the server echo`() = withViewModel { viewModel ->
         coEvery { messageRepository.sendMessage(chatUuid, "hello") } returns flowOf(
-            NetworkResult.Success(message("server-1", "hello", "2026-01-01T00:00:00"))
+            Resource.Success(message("server-1", "hello", "2026-01-01T00:00:00"))
         )
 
         viewModel.sendText("hello")
@@ -198,7 +198,7 @@ class ChatConversationViewModelTest {
     fun `server echo is not duplicated by the next poll`() = withViewModel { viewModel ->
         val serverCopy = message("server-1", "hello", "2026-01-01T00:00:00")
         coEvery { messageRepository.sendMessage(chatUuid, "hello") } returns
-            flowOf(NetworkResult.Success(serverCopy))
+            flowOf(Resource.Success(serverCopy))
 
         viewModel.sendText("hello")
         assertEquals(1, viewModel.uiState.value.messages.size)
@@ -206,7 +206,7 @@ class ChatConversationViewModelTest {
         // Следующий опрос возвращает серверную копию — она уже показана
         // локальным пузырём и не должна появиться второй строкой.
         coEvery { messageRepository.loadMessages(chatUuid) } returns
-            flowOf(NetworkResult.Success(listOf(serverCopy)))
+            flowOf(Resource.Success(listOf(serverCopy)))
         viewModel.refresh()
 
         assertEquals(1, viewModel.uiState.value.messages.size)
@@ -221,7 +221,7 @@ class ChatConversationViewModelTest {
             message("m2", "newer", "2026-01-02T00:00:00"),
             message("m1", "older", "2026-01-01T00:00:00")
         ),
-        network = flowOf(NetworkResult.Success(emptyList()))
+        network = flowOf(Resource.Success(emptyList()))
     ) { viewModel ->
         assertEquals(listOf("older", "newer"), viewModel.uiState.value.messages.map { it.text })
     }
@@ -229,7 +229,7 @@ class ChatConversationViewModelTest {
     @Test
     fun `send failure keeps optimistic message and reports error`() = withViewModel { viewModel ->
         coEvery { messageRepository.sendMessage(chatUuid, "hello") } returns flowOf(
-            NetworkResult.Error("send failed")
+            Resource.Error("send failed")
         )
 
         // Подписка возникает до отправки: sendError одноразовый и позднему

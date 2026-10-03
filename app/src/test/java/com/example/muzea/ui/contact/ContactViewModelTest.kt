@@ -7,7 +7,7 @@ import com.example.muzea.domain.repository.ChatRepository
 import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.domain.usecase.OpenPrivateChatUseCase
 import com.example.muzea.ui.news.MainDispatcherRule
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -49,8 +49,8 @@ class ContactViewModelTest {
     private fun CoroutineScope.collectResults(
         viewModel: ContactViewModel,
         block: () -> Unit
-    ): List<NetworkResult<Chat>> {
-        val results = mutableListOf<NetworkResult<Chat>>()
+    ): List<Resource<Chat>> {
+        val results = mutableListOf<Resource<Chat>>()
         // Подписка до действия: createChatResult — одноразовый SharedFlow.
         val collector = launch(Dispatchers.Unconfined, start = CoroutineStart.UNDISPATCHED) {
             viewModel.createChatResult.collect { results += it }
@@ -67,8 +67,8 @@ class ContactViewModelTest {
 
         val results = collectResults(viewModel) { viewModel.openPrivateChat("user-1") }
 
-        assertTrue(results.first() is NetworkResult.Loading)
-        assertEquals("chat-1", (results.last() as NetworkResult.Success).data?.chatUuid)
+        assertTrue(results.first() is Resource.Loading)
+        assertEquals("chat-1", (results.last() as Resource.Success).data?.chatUuid)
         coVerify(exactly = 0) { chatRepository.createPrivateChat(any()) }
     }
 
@@ -76,12 +76,12 @@ class ContactViewModelTest {
     fun `openPrivateChat creates a chat when none exists`() = runTest {
         coEvery { chatRepository.findPrivateChatWith("user-1") } returns null
         coEvery { chatRepository.createPrivateChat("user-1") } returns
-            flowOf(NetworkResult.Success(chat("chat-new")))
+            flowOf(Resource.Success(chat("chat-new")))
         val viewModel = ContactViewModel(contactRepository, OpenPrivateChatUseCase(chatRepository))
 
         val results = collectResults(viewModel) { viewModel.openPrivateChat("user-1") }
 
-        assertEquals("chat-new", (results.last() as NetworkResult.Success).data?.chatUuid)
+        assertEquals("chat-new", (results.last() as Resource.Success).data?.chatUuid)
         coVerify(exactly = 1) { chatRepository.createPrivateChat("user-1") }
     }
 
@@ -89,13 +89,13 @@ class ContactViewModelTest {
     fun `openPrivateChat surfaces create failure`() = runTest {
         coEvery { chatRepository.findPrivateChatWith("user-1") } returns null
         coEvery { chatRepository.createPrivateChat("user-1") } returns
-            flowOf(NetworkResult.Error("boom"))
+            flowOf(Resource.Error("boom"))
         val viewModel = ContactViewModel(contactRepository, OpenPrivateChatUseCase(chatRepository))
 
         val results = collectResults(viewModel) { viewModel.openPrivateChat("user-1") }
 
-        assertTrue(results.last() is NetworkResult.Error)
-        assertEquals("boom", (results.last() as NetworkResult.Error).message)
+        assertTrue(results.last() is Resource.Error)
+        assertEquals("boom", (results.last() as Resource.Error).message)
     }
 
     private fun contact(uuid: String, online: Boolean = false) = Contact(
@@ -116,7 +116,7 @@ class ContactViewModelTest {
     @Test
     fun `loadContacts exposes contacts in state`() = runTest {
         coEvery { contactRepository.loadContacts() } returns flowOf(
-            NetworkResult.Success(listOf(contact("a"), contact("b")))
+            Resource.Success(listOf(contact("a"), contact("b")))
         )
         val viewModel = ContactViewModel(contactRepository, OpenPrivateChatUseCase(chatRepository))
 
@@ -128,7 +128,7 @@ class ContactViewModelTest {
 
     @Test
     fun `loadContacts exposes error`() = runTest {
-        coEvery { contactRepository.loadContacts() } returns flowOf(NetworkResult.Error("boom"))
+        coEvery { contactRepository.loadContacts() } returns flowOf(Resource.Error("boom"))
         val viewModel = ContactViewModel(contactRepository, OpenPrivateChatUseCase(chatRepository))
 
         viewModel.loadContacts()
@@ -141,7 +141,7 @@ class ContactViewModelTest {
     @Test
     fun `refreshPresence updates online flag`() = runTest {
         coEvery { contactRepository.loadContacts() } returns flowOf(
-            NetworkResult.Success(listOf(contact("a")))
+            Resource.Success(listOf(contact("a")))
         )
         coEvery { contactRepository.loadPresence(listOf("a")) } returns
             mapOf("a" to Presence(online = true, lastSeenAt = "2026-01-01T00:00:00"))

@@ -1,7 +1,7 @@
 package com.example.muzea.data.repository
 
 import com.example.muzea.data.IntegrationTestClient
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -45,7 +45,7 @@ class VideoRepositoryCacheTest {
 
         val result = repository.getVideos().toList().last()
 
-        assertTrue(result is NetworkResult.Success)
+        assertTrue(result is Resource.Success)
         assertEquals(listOf(29L), VideoListCache.get().map { it.id })
         assertEquals(listOf(29L), repository.cachedVideos().map { it.id })
     }
@@ -56,7 +56,7 @@ class VideoRepositoryCacheTest {
 
         val result = repository.getVideos().toList().last()
 
-        assertTrue(result is NetworkResult.Error)
+        assertTrue(result is Resource.Error)
         assertTrue(VideoListCache.get().isEmpty())
     }
 }

@@ -18,7 +18,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.muzea.databinding.ActivityVideoDetailBinding
 import com.example.muzea.utils.LocalTimeFormatter
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import com.example.muzea.utils.TokenManager
 import com.example.muzea.utils.VideoPlayerHelper
 import dagger.hilt.android.AndroidEntryPoint
@@ -143,16 +143,16 @@ class VideoDetailActivity : AppCompatActivity() {
         lifecycleScope.launch {
             viewModel.videoDetailResult.collect { result ->
                 when (result) {
-                    is NetworkResult.Loading -> {
+                    is Resource.Loading -> {
                         binding.progressBar.visibility = android.view.View.VISIBLE
                     }
 
-                    is NetworkResult.Success -> {
+                    is Resource.Success -> {
                         binding.progressBar.visibility = android.view.View.GONE
                         displayVideo(result.data!!)
                     }
 
-                    is NetworkResult.Error -> {
+                    is Resource.Error -> {
                         binding.progressBar.visibility = android.view.View.GONE
                         Toast.makeText(this@VideoDetailActivity, result.message, Toast.LENGTH_LONG)
                             .show()
@@ -165,14 +165,14 @@ class VideoDetailActivity : AppCompatActivity() {
         lifecycleScope.launch {
             viewModel.deleteResult.collect { result ->
                 when (result) {
-                    is NetworkResult.Loading -> Unit
-                    is NetworkResult.Success -> {
+                    is Resource.Loading -> Unit
+                    is Resource.Success -> {
                         Toast.makeText(this@VideoDetailActivity, "Video deleted", Toast.LENGTH_SHORT)
                             .show()
                         finish()
                     }
 
-                    is NetworkResult.Error -> {
+                    is Resource.Error -> {
                         binding.btnDelete.isEnabled = true
                         Toast.makeText(this@VideoDetailActivity, result.message, Toast.LENGTH_LONG)
                             .show()

@@ -7,7 +7,7 @@ import com.example.muzea.data.model.CreateGroupChatRequest
 import com.example.muzea.data.model.CreatePrivateChatRequest
 import com.example.muzea.domain.model.Chat
 import com.example.muzea.domain.model.ChatParticipant
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
@@ -27,11 +27,11 @@ class ChatRepositoryImpl @Inject constructor(
         const val PRIVATE_CHAT_TYPE = "PRIVATE"
     }
 
-    override suspend fun loadChats(): Flow<NetworkResult<List<Chat>>> = flow {
-        emit(NetworkResult.Loading())
+    override suspend fun loadChats(): Flow<Resource<List<Chat>>> = flow {
+        emit(Resource.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
-                emit(NetworkResult.Error(chatAuthManager.authFailureMessage()))
+                emit(Resource.Error(chatAuthManager.authFailureMessage()))
                 return@flow
             }
 
@@ -46,12 +46,12 @@ class ChatRepositoryImpl @Inject constructor(
             if (response.isSuccessful && response.body() != null) {
                 val content = response.body()!!.map { it.toDomain() }
                 ChatListCache.put(content)
-                emit(NetworkResult.Success(content))
+                emit(Resource.Success(content))
             } else {
-                emit(NetworkResult.Error("Failed to load chats: ${response.message()}"))
+                emit(Resource.Error("Failed to load chats: ${response.message()}"))
             }
         } catch (e: Exception) {
-            emit(NetworkResult.Error("Network error: ${e.message}"))
+            emit(Resource.Error("Network error: ${e.message}"))
         }
     }
 
@@ -59,11 +59,11 @@ class ChatRepositoryImpl @Inject constructor(
 
     override suspend fun loadChatParticipants(
         chatUuid: String
-    ): Flow<NetworkResult<List<ChatParticipant>>> = flow {
-        emit(NetworkResult.Loading())
+    ): Flow<Resource<List<ChatParticipant>>> = flow {
+        emit(Resource.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
-                emit(NetworkResult.Error(chatAuthManager.authFailureMessage()))
+                emit(Resource.Error(chatAuthManager.authFailureMessage()))
                 return@flow
             }
 
@@ -76,20 +76,20 @@ class ChatRepositoryImpl @Inject constructor(
             }
 
             if (response.isSuccessful && response.body() != null) {
-                emit(NetworkResult.Success(response.body()!!.map { it.toDomain() }))
+                emit(Resource.Success(response.body()!!.map { it.toDomain() }))
             } else {
-                emit(NetworkResult.Error("Failed to load participants: ${response.message()}"))
+                emit(Resource.Error("Failed to load participants: ${response.message()}"))
             }
         } catch (e: Exception) {
-            emit(NetworkResult.Error("Network error: ${e.message}"))
+            emit(Resource.Error("Network error: ${e.message}"))
         }
     }
 
-    override suspend fun createPrivateChat(userUuid: String): Flow<NetworkResult<Chat>> = flow {
-        emit(NetworkResult.Loading())
+    override suspend fun createPrivateChat(userUuid: String): Flow<Resource<Chat>> = flow {
+        emit(Resource.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
-                emit(NetworkResult.Error(chatAuthManager.authFailureMessage()))
+                emit(Resource.Error(chatAuthManager.authFailureMessage()))
                 return@flow
             }
 
@@ -104,12 +104,12 @@ class ChatRepositoryImpl @Inject constructor(
             if (response.isSuccessful && response.body() != null) {
                 val chat = response.body()!!.toDomain()
                 PrivateChatCache.put(userUuid, chat)
-                emit(NetworkResult.Success(chat))
+                emit(Resource.Success(chat))
             } else {
-                emit(NetworkResult.Error("Failed to create chat: ${response.message()}"))
+                emit(Resource.Error("Failed to create chat: ${response.message()}"))
             }
         } catch (e: Exception) {
-            emit(NetworkResult.Error("Network error: ${e.message}"))
+            emit(Resource.Error("Network error: ${e.message}"))
         }
     }
 
@@ -128,7 +128,7 @@ class ChatRepositoryImpl @Inject constructor(
         // в кэш, и мы бы создали дубликат.
         var chats: List<Chat> = emptyList()
         loadChats().collect { result ->
-            if (result is NetworkResult.Success) chats = result.data ?: emptyList()
+            if (result is Resource.Success) chats = result.data ?: emptyList()
         }
 
         var match: Chat? = null
@@ -137,7 +137,7 @@ class ChatRepositoryImpl @Inject constructor(
 
             var participants: List<ChatParticipant> = emptyList()
             loadChatParticipants(chat.chatUuid).collect { result ->
-                if (result is NetworkResult.Success) participants = result.data ?: emptyList()
+                if (result is Resource.Success) participants = result.data ?: emptyList()
             }
 
             // Заполняем кэш по всем найденным приватным чатам: тогда следующие
@@ -157,11 +157,11 @@ class ChatRepositoryImpl @Inject constructor(
     override suspend fun createGroupChat(
         title: String,
         memberUuids: List<String>
-    ): Flow<NetworkResult<Chat>> = flow {
-        emit(NetworkResult.Loading())
+    ): Flow<Resource<Chat>> = flow {
+        emit(Resource.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
-                emit(NetworkResult.Error(chatAuthManager.authFailureMessage()))
+                emit(Resource.Error(chatAuthManager.authFailureMessage()))
                 return@flow
             }
 
@@ -174,23 +174,23 @@ class ChatRepositoryImpl @Inject constructor(
             }
 
             if (response.isSuccessful && response.body() != null) {
-                emit(NetworkResult.Success(response.body()!!.toDomain()))
+                emit(Resource.Success(response.body()!!.toDomain()))
             } else {
-                emit(NetworkResult.Error("Failed to create group chat: ${response.message()}"))
+                emit(Resource.Error("Failed to create group chat: ${response.message()}"))
             }
         } catch (e: Exception) {
-            emit(NetworkResult.Error("Network error: ${e.message}"))
+            emit(Resource.Error("Network error: ${e.message}"))
         }
     }
 
     override suspend fun addGroupParticipants(
         chatUuid: String,
         memberUuids: List<String>
-    ): Flow<NetworkResult<Unit>> = flow {
-        emit(NetworkResult.Loading())
+    ): Flow<Resource<Unit>> = flow {
+        emit(Resource.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
-                emit(NetworkResult.Error(chatAuthManager.authFailureMessage()))
+                emit(Resource.Error(chatAuthManager.authFailureMessage()))
                 return@flow
             }
 
@@ -209,12 +209,12 @@ class ChatRepositoryImpl @Inject constructor(
             }
 
             if (response.isSuccessful) {
-                emit(NetworkResult.Success(Unit))
+                emit(Resource.Success(Unit))
             } else {
-                emit(NetworkResult.Error("Failed to add members: ${response.message()}"))
+                emit(Resource.Error("Failed to add members: ${response.message()}"))
             }
         } catch (e: Exception) {
-            emit(NetworkResult.Error("Network error: ${e.message}"))
+            emit(Resource.Error("Network error: ${e.message}"))
         }
     }
 }

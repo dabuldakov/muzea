@@ -22,7 +22,7 @@ import com.example.muzea.data.repository.ChatMessagesCache
 import com.example.muzea.domain.repository.MessageRepository
 import com.example.muzea.databinding.FragmentChatListBinding
 import com.example.muzea.ui.navigation.navigator
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -126,10 +126,10 @@ class ChatListFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.createGroupChatResult.collect { result ->
                 when (result) {
-                    is NetworkResult.Success -> result.data?.let { showAddMembersDialog(it) }
-                    is NetworkResult.Error ->
+                    is Resource.Success -> result.data?.let { showAddMembersDialog(it) }
+                    is Resource.Error ->
                         Toast.makeText(requireContext(), result.message ?: "Error", Toast.LENGTH_SHORT).show()
-                    is NetworkResult.Loading -> Unit
+                    is Resource.Loading -> Unit
                 }
             }
         }
@@ -137,7 +137,7 @@ class ChatListFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.contactsResult.collect { result ->
                 when (result) {
-                    is NetworkResult.Success -> {
+                    is Resource.Success -> {
                         val adapter = membersAdapter ?: return@collect
                         val contacts = result.data ?: emptyList()
                         if (contacts.isEmpty()) {
@@ -146,9 +146,9 @@ class ChatListFragment : Fragment() {
                         adapter.updateList(contacts)
                         membersDialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = true
                     }
-                    is NetworkResult.Error ->
+                    is Resource.Error ->
                         Toast.makeText(requireContext(), result.message ?: "Error", Toast.LENGTH_SHORT).show()
-                    is NetworkResult.Loading -> Unit
+                    is Resource.Loading -> Unit
                 }
             }
         }
@@ -156,11 +156,11 @@ class ChatListFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.addParticipantsResult.collect { result ->
                 when (result) {
-                    is NetworkResult.Success ->
+                    is Resource.Success ->
                         Toast.makeText(requireContext(), "Members added", Toast.LENGTH_SHORT).show()
-                    is NetworkResult.Error ->
+                    is Resource.Error ->
                         Toast.makeText(requireContext(), result.message ?: "Error", Toast.LENGTH_SHORT).show()
-                    is NetworkResult.Loading -> Unit
+                    is Resource.Loading -> Unit
                 }
             }
         }

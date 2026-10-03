@@ -19,7 +19,7 @@ import com.example.muzea.R
 import com.example.muzea.databinding.FragmentGroupSettingsBinding
 import com.example.muzea.utils.AvatarLoader
 import com.example.muzea.ui.navigation.navigator
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -215,7 +215,7 @@ class GroupSettingsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.contactsResult.collect { result ->
                 when (result) {
-                    is NetworkResult.Success -> {
+                    is Resource.Success -> {
                         val adapter = membersAdapter ?: return@collect
                         val contacts = result.data ?: emptyList()
                         if (contacts.isEmpty()) {
@@ -224,9 +224,9 @@ class GroupSettingsFragment : Fragment() {
                         adapter.updateList(contacts)
                         membersDialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = true
                     }
-                    is NetworkResult.Error ->
+                    is Resource.Error ->
                         Toast.makeText(requireContext(), result.message ?: "Error", Toast.LENGTH_SHORT).show()
-                    is NetworkResult.Loading -> Unit
+                    is Resource.Loading -> Unit
                 }
             }
         }
@@ -234,13 +234,13 @@ class GroupSettingsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.addParticipantsResult.collect { result ->
                 when (result) {
-                    is NetworkResult.Success -> {
+                    is Resource.Success -> {
                         Toast.makeText(requireContext(), "Members added", Toast.LENGTH_SHORT).show()
                         viewModel.loadParticipants()
                     }
-                    is NetworkResult.Error ->
+                    is Resource.Error ->
                         Toast.makeText(requireContext(), result.message ?: "Error", Toast.LENGTH_SHORT).show()
-                    is NetworkResult.Loading -> Unit
+                    is Resource.Loading -> Unit
                 }
             }
         }
@@ -248,11 +248,11 @@ class GroupSettingsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.avatarState.collect { result ->
                 when (result) {
-                    is NetworkResult.Loading -> Unit
-                    is NetworkResult.Success -> {
+                    is Resource.Loading -> Unit
+                    is Resource.Success -> {
                         Toast.makeText(requireContext(), "Chat avatar updated", Toast.LENGTH_SHORT).show()
                     }
-                    is NetworkResult.Error -> {
+                    is Resource.Error -> {
                         AvatarLoader.load(binding.ivHeaderAvatar, chatAvatar)
                         Toast.makeText(requireContext(), result.message ?: "Upload failed", Toast.LENGTH_LONG).show()
                     }

@@ -3,7 +3,7 @@ package com.example.muzea.ui.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.muzea.data.repository.AuthRepository
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,19 +46,19 @@ class AuthViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(error = null)
     }
 
-    private fun run(action: suspend () -> kotlinx.coroutines.flow.Flow<NetworkResult<String>>) {
+    private fun run(action: suspend () -> kotlinx.coroutines.flow.Flow<Resource<String>>) {
         viewModelScope.launch {
             action().collect { result ->
                 when (result) {
-                    is NetworkResult.Loading -> _uiState.value =
+                    is Resource.Loading -> _uiState.value =
                         AuthUiState(isLoading = true, error = null)
 
-                    is NetworkResult.Success -> {
+                    is Resource.Success -> {
                         _uiState.value = AuthUiState(isLoading = false)
                         _authenticated.emit(Unit)
                     }
 
-                    is NetworkResult.Error -> _uiState.value =
+                    is Resource.Error -> _uiState.value =
                         AuthUiState(isLoading = false, error = result.message)
                 }
             }

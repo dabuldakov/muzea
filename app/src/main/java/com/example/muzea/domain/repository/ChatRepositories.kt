@@ -6,7 +6,7 @@ import com.example.muzea.domain.model.ChatParticipant
 import com.example.muzea.domain.model.Contact
 import com.example.muzea.domain.model.Message
 import com.example.muzea.domain.model.Presence
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import kotlinx.coroutines.flow.Flow
 import java.io.File
 
@@ -16,42 +16,42 @@ import java.io.File
  */
 
 interface ChatRepository {
-    suspend fun loadChats(): Flow<NetworkResult<List<Chat>>>
+    suspend fun loadChats(): Flow<Resource<List<Chat>>>
     fun cachedChats(): List<Chat>
-    suspend fun loadChatParticipants(chatUuid: String): Flow<NetworkResult<List<ChatParticipant>>>
-    suspend fun createPrivateChat(userUuid: String): Flow<NetworkResult<Chat>>
+    suspend fun loadChatParticipants(chatUuid: String): Flow<Resource<List<ChatParticipant>>>
+    suspend fun createPrivateChat(userUuid: String): Flow<Resource<Chat>>
     suspend fun findPrivateChatWith(userUuid: String): Chat?
-    suspend fun createGroupChat(title: String, memberUuids: List<String>): Flow<NetworkResult<Chat>>
-    suspend fun addGroupParticipants(chatUuid: String, memberUuids: List<String>): Flow<NetworkResult<Unit>>
+    suspend fun createGroupChat(title: String, memberUuids: List<String>): Flow<Resource<Chat>>
+    suspend fun addGroupParticipants(chatUuid: String, memberUuids: List<String>): Flow<Resource<Unit>>
 }
 
 interface MessageRepository {
-    suspend fun loadMessages(chatUuid: String): Flow<NetworkResult<List<Message>>>
+    suspend fun loadMessages(chatUuid: String): Flow<Resource<List<Message>>>
     fun cachedMessages(chatUuid: String): List<Message>
-    suspend fun sendMessage(chatUuid: String, text: String): Flow<NetworkResult<Message>>
+    suspend fun sendMessage(chatUuid: String, text: String): Flow<Resource<Message>>
     suspend fun markMessagesAsRead(chatUuid: String, upToMessageUuid: String): Boolean
 }
 
 interface ContactRepository {
-    suspend fun loadContacts(): Flow<NetworkResult<List<Contact>>>
-    suspend fun addContactByUsername(username: String): Flow<NetworkResult<Contact>>
+    suspend fun loadContacts(): Flow<Resource<List<Contact>>>
+    suspend fun addContactByUsername(username: String): Flow<Resource<Contact>>
     suspend fun loadPresence(userUuids: List<String>): Map<String, Presence>
 }
 
 interface AvatarRepository {
-    suspend fun loadAvatar(): Flow<NetworkResult<Avatar>>
-    suspend fun uploadAvatar(file: File, mimeType: String): Flow<NetworkResult<Avatar>>
-    suspend fun deleteAvatar(): Flow<NetworkResult<Avatar>>
+    suspend fun loadAvatar(): Flow<Resource<Avatar>>
+    suspend fun uploadAvatar(file: File, mimeType: String): Flow<Resource<Avatar>>
+    suspend fun deleteAvatar(): Flow<Resource<Avatar>>
     suspend fun uploadChatAvatar(
         chatUuid: String,
         file: File,
         mimeType: String
-    ): Flow<NetworkResult<String>>
+    ): Flow<Resource<String>>
 }
 
 interface ChatSessionRepository {
     suspend fun deleteAccount(): Boolean
     suspend fun sendHeartbeat(): Boolean
     suspend fun logout(): Boolean
-    suspend fun getTotalUnreadCount(): Flow<NetworkResult<Long>>
+    suspend fun getTotalUnreadCount(): Flow<Resource<Long>>
 }

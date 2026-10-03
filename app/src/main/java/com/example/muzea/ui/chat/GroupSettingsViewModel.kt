@@ -9,7 +9,7 @@ import com.example.muzea.domain.repository.AvatarRepository
 import com.example.muzea.domain.repository.ChatRepository
 import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.domain.ChatUserIdentity
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,16 +43,16 @@ class GroupSettingsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(GroupSettingsUiState())
     val uiState: StateFlow<GroupSettingsUiState> = _uiState.asStateFlow()
 
-    private val _contactsResult = MutableSharedFlow<NetworkResult<List<Contact>>>()
-    val contactsResult: SharedFlow<NetworkResult<List<Contact>>> =
+    private val _contactsResult = MutableSharedFlow<Resource<List<Contact>>>()
+    val contactsResult: SharedFlow<Resource<List<Contact>>> =
         _contactsResult.asSharedFlow()
 
-    private val _addParticipantsResult = MutableSharedFlow<NetworkResult<Unit>>()
-    val addParticipantsResult: SharedFlow<NetworkResult<Unit>> =
+    private val _addParticipantsResult = MutableSharedFlow<Resource<Unit>>()
+    val addParticipantsResult: SharedFlow<Resource<Unit>> =
         _addParticipantsResult.asSharedFlow()
 
-    private val _avatarState = MutableSharedFlow<NetworkResult<String>>()
-    val avatarState: SharedFlow<NetworkResult<String>> = _avatarState.asSharedFlow()
+    private val _avatarState = MutableSharedFlow<Resource<String>>()
+    val avatarState: SharedFlow<Resource<String>> = _avatarState.asSharedFlow()
 
     private var avatarUploadActive = false
 
@@ -60,16 +60,16 @@ class GroupSettingsViewModel @Inject constructor(
         viewModelScope.launch {
             chatRepository.loadChatParticipants(chatUuid).collect { result ->
                 when (result) {
-                    is NetworkResult.Loading -> _uiState.value =
+                    is Resource.Loading -> _uiState.value =
                         _uiState.value.copy(isLoading = _uiState.value.participants.isEmpty())
 
-                    is NetworkResult.Success -> _uiState.value = _uiState.value.copy(
+                    is Resource.Success -> _uiState.value = _uiState.value.copy(
                         participants = result.data ?: emptyList(),
                         isLoading = false,
                         error = null
                     )
 
-                    is NetworkResult.Error -> _uiState.value = _uiState.value.copy(
+                    is Resource.Error -> _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = result.message
                     )

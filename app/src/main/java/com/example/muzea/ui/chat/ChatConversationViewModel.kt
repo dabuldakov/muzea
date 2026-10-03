@@ -7,7 +7,7 @@ import com.example.muzea.domain.model.Message
 import com.example.muzea.domain.repository.MessageRepository
 import com.example.muzea.domain.ChatUserIdentity
 import com.example.muzea.domain.chat.ChatMessageReducer
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -71,15 +71,15 @@ class ChatConversationViewModel @Inject constructor(
             when (result) {
                 // Спиннер показываем только когда показать нечего: переписка из
                 // кэша уже на экране, и мигать индикатором при входе незачем.
-                is NetworkResult.Loading -> _uiState.value =
+                is Resource.Loading -> _uiState.value =
                     _uiState.value.copy(isLoading = _uiState.value.messages.isEmpty())
 
-                is NetworkResult.Success -> {
+                is Resource.Success -> {
                     _uiState.value = _uiState.value.copy(isLoading = false)
                     mergeMessages(result.data ?: emptyList())
                 }
 
-                is NetworkResult.Error -> _uiState.value =
+                is Resource.Error -> _uiState.value =
                     _uiState.value.copy(isLoading = false, error = result.message)
             }
         }
@@ -110,13 +110,13 @@ class ChatConversationViewModel @Inject constructor(
         viewModelScope.launch {
             messageRepository.sendMessage(chatUuid, trimmed).collect { result ->
                 when (result) {
-                    is NetworkResult.Success -> {
+                    is Resource.Success -> {
                         applyServerEcho(optimistic.messageUuid, result.data!!)
                     }
-                    is NetworkResult.Error -> {
+                    is Resource.Error -> {
                         _sendError.emit(result.message ?: "Failed to send message")
                     }
-                    is NetworkResult.Loading -> {}
+                    is Resource.Loading -> {}
                 }
             }
         }

@@ -8,7 +8,7 @@ import com.example.muzea.domain.model.User
 import com.example.muzea.domain.repository.ChatSessionRepository
 import com.example.muzea.domain.repository.UserRepository
 import com.example.muzea.utils.ConsentManager
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import com.example.muzea.utils.TokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -40,11 +40,11 @@ class ProfileViewModel @Inject constructor(
     private val _profileState = MutableStateFlow(ProfileUiState())
     val profileState: StateFlow<ProfileUiState> = _profileState.asStateFlow()
 
-    private val _updateProfileResult = MutableSharedFlow<NetworkResult<User>>()
-    val updateProfileResult: SharedFlow<NetworkResult<User>> = _updateProfileResult.asSharedFlow()
+    private val _updateProfileResult = MutableSharedFlow<Resource<User>>()
+    val updateProfileResult: SharedFlow<Resource<User>> = _updateProfileResult.asSharedFlow()
 
-    private val _deleteAccountResult = MutableSharedFlow<NetworkResult<Unit>>()
-    val deleteAccountResult: SharedFlow<NetworkResult<Unit>> = _deleteAccountResult.asSharedFlow()
+    private val _deleteAccountResult = MutableSharedFlow<Resource<Unit>>()
+    val deleteAccountResult: SharedFlow<Resource<Unit>> = _deleteAccountResult.asSharedFlow()
 
     private var currentUserId: Long = 0
 
@@ -52,16 +52,16 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             userRepository.getCurrentUser().collect { result ->
                 when (result) {
-                    is NetworkResult.Loading ->
+                    is Resource.Loading ->
                         _profileState.value = _profileState.value.copy(isLoading = true, error = null)
 
-                    is NetworkResult.Success -> {
+                    is Resource.Success -> {
                         val user = result.data
                         if (user != null) currentUserId = user.id
                         _profileState.value = ProfileUiState(user = user, isLoading = false)
                     }
 
-                    is NetworkResult.Error ->
+                    is Resource.Error ->
                         _profileState.value = _profileState.value.copy(
                             isLoading = false,
                             error = result.message
@@ -88,18 +88,18 @@ class ProfileViewModel @Inject constructor(
      */
     fun deleteAccount() {
         viewModelScope.launch {
-            _deleteAccountResult.emit(NetworkResult.Loading())
+            _deleteAccountResult.emit(Resource.Loading())
             val chatErased = chatSessionRepository.deleteAccount()
             val result = userRepository.deleteAccount(currentUserId)
-                .filterNot { it is NetworkResult.Loading }
+                .filterNot { it is Resource.Loading }
                 .first()
-            if (result is NetworkResult.Success && chatErased) {
+            if (result is Resource.Success && chatErased) {
                 tokenManager.clearAll()
                 ConsentManager.revoke(application)
             }
             _deleteAccountResult.emit(
-                if (result is NetworkResult.Success && !chatErased) {
-                    NetworkResult.Error(application.getString(R.string.delete_account_chat_failed))
+                if (result is Resource.Success && !chatErased) {
+                    Resource.Error(application.getString(R.string.delete_account_chat_failed))
                 } else {
                     result
                 }

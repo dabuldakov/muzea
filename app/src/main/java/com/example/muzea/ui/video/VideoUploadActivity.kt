@@ -14,7 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.muzea.databinding.ActivityVideoUploadBinding
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -164,19 +164,19 @@ class VideoUploadActivity : AppCompatActivity() {
         lifecycleScope.launch {
             viewModel.uploadResult.collect { result ->
                 when (result) {
-                    is NetworkResult.Loading -> {
+                    is Resource.Loading -> {
                         binding.btnUpload.isEnabled = false
                         binding.progressBar.visibility = android.view.View.VISIBLE
                         binding.tvProgress.text = "Uploading..."
                     }
-                    is NetworkResult.Success -> {
+                    is Resource.Success -> {
                         binding.btnUpload.isEnabled = true
                         binding.progressBar.visibility = android.view.View.GONE
                         Toast.makeText(this@VideoUploadActivity, "Upload successful!", Toast.LENGTH_SHORT).show()
                         setResult(RESULT_OK)
                         finish()
                     }
-                    is NetworkResult.Error -> {
+                    is Resource.Error -> {
                         binding.btnUpload.isEnabled = true
                         binding.progressBar.visibility = android.view.View.GONE
                         Toast.makeText(this@VideoUploadActivity, "Upload failed: ${result.message}", Toast.LENGTH_LONG).show()

@@ -3,7 +3,7 @@ package com.example.muzea.data.repository
 import com.example.muzea.data.api.ApiService
 import com.example.muzea.data.mapper.toDomain
 import com.example.muzea.domain.model.Video
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import okhttp3.MultipartBody
@@ -17,35 +17,35 @@ class VideoRepositoryImpl @Inject constructor(
     private val apiService: ApiService
 ) : com.example.muzea.domain.repository.VideoRepository {
 
-    override suspend fun getVideos(): Flow<NetworkResult<List<Video>>> = flow {
-        emit(NetworkResult.Loading())
+    override suspend fun getVideos(): Flow<Resource<List<Video>>> = flow {
+        emit(Resource.Loading())
         try {
             val response = apiService.getVideos()
             if (response.isSuccessful && response.body() != null) {
                 val content = response.body()!!.map { it.toDomain() }
                 VideoListCache.put(content)
-                emit(NetworkResult.Success(content))
+                emit(Resource.Success(content))
             } else {
-                emit(NetworkResult.Error("Failed to load videos: ${response.message()}"))
+                emit(Resource.Error("Failed to load videos: ${response.message()}"))
             }
         } catch (e: Exception) {
-            emit(NetworkResult.Error("Network error: ${e.message}"))
+            emit(Resource.Error("Network error: ${e.message}"))
         }
     }
 
     override fun cachedVideos(): List<Video> = VideoListCache.get()
 
-    override suspend fun getVideoById(id: Long): Flow<NetworkResult<Video>> = flow {
-        emit(NetworkResult.Loading())
+    override suspend fun getVideoById(id: Long): Flow<Resource<Video>> = flow {
+        emit(Resource.Loading())
         try {
             val response = apiService.getVideoById(id)
             if (response.isSuccessful && response.body() != null) {
-                emit(NetworkResult.Success(response.body()!!.toDomain()))
+                emit(Resource.Success(response.body()!!.toDomain()))
             } else {
-                emit(NetworkResult.Error("Failed to load video: ${response.message()}"))
+                emit(Resource.Error("Failed to load video: ${response.message()}"))
             }
         } catch (e: Exception) {
-            emit(NetworkResult.Error("Network error: ${e.message}"))
+            emit(Resource.Error("Network error: ${e.message}"))
         }
     }
 
@@ -54,8 +54,8 @@ class VideoRepositoryImpl @Inject constructor(
         description: String?,
         filePart: MultipartBody.Part,
         thumbnailPart: MultipartBody.Part?
-    ): Flow<NetworkResult<Video>> = flow {
-        emit(NetworkResult.Loading())
+    ): Flow<Resource<Video>> = flow {
+        emit(Resource.Loading())
         try {
             val response = apiService.uploadVideo(
                 title.toRequestBody(),
@@ -64,26 +64,26 @@ class VideoRepositoryImpl @Inject constructor(
                 thumbnailPart
             )
             if (response.isSuccessful && response.body() != null) {
-                emit(NetworkResult.Success(response.body()!!.toDomain()))
+                emit(Resource.Success(response.body()!!.toDomain()))
             } else {
-                emit(NetworkResult.Error("Upload failed: ${response.message()}"))
+                emit(Resource.Error("Upload failed: ${response.message()}"))
             }
         } catch (e: Exception) {
-            emit(NetworkResult.Error("Network error: ${e.message}"))
+            emit(Resource.Error("Network error: ${e.message}"))
         }
     }
 
-    override suspend fun deleteVideo(id: Long): Flow<NetworkResult<Unit>> = flow {
-        emit(NetworkResult.Loading())
+    override suspend fun deleteVideo(id: Long): Flow<Resource<Unit>> = flow {
+        emit(Resource.Loading())
         try {
             val response = apiService.deleteVideo(id)
             if (response.isSuccessful) {
-                emit(NetworkResult.Success(Unit))
+                emit(Resource.Success(Unit))
             } else {
-                emit(NetworkResult.Error("Delete failed: ${response.message()}"))
+                emit(Resource.Error("Delete failed: ${response.message()}"))
             }
         } catch (e: Exception) {
-            emit(NetworkResult.Error("Network error: ${e.message}"))
+            emit(Resource.Error("Network error: ${e.message}"))
         }
     }
 }

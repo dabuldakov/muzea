@@ -1,6 +1,6 @@
 package com.example.muzea.core
 
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 
@@ -10,9 +10,9 @@ import kotlinx.coroutines.flow.first
  * Репозитории отдают тройку Loading→Success/Error; там, где нужен один
  * результат (use-case, проверка), удобнее дождаться терминального значения.
  */
-suspend fun <T> Flow<NetworkResult<T>>.firstTerminal(): NetworkResult<T> =
+suspend fun <T> Flow<Resource<T>>.firstTerminal(): Resource<T> =
     try {
-        first { it !is NetworkResult.Loading }
+        first { it !is Resource.Loading }
     } catch (e: NoSuchElementException) {
-        NetworkResult.Error("Empty result")
+        Resource.Error("Empty result")
     }

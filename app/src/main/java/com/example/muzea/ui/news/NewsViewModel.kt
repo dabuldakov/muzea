@@ -6,7 +6,7 @@ import com.example.muzea.core.firstTerminal
 import com.example.muzea.domain.model.News
 import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.domain.repository.NewsRepository
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,14 +36,14 @@ class NewsViewModel @Inject constructor(
     private val _feedState = MutableStateFlow(NewsFeedUiState())
     val feedState: StateFlow<NewsFeedUiState> = _feedState.asStateFlow()
 
-    private val _newsDetailResult = MutableSharedFlow<NetworkResult<News>>()
-    val newsDetailResult: SharedFlow<NetworkResult<News>> = _newsDetailResult.asSharedFlow()
+    private val _newsDetailResult = MutableSharedFlow<Resource<News>>()
+    val newsDetailResult: SharedFlow<Resource<News>> = _newsDetailResult.asSharedFlow()
 
-    private val _createNewsResult = MutableSharedFlow<NetworkResult<Long>>()
-    val createNewsResult: SharedFlow<NetworkResult<Long>> = _createNewsResult.asSharedFlow()
+    private val _createNewsResult = MutableSharedFlow<Resource<Long>>()
+    val createNewsResult: SharedFlow<Resource<Long>> = _createNewsResult.asSharedFlow()
 
-    private val _deleteNewsResult = MutableSharedFlow<NetworkResult<Unit>>()
-    val deleteNewsResult: SharedFlow<NetworkResult<Unit>> = _deleteNewsResult.asSharedFlow()
+    private val _deleteNewsResult = MutableSharedFlow<Resource<Unit>>()
+    val deleteNewsResult: SharedFlow<Resource<Unit>> = _deleteNewsResult.asSharedFlow()
 
     private var pageSize = 20
     private var isContactsLoaded = false
@@ -111,7 +111,7 @@ class NewsViewModel @Inject constructor(
         return try {
             val result = contactRepository.loadContacts().firstTerminal()
             when (result) {
-                is NetworkResult.Success -> (result.data ?: emptyList())
+                is Resource.Success -> (result.data ?: emptyList())
                     .mapNotNull { (it.username ?: it.contactName)?.trim() }
                     .filter { it.isNotEmpty() }
                     .toSet()
@@ -149,7 +149,7 @@ class NewsViewModel @Inject constructor(
     private suspend fun fetchRawPage(page: Int): List<News>? {
         val result = newsRepository.getNews(page, pageSize).firstTerminal()
         return when (result) {
-            is NetworkResult.Success -> result.data ?: emptyList()
+            is Resource.Success -> result.data ?: emptyList()
             else -> null
         }
     }

@@ -2,7 +2,7 @@ package com.example.muzea.data.repository
 
 import com.example.muzea.data.IntegrationTestClient
 import com.example.muzea.domain.model.Chat
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -78,7 +78,7 @@ class ChatRepositoryCacheTest {
 
         val result = chatRepo().loadChats().toList().last()
 
-        assertTrue(result is NetworkResult.Success)
+        assertTrue(result is Resource.Success)
         assertEquals(listOf("chat-1"), ChatListCache.get().map { it.chatUuid })
     }
 
@@ -96,7 +96,7 @@ class ChatRepositoryCacheTest {
 
         val result = messageRepo().loadMessages("chat-1").toList().last()
 
-        assertTrue(result is NetworkResult.Success)
+        assertTrue(result is Resource.Success)
         assertEquals(listOf("m1"), ChatMessagesCache.get("chat-1").map { it.messageUuid })
         assertEquals(listOf("m1"), messageRepo().cachedMessages("chat-1").map { it.messageUuid })
     }
@@ -151,7 +151,7 @@ class ChatRepositoryCacheTest {
 
         val result = chatRepo().createPrivateChat("user-9").toList().last()
 
-        assertTrue(result is NetworkResult.Success)
+        assertTrue(result is Resource.Success)
         assertEquals("chat-new", PrivateChatCache.get("user-9")?.chatUuid)
         coVerify(exactly = 0) { auth.invalidate() }
     }

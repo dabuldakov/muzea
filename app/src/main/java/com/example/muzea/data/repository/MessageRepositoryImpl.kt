@@ -4,7 +4,7 @@ import com.example.muzea.data.api.ChatApiService
 import com.example.muzea.data.mapper.toDomain
 import com.example.muzea.data.model.SendMessageRequest
 import com.example.muzea.domain.model.Message
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -18,11 +18,11 @@ class MessageRepositoryImpl @Inject constructor(
     private val chatAuthManager: ChatAuthManager
 ) : com.example.muzea.domain.repository.MessageRepository {
 
-    override suspend fun loadMessages(chatUuid: String): Flow<NetworkResult<List<Message>>> = flow {
-        emit(NetworkResult.Loading())
+    override suspend fun loadMessages(chatUuid: String): Flow<Resource<List<Message>>> = flow {
+        emit(Resource.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
-                emit(NetworkResult.Error(chatAuthManager.authFailureMessage()))
+                emit(Resource.Error(chatAuthManager.authFailureMessage()))
                 return@flow
             }
 
@@ -37,22 +37,22 @@ class MessageRepositoryImpl @Inject constructor(
             if (response.isSuccessful && response.body() != null) {
                 val content = response.body()!!.content.map { it.toDomain() }
                 ChatMessagesCache.put(chatUuid, content)
-                emit(NetworkResult.Success(content))
+                emit(Resource.Success(content))
             } else {
-                emit(NetworkResult.Error("Failed to load messages: ${response.message()}"))
+                emit(Resource.Error("Failed to load messages: ${response.message()}"))
             }
         } catch (e: Exception) {
-            emit(NetworkResult.Error("Network error: ${e.message}"))
+            emit(Resource.Error("Network error: ${e.message}"))
         }
     }
 
     override fun cachedMessages(chatUuid: String): List<Message> = ChatMessagesCache.get(chatUuid)
 
-    override suspend fun sendMessage(chatUuid: String, text: String): Flow<NetworkResult<Message>> = flow {
-        emit(NetworkResult.Loading())
+    override suspend fun sendMessage(chatUuid: String, text: String): Flow<Resource<Message>> = flow {
+        emit(Resource.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
-                emit(NetworkResult.Error(chatAuthManager.authFailureMessage()))
+                emit(Resource.Error(chatAuthManager.authFailureMessage()))
                 return@flow
             }
 
@@ -65,12 +65,12 @@ class MessageRepositoryImpl @Inject constructor(
             }
 
             if (response.isSuccessful && response.body() != null) {
-                emit(NetworkResult.Success(response.body()!!.toDomain()))
+                emit(Resource.Success(response.body()!!.toDomain()))
             } else {
-                emit(NetworkResult.Error("Failed to send message: ${response.message()}"))
+                emit(Resource.Error("Failed to send message: ${response.message()}"))
             }
         } catch (e: Exception) {
-            emit(NetworkResult.Error("Network error: ${e.message}"))
+            emit(Resource.Error("Network error: ${e.message}"))
         }
     }
 

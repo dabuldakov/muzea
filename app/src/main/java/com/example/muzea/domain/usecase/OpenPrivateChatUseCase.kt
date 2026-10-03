@@ -3,7 +3,7 @@ package com.example.muzea.domain.usecase
 import com.example.muzea.core.firstTerminal
 import com.example.muzea.domain.model.Chat
 import com.example.muzea.domain.repository.ChatRepository
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 
@@ -16,7 +16,7 @@ class OpenPrivateChatUseCase @Inject constructor(
     private val chatRepository: ChatRepository
 ) {
 
-    suspend operator fun invoke(userUuid: String): NetworkResult<Chat> {
+    suspend operator fun invoke(userUuid: String): Resource<Chat> {
         val existing = try {
             chatRepository.findPrivateChatWith(userUuid)
         } catch (e: CancellationException) {
@@ -25,7 +25,7 @@ class OpenPrivateChatUseCase @Inject constructor(
             null
         }
 
-        if (existing != null) return NetworkResult.Success(existing)
+        if (existing != null) return Resource.Success(existing)
         return chatRepository.createPrivateChat(userUuid).firstTerminal()
     }
 }

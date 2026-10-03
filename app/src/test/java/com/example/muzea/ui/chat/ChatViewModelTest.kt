@@ -4,7 +4,7 @@ import com.example.muzea.domain.model.Chat
 import com.example.muzea.domain.repository.ChatRepository
 import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.ui.news.MainDispatcherRule
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -78,7 +78,7 @@ class ChatViewModelTest {
     fun `network result replaces cached chats and hides spinner`() = runTest {
         every { chatRepository.cachedChats() } returns listOf(chat("stale"))
         coEvery { chatRepository.loadChats() } returns flowOf(
-            NetworkResult.Success(listOf(chat("fresh-1"), chat("fresh-2")))
+            Resource.Success(listOf(chat("fresh-1"), chat("fresh-2")))
         )
 
         val viewModel = ChatViewModel(chatRepository, contactRepository)
@@ -92,7 +92,7 @@ class ChatViewModelTest {
     fun `late collector receives current list without new network request`() = runTest {
         every { chatRepository.cachedChats() } returns listOf(chat("cached"))
         coEvery { chatRepository.loadChats() } returns flowOf(
-            NetworkResult.Success(listOf(chat("fresh")))
+            Resource.Success(listOf(chat("fresh")))
         )
 
         val viewModel = ChatViewModel(chatRepository, contactRepository)
@@ -109,7 +109,7 @@ class ChatViewModelTest {
         every { chatRepository.cachedChats() } returns emptyList()
         // Первый запрос «висит», как реальный сетевой вызов.
         coEvery { chatRepository.loadChats() } returns flow {
-            emit(NetworkResult.Loading())
+            emit(Resource.Loading())
             awaitCancellation()
         }
 
@@ -127,7 +127,7 @@ class ChatViewModelTest {
     fun `sequential loads are allowed once the previous one finished`() = runTest {
         every { chatRepository.cachedChats() } returns emptyList()
         coEvery { chatRepository.loadChats() } returns flowOf(
-            NetworkResult.Success(listOf(chat("a")))
+            Resource.Success(listOf(chat("a")))
         )
 
         val viewModel = ChatViewModel(chatRepository, contactRepository)
@@ -142,7 +142,7 @@ class ChatViewModelTest {
     fun `network failure keeps cached chats on screen`() = runTest {
         every { chatRepository.cachedChats() } returns listOf(chat("cached"))
         coEvery { chatRepository.loadChats() } returns flowOf(
-            NetworkResult.Error("network down")
+            Resource.Error("network down")
         )
 
         val viewModel = ChatViewModel(chatRepository, contactRepository)
@@ -157,7 +157,7 @@ class ChatViewModelTest {
     fun `network failure hides spinner when there is nothing cached`() = runTest {
         every { chatRepository.cachedChats() } returns emptyList()
         coEvery { chatRepository.loadChats() } returns flowOf(
-            NetworkResult.Error("network down")
+            Resource.Error("network down")
         )
 
         val viewModel = ChatViewModel(chatRepository, contactRepository)
@@ -170,7 +170,7 @@ class ChatViewModelTest {
     @Test
     fun `empty successful response clears cached chats`() = runTest {
         every { chatRepository.cachedChats() } returns listOf(chat("cached"))
-        coEvery { chatRepository.loadChats() } returns flowOf(NetworkResult.Success(emptyList()))
+        coEvery { chatRepository.loadChats() } returns flowOf(Resource.Success(emptyList()))
 
         val viewModel = ChatViewModel(chatRepository, contactRepository)
         viewModel.loadChats()

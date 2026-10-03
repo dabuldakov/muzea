@@ -2,7 +2,7 @@ package com.example.muzea.data.repository
 
 import com.example.muzea.data.IntegrationTestClient
 import com.example.muzea.utils.MediaUrl
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import com.google.gson.JsonParser
 import io.mockk.coEvery
 import io.mockk.every
@@ -71,7 +71,7 @@ class ChatRepositoryIntegrationTest {
 
         val result = contactRepo().addContactByUsername("itest_audit_02").toList().last()
 
-        assertTrue(result is NetworkResult.Success)
+        assertTrue(result is Resource.Success)
         assertEquals(
             "2afcbb98-85bd-4a24-be7d-5e66dbe53933",
             result.data!!.contactUserUuid
@@ -98,8 +98,8 @@ class ChatRepositoryIntegrationTest {
 
         val result = contactRepo().addContactByUsername("no-such-user").toList().last()
 
-        assertTrue(result is NetworkResult.Error)
-        assertEquals("User not found: no-such-user", (result as NetworkResult.Error).message)
+        assertTrue(result is Resource.Error)
+        assertEquals("User not found: no-such-user", (result as Resource.Error).message)
     }
 
     @Test
@@ -113,7 +113,7 @@ class ChatRepositoryIntegrationTest {
 
         val result = chatRepo().createPrivateChat("2afcbb98-85bd-4a24-be7d-5e66dbe53933").toList().last()
 
-        assertTrue(result is NetworkResult.Success)
+        assertTrue(result is Resource.Success)
         assertEquals("7b0b15f8-6b3c-4c2d-a9e2-2e1e32de9b1f", result.data!!.chatUuid)
 
         val request = server.takeRequest()
@@ -134,7 +134,7 @@ class ChatRepositoryIntegrationTest {
 
         val result = contactRepo().loadContacts().toList().last()
 
-        assertTrue(result is NetworkResult.Success)
+        assertTrue(result is Resource.Success)
         val contact = result.data!!.single()
         assertEquals("2afcbb98-85bd-4a24-be7d-5e66dbe53933", contact.contactUserUuid)
         assertEquals("itest_audit_02", contact.username)
@@ -158,7 +158,7 @@ class ChatRepositoryIntegrationTest {
 
         val result = avatarRepo().loadAvatar().toList().last()
 
-        assertTrue(result is NetworkResult.Success)
+        assertTrue(result is Resource.Success)
         val avatarPath = result.data!!.avatarUrl
         assertEquals(
             "/api/avatars/f8ea45c4-6e3c-4b85-8534-c3f3f08d079a/6dccd85f-f355-4b93-bc9a-248c09c917f2.png",
@@ -188,7 +188,7 @@ class ChatRepositoryIntegrationTest {
 
         val result = chatRepo().createGroupChat("Team Talks", emptyList()).toList().last()
 
-        assertTrue(result is NetworkResult.Success)
+        assertTrue(result is Resource.Success)
         assertEquals("9f3e1a02-2c7b-4c81-a5e9-3f4d1c2b8a07", result.data!!.chatUuid)
         assertEquals("GROUP", result.data!!.chatType)
 
@@ -214,7 +214,7 @@ class ChatRepositoryIntegrationTest {
             .toList()
             .last()
 
-        assertTrue(result is NetworkResult.Success)
+        assertTrue(result is Resource.Success)
 
         val request = server.takeRequest()
         assertEquals("/api/chats/9f3e1a02-2c7b-4c81-a5e9-3f4d1c2b8a07/participants", request.path)
@@ -245,8 +245,8 @@ class ChatRepositoryIntegrationTest {
 
         assertTrue(
             "expected Success but got ${result} " +
-                "message=${(result as? NetworkResult.Error)?.message}",
-            result is NetworkResult.Success
+                "message=${(result as? Resource.Error)?.message}",
+            result is Resource.Success
         )
         assertEquals("chat_avatars/chat_avatar_6_1789894857540.png", result.data)
 
@@ -277,7 +277,7 @@ class ChatRepositoryIntegrationTest {
             .toList()
             .last()
 
-        assertTrue(result is NetworkResult.Success)
+        assertTrue(result is Resource.Success)
         val participants = result.data!!
         assertEquals(2, participants.size)
         assertEquals("dabuldakov", participants[0].displayName())
@@ -296,10 +296,10 @@ class ChatRepositoryIntegrationTest {
 
         val result = contactRepo().loadContacts().toList().last()
 
-        assertTrue(result is NetworkResult.Error)
+        assertTrue(result is Resource.Error)
         assertEquals(
             "Chat auth failed. Chat account \"xoxo\" already exists on the chat server",
-            (result as NetworkResult.Error).message
+            (result as Resource.Error).message
         )
         assertEquals(0, server.requestCount)
     }

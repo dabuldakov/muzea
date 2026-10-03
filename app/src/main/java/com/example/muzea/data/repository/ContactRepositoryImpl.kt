@@ -5,7 +5,7 @@ import com.example.muzea.data.mapper.toDomain
 import com.example.muzea.data.model.AddContactRequest
 import com.example.muzea.domain.model.Contact
 import com.example.muzea.domain.model.Presence
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -28,11 +28,11 @@ class ContactRepositoryImpl @Inject constructor(
         const val PRESENCE_BATCH_SIZE = 100
     }
 
-    override suspend fun loadContacts(): Flow<NetworkResult<List<Contact>>> = flow {
-        emit(NetworkResult.Loading())
+    override suspend fun loadContacts(): Flow<Resource<List<Contact>>> = flow {
+        emit(Resource.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
-                emit(NetworkResult.Error(chatAuthManager.authFailureMessage()))
+                emit(Resource.Error(chatAuthManager.authFailureMessage()))
                 return@flow
             }
 
@@ -45,26 +45,26 @@ class ContactRepositoryImpl @Inject constructor(
             }
 
             if (response.isSuccessful && response.body() != null) {
-                emit(NetworkResult.Success(response.body()!!.map { it.toDomain() }))
+                emit(Resource.Success(response.body()!!.map { it.toDomain() }))
             } else {
-                emit(NetworkResult.Error("Failed to load contacts: ${response.message()}"))
+                emit(Resource.Error("Failed to load contacts: ${response.message()}"))
             }
         } catch (e: Exception) {
-            emit(NetworkResult.Error("Network error: ${e.message}"))
+            emit(Resource.Error("Network error: ${e.message}"))
         }
     }
 
-    override suspend fun addContactByUsername(username: String): Flow<NetworkResult<Contact>> = flow {
-        emit(NetworkResult.Loading())
+    override suspend fun addContactByUsername(username: String): Flow<Resource<Contact>> = flow {
+        emit(Resource.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
-                emit(NetworkResult.Error(chatAuthManager.authFailureMessage()))
+                emit(Resource.Error(chatAuthManager.authFailureMessage()))
                 return@flow
             }
 
             val userResponse = apiService.getUserByUsername(username)
             if (!userResponse.isSuccessful || userResponse.body() == null) {
-                emit(NetworkResult.Error("User not found: $username"))
+                emit(Resource.Error("User not found: $username"))
                 return@flow
             }
 
@@ -72,12 +72,12 @@ class ContactRepositoryImpl @Inject constructor(
             val response = apiService.addContact(AddContactRequest(userUuid, null))
 
             if (response.isSuccessful && response.body() != null) {
-                emit(NetworkResult.Success(response.body()!!.toDomain()))
+                emit(Resource.Success(response.body()!!.toDomain()))
             } else {
-                emit(NetworkResult.Error("Failed to add contact: ${response.message()}"))
+                emit(Resource.Error("Failed to add contact: ${response.message()}"))
             }
         } catch (e: Exception) {
-            emit(NetworkResult.Error("Network error: ${e.message}"))
+            emit(Resource.Error("Network error: ${e.message}"))
         }
     }
 

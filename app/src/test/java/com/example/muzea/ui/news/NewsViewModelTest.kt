@@ -4,7 +4,7 @@ import com.example.muzea.domain.model.Contact
 import com.example.muzea.domain.model.News
 import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.domain.repository.NewsRepository
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -76,9 +76,9 @@ class NewsViewModelTest {
             news(4, "vovan")
         )
         coEvery { contactRepository.loadContacts() } returns flowOf(
-            NetworkResult.Success(listOf(contact("dabuldakov"), contact("maria")))
+            Resource.Success(listOf(contact("dabuldakov"), contact("maria")))
         )
-        coEvery { newsRepository.getNews(any(), any()) } returns flowOf(NetworkResult.Success(feed))
+        coEvery { newsRepository.getNews(any(), any()) } returns flowOf(Resource.Success(feed))
 
         val viewModel = NewsViewModel(newsRepository, contactRepository)
         viewModel.loadNews(pageSize = 20, ownUsername = "vovan")
@@ -90,11 +90,11 @@ class NewsViewModelTest {
     fun `loadNews fetches next pages until enough visible items`() = runTest {
         val strangers = (1..20).map { news(it.toLong(), "stranger") }
         coEvery { contactRepository.loadContacts() } returns flowOf(
-            NetworkResult.Success(listOf(contact("dabuldakov")))
+            Resource.Success(listOf(contact("dabuldakov")))
         )
-        coEvery { newsRepository.getNews(0, 20) } returns flowOf(NetworkResult.Success(strangers))
+        coEvery { newsRepository.getNews(0, 20) } returns flowOf(Resource.Success(strangers))
         coEvery { newsRepository.getNews(1, 20) } returns flowOf(
-            NetworkResult.Success(listOf(news(21, "dabuldakov"), news(22, "vovan")))
+            Resource.Success(listOf(news(21, "dabuldakov"), news(22, "vovan")))
         )
 
         val viewModel = NewsViewModel(newsRepository, contactRepository)
@@ -107,9 +107,9 @@ class NewsViewModelTest {
 
     @Test
     fun `loadNews shows only own news when contacts cannot be loaded`() = runTest {
-        coEvery { contactRepository.loadContacts() } returns flowOf(NetworkResult.Error("chat backend down"))
+        coEvery { contactRepository.loadContacts() } returns flowOf(Resource.Error("chat backend down"))
         val feed = listOf(news(1, "stranger"), news(2, "dabuldakov"), news(3, "vovan"))
-        coEvery { newsRepository.getNews(any(), any()) } returns flowOf(NetworkResult.Success(feed))
+        coEvery { newsRepository.getNews(any(), any()) } returns flowOf(Resource.Success(feed))
 
         val viewModel = NewsViewModel(newsRepository, contactRepository)
         viewModel.loadNews(pageSize = 20, ownUsername = "vovan")
@@ -120,9 +120,9 @@ class NewsViewModelTest {
     @Test
     fun `loadNews emits error when news fetch fails`() = runTest {
         coEvery { contactRepository.loadContacts() } returns flowOf(
-            NetworkResult.Success(listOf(contact("dabuldakov")))
+            Resource.Success(listOf(contact("dabuldakov")))
         )
-        coEvery { newsRepository.getNews(any(), any()) } returns flowOf(NetworkResult.Error("network down"))
+        coEvery { newsRepository.getNews(any(), any()) } returns flowOf(Resource.Error("network down"))
 
         val viewModel = NewsViewModel(newsRepository, contactRepository)
         viewModel.loadNews(pageSize = 20, ownUsername = "vovan")
@@ -136,7 +136,7 @@ class NewsViewModelTest {
             throw IllegalStateException("boom")
         }
         val feed = listOf(news(1, "stranger"), news(2, "vovan"))
-        coEvery { newsRepository.getNews(any(), any()) } returns flowOf(NetworkResult.Success(feed))
+        coEvery { newsRepository.getNews(any(), any()) } returns flowOf(Resource.Success(feed))
 
         val viewModel = NewsViewModel(newsRepository, contactRepository)
         viewModel.loadNews(pageSize = 20, ownUsername = null)

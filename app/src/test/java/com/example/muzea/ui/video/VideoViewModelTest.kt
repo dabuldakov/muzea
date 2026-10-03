@@ -2,7 +2,7 @@ package com.example.muzea.ui.video
 
 import com.example.muzea.domain.model.Video
 import com.example.muzea.domain.repository.VideoRepository
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -65,7 +65,7 @@ class VideoViewModelTest {
             video(3, "stranger"),
             video(4, "vovan")
         )
-        coEvery { videoRepository.getVideos() } returns flowOf(NetworkResult.Success(feed))
+        coEvery { videoRepository.getVideos() } returns flowOf(Resource.Success(feed))
 
         val viewModel = VideoViewModel(videoRepository)
         viewModel.loadVideos(ownUsername = "vovan")
@@ -76,7 +76,7 @@ class VideoViewModelTest {
     @Test
     fun `loadVideos shows nothing when own username is unknown`() = runTest {
         val feed = listOf(video(1, "stranger"), video(2, "vovan"))
-        coEvery { videoRepository.getVideos() } returns flowOf(NetworkResult.Success(feed))
+        coEvery { videoRepository.getVideos() } returns flowOf(Resource.Success(feed))
 
         val viewModel = VideoViewModel(videoRepository)
         viewModel.loadVideos(ownUsername = null)
@@ -87,7 +87,7 @@ class VideoViewModelTest {
     @Test
     fun `loadVideos trims own username`() = runTest {
         val feed = listOf(video(1, "stranger"), video(2, "vovan"))
-        coEvery { videoRepository.getVideos() } returns flowOf(NetworkResult.Success(feed))
+        coEvery { videoRepository.getVideos() } returns flowOf(Resource.Success(feed))
 
         val viewModel = VideoViewModel(videoRepository)
         viewModel.loadVideos(ownUsername = "  vovan  ")
@@ -97,7 +97,7 @@ class VideoViewModelTest {
 
     @Test
     fun `loadVideos exposes error when video fetch fails`() = runTest {
-        coEvery { videoRepository.getVideos() } returns flowOf(NetworkResult.Error("network down"))
+        coEvery { videoRepository.getVideos() } returns flowOf(Resource.Error("network down"))
 
         val viewModel = VideoViewModel(videoRepository)
         viewModel.loadVideos(ownUsername = "vovan")
@@ -108,7 +108,7 @@ class VideoViewModelTest {
 
     @Test
     fun `consumed error is cleared`() = runTest {
-        coEvery { videoRepository.getVideos() } returns flowOf(NetworkResult.Error("boom"))
+        coEvery { videoRepository.getVideos() } returns flowOf(Resource.Error("boom"))
 
         val viewModel = VideoViewModel(videoRepository)
         viewModel.loadVideos(ownUsername = "vovan")
@@ -120,7 +120,7 @@ class VideoViewModelTest {
     @Test
     fun `cached videos are shown before the network result`() = runTest {
         every { videoRepository.cachedVideos() } returns listOf(video(7, "vovan"))
-        coEvery { videoRepository.getVideos() } returns flowOf(NetworkResult.Loading())
+        coEvery { videoRepository.getVideos() } returns flowOf(Resource.Loading())
 
         val viewModel = VideoViewModel(videoRepository)
         viewModel.loadVideos(ownUsername = "vovan")

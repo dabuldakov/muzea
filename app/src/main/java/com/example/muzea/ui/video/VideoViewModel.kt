@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.muzea.domain.model.Video
 import com.example.muzea.domain.repository.VideoRepository
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -32,14 +32,14 @@ class VideoViewModel @Inject constructor(
     private val _feedState = MutableStateFlow(VideoFeedUiState())
     val feedState: StateFlow<VideoFeedUiState> = _feedState.asStateFlow()
 
-    private val _videoDetailResult = MutableSharedFlow<NetworkResult<Video>>()
-    val videoDetailResult: SharedFlow<NetworkResult<Video>> = _videoDetailResult.asSharedFlow()
+    private val _videoDetailResult = MutableSharedFlow<Resource<Video>>()
+    val videoDetailResult: SharedFlow<Resource<Video>> = _videoDetailResult.asSharedFlow()
 
-    private val _uploadResult = MutableSharedFlow<NetworkResult<Video>>()
-    val uploadResult: SharedFlow<NetworkResult<Video>> = _uploadResult.asSharedFlow()
+    private val _uploadResult = MutableSharedFlow<Resource<Video>>()
+    val uploadResult: SharedFlow<Resource<Video>> = _uploadResult.asSharedFlow()
 
-    private val _deleteResult = MutableSharedFlow<NetworkResult<Unit>>()
-    val deleteResult: SharedFlow<NetworkResult<Unit>> = _deleteResult.asSharedFlow()
+    private val _deleteResult = MutableSharedFlow<Resource<Unit>>()
+    val deleteResult: SharedFlow<Resource<Unit>> = _deleteResult.asSharedFlow()
 
     private var feedJob: Job? = null
     private var currentUsername: String? = null
@@ -61,16 +61,16 @@ class VideoViewModel @Inject constructor(
             _feedState.value = _feedState.value.copy(isLoading = _feedState.value.videos.isEmpty())
             videoRepository.getVideos().collect { result ->
                 when (result) {
-                    is NetworkResult.Success -> _feedState.value = _feedState.value.copy(
+                    is Resource.Success -> _feedState.value = _feedState.value.copy(
                         videos = visibleVideos(result.data ?: emptyList(), currentUsername),
                         isLoading = false,
                         error = null
                     )
-                    is NetworkResult.Error -> _feedState.value = _feedState.value.copy(
+                    is Resource.Error -> _feedState.value = _feedState.value.copy(
                         isLoading = false,
                         error = result.message
                     )
-                    is NetworkResult.Loading -> Unit
+                    is Resource.Loading -> Unit
                 }
             }
         }

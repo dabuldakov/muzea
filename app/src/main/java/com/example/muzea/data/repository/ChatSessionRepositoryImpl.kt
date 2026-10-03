@@ -1,7 +1,7 @@
 package com.example.muzea.data.repository
 
 import com.example.muzea.data.api.ChatApiService
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -51,19 +51,19 @@ class ChatSessionRepositoryImpl @Inject constructor(
         true
     }
 
-    override suspend fun getTotalUnreadCount(): Flow<NetworkResult<Long>> = flow {
-        emit(NetworkResult.Loading())
+    override suspend fun getTotalUnreadCount(): Flow<Resource<Long>> = flow {
+        emit(Resource.Loading())
         try {
             val response = chatAuthManager.authenticatedRequest { apiService.getTotalUnreadCount() }
             if (response.isSuccessful && response.body() != null) {
-                emit(NetworkResult.Success(response.body()!!.count))
+                emit(Resource.Success(response.body()!!.count))
             } else {
-                emit(NetworkResult.Error("Failed to load unread count: ${response.message()}"))
+                emit(Resource.Error("Failed to load unread count: ${response.message()}"))
             }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            emit(NetworkResult.Error("Network error: ${e.message}"))
+            emit(Resource.Error("Network error: ${e.message}"))
         }
     }
 }

@@ -2,7 +2,7 @@ package com.example.muzea.data.repository
 
 import com.example.muzea.data.IntegrationTestClient
 import com.example.muzea.utils.MediaUrl
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -43,7 +43,7 @@ class VideoRepositoryIntegrationTest {
 
         val result = repository.getVideos().toList().last()
 
-        assertTrue(result is NetworkResult.Success)
+        assertTrue(result is Resource.Success)
         val video = result.data!!.single()
         assertEquals(
             "https://api-muzea.su/api/videos/thumbnail/0e8c7c4f-9eb4-463f-b498-39ed65dc00f0.jpeg",
@@ -79,7 +79,7 @@ class VideoRepositoryIntegrationTest {
 
         val result = repository.getVideoById(29).toList().last()
 
-        assertTrue(result is NetworkResult.Success)
+        assertTrue(result is Resource.Success)
         assertEquals(29L, result.data!!.id)
         assertEquals("tomsk", result.data!!.title)
         assertTrue(result.data!!.thumbnailUrl.isNullOrEmpty())

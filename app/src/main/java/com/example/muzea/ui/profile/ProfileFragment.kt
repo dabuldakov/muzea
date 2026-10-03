@@ -20,7 +20,7 @@ import com.example.muzea.databinding.FragmentProfileBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.example.muzea.ui.auth.LoginActivity
 import com.example.muzea.utils.CacheManager
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import com.example.muzea.utils.TokenManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -60,19 +60,19 @@ class ProfileFragment : Fragment() {
         binding.btnRetryAvatar.setOnClickListener { avatarViewModel.load() }
         viewLifecycleOwner.lifecycleScope.launch {
             avatarViewModel.state.collect { result ->
-                val loading = result is NetworkResult.Loading
+                val loading = result is Resource.Loading
                 binding.avatarProgress.visibility = if (loading) View.VISIBLE else View.GONE
                 binding.btnChangeAvatar.isEnabled = !loading
                 binding.btnDeleteAvatar.isEnabled = !loading
-                binding.tvAvatarError.visibility = if (result is NetworkResult.Error) View.VISIBLE else View.GONE
-                binding.btnRetryAvatar.visibility = if (result is NetworkResult.Error) View.VISIBLE else View.GONE
+                binding.tvAvatarError.visibility = if (result is Resource.Error) View.VISIBLE else View.GONE
+                binding.btnRetryAvatar.visibility = if (result is Resource.Error) View.VISIBLE else View.GONE
                 when (result) {
-                    is NetworkResult.Success -> {
+                    is Resource.Success -> {
                         AvatarLoader.load(binding.ivAvatar, result.data?.avatarUrl)
                         binding.btnDeleteAvatar.isEnabled = !result.data?.avatarUrl.isNullOrBlank()
                     }
-                    is NetworkResult.Error -> binding.tvAvatarError.text = result.message
-                    is NetworkResult.Loading -> Unit
+                    is Resource.Error -> binding.tvAvatarError.text = result.message
+                    is Resource.Loading -> Unit
                 }
             }
         }
@@ -209,16 +209,16 @@ class ProfileFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.updateProfileResult.collect { result ->
                 when (result) {
-                    is NetworkResult.Loading -> {
+                    is Resource.Loading -> {
                         binding.progressBar.visibility = View.VISIBLE
                     }
-                    is NetworkResult.Success -> {
+                    is Resource.Success -> {
                         binding.progressBar.visibility = View.GONE
                         Toast.makeText(requireContext(), "Profile updated successfully", Toast.LENGTH_SHORT).show()
                         disableEditing()
                         viewModel.loadUserProfile()
                     }
-                    is NetworkResult.Error -> {
+                    is Resource.Error -> {
                         binding.progressBar.visibility = View.GONE
                         Toast.makeText(requireContext(), result.message, Toast.LENGTH_LONG).show()
                     }
@@ -228,16 +228,16 @@ class ProfileFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.deleteAccountResult.collect { result ->
                 when (result) {
-                    is NetworkResult.Loading -> {
+                    is Resource.Loading -> {
                         binding.progressBar.visibility = View.VISIBLE
                         binding.btnDeleteAccount.isEnabled = false
                     }
-                    is NetworkResult.Success -> {
+                    is Resource.Success -> {
                         binding.progressBar.visibility = View.GONE
                         Toast.makeText(requireContext(), R.string.delete_account_done, Toast.LENGTH_LONG).show()
                         goToLogin()
                     }
-                    is NetworkResult.Error -> {
+                    is Resource.Error -> {
                         binding.progressBar.visibility = View.GONE
                         binding.btnDeleteAccount.isEnabled = true
                         MaterialAlertDialogBuilder(requireContext())

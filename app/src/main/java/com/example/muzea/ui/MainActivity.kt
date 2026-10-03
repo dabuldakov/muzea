@@ -24,7 +24,7 @@ import com.example.muzea.ui.news.NewsListFragment
 import com.example.muzea.ui.profile.ProfileFragment
 import com.example.muzea.ui.navigation.Navigator
 import com.example.muzea.ui.video.VideoListFragment
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -98,7 +98,7 @@ class MainActivity : AppCompatActivity(), Navigator {
 
     private suspend fun refreshUnreadBadge() {
         chatSessionRepository.getTotalUnreadCount().collect { result ->
-            if (result is NetworkResult.Success) {
+            if (result is Resource.Success) {
                 updateChatBadge(result.data ?: 0L)
             }
         }

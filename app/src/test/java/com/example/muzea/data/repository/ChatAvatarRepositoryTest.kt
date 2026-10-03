@@ -2,7 +2,7 @@ package com.example.muzea.data.repository
 
 import com.example.muzea.data.api.ChatApiService
 import com.example.muzea.data.model.AvatarResponse
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import io.mockk.*
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -28,7 +28,7 @@ class ChatAvatarRepositoryTest {
         )
         val file = temporaryFolder.newFile("avatar.png").apply { writeBytes(byteArrayOf(1, 2, 3)) }
         val results = repository.uploadAvatar(file, "image/png").toList()
-        assertTrue(results.first() is NetworkResult.Loading)
+        assertTrue(results.first() is Resource.Loading)
         assertEquals("/api/avatars/user/version.png", results.last().data?.avatarUrl)
         coVerify(exactly = 2) { api.uploadAvatar(match {
             it.headers?.get("Content-Disposition")?.contains("name=\"file\"") == true
@@ -40,7 +40,7 @@ class ChatAvatarRepositoryTest {
     fun `failed authentication does not upload`() = runTest {
         coEvery { auth.isAuthenticated() } returns false
         val result = repository.uploadAvatar(temporaryFolder.newFile(), "image/png").toList().last()
-        assertTrue(result is NetworkResult.Error)
+        assertTrue(result is Resource.Error)
         coVerify(exactly = 0) { api.uploadAvatar(any()) }
     }
 
@@ -49,7 +49,7 @@ class ChatAvatarRepositoryTest {
         coEvery { auth.isAuthenticated() } returns true
         coEvery { api.deleteAvatar() } returns Response.success<Unit>(204, null)
         val result = repository.deleteAvatar().toList().last()
-        assertTrue(result is NetworkResult.Success)
+        assertTrue(result is Resource.Success)
         assertNull(result.data?.avatarUrl)
     }
 }

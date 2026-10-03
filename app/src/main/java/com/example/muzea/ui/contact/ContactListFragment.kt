@@ -17,7 +17,7 @@ import com.example.muzea.domain.model.Chat
 import com.example.muzea.domain.model.Contact
 import com.example.muzea.databinding.FragmentContactListBinding
 import com.example.muzea.ui.navigation.navigator
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -165,13 +165,13 @@ class ContactListFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.addContactResult.collect { result ->
                 when (result) {
-                    is NetworkResult.Loading -> isAddingContact = true
-                    is NetworkResult.Success -> {
+                    is Resource.Loading -> isAddingContact = true
+                    is Resource.Success -> {
                         isAddingContact = false
                         Toast.makeText(requireContext(), "Contact added", Toast.LENGTH_SHORT).show()
                         loadContacts()
                     }
-                    is NetworkResult.Error -> {
+                    is Resource.Error -> {
                         isAddingContact = false
                         Toast.makeText(requireContext(), result.message ?: "Failed", Toast.LENGTH_LONG).show()
                     }
@@ -184,9 +184,9 @@ class ContactListFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.createChatResult.collect { result ->
                 when (result) {
-                    is NetworkResult.Loading -> Unit
-                    is NetworkResult.Success -> result.data?.let { openConversation(it) }
-                    is NetworkResult.Error -> {
+                    is Resource.Loading -> Unit
+                    is Resource.Success -> result.data?.let { openConversation(it) }
+                    is Resource.Error -> {
                         Toast.makeText(requireContext(), result.message ?: "Failed to open chat", Toast.LENGTH_LONG).show()
                     }
                 }

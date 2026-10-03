@@ -9,7 +9,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.muzea.R
 import com.example.muzea.databinding.ActivityRegisterBinding
 import com.example.muzea.ui.MainActivity
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 

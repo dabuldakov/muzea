@@ -16,7 +16,7 @@ import com.example.muzea.databinding.FragmentNewsDetailBinding
 import com.example.muzea.domain.model.News
 import com.example.muzea.utils.LocalTimeFormatter
 import com.example.muzea.utils.MediaUrl
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import com.example.muzea.utils.TokenManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -65,14 +65,14 @@ class NewsDetailFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.newsDetailResult.collect { result ->
                 when (result) {
-                    is NetworkResult.Loading -> {
+                    is Resource.Loading -> {
                         binding.progressBar.visibility = View.VISIBLE
                     }
-                    is NetworkResult.Success -> {
+                    is Resource.Success -> {
                         binding.progressBar.visibility = View.GONE
                         displayNews(result.data!!)
                     }
-                    is NetworkResult.Error -> {
+                    is Resource.Error -> {
                         binding.progressBar.visibility = View.GONE
                         binding.tvError.text = result.message
                         binding.tvError.visibility = View.VISIBLE
@@ -84,12 +84,12 @@ class NewsDetailFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.deleteNewsResult.collect { result ->
                 when (result) {
-                    is NetworkResult.Loading -> binding.btnDeleteNews.isEnabled = false
-                    is NetworkResult.Success -> {
+                    is Resource.Loading -> binding.btnDeleteNews.isEnabled = false
+                    is Resource.Success -> {
                         Toast.makeText(requireContext(), "News deleted", Toast.LENGTH_SHORT).show()
                         parentFragmentManager.popBackStack()
                     }
-                    is NetworkResult.Error -> {
+                    is Resource.Error -> {
                         binding.btnDeleteNews.isEnabled = true
                         Toast.makeText(requireContext(), result.message, Toast.LENGTH_LONG).show()
                     }

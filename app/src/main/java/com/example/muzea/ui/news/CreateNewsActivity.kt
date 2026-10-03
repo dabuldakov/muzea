@@ -16,7 +16,7 @@ import com.example.muzea.R
 import com.example.muzea.domain.model.Video
 import com.example.muzea.databinding.ActivityCreateNewsBinding
 import com.example.muzea.ui.video.VideoViewModel
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import com.example.muzea.utils.TokenManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -207,9 +207,9 @@ class CreateNewsActivity : AppCompatActivity() {
         lifecycleScope.launch {
             newsViewModel.createNewsResult.collect { result ->
                 when (result) {
-                    is NetworkResult.Loading -> setLoadingState(true)
-                    is NetworkResult.Success -> handleSuccess()
-                    is NetworkResult.Error -> {
+                    is Resource.Loading -> setLoadingState(true)
+                    is Resource.Success -> handleSuccess()
+                    is Resource.Error -> {
                         android.util.Log.e("CreateNews", "Error: ${result.message}")
                         handleError(result.message ?: "Unknown error")
                     }

@@ -2,7 +2,7 @@ package com.example.muzea.data.repository
 
 import com.example.muzea.data.IntegrationTestClient
 import com.example.muzea.utils.MediaUrl
-import com.example.muzea.utils.NetworkResult
+import com.example.muzea.core.Resource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -54,7 +54,7 @@ class NewsRepositoryIntegrationTest {
 
         val result = repository.getNews(page = 0, size = 20).toList().last()
 
-        assertTrue(result is NetworkResult.Success)
+        assertTrue(result is Resource.Success)
         val news = result.data!!.single()
         assertEquals(
             "https://api-muzea.su/api/news/image/4b1d5b51-07ac-4f75-b400-84551dae5a38.jpeg",
@@ -84,7 +84,7 @@ class NewsRepositoryIntegrationTest {
 
         val result = repository.getNewsById(47).toList().last()
 
-        assertTrue(result is NetworkResult.Success)
+        assertTrue(result is Resource.Success)
         assertEquals(47L, result.data!!.id)
         assertEquals(
             "https://api-muzea.su/api/news/image/4b1d5b51-07ac-4f75-b400-84551dae5a38.jpeg",
@@ -101,6 +101,6 @@ class NewsRepositoryIntegrationTest {
 
         val result = repository.getNews().toList().last()
 
-        assertTrue(result is NetworkResult.Error)
+        assertTrue(result is Resource.Error)
     }
 }
