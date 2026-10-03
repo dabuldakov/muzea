@@ -5,11 +5,11 @@ import javax.inject.Inject
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.muzea.core.firstTerminal
 import com.example.muzea.domain.model.News
 import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.domain.repository.NewsRepository
 import com.example.muzea.utils.NetworkResult
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -120,16 +120,6 @@ class NewsViewModel @Inject constructor(
             is NetworkResult.Success -> result.data ?: emptyList()
             else -> null
         }
-    }
-
-    private suspend fun <T> Flow<NetworkResult<T>>.firstTerminal(): NetworkResult<T>? {
-        var result: NetworkResult<T>? = null
-        collect { r ->
-            if (r is NetworkResult.Success || r is NetworkResult.Error) {
-                result = r
-            }
-        }
-        return result
     }
 
     private fun visibleNews(): List<News> {

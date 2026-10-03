@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.muzea.domain.model.Message
 import com.example.muzea.domain.repository.MessageRepository
 import com.example.muzea.data.repository.ChatUserIdentity
+import com.example.muzea.domain.chat.ChatMessageReducer
 import com.example.muzea.utils.NetworkResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -34,8 +35,10 @@ class ChatConversationViewModel @Inject constructor(
     // и опрос догружают свежие сообщения фоном. Кэш хранит сообщения в порядке
     // сервера (сначала новые), поэтому сортируем их до показа — иначе при
     // открытии чата порядок был бы перевёрнут до первого сетевого обновления.
+    private val reducer = ChatMessageReducer()
+
     private val _messages = MutableStateFlow(
-        messageRepository.cachedMessages(chatUuid).sortedWith(MessageComparator())
+        reducer.seed(messageRepository.cachedMessages(chatUuid))
     )
     val messages: StateFlow<List<Message>> = _messages.asStateFlow()
 
@@ -50,11 +53,6 @@ class ChatConversationViewModel @Inject constructor(
 
     private var pollingJob: Job? = null
     private var lastMarkedReadUuid: String? = null
-
-    // serverUuid -> localUuid для наших отправленных сообщений: серверное эхо
-    // показываем не отдельным элементом, а обновляем уже существующий пузырь,
-    // чтобы DiffUtil не удалял и не вставлял строку (иначе список мигает).
-    private val serverToLocal = HashMap<String, String>()
 
     init {
         // Опрос сам выполняет первый запрос, поэтому отдельный refresh() в init
@@ -129,28 +127,12 @@ class ChatConversationViewModel @Inject constructor(
      * при отправке список мигал. Теперь это обычное изменение содержимого.
      */
     private fun applyServerEcho(localUuid: String, serverMessage: Message) {
-        serverToLocal[serverMessage.messageUuid] = localUuid
-        _messages.value = _messages.value
-            .map { existing ->
-                if (existing.messageUuid == localUuid) {
-                    serverMessage.copy(messageUuid = localUuid)
-                } else {
-                    existing
-                }
-            }
-            .sortedWith(MessageComparator())
+        _messages.value = reducer.applyServerEcho(_messages.value, localUuid, serverMessage)
         markLatestAsRead()
     }
 
     private fun mergeMessages(incoming: List<Message>) {
-        val merged = LinkedHashMap<String, Message>()
-        for (m in incoming) {
-            // Эхо своих сообщений уже показано локальным пузырём — не дублируем.
-            if (serverToLocal.containsKey(m.messageUuid)) continue
-            merged[m.messageUuid] = m
-        }
-        for (m in _messages.value) merged[m.messageUuid] = m
-        _messages.value = merged.values.toList().sortedWith(MessageComparator())
+        _messages.value = reducer.merge(_messages.value, incoming)
         markLatestAsRead()
     }
 
@@ -167,16 +149,6 @@ class ChatConversationViewModel @Inject constructor(
         }
     }
 
-    private class MessageComparator : Comparator<Message> {
-        override fun compare(a: Message, b: Message): Int {
-            val ta = a.createdAt ?: ""
-            val tb = b.createdAt ?: ""
-            if (ta.isEmpty() && tb.isEmpty()) return 0
-            if (ta.isEmpty()) return 1
-            if (tb.isEmpty()) return -1
-            return ta.compareTo(tb)
-        }
-    }
 
     private fun startPolling() {
         pollingJob = viewModelScope.launch {

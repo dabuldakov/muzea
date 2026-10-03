@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.muzea.domain.model.Chat
 import com.example.muzea.domain.model.Contact
-import com.example.muzea.domain.repository.ChatRepository
+import com.example.muzea.domain.usecase.OpenPrivateChatUseCase
 import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.utils.NetworkResult
 import kotlinx.coroutines.CancellationException
@@ -21,8 +21,8 @@ import kotlinx.coroutines.launch
 
 @HiltViewModel
 class ContactViewModel @Inject constructor(
-    private val chatRepository: ChatRepository,
-    private val contactRepository: ContactRepository
+    private val contactRepository: ContactRepository,
+    private val openPrivateChatUseCase: OpenPrivateChatUseCase
 ) : ViewModel() {
 
     private val _contactsResult = MutableSharedFlow<NetworkResult<List<Contact>>>()
@@ -111,23 +111,7 @@ class ContactViewModel @Inject constructor(
     fun openPrivateChat(userUuid: String) {
         viewModelScope.launch {
             _createChatResult.emit(NetworkResult.Loading())
-
-            val existing = try {
-                chatRepository.findPrivateChatWith(userUuid)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                null
-            }
-
-            if (existing != null) {
-                _createChatResult.emit(NetworkResult.Success(existing))
-                return@launch
-            }
-
-            chatRepository.createPrivateChat(userUuid).collect { result ->
-                _createChatResult.emit(result)
-            }
+            _createChatResult.emit(openPrivateChatUseCase(userUuid))
         }
     }
 }

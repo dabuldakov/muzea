@@ -3,6 +3,7 @@ package com.example.muzea.ui.contact
 import com.example.muzea.domain.model.Chat
 import com.example.muzea.domain.repository.ChatRepository
 import com.example.muzea.domain.repository.ContactRepository
+import com.example.muzea.domain.usecase.OpenPrivateChatUseCase
 import com.example.muzea.ui.news.MainDispatcherRule
 import com.example.muzea.utils.NetworkResult
 import io.mockk.coEvery
@@ -58,7 +59,7 @@ class ContactViewModelTest {
     @Test
     fun `openPrivateChat reuses an existing chat without creating a new one`() = runTest {
         coEvery { chatRepository.findPrivateChatWith("user-1") } returns chat("chat-1")
-        val viewModel = ContactViewModel(chatRepository, contactRepository)
+        val viewModel = ContactViewModel(contactRepository, OpenPrivateChatUseCase(chatRepository))
 
         val results = collectResults(viewModel) { viewModel.openPrivateChat("user-1") }
 
@@ -72,7 +73,7 @@ class ContactViewModelTest {
         coEvery { chatRepository.findPrivateChatWith("user-1") } returns null
         coEvery { chatRepository.createPrivateChat("user-1") } returns
             flowOf(NetworkResult.Success(chat("chat-new")))
-        val viewModel = ContactViewModel(chatRepository, contactRepository)
+        val viewModel = ContactViewModel(contactRepository, OpenPrivateChatUseCase(chatRepository))
 
         val results = collectResults(viewModel) { viewModel.openPrivateChat("user-1") }
 
@@ -85,7 +86,7 @@ class ContactViewModelTest {
         coEvery { chatRepository.findPrivateChatWith("user-1") } returns null
         coEvery { chatRepository.createPrivateChat("user-1") } returns
             flowOf(NetworkResult.Error("boom"))
-        val viewModel = ContactViewModel(chatRepository, contactRepository)
+        val viewModel = ContactViewModel(contactRepository, OpenPrivateChatUseCase(chatRepository))
 
         val results = collectResults(viewModel) { viewModel.openPrivateChat("user-1") }
 
