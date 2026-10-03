@@ -267,7 +267,7 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    private fun displayUserProfile(user: com.example.muzea.data.model.UserResponse) {
+    private fun displayUserProfile(user: com.example.muzea.domain.model.User) {
         binding.tvUsername.text = "@${user.userName}"
         binding.etFullName.setText(user.userName)
         binding.etEmail.setText(user.email)

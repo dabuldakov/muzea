@@ -4,9 +4,9 @@ import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.muzea.R
-import com.example.muzea.data.model.UserResponse
+import com.example.muzea.domain.model.User
 import com.example.muzea.domain.repository.ChatSessionRepository
-import com.example.muzea.data.repository.UserRepository
+import com.example.muzea.domain.repository.UserRepository
 import com.example.muzea.utils.ConsentManager
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
@@ -27,11 +27,11 @@ class ProfileViewModel @Inject constructor(
     private val tokenManager: TokenManager
 ) : ViewModel() {
 
-    private val _userProfileResult = MutableSharedFlow<NetworkResult<UserResponse>>()
-    val userProfileResult: SharedFlow<NetworkResult<UserResponse>> = _userProfileResult.asSharedFlow()
+    private val _userProfileResult = MutableSharedFlow<NetworkResult<User>>()
+    val userProfileResult: SharedFlow<NetworkResult<User>> = _userProfileResult.asSharedFlow()
 
-    private val _updateProfileResult = MutableSharedFlow<NetworkResult<UserResponse>>()
-    val updateProfileResult: SharedFlow<NetworkResult<UserResponse>> = _updateProfileResult.asSharedFlow()
+    private val _updateProfileResult = MutableSharedFlow<NetworkResult<User>>()
+    val updateProfileResult: SharedFlow<NetworkResult<User>> = _updateProfileResult.asSharedFlow()
 
     private val _deleteAccountResult = MutableSharedFlow<NetworkResult<Unit>>()
     val deleteAccountResult: SharedFlow<NetworkResult<Unit>> = _deleteAccountResult.asSharedFlow()

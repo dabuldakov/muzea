@@ -1,6 +1,7 @@
 package com.example.muzea.di
 
 import com.example.muzea.data.repository.NewsRepositoryImpl
+import com.example.muzea.data.repository.UserRepositoryImpl
 import com.example.muzea.data.repository.VideoRepositoryImpl
 import dagger.Binds
 import dagger.Module
@@ -24,4 +25,10 @@ abstract class ContentRepositoryModule {
     abstract fun bindVideoRepository(
         impl: VideoRepositoryImpl
     ): com.example.muzea.domain.repository.VideoRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUserRepository(
+        impl: UserRepositoryImpl
+    ): com.example.muzea.domain.repository.UserRepository
 }
