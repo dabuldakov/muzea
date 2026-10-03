@@ -140,26 +140,19 @@ class CreateNewsActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             videoViewModel.loadVideos(myUsername)
-            videoViewModel.videosResult.collect { result ->
+            videoViewModel.feedState.collect { state ->
+                if (state.isLoading) return@collect
                 isLoadingVideos = false
                 showProgressBar(false)
-
-                when (result) {
-                    is NetworkResult.Success -> {
-                        videosList = result.data ?: emptyList()
-                        setupVideoSpinner()
-                    }
-
-                    is NetworkResult.Error -> {
-                        setupVideoSpinner()
-                        Toast.makeText(
-                            this@CreateNewsActivity,
-                            "Could not load videos: ${result.message}",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-
-                    else -> {}
+                videosList = state.videos
+                setupVideoSpinner()
+                state.error?.let { message ->
+                    Toast.makeText(
+                        this@CreateNewsActivity,
+                        "Could not load videos: $message",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    videoViewModel.consumeFeedError()
                 }
             }
         }

@@ -11,7 +11,6 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import com.example.muzea.databinding.FragmentVideoListBinding
-import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -83,58 +82,32 @@ class VideoListFragment : Fragment() {
 
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.videosResult.collect { result ->
-                when (result) {
-                    // Спиннер только если показать нечего: при кэше фоновое
-                    // обновление не должно мигать поверх списка.
-                    is NetworkResult.Loading -> showLoading(adapter.itemCount == 0)
-                    is NetworkResult.Success -> handleSuccess(result.data)
-                    is NetworkResult.Error -> handleError(result.message ?: "Unknown error")
-                }
+            viewModel.feedState.collect { renderFeed(it) }
+        }
+    }
+
+    private fun renderFeed(state: VideoFeedUiState) {
+        // Спиннер только если показать нечего: при кэше фоновое обновление
+        // не должно мигать поверх списка.
+        binding.progressBar.visibility =
+            if (state.isLoading && state.videos.isEmpty()) View.VISIBLE else View.GONE
+
+        adapter.submitList(state.videos)
+
+        if (state.videos.isEmpty()) {
+            binding.tvError.visibility = if (state.error != null) View.VISIBLE else View.GONE
+            state.error?.let { binding.tvError.text = it }
+            binding.tvEmpty.visibility = if (state.error == null) View.VISIBLE else View.GONE
+            binding.recyclerViewVideos.visibility = View.GONE
+        } else {
+            binding.tvEmpty.visibility = View.GONE
+            binding.tvError.visibility = View.GONE
+            binding.recyclerViewVideos.visibility = View.VISIBLE
+            state.error?.let {
+                Toast.makeText(requireContext(), "Error: $it", Toast.LENGTH_SHORT).show()
+                viewModel.consumeFeedError()
             }
         }
-    }
-
-    private fun showLoading(isLoading: Boolean) {
-        binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
-    }
-
-    private fun handleSuccess(videos: List<com.example.muzea.domain.model.Video>?) {
-        showLoading(false)
-
-        val videoList = videos ?: emptyList()
-        adapter.submitList(videoList)
-
-        if (videoList.isEmpty()) {
-            showEmptyState()
-        } else {
-            showContentState()
-        }
-    }
-
-    private fun handleError(message: String) {
-        showLoading(false)
-
-        if (adapter.itemCount == 0) {
-            binding.tvError.text = message
-            binding.tvError.visibility = View.VISIBLE
-            binding.recyclerViewVideos.visibility = View.GONE
-            binding.tvEmpty.visibility = View.GONE
-        } else {
-            Toast.makeText(requireContext(), "Error: $message", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun showEmptyState() {
-        binding.tvEmpty.visibility = View.VISIBLE
-        binding.recyclerViewVideos.visibility = View.GONE
-        binding.tvError.visibility = View.GONE
-    }
-
-    private fun showContentState() {
-        binding.tvEmpty.visibility = View.GONE
-        binding.recyclerViewVideos.visibility = View.VISIBLE
-        binding.tvError.visibility = View.GONE
     }
 
     override fun onDestroyView() {

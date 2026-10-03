@@ -6,18 +6,16 @@ import com.example.muzea.utils.NetworkResult
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -60,7 +58,7 @@ class VideoViewModelTest {
     )
 
     @Test
-    fun `loadVideos emits only own videos`() = runTest {
+    fun `loadVideos keeps only own videos`() = runTest {
         val feed = listOf(
             video(1, "dabuldakov"),
             video(2, "maria"),
@@ -72,9 +70,7 @@ class VideoViewModelTest {
         val viewModel = VideoViewModel(videoRepository)
         viewModel.loadVideos(ownUsername = "vovan")
 
-        val success = viewModel.videosResult.first()
-        assertTrue(success is NetworkResult.Success)
-        assertEquals(listOf(4L), success.data!!.map { it.id })
+        assertEquals(listOf(4L), viewModel.feedState.value.videos.map { it.id })
     }
 
     @Test
@@ -85,9 +81,7 @@ class VideoViewModelTest {
         val viewModel = VideoViewModel(videoRepository)
         viewModel.loadVideos(ownUsername = null)
 
-        val success = viewModel.videosResult.first()
-        assertTrue(success is NetworkResult.Success)
-        assertTrue(success.data!!.isEmpty())
+        assertTrue(viewModel.feedState.value.videos.isEmpty())
     }
 
     @Test
@@ -98,44 +92,39 @@ class VideoViewModelTest {
         val viewModel = VideoViewModel(videoRepository)
         viewModel.loadVideos(ownUsername = "  vovan  ")
 
-        val success = viewModel.videosResult.first()
-        assertTrue(success is NetworkResult.Success)
-        assertEquals(listOf(2L), success.data!!.map { it.id })
+        assertEquals(listOf(2L), viewModel.feedState.value.videos.map { it.id })
     }
 
     @Test
-    fun `loadVideos emits error when video fetch fails`() = runTest {
+    fun `loadVideos exposes error when video fetch fails`() = runTest {
         coEvery { videoRepository.getVideos() } returns flowOf(NetworkResult.Error("network down"))
 
         val viewModel = VideoViewModel(videoRepository)
         viewModel.loadVideos(ownUsername = "vovan")
 
-        assertTrue(viewModel.videosResult.first() is NetworkResult.Error)
+        assertEquals("network down", viewModel.feedState.value.error)
+        assertTrue(viewModel.feedState.value.videos.isEmpty())
     }
 
     @Test
-    fun `cached videos are emitted before the network result`() = runTest {
-        every { videoRepository.cachedVideos() } returns listOf(video(7, "vovan"))
-        coEvery { videoRepository.getVideos() } returns flowOf(
-            NetworkResult.Loading(),
-            NetworkResult.Success(emptyList())
-        )
+    fun `consumed error is cleared`() = runTest {
+        coEvery { videoRepository.getVideos() } returns flowOf(NetworkResult.Error("boom"))
 
         val viewModel = VideoViewModel(videoRepository)
-        val events = mutableListOf<NetworkResult<List<Video>>>()
-        val collector = launch(Dispatchers.Unconfined, start = CoroutineStart.UNDISPATCHED) {
-            viewModel.videosResult.collect { events += it }
-        }
-
         viewModel.loadVideos(ownUsername = "vovan")
-        collector.cancel()
+        viewModel.consumeFeedError()
 
-        // Первым приходит именно кэш, сеть догружается уже после.
-        val first = events.first()
-        assertTrue(first is NetworkResult.Success)
-        assertEquals(
-            listOf(7L),
-            (first as NetworkResult.Success<List<Video>>).data!!.map { it.id }
-        )
+        assertNull(viewModel.feedState.value.error)
+    }
+
+    @Test
+    fun `cached videos are shown before the network result`() = runTest {
+        every { videoRepository.cachedVideos() } returns listOf(video(7, "vovan"))
+        coEvery { videoRepository.getVideos() } returns flowOf(NetworkResult.Loading())
+
+        val viewModel = VideoViewModel(videoRepository)
+        viewModel.loadVideos(ownUsername = "vovan")
+
+        assertEquals(listOf(7L), viewModel.feedState.value.videos.map { it.id })
     }
 }

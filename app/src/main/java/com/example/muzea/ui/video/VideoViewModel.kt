@@ -1,26 +1,36 @@
 package com.example.muzea.ui.video
 
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
-
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.muzea.domain.model.Video
 import com.example.muzea.domain.repository.VideoRepository
 import com.example.muzea.utils.NetworkResult
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import okhttp3.MultipartBody
+import javax.inject.Inject
+
+/** Единое состояние ленты видео для экрана. */
+data class VideoFeedUiState(
+    val videos: List<Video> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
 
 @HiltViewModel
 class VideoViewModel @Inject constructor(
     private val videoRepository: VideoRepository
 ) : ViewModel() {
 
-    private val _videosResult = MutableSharedFlow<NetworkResult<List<Video>>>(replay = 1)
-    val videosResult: SharedFlow<NetworkResult<List<Video>>> = _videosResult.asSharedFlow()
+    private val _feedState = MutableStateFlow(VideoFeedUiState())
+    val feedState: StateFlow<VideoFeedUiState> = _feedState.asStateFlow()
 
     private val _videoDetailResult = MutableSharedFlow<NetworkResult<Video>>()
     val videoDetailResult: SharedFlow<NetworkResult<Video>> = _videoDetailResult.asSharedFlow()
@@ -31,36 +41,44 @@ class VideoViewModel @Inject constructor(
     private val _deleteResult = MutableSharedFlow<NetworkResult<Unit>>()
     val deleteResult: SharedFlow<NetworkResult<Unit>> = _deleteResult.asSharedFlow()
 
-    private var isLoading = false
+    private var feedJob: Job? = null
+    private var currentUsername: String? = null
 
     fun loadVideos(ownUsername: String? = null) {
-        if (isLoading) return
+        if (ownUsername != null) currentUsername = ownUsername
+        if (feedJob?.isActive == true) return
 
         // Сначала отдаём кэш, чтобы вкладка показалась мгновенно, и только
         // затем идём в сеть за свежими данными.
-        if (_videosResult.replayCache.isEmpty()) {
+        if (_feedState.value.videos.isEmpty()) {
             val cached = videoRepository.cachedVideos()
             if (cached.isNotEmpty()) {
-                _videosResult.tryEmit(NetworkResult.Success(visibleVideos(cached, ownUsername)))
+                _feedState.value = _feedState.value.copy(videos = visibleVideos(cached, currentUsername))
             }
         }
 
-        viewModelScope.launch {
-            isLoading = true
-            _videosResult.emit(NetworkResult.Loading())
-
+        feedJob = viewModelScope.launch {
+            _feedState.value = _feedState.value.copy(isLoading = _feedState.value.videos.isEmpty())
             videoRepository.getVideos().collect { result ->
                 when (result) {
-                    is NetworkResult.Success -> {
-                        val raw = result.data ?: emptyList()
-                        _videosResult.emit(NetworkResult.Success(visibleVideos(raw, ownUsername)))
-                    }
-                    is NetworkResult.Error -> _videosResult.emit(result)
+                    is NetworkResult.Success -> _feedState.value = _feedState.value.copy(
+                        videos = visibleVideos(result.data ?: emptyList(), currentUsername),
+                        isLoading = false,
+                        error = null
+                    )
+                    is NetworkResult.Error -> _feedState.value = _feedState.value.copy(
+                        isLoading = false,
+                        error = result.message
+                    )
                     is NetworkResult.Loading -> Unit
                 }
             }
-            isLoading = false
         }
+    }
+
+    /** Ошибку показали (тост) — сбрасываем, чтобы не повторялась. */
+    fun consumeFeedError() {
+        _feedState.value = _feedState.value.copy(error = null)
     }
 
     private fun visibleVideos(raw: List<Video>, ownUsername: String?): List<Video> {
@@ -75,7 +93,12 @@ class VideoViewModel @Inject constructor(
         }
     }
 
-    fun uploadVideo(title: String, description: String?, filePart: MultipartBody.Part, thumbnailPart: MultipartBody.Part?) {
+    fun uploadVideo(
+        title: String,
+        description: String?,
+        filePart: MultipartBody.Part,
+        thumbnailPart: MultipartBody.Part?
+    ) {
         viewModelScope.launch {
             videoRepository.uploadVideo(title, description, filePart, thumbnailPart).collect { result ->
                 _uploadResult.emit(result)
