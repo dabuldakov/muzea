@@ -12,11 +12,21 @@ import com.example.muzea.domain.ChatUserIdentity
 import com.example.muzea.utils.NetworkResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
+
+/** Единое состояние экрана настроек группы (участники). */
+data class GroupSettingsUiState(
+    val participants: List<ChatParticipant> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
 
 @HiltViewModel
 class GroupSettingsViewModel @Inject constructor(
@@ -30,9 +40,8 @@ class GroupSettingsViewModel @Inject constructor(
     private val chatUuid: String = savedStateHandle.get<String>(ARG_CHAT_UUID).orEmpty()
     val myUserUuid: String? = chatUserIdentity.userUuid
 
-    private val _participants = MutableSharedFlow<NetworkResult<List<ChatParticipant>>>()
-    val participants: SharedFlow<NetworkResult<List<ChatParticipant>>> =
-        _participants.asSharedFlow()
+    private val _uiState = MutableStateFlow(GroupSettingsUiState())
+    val uiState: StateFlow<GroupSettingsUiState> = _uiState.asStateFlow()
 
     private val _contactsResult = MutableSharedFlow<NetworkResult<List<Contact>>>()
     val contactsResult: SharedFlow<NetworkResult<List<Contact>>> =
@@ -50,9 +59,28 @@ class GroupSettingsViewModel @Inject constructor(
     fun loadParticipants() {
         viewModelScope.launch {
             chatRepository.loadChatParticipants(chatUuid).collect { result ->
-                _participants.emit(result)
+                when (result) {
+                    is NetworkResult.Loading -> _uiState.value =
+                        _uiState.value.copy(isLoading = _uiState.value.participants.isEmpty())
+
+                    is NetworkResult.Success -> _uiState.value = _uiState.value.copy(
+                        participants = result.data ?: emptyList(),
+                        isLoading = false,
+                        error = null
+                    )
+
+                    is NetworkResult.Error -> _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = result.message
+                    )
+                }
             }
         }
+    }
+
+    /** Ошибку показали — сбрасываем, чтобы не повторялась. */
+    fun consumeError() {
+        _uiState.value = _uiState.value.copy(error = null)
     }
 
     fun loadContacts() {

@@ -184,35 +184,31 @@ class GroupSettingsFragment : Fragment() {
         }
     }
 
+    private fun renderParticipants(state: GroupSettingsUiState) {
+        binding.progressBar.visibility =
+            if (state.isLoading && state.participants.isEmpty()) View.VISIBLE else View.GONE
+
+        adapter.updateList(state.participants)
+        val hasParticipants = state.participants.isNotEmpty()
+
+        if (!hasParticipants && state.error != null) {
+            binding.tvError.text = state.error
+            binding.tvError.visibility = View.VISIBLE
+            binding.recyclerViewParticipants.visibility = View.GONE
+        } else {
+            binding.tvEmpty.visibility = if (hasParticipants) View.GONE else View.VISIBLE
+            binding.tvError.visibility = View.GONE
+            binding.recyclerViewParticipants.visibility = View.VISIBLE
+            state.error?.let {
+                Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
+                viewModel.consumeError()
+            }
+        }
+    }
+
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.participants.collect { result ->
-                when (result) {
-                    is NetworkResult.Loading -> {
-                        if (adapter.currentList.isEmpty()) {
-                            binding.progressBar.visibility = View.VISIBLE
-                        }
-                    }
-                    is NetworkResult.Success -> {
-                        binding.progressBar.visibility = View.GONE
-                        val list = result.data ?: emptyList()
-                        adapter.updateList(list)
-                        binding.tvEmpty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
-                        binding.tvError.visibility = View.GONE
-                        binding.recyclerViewParticipants.visibility = View.VISIBLE
-                    }
-                    is NetworkResult.Error -> {
-                        binding.progressBar.visibility = View.GONE
-                        if (adapter.currentList.isEmpty()) {
-                            binding.tvError.text = result.message
-                            binding.tvError.visibility = View.VISIBLE
-                            binding.recyclerViewParticipants.visibility = View.GONE
-                        } else {
-                            Toast.makeText(requireContext(), result.message ?: "Error", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-            }
+            viewModel.uiState.collect { renderParticipants(it) }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
