@@ -49,6 +49,8 @@ class ContactRepositoryImpl @Inject constructor(
             } else {
                 emit(Resource.Error("Failed to load contacts: ${response.message()}"))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(Resource.Error("Network error: ${e.message}"))
         }
@@ -76,6 +78,8 @@ class ContactRepositoryImpl @Inject constructor(
             } else {
                 emit(Resource.Error("Failed to add contact: ${response.message()}"))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(Resource.Error("Network error: ${e.message}"))
         }

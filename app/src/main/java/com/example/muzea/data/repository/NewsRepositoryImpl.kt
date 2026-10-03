@@ -4,6 +4,7 @@ import com.example.muzea.data.api.ApiService
 import com.example.muzea.data.mapper.toDomain
 import com.example.muzea.domain.model.News
 import com.example.muzea.core.Resource
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -29,6 +30,8 @@ class NewsRepositoryImpl @Inject constructor(
             } else {
                 emit(Resource.Error("Failed to load news: ${response.message()}"))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(Resource.Error("Network error: ${e.message}"))
         }
@@ -43,6 +46,8 @@ class NewsRepositoryImpl @Inject constructor(
             } else {
                 emit(Resource.Error("Failed to load news: ${response.message()}"))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(Resource.Error("Network error: ${e.message}"))
         }
@@ -67,6 +72,8 @@ class NewsRepositoryImpl @Inject constructor(
             } else {
                 emit(Resource.Error("Failed to create news: ${response.message()}"))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(Resource.Error("Network error: ${e.message}"))
         }
@@ -83,6 +90,8 @@ class NewsRepositoryImpl @Inject constructor(
             } else {
                 emit(Resource.Error("Failed to delete news: ${response.message()}"))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(Resource.Error("Network error: ${e.message}"))
         }

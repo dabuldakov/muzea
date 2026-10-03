@@ -3,6 +3,7 @@ package com.example.muzea.data.repository
 import com.example.muzea.data.IntegrationTestClient
 import com.example.muzea.utils.MediaUrl
 import com.example.muzea.core.Resource
+import com.example.muzea.core.firstTerminal
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -102,5 +103,23 @@ class NewsRepositoryIntegrationTest {
         val result = repository.getNews().toList().last()
 
         assertTrue(result is Resource.Error)
+    }
+
+    @Test
+    fun `terminal collection does not violate flow transparency`() = runTest {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(liveLikeNewsPage)
+        )
+
+        // firstTerminal() обрывает поток на первом Success/Error (AbortFlowException).
+        // Прежняя реализация ловила его как Exception и эмитила Resource.Error
+        // из catch-блока, что роняло приложение с IllegalStateException:
+        // "Flow exception transparency is violated".
+        val result = repository.getNews(page = 0, size = 20).firstTerminal()
+
+        assertTrue(result is Resource.Success)
     }
 }

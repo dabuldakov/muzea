@@ -8,6 +8,7 @@ import com.example.muzea.data.model.CreatePrivateChatRequest
 import com.example.muzea.domain.model.Chat
 import com.example.muzea.domain.model.ChatParticipant
 import com.example.muzea.core.Resource
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
@@ -50,6 +51,8 @@ class ChatRepositoryImpl @Inject constructor(
             } else {
                 emit(Resource.Error("Failed to load chats: ${response.message()}"))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(Resource.Error("Network error: ${e.message}"))
         }
@@ -80,6 +83,8 @@ class ChatRepositoryImpl @Inject constructor(
             } else {
                 emit(Resource.Error("Failed to load participants: ${response.message()}"))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(Resource.Error("Network error: ${e.message}"))
         }
@@ -108,6 +113,8 @@ class ChatRepositoryImpl @Inject constructor(
             } else {
                 emit(Resource.Error("Failed to create chat: ${response.message()}"))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(Resource.Error("Network error: ${e.message}"))
         }
@@ -178,6 +185,8 @@ class ChatRepositoryImpl @Inject constructor(
             } else {
                 emit(Resource.Error("Failed to create group chat: ${response.message()}"))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(Resource.Error("Network error: ${e.message}"))
         }
@@ -213,6 +222,8 @@ class ChatRepositoryImpl @Inject constructor(
             } else {
                 emit(Resource.Error("Failed to add members: ${response.message()}"))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(Resource.Error("Network error: ${e.message}"))
         }

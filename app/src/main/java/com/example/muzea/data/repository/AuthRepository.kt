@@ -8,6 +8,7 @@ import com.example.muzea.data.model.LoginRequest
 import com.example.muzea.data.model.RegisterRequest
 import com.example.muzea.core.Resource
 import com.example.muzea.utils.TokenManager
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
@@ -30,6 +31,8 @@ class AuthRepository @Inject constructor(
             } else {
                 emit(Resource.Error("Login failed: ${response.message()}"))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(Resource.Error("Network error: ${e.message}"))
         }
@@ -54,6 +57,8 @@ class AuthRepository @Inject constructor(
             } else {
                 emit(Resource.Error("Registration failed: ${response.message()}"))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(Resource.Error("Network error: ${e.message}"))
         }

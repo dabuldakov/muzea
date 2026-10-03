@@ -41,6 +41,8 @@ class MessageRepositoryImpl @Inject constructor(
             } else {
                 emit(Resource.Error("Failed to load messages: ${response.message()}"))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(Resource.Error("Network error: ${e.message}"))
         }
@@ -69,6 +71,8 @@ class MessageRepositoryImpl @Inject constructor(
             } else {
                 emit(Resource.Error("Failed to send message: ${response.message()}"))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             emit(Resource.Error("Network error: ${e.message}"))
         }
