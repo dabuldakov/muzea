@@ -20,7 +20,9 @@ class VideoRepository (
         try {
             val response = apiService.getVideos()
             if (response.isSuccessful && response.body() != null) {
-                emit(NetworkResult.Success(response.body()!!))
+                val content = response.body()!!
+                VideoListCache.put(content)
+                emit(NetworkResult.Success(content))
             } else {
                 emit(NetworkResult.Error("Failed to load videos: ${response.message()}"))
             }
@@ -28,6 +30,12 @@ class VideoRepository (
             emit(NetworkResult.Error("Network error: ${e.message}"))
         }
     }
+
+    /**
+     * Мгновенный доступ к последнему известному списку видео без обращения к сети.
+     * Используется, чтобы лента открывалась сразу, а обновление шло фоном.
+     */
+    fun cachedVideos(): List<VideoResponse> = VideoListCache.get()
 
     suspend fun getVideoById(id: Long): Flow<NetworkResult<VideoResponse>> = flow {
         emit(NetworkResult.Loading())

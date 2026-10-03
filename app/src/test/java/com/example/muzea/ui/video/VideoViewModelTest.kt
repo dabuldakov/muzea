@@ -4,11 +4,14 @@ import com.example.muzea.data.model.VideoResponse
 import com.example.muzea.data.repository.VideoRepository
 import com.example.muzea.utils.NetworkResult
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -36,6 +39,11 @@ class VideoViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val videoRepository = mockk<VideoRepository>()
+
+    @org.junit.Before
+    fun setUp() {
+        every { videoRepository.cachedVideos() } returns emptyList()
+    }
 
     private fun video(id: Long, uploadedBy: String) = VideoResponse(
         id = id,
@@ -103,5 +111,31 @@ class VideoViewModelTest {
         viewModel.loadVideos(ownUsername = "vovan")
 
         assertTrue(viewModel.videosResult.first() is NetworkResult.Error)
+    }
+
+    @Test
+    fun `cached videos are emitted before the network result`() = runTest {
+        every { videoRepository.cachedVideos() } returns listOf(video(7, "vovan"))
+        coEvery { videoRepository.getVideos() } returns flowOf(
+            NetworkResult.Loading(),
+            NetworkResult.Success(emptyList())
+        )
+
+        val viewModel = VideoViewModel(videoRepository)
+        val events = mutableListOf<NetworkResult<List<VideoResponse>>>()
+        val collector = launch(Dispatchers.Unconfined, start = CoroutineStart.UNDISPATCHED) {
+            viewModel.videosResult.collect { events += it }
+        }
+
+        viewModel.loadVideos(ownUsername = "vovan")
+        collector.cancel()
+
+        // Первым приходит именно кэш, сеть догружается уже после.
+        val first = events.first()
+        assertTrue(first is NetworkResult.Success)
+        assertEquals(
+            listOf(7L),
+            (first as NetworkResult.Success<List<VideoResponse>>).data!!.map { it.id }
+        )
     }
 }

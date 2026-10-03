@@ -35,6 +35,8 @@ class ChatRepository(
          * у прокси и серверов.
          */
         const val PRESENCE_BATCH_SIZE = 100
+
+        const val PRIVATE_CHAT_TYPE = "PRIVATE"
     }
 
     suspend fun loadAvatar(): Flow<NetworkResult<AvatarResponse>> = avatarRequest {
@@ -375,13 +377,56 @@ class ChatRepository(
             }
 
             if (response.isSuccessful && response.body() != null) {
-                emit(NetworkResult.Success(response.body()!!))
+                val chat = response.body()!!
+                PrivateChatCache.put(userUuid, chat)
+                emit(NetworkResult.Success(chat))
             } else {
                 emit(NetworkResult.Error("Failed to create chat: ${response.message()}"))
             }
         } catch (e: Exception) {
             emit(NetworkResult.Error("Network error: ${e.message}"))
         }
+    }
+
+    /**
+     * Ищет уже существующий приватный чат с пользователем.
+     *
+     * У приватных чатов нет названия (title == null), поэтому сопоставляем по
+     * участникам: перебираем приватные чаты и смотрим, есть ли среди участников
+     * нужный userUuid. Нужен, чтобы повторное нажатие на контакт открывало
+     * существующую переписку, а не создавало дубликат.
+     */
+    suspend fun findPrivateChatWith(userUuid: String): ChatResponse? {
+        PrivateChatCache.get(userUuid)?.let { return it }
+
+        // Свежий список: только что созданный чат ещё может не успеть попасть
+        // в кэш, и мы бы создали дубликат.
+        var chats: List<ChatResponse> = emptyList()
+        loadChats().collect { result ->
+            if (result is NetworkResult.Success) chats = result.data ?: emptyList()
+        }
+
+        var match: ChatResponse? = null
+        for (chat in chats) {
+            if (!chat.chatType.equals(PRIVATE_CHAT_TYPE, ignoreCase = true)) continue
+
+            var participants: List<ChatParticipantResponse> = emptyList()
+            loadChatParticipants(chat.chatUuid).collect { result ->
+                if (result is NetworkResult.Success) participants = result.data ?: emptyList()
+            }
+
+            // Заполняем кэш по всем найденным приватным чатам: тогда следующие
+            // тапы по любым контактам будут мгновенными.
+            for (participant in participants) {
+                val uuid = participant.userUuid ?: continue
+                PrivateChatCache.put(uuid, chat)
+            }
+
+            if (match == null && participants.any { it.userUuid == userUuid }) {
+                match = chat
+            }
+        }
+        return match
     }
 
     suspend fun createGroupChat(

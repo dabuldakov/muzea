@@ -170,15 +170,51 @@ class ChatConversationViewModelTest {
     }
 
     @Test
-    fun `optimistic message is replaced by server copy`() = withViewModel { viewModel ->
+    fun `optimistic bubble is updated in place by the server echo`() = withViewModel { viewModel ->
         coEvery { chatRepository.sendMessage(chatUuid, "hello") } returns flowOf(
             NetworkResult.Success(message("server-1", "hello", "2026-01-01T00:00:00"))
         )
 
         viewModel.sendText("hello")
 
+        // Идентификатор локального пузыря сохраняется, чтобы DiffUtil не
+        // удалял и не вставлял строку заново (иначе список мигает).
+        val sent = viewModel.messages.value.single()
+        assertTrue(sent.messageUuid.startsWith("local-"))
+        assertEquals("hello", sent.text)
+        assertEquals("2026-01-01T00:00:00", sent.createdAt)
+    }
+
+    @Test
+    fun `server echo is not duplicated by the next poll`() = withViewModel { viewModel ->
+        val serverCopy = message("server-1", "hello", "2026-01-01T00:00:00")
+        coEvery { chatRepository.sendMessage(chatUuid, "hello") } returns
+            flowOf(NetworkResult.Success(serverCopy))
+
+        viewModel.sendText("hello")
         assertEquals(1, viewModel.messages.value.size)
-        assertEquals("server-1", viewModel.messages.value.single().messageUuid)
+
+        // Следующий опрос возвращает серверную копию — она уже показана
+        // локальным пузырём и не должна появиться второй строкой.
+        coEvery { chatRepository.loadMessages(chatUuid) } returns
+            flowOf(NetworkResult.Success(listOf(serverCopy)))
+        viewModel.refresh()
+
+        assertEquals(1, viewModel.messages.value.size)
+        assertEquals("hello", viewModel.messages.value.single().text)
+    }
+
+    @Test
+    fun `cached messages are shown sorted by creation time`() = withViewModel(
+        // Сервер отдаёт сообщения «сначала новые»; в кэше они лежат именно в
+        // таком порядке, а на экране должны идти по возрастанию времени.
+        cached = listOf(
+            message("m2", "newer", "2026-01-02T00:00:00"),
+            message("m1", "older", "2026-01-01T00:00:00")
+        ),
+        network = flowOf(NetworkResult.Success(emptyList()))
+    ) { viewModel ->
+        assertEquals(listOf("older", "newer"), viewModel.messages.value.map { it.text })
     }
 
     @Test

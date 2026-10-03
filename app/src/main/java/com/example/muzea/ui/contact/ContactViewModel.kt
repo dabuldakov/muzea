@@ -97,8 +97,28 @@ class ContactViewModel(
         }
     }
 
-    fun createPrivateChat(userUuid: String) {
+    /**
+     * Открывает переписку с контактом: если приватный чат уже существует —
+     * возвращает его, иначе создаёт новый. Так повторное нажатие на контакт
+     * не плодит дубликаты чатов.
+     */
+    fun openPrivateChat(userUuid: String) {
         viewModelScope.launch {
+            _createChatResult.emit(NetworkResult.Loading())
+
+            val existing = try {
+                chatRepository.findPrivateChatWith(userUuid)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                null
+            }
+
+            if (existing != null) {
+                _createChatResult.emit(NetworkResult.Success(existing))
+                return@launch
+            }
+
             chatRepository.createPrivateChat(userUuid).collect { result ->
                 _createChatResult.emit(result)
             }

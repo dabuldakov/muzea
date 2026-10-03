@@ -12,13 +12,14 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.example.muzea.R
 import com.example.muzea.data.api.ChatRetrofitClient
+import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.model.ContactResponse
 import com.example.muzea.data.repository.ChatAuthManager
 import com.example.muzea.data.repository.ChatRepository
 import com.example.muzea.databinding.FragmentContactListBinding
+import com.example.muzea.ui.chat.ChatConversationFragment
+import com.example.muzea.ui.openDetailScreen
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
 import kotlinx.coroutines.delay
@@ -105,7 +106,7 @@ class ContactListFragment : Fragment() {
             Toast.makeText(requireContext(), "Cannot create chat: no user uuid", Toast.LENGTH_SHORT).show()
             return
         }
-        viewModel.createPrivateChat(userUuid)
+        viewModel.openPrivateChat(userUuid)
     }
 
     private fun setupSwipeRefresh() {
@@ -204,26 +205,24 @@ class ContactListFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.createChatResult.collect { result ->
                 when (result) {
-                    is NetworkResult.Loading -> {
-                        Toast.makeText(requireContext(), "Creating chat...", Toast.LENGTH_SHORT).show()
-                    }
-                    is NetworkResult.Success -> {
-                        Toast.makeText(requireContext(), "Private chat created", Toast.LENGTH_SHORT).show()
-                        switchToChatTab()
-                    }
+                    is NetworkResult.Loading -> Unit
+                    is NetworkResult.Success -> result.data?.let { openConversation(it) }
                     is NetworkResult.Error -> {
-                        Toast.makeText(requireContext(), result.message ?: "Failed to create chat", Toast.LENGTH_LONG).show()
+                        Toast.makeText(requireContext(), result.message ?: "Failed to open chat", Toast.LENGTH_LONG).show()
                     }
                 }
             }
         }
     }
 
-    private fun switchToChatTab() {
-        val bottomNav = activity?.findViewById<BottomNavigationView>(R.id.bottomNavigation)
-        if (bottomNav != null && bottomNav.selectedItemId != R.id.chatFragment) {
-            bottomNav.selectedItemId = R.id.chatFragment
-        }
+    private fun openConversation(chat: ChatResponse) {
+        val fragment = ChatConversationFragment.newInstance(
+            chat.chatUuid,
+            chat.title ?: "Chat",
+            chat.avatarUrl,
+            0L
+        )
+        openDetailScreen(fragment)
     }
 
     /**

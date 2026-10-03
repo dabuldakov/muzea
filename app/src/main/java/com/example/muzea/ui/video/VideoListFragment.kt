@@ -83,7 +83,9 @@ class VideoListFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.videosResult.collect { result ->
                 when (result) {
-                    is NetworkResult.Loading -> showLoading(true)
+                    // Спиннер только если показать нечего: при кэше фоновое
+                    // обновление не должно мигать поверх списка.
+                    is NetworkResult.Loading -> showLoading(adapter.itemCount == 0)
                     is NetworkResult.Success -> handleSuccess(result.data)
                     is NetworkResult.Error -> handleError(result.message ?: "Unknown error")
                 }

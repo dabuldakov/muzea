@@ -23,8 +23,12 @@ class ChatConversationViewModel(
 ) : ViewModel() {
 
     // Стартуем с кэша: при повторном входе переписка видна сразу, а refresh()
-    // и опрос догружают свежие сообщения фоном.
-    private val _messages = MutableStateFlow(chatRepository.cachedMessages(chatUuid))
+    // и опрос догружают свежие сообщения фоном. Кэш хранит сообщения в порядке
+    // сервера (сначала новые), поэтому сортируем их до показа — иначе при
+    // открытии чата порядок был бы перевёрнут до первого сетевого обновления.
+    private val _messages = MutableStateFlow(
+        chatRepository.cachedMessages(chatUuid).sortedWith(MessageComparator())
+    )
     val messages: StateFlow<List<MessageResponse>> = _messages.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
@@ -38,6 +42,11 @@ class ChatConversationViewModel(
 
     private var pollingJob: Job? = null
     private var lastMarkedReadUuid: String? = null
+
+    // serverUuid -> localUuid для наших отправленных сообщений: серверное эхо
+    // показываем не отдельным элементом, а обновляем уже существующий пузырь,
+    // чтобы DiffUtil не удалял и не вставлял строку (иначе список мигает).
+    private val serverToLocal = HashMap<String, String>()
 
     init {
         // Опрос сам выполняет первый запрос, поэтому отдельный refresh() в init
@@ -94,9 +103,7 @@ class ChatConversationViewModel(
             chatRepository.sendMessage(chatUuid, trimmed).collect { result ->
                 when (result) {
                     is NetworkResult.Success -> {
-                        removeLocalMessage(optimistic.messageUuid)
-                        val sent = result.data!!
-                        mergeMessages(listOf(sent))
+                        applyServerEcho(optimistic.messageUuid, result.data!!)
                     }
                     is NetworkResult.Error -> {
                         _sendError.emit(result.message ?: "Failed to send message")
@@ -107,13 +114,33 @@ class ChatConversationViewModel(
         }
     }
 
-    private fun removeLocalMessage(localUuid: String) {
-        _messages.value = _messages.value.filter { it.messageUuid != localUuid }
+    /**
+     * Обновляет локальный пузырь данными серверного эха, не меняя его
+     * идентификатор в списке. Раньше локальное сообщение удалялось, а серверное
+     * вставлялось заново: DiffUtil считал строку другой и перерисовывал её —
+     * при отправке список мигал. Теперь это обычное изменение содержимого.
+     */
+    private fun applyServerEcho(localUuid: String, serverMessage: MessageResponse) {
+        serverToLocal[serverMessage.messageUuid] = localUuid
+        _messages.value = _messages.value
+            .map { existing ->
+                if (existing.messageUuid == localUuid) {
+                    serverMessage.copy(messageUuid = localUuid)
+                } else {
+                    existing
+                }
+            }
+            .sortedWith(MessageComparator())
+        markLatestAsRead()
     }
 
     private fun mergeMessages(incoming: List<MessageResponse>) {
         val merged = LinkedHashMap<String, MessageResponse>()
-        for (m in incoming) merged[m.messageUuid] = m
+        for (m in incoming) {
+            // Эхо своих сообщений уже показано локальным пузырём — не дублируем.
+            if (serverToLocal.containsKey(m.messageUuid)) continue
+            merged[m.messageUuid] = m
+        }
         for (m in _messages.value) merged[m.messageUuid] = m
         _messages.value = merged.values.toList().sortedWith(MessageComparator())
         markLatestAsRead()

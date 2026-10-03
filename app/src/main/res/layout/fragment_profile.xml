@@ -187,6 +187,26 @@
                 android:textColor="?attr/colorError"
                 android:textSize="14sp" />
 
+            <TextView
+                android:id="@+id/tvCacheSize"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center"
+                android:text="@string/cache_size_loading"
+                android:textColor="@color/gray"
+                android:textSize="13sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnClearCache"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/clear_cache"
+                android:textColor="@color/gray"
+                android:textSize="14sp" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnLogout"
                 style="@style/Widget.MaterialComponents.Button.TextButton"

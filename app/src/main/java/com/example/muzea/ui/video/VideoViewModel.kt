@@ -31,6 +31,16 @@ class VideoViewModel(
 
     fun loadVideos(ownUsername: String? = null) {
         if (isLoading) return
+
+        // Сначала отдаём кэш, чтобы вкладка показалась мгновенно, и только
+        // затем идём в сеть за свежими данными.
+        if (_videosResult.replayCache.isEmpty()) {
+            val cached = videoRepository.cachedVideos()
+            if (cached.isNotEmpty()) {
+                _videosResult.tryEmit(NetworkResult.Success(visibleVideos(cached, ownUsername)))
+            }
+        }
+
         viewModelScope.launch {
             isLoading = true
             _videosResult.emit(NetworkResult.Loading())

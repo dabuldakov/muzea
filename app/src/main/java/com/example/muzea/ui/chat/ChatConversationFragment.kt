@@ -12,6 +12,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.SimpleItemAnimator
 import com.example.muzea.data.api.ChatRetrofitClient
 import com.example.muzea.data.model.MessageResponse
 import com.example.muzea.data.repository.ChatAuthManager
@@ -124,8 +125,17 @@ class ChatConversationFragment : Fragment() {
         adapter = MessageAdapter(viewModel.myUserUuid)
         adapter.registerAdapterDataObserver(scrollObserver)
         binding.recyclerViewMessages.apply {
-            layoutManager = LinearLayoutManager(requireContext())
+            // stackFromEnd держит ленту «прижатой» к низу: при открытии клавиатуры
+            // окно сжимается (adjustResize), и последнее сообщение остаётся
+            // видимым над клавиатурой, а не уезжает вниз.
+            layoutManager = LinearLayoutManager(requireContext()).apply {
+                stackFromEnd = true
+            }
             adapter = this@ChatConversationFragment.adapter
+            // Обновление содержимого (локальное сообщение -> серверное эхо) не
+            // должно проходить через crossfade-анимацию: она и выглядит как
+            // мигание пузыря.
+            (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
         }
     }
 

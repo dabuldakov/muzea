@@ -40,6 +40,11 @@
     <string name="action_cancel">Отмена</string>
     <string name="action_delete">Удалить</string>
 
+    <string name="clear_cache">Очистить кэш</string>
+    <string name="cache_size">Кэш: %1$s</string>
+    <string name="cache_size_loading">Кэш: …</string>
+    <string name="cache_cleared">Кэш очищен</string>
+
     <string name="presence_online">в сети</string>
     <string name="presence_offline">офлайн</string>
     <string name="presence_last_seen_just_now">был(а) только что</string>

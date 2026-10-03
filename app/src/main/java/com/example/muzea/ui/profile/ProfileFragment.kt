@@ -25,6 +25,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.example.muzea.data.api.RetrofitClient
 import com.example.muzea.data.repository.UserRepository
 import com.example.muzea.ui.auth.LoginActivity
+import com.example.muzea.utils.CacheManager
 import com.example.muzea.utils.NetworkResult
 import com.example.muzea.utils.TokenManager
 import kotlinx.coroutines.launch
@@ -93,8 +94,36 @@ class ProfileFragment : Fragment() {
         }
 
         setupClickListeners()
+        setupCacheSection()
         observeViewModel()
         viewModel.loadUserProfile()
+    }
+
+    private fun setupCacheSection() {
+        binding.btnClearCache.setOnClickListener { clearCache() }
+        refreshCacheSize()
+    }
+
+    private fun refreshCacheSize() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val bytes = CacheManager.totalSizeBytes(requireContext())
+            if (_binding == null) return@launch
+            binding.tvCacheSize.text = getString(R.string.cache_size, formatCacheSize(bytes))
+        }
+    }
+
+    private fun clearCache() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            CacheManager.clear(requireContext())
+            if (_binding == null) return@launch
+            Toast.makeText(requireContext(), getString(R.string.cache_cleared), Toast.LENGTH_SHORT).show()
+            refreshCacheSize()
+        }
+    }
+
+    private fun formatCacheSize(bytes: Long): String {
+        val mb = bytes / (1024.0 * 1024.0)
+        return String.format(java.util.Locale.US, "%.1f МБ", mb)
     }
 
     private fun setupClickListeners() {
@@ -280,10 +309,23 @@ class ProfileFragment : Fragment() {
         // Чужие переписки не должны остаться в памяти после смены пользователя.
         com.example.muzea.data.repository.ChatMessagesCache.clear()
         com.example.muzea.data.repository.ChatListCache.clear()
+        com.example.muzea.data.repository.VideoListCache.clear()
+        com.example.muzea.data.repository.PrivateChatCache.clear()
         val intent = android.content.Intent(requireContext(), LoginActivity::class.java)
         intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         activity?.finish()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refreshCacheSize()
+    }
+
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        // Вкладка профиля живёт постоянно: при переключении обновляем размер кэша.
+        if (!hidden) refreshCacheSize()
     }
 
     override fun onDestroyView() {
