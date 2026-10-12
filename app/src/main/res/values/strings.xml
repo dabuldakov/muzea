@@ -104,4 +104,5 @@
     <string name="label_uploaded_by">Uploaded by: </string>
     <string name="video_upload_title">Upload Video</string>
     <string name="video_watch_now">Watch Now</string>
+    <string name="message_copied">Сообщение скопировано</string>
 </resources>

@@ -35,12 +35,15 @@
         android:id="@+id/tvMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:autoLink="web|email"
         android:background="@drawable/bg_bubble_incoming"
+        android:linksClickable="true"
         android:paddingStart="12dp"
         android:paddingTop="8dp"
         android:paddingEnd="12dp"
         android:paddingBottom="8dp"
         android:textColor="@android:color/black"
+        android:textColorLink="@color/purple_700"
         android:textSize="15sp" />
 
     <TextView

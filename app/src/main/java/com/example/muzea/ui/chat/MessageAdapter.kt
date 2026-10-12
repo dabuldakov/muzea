@@ -1,8 +1,12 @@
 package com.example.muzea.ui.chat
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -54,6 +58,10 @@ class MessageAdapter(
         fun bind(message: Message) {
             AvatarLoader.load(binding.ivAvatar, message.senderAvatar)
             binding.tvMessage.text = message.text ?: ""
+            binding.tvMessage.setOnLongClickListener { view ->
+                copyMessageToClipboard(view, message.text ?: "")
+                true
+            }
 
             if (!message.senderName.isNullOrEmpty()) {
                 binding.tvSenderName.text = message.senderName
@@ -72,6 +80,10 @@ class MessageAdapter(
 
         fun bind(message: Message) {
             binding.tvMessage.text = message.text ?: ""
+            binding.tvMessage.setOnLongClickListener { view ->
+                copyMessageToClipboard(view, message.text ?: "")
+                true
+            }
             binding.tvTime.text = formatTime(message.createdAt)
         }
     }
@@ -98,4 +110,11 @@ class MessageAdapter(
             return oldItem == newItem
         }
     }
+}
+
+private fun copyMessageToClipboard(view: View, text: String) {
+    if (text.isBlank()) return
+    val clipboard = view.context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    clipboard.setPrimaryClip(ClipData.newPlainText(null, text))
+    Toast.makeText(view.context, R.string.message_copied, Toast.LENGTH_SHORT).show()
 }
