@@ -46,6 +46,13 @@ class ChatListFragment : Fragment() {
     private var prefetchJob: Job? = null
 
     /**
+     * Текст, которым с приложением поделились снаружи. Пока он не null,
+     * список находится в режиме «поделиться»: первый выбранный чат получит
+     * этот текст черновиком в поле ввода, после чего режим сбрасывается.
+     */
+    private var sharedText: String? = null
+
+    /**
      * Последняя ошибка загрузки списка. Показывается вместо пустого состояния,
      * чтобы отличать «чатов нет» от «не удалось загрузить».
      */
@@ -98,6 +105,11 @@ class ChatListFragment : Fragment() {
         }
     }
 
+    /** Включает режим «поделиться»: следующий выбранный чат получит этот текст. */
+    fun setSharedText(text: String) {
+        sharedText = text
+    }
+
     private fun openChat(chatUuid: String) {
         val chat = adapter.currentList.firstOrNull { it.chatUuid == chatUuid }
         val title = chat?.title ?: "Chat"
@@ -105,7 +117,9 @@ class ChatListFragment : Fragment() {
     }
 
     private fun navigationToConversation(chatUuid: String, title: String, avatarUrl: String?) {
-        navigator.openConversation(chatUuid, title, avatarUrl, 0L)
+        val draft = sharedText
+        sharedText = null
+        navigator.openConversation(chatUuid, title, avatarUrl, 0L, draft)
     }
 
     private fun setupSwipeRefresh() {

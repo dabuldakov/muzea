@@ -14,6 +14,15 @@
         <item name="materialCardViewStyle">@style/Widget.MaterialComponents.CardView</item>
     </style>
 
+    <!-- Прозрачная тема для приёмника «Поделиться»: активность сразу
+         запускает экран чатов и закрывается, мелькание пустого окна не нужно. -->
+    <style name="Theme.Muzea.Transparent" parent="Theme.Muzea">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+
     <!-- Добавьте стиль для TextInputEditText -->
     <style name="ThemeOverlay.Design.TextInputEditText" parent="">
         <item name="colorControlNormal">@color/purple_500</item>

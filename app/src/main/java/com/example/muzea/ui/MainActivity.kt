@@ -1,6 +1,7 @@
 package com.example.muzea.ui
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -63,7 +64,34 @@ class MainActivity : AppCompatActivity(), Navigator {
         setupBottomNavigation()
         setupUnreadBadge()
         startPresenceHeartbeat()
+
+        // Поделились ссылкой, пока приложение было закрыто. При повороте
+        // savedInstanceState != null — режим «поделиться» восстанавливает сам
+        // фрагмент чатов, повторно дёргать вкладку не нужно.
+        if (savedInstanceState == null) {
+            intent.getStringExtra(EXTRA_SHARED_TEXT)?.let(::openChatTabForShare)
+        }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        // Поделились, пока приложение уже открыто.
+        intent.getStringExtra(EXTRA_SHARED_TEXT)?.let(::openChatTabForShare)
+    }
+
+    /**
+     * Открывает вкладку чатов и передаёт в неё ссылку. Клик по любому чату
+     * откроет переписку с уже подставленным текстом в поле ввода.
+     */
+    private fun openChatTabForShare(text: String) {
+        binding.bottomNavigation.selectedItemId = R.id.chatFragment
+        supportFragmentManager.executePendingTransactions()
+        chatListFragment()?.setSharedText(text)
+    }
+
+    private fun chatListFragment(): ChatListFragment? =
+        supportFragmentManager.findFragmentByTag(TAB_TAGS.getValue(R.id.chatFragment)) as? ChatListFragment
 
     /**
      * Heartbeat «приложение на переднем плане» на всё приложение.
@@ -174,9 +202,12 @@ class MainActivity : AppCompatActivity(), Navigator {
         chatUuid: String,
         title: String,
         avatarUrl: String?,
-        unreadCount: Long
+        unreadCount: Long,
+        draftText: String?
     ) {
-        openDetail(ChatConversationFragment.newInstance(chatUuid, title, avatarUrl, unreadCount))
+        openDetail(
+            ChatConversationFragment.newInstance(chatUuid, title, avatarUrl, unreadCount, draftText)
+        )
     }
 
     override fun openGroupSettings(chatUuid: String, title: String, avatarUrl: String?) {
@@ -215,7 +246,10 @@ class MainActivity : AppCompatActivity(), Navigator {
         else -> NewsListFragment()
     }
 
-    private companion object {
+    companion object {
+        /** Ссылка (или любой текст), которой поделились с приложением через ACTION_SEND. */
+        const val EXTRA_SHARED_TEXT = "extra_shared_text"
+
         private val TAB_TAGS = mapOf(
             R.id.newsListFragment to "tab_news",
             R.id.chatFragment to "tab_chat",

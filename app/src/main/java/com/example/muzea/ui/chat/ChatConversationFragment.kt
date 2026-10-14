@@ -41,12 +41,14 @@ class ChatConversationFragment : Fragment() {
         private const val ARG_CHAT_TITLE = "chat_title"
         private const val ARG_CHAT_AVATAR = "chat_avatar"
         private const val ARG_UNREAD_COUNT = "chat_unread_count"
+        private const val ARG_DRAFT_TEXT = "chat_draft_text"
 
         fun newInstance(
             chatUuid: String,
             chatTitle: String,
             avatarUrl: String? = null,
-            unreadCount: Long = 0L
+            unreadCount: Long = 0L,
+            draftText: String? = null
         ): ChatConversationFragment {
             return ChatConversationFragment().apply {
                 arguments = Bundle().apply {
@@ -54,6 +56,7 @@ class ChatConversationFragment : Fragment() {
                     putString(ARG_CHAT_TITLE, chatTitle)
                     putString(ARG_CHAT_AVATAR, avatarUrl)
                     putLong(ARG_UNREAD_COUNT, unreadCount)
+                    putString(ARG_DRAFT_TEXT, draftText)
                 }
             }
         }
@@ -85,7 +88,18 @@ class ChatConversationFragment : Fragment() {
 
         setupRecyclerView()
         setupInput()
+        prefillDraft()
         observeViewModel()
+    }
+
+    /**
+     * Подставляет в поле ввода текст, которым с приложением поделились.
+     * Отправляет его пользователь сам — это черновик, а не автоотправка.
+     */
+    private fun prefillDraft() {
+        val draft = arguments?.getString(ARG_DRAFT_TEXT)?.takeIf { it.isNotEmpty() } ?: return
+        binding.etMessageInput.setText(draft)
+        binding.etMessageInput.setSelection(draft.length)
     }
 
     private fun openGroupSettings(chatTitle: String) {
