@@ -12,8 +12,8 @@ import retrofit2.http.GET
  */
 interface GitHubApi {
 
-    @GET("repos/dabuldakov/muzea/releases/latest")
-    suspend fun getLatestRelease(): Response<GitHubRelease>
+    @GET("repos/dabuldakov/muzea/releases")
+    suspend fun getReleases(): Response<List<GitHubRelease>>
 }
 
 data class GitHubRelease(
@@ -23,6 +23,10 @@ data class GitHubRelease(
     val htmlUrl: String,
     @SerializedName("body")
     val body: String? = null,
+    @SerializedName("draft")
+    val draft: Boolean = false,
+    @SerializedName("prerelease")
+    val prerelease: Boolean = false,
     @SerializedName("assets")
     val assets: List<GitHubAsset> = emptyList()
 )

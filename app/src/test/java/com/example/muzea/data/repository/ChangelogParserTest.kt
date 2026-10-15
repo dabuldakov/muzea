@@ -63,4 +63,29 @@ class ChangelogParserTest {
         assertTrue(parseChangelog("").isEmpty())
         assertTrue(parseChangelog("   ").isEmpty())
     }
+
+    @Test
+    fun `merge combines same groups in release order`() {
+        val old = "## ✨ Новое\n- первое\n## 🐛 Исправления\n- баг старый"
+        val new = "## ✨ Новое\n- второе\n## 🐛 Исправления\n- баг новый"
+
+        val merged = mergeChangelog(listOf(old, new))
+
+        assertEquals(2, merged.size)
+        assertEquals("✨ Новое", merged[0].title)
+        assertEquals(listOf("первое", "второе"), merged[0].items)
+        assertEquals(listOf("баг старый", "баг новый"), merged[1].items)
+    }
+
+    @Test
+    fun `merge keeps distinct groups and ignores blanks`() {
+        val a = "## ✨ Новое\n- a"
+        val b = "## 🔧 CI\n- b"
+
+        val merged = mergeChangelog(listOf(a, null, b))
+
+        assertEquals(listOf("✨ Новое", "🔧 CI"), merged.map { it.title })
+        assertEquals(listOf("a"), merged[0].items)
+        assertEquals(listOf("b"), merged[1].items)
+    }
 }

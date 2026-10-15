@@ -43,3 +43,18 @@ internal fun parseChangelog(body: String?): List<ChangelogGroup> {
     flush()
     return groups
 }
+
+/**
+ * Объединяет changelog нескольких релизов в один список групп: одноимённые
+ * разделы сливаются (заголовок выводится один раз), пункты идут в порядке
+ * переданных тел (от старых релизов к новым).
+ */
+internal fun mergeChangelog(bodies: List<String?>): List<ChangelogGroup> {
+    val merged = LinkedHashMap<String, MutableList<String>>()
+    bodies.forEach { body ->
+        parseChangelog(body).forEach { group ->
+            merged.getOrPut(group.title) { mutableListOf() }.addAll(group.items)
+        }
+    }
+    return merged.map { ChangelogGroup(it.key, it.value) }
+}

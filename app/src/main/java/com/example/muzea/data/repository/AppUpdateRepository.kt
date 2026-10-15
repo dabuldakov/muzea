@@ -2,6 +2,7 @@ package com.example.muzea.data.repository
 
 import android.content.Context
 import com.example.muzea.data.api.GitHubApi
+import com.example.muzea.data.api.GitHubRelease
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -54,31 +55,43 @@ class AppUpdateRepository @Inject constructor(
      * Опрашивает GitHub. Возвращает результат для ручной проверки, а заодно
      * обновляет [availableUpdate] (его слушают бейдж и точка в профиле).
      * При ошибке сети прошлое значение не трогаем — вернём [UpdateCheckResult.Failed].
+     *
+     * Берём не только последний релиз: если пользователь отстал на несколько
+     * версий, в список «что нового» соберём изменения всех пропущенных релизов.
      */
     suspend fun checkForUpdate(): UpdateCheckResult {
-        val release = runCatching { gitHubApi.getLatestRelease() }
+        val releases = runCatching { gitHubApi.getReleases() }
             .getOrNull()
             ?.takeIf { it.isSuccessful }
             ?.body()
             ?: return UpdateCheckResult.Failed
 
-        val latest = release.tagName.removePrefix("v").trim()
-        if (latest.isNotEmpty() && isNewerVersion(latest, currentVersionName)) {
-            val apkUrl = release.assets
-                .firstOrNull { it.name.endsWith(".apk", ignoreCase = true) }
-                ?.downloadUrl
-            val update = AppUpdate(
-                versionName = latest,
-                downloadUrl = apkUrl ?: release.htmlUrl,
-                changelog = parseChangelog(release.body)
-            )
-            _availableUpdate.value = update
-            return UpdateCheckResult.Available(update)
-        }
+        val skipped = releases
+            .filter { !it.draft && !it.prerelease }
+            .filter { isNewerVersion(it.version(), currentVersionName) }
+            .sortedWith { a, b -> compareVersions(a.version(), b.version()) }
 
-        _availableUpdate.value = null
-        return UpdateCheckResult.UpToDate
+        val latest = skipped.lastOrNull()
+            ?: run {
+                _availableUpdate.value = null
+                return UpdateCheckResult.UpToDate
+            }
+
+        val apkUrl = latest.assets
+            .firstOrNull { it.name.endsWith(".apk", ignoreCase = true) }
+            ?.downloadUrl
+
+        val update = AppUpdate(
+            versionName = latest.version(),
+            downloadUrl = apkUrl ?: latest.htmlUrl,
+            // Релизы от старых к новым: пункты внутри групп пойдут по порядку.
+            changelog = mergeChangelog(skipped.map { it.body })
+        )
+        _availableUpdate.value = update
+        return UpdateCheckResult.Available(update)
     }
+
+    private fun GitHubRelease.version(): String = tagName.removePrefix("v").trim()
 
     private companion object {
         const val FALLBACK_VERSION = "0"
@@ -89,13 +102,16 @@ class AppUpdateRepository @Inject constructor(
  * Сравнение версий вида «1.2.0». Нечисловые части (например, суффикс «-beta»)
  * трактуются как 0 — этого достаточно для релизных тегов приложения.
  */
-internal fun isNewerVersion(latest: String, current: String): Boolean {
-    val latestParts = latest.split('.')
-    val currentParts = current.split('.')
-    for (i in 0 until maxOf(latestParts.size, currentParts.size)) {
-        val l = latestParts.getOrNull(i)?.toIntOrNull() ?: 0
-        val c = currentParts.getOrNull(i)?.toIntOrNull() ?: 0
-        if (l != c) return l > c
+internal fun compareVersions(a: String, b: String): Int {
+    val aParts = a.split('.')
+    val bParts = b.split('.')
+    for (i in 0 until maxOf(aParts.size, bParts.size)) {
+        val av = aParts.getOrNull(i)?.toIntOrNull() ?: 0
+        val bv = bParts.getOrNull(i)?.toIntOrNull() ?: 0
+        if (av != bv) return av.compareTo(bv)
     }
-    return false
+    return 0
 }
+
+internal fun isNewerVersion(latest: String, current: String): Boolean =
+    compareVersions(latest, current) > 0
