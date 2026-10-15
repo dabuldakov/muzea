@@ -28,16 +28,36 @@ class MuzeaMessagingService : FirebaseMessagingService() {
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
-        val title = message.notification?.title
-            ?: message.data["title"]
+        val data = message.data
+
+        val senderName = firstNonBlank(
+            data["senderName"], data["sender_name"], data["sender"],
+            data["from"], data["nickname"], data["username"]
+        )
+        val chatTitle = firstNonBlank(
+            data["chatTitle"], data["chat_title"], data["chatName"], data["groupName"]
+        )
+        val body = firstNonBlank(
+            data["messageText"], data["body"], data["text"], data["message"],
+            message.notification?.body
+        ).orEmpty()
+
+        val fallbackTitle = message.notification?.title
+            ?: data["title"]
             ?: getString(R.string.chat_channel_name)
-        val body = message.notification?.body
-            ?: message.data["messageText"]
-            ?: message.data["body"]
-            ?: ""
+        // Имя отправителя важнее общего «Новое сообщение». Для групп добавляем
+        // название чата, чтобы было понятно, куда пришло сообщение.
+        val title = when {
+            senderName != null && chatTitle != null -> "$senderName · $chatTitle"
+            senderName != null -> senderName
+            else -> fallbackTitle
+        }
 
         showNotification(title, body)
     }
+
+    private fun firstNonBlank(vararg values: String?): String? =
+        values.firstOrNull { !it.isNullOrBlank() }?.trim()
 
     private fun showNotification(title: String, body: String) {
         val channelId = getString(R.string.chat_channel_id)
