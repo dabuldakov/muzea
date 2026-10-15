@@ -64,8 +64,8 @@ while IFS= read -r subject; do
   else
     line="$text"
   fi
-  # Первая буква заглавная.
-  line="$(printf '%s' "$line" | sed -E 's/^([a-zа-яё])/\U\1/')"
+  # Первая буква заглавная (без locale-зависимых диапазонов sed).
+  line="${line^}"
 
   items[$type]="${items[$type]:-}- ${line}"$'\n'
 done < <(git log --no-merges --pretty=tformat:'%s' "$range")
