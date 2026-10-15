@@ -16,6 +16,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import okhttp3.CertificatePinner
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -32,6 +33,13 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
+
+    // Публичные ключи выпускающей цепочки серверов (SPKI SHA-256).
+    // Проверены на живых api-muzea.su и chat-muzea.su.
+    private const val PIN_INTERMEDIATE_CA =
+        "sha256/brzvtCELCIZUo4sD/qPX0ccRtPsd3DY6RfmxpOU9oB4="
+    private const val PIN_ROOT_CA =
+        "sha256/sCkq5UWXjg+7mKu9lMhhYF5bGLsy7VI/UNW3tccdR7w="
 
     @Provides
     @Singleton
@@ -62,6 +70,7 @@ object NetworkModule {
             .baseUrl(Constants.BASE_URL)
             .client(
                 OkHttpClient.Builder()
+                    .certificatePinner(certificatePinner())
                     .connectTimeout(30, TimeUnit.SECONDS)
                     .readTimeout(30, TimeUnit.SECONDS)
                     .writeTimeout(30, TimeUnit.SECONDS)
@@ -110,6 +119,7 @@ object NetworkModule {
 
     private fun baseBuilder(interceptor: Interceptor): OkHttpClient.Builder =
         OkHttpClient.Builder()
+            .certificatePinner(certificatePinner())
             .addInterceptor(
                 HttpLoggingInterceptor().apply {
                     // BODY — только в отладочной сборке: в релизе он записывал бы
@@ -131,5 +141,17 @@ object NetworkModule {
             .baseUrl(baseUrl)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+    /**
+     * Пиннинг публичных ключей наших серверов. Пиним промежуточный CA и его
+     * издателя (а не лист): это переживает регулярную смену листового
+     * сертификата. Если выпускающий CA когда-нибудь сменится — пины нужно
+     * обновить, иначе запросы начнут падать (SSLPeerUnverifiedException).
+     */
+    private fun certificatePinner(): CertificatePinner =
+        CertificatePinner.Builder()
+            .add("api-muzea.su", PIN_INTERMEDIATE_CA, PIN_ROOT_CA)
+            .add("chat-muzea.su", PIN_INTERMEDIATE_CA, PIN_ROOT_CA)
             .build()
 }
