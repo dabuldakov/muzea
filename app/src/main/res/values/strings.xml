@@ -111,5 +111,7 @@
     <string name="update_action_download">Скачать</string>
     <string name="update_action_later">Позже</string>
     <string name="update_open_failed">Не удалось открыть ссылку для скачивания</string>
+    <string name="update_latest_version">Установлена последняя версия</string>
+    <string name="update_check_failed">Не удалось проверить обновления</string>
     <string name="changelog_title">Что нового</string>
 </resources>

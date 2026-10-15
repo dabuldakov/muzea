@@ -16,6 +16,13 @@ data class AppUpdate(
     val changelog: List<ChangelogGroup> = emptyList()
 )
 
+/** Результат ручной проверки обновления (тап по версии в профиле). */
+sealed interface UpdateCheckResult {
+    data class Available(val update: AppUpdate) : UpdateCheckResult
+    data object UpToDate : UpdateCheckResult
+    data object Failed : UpdateCheckResult
+}
+
 /**
  * Проверка новых релизов на GitHub.
  *
@@ -43,27 +50,34 @@ class AppUpdateRepository @Inject constructor(
         }.getOrNull() ?: FALLBACK_VERSION
     }
 
-    /** Разово опрашивает GitHub. При ошибке сети оставляет прошлое значение. */
-    suspend fun checkForUpdate() {
+    /**
+     * Опрашивает GitHub. Возвращает результат для ручной проверки, а заодно
+     * обновляет [availableUpdate] (его слушают бейдж и точка в профиле).
+     * При ошибке сети прошлое значение не трогаем — вернём [UpdateCheckResult.Failed].
+     */
+    suspend fun checkForUpdate(): UpdateCheckResult {
         val release = runCatching { gitHubApi.getLatestRelease() }
             .getOrNull()
             ?.takeIf { it.isSuccessful }
             ?.body()
-            ?: return
+            ?: return UpdateCheckResult.Failed
 
         val latest = release.tagName.removePrefix("v").trim()
         if (latest.isNotEmpty() && isNewerVersion(latest, currentVersionName)) {
             val apkUrl = release.assets
                 .firstOrNull { it.name.endsWith(".apk", ignoreCase = true) }
                 ?.downloadUrl
-            _availableUpdate.value = AppUpdate(
+            val update = AppUpdate(
                 versionName = latest,
                 downloadUrl = apkUrl ?: release.htmlUrl,
                 changelog = parseChangelog(release.body)
             )
-        } else {
-            _availableUpdate.value = null
+            _availableUpdate.value = update
+            return UpdateCheckResult.Available(update)
         }
+
+        _availableUpdate.value = null
+        return UpdateCheckResult.UpToDate
     }
 
     private companion object {

@@ -25,6 +25,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.example.muzea.data.repository.AppUpdate
 import com.example.muzea.data.repository.AppUpdateRepository
 import com.example.muzea.data.repository.ChangelogGroup
+import com.example.muzea.data.repository.UpdateCheckResult
 import com.example.muzea.ui.auth.LoginActivity
 import com.example.muzea.utils.CacheManager
 import com.example.muzea.core.Resource
@@ -107,14 +108,36 @@ class ProfileFragment : Fragment() {
             appUpdateRepository.availableUpdate.collect { update ->
                 if (_binding == null) return@collect
                 binding.updateDot.visibility = if (update != null) View.VISIBLE else View.GONE
-                binding.rowAppVersion.setOnClickListener {
-                    update?.let { showUpdateDialog(it) }
-                }
             }
         }
 
+        // Тап по версии каждый раз перепроверяет обновление вручную.
+        binding.rowAppVersion.setOnClickListener { checkForUpdateOnDemand() }
+
+        // Тихая проверка при открытии вкладки: обновляет точку на иконке профиля.
+        viewLifecycleOwner.lifecycleScope.launch { appUpdateRepository.checkForUpdate() }
+    }
+
+    /**
+     * Ручная проверка по тапу на версию: если обновление есть — предлагаем
+     * скачать, если нет — сообщаем, что установлена последняя версия.
+     */
+    private fun checkForUpdateOnDemand() {
+        if (_binding == null) return
+        binding.rowAppVersion.isEnabled = false
         viewLifecycleOwner.lifecycleScope.launch {
-            appUpdateRepository.checkForUpdate()
+            val result = appUpdateRepository.checkForUpdate()
+            val ctx = context
+            if (_binding != null) binding.rowAppVersion.isEnabled = true
+            if (ctx == null) return@launch
+
+            when (result) {
+                is UpdateCheckResult.Available -> showUpdateDialog(result.update)
+                UpdateCheckResult.UpToDate ->
+                    Toast.makeText(ctx, R.string.update_latest_version, Toast.LENGTH_SHORT).show()
+                UpdateCheckResult.Failed ->
+                    Toast.makeText(ctx, R.string.update_check_failed, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
