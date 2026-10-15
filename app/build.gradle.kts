@@ -36,8 +36,8 @@ android {
         applicationId = "com.cyber.muzea"
         minSdk = 24
         targetSdk = 34
-        versionCode = 15
-        versionName = "1.3.2"
+        versionCode = 16
+        versionName = "1.3.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -96,6 +96,10 @@ android {
 
     buildFeatures {
         viewBinding = true
+        // Нужен BuildConfig.DEBUG: по нему включаем подробный сетевой лог только
+        // в отладочной сборке, чтобы в релизе тела запросов/ответов не попадали
+        // в logcat (тексты сообщений, токены из ответа логина).
+        buildConfig = true
     }
 
     testOptions {

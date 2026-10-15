@@ -1,6 +1,7 @@
 package com.example.muzea.di
 
 import android.content.Context
+import com.example.muzea.BuildConfig
 import com.example.muzea.data.api.ApiService
 import com.example.muzea.data.api.AuthApi
 import com.example.muzea.data.api.AuthInterceptor
@@ -110,7 +111,15 @@ object NetworkModule {
     private fun baseBuilder(interceptor: Interceptor): OkHttpClient.Builder =
         OkHttpClient.Builder()
             .addInterceptor(
-                HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
+                HttpLoggingInterceptor().apply {
+                    // BODY — только в отладочной сборке: в релизе он записывал бы
+                    // в logcat тексты сообщений, контент и токены из ответов.
+                    level = if (BuildConfig.DEBUG) {
+                        HttpLoggingInterceptor.Level.BODY
+                    } else {
+                        HttpLoggingInterceptor.Level.NONE
+                    }
+                }
             )
             .addInterceptor(interceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
