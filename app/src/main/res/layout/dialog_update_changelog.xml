@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/changelogSection"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="8dp">
+
+    <TextView
+        android:id="@+id/tvChangelogTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingBottom="4dp"
+        android:text="@string/changelog_title"
+        android:textColor="?attr/colorPrimary"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+
+    <ScrollView
+        android:id="@+id/changelogScroll"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:id="@+id/changelogContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+    </ScrollView>
+
+</LinearLayout>

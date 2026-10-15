@@ -14,6 +14,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.example.muzea.R
+import com.example.muzea.data.repository.AppUpdateRepository
 import com.example.muzea.domain.repository.ChatSessionRepository
 import com.example.muzea.databinding.ActivityMainBinding
 import com.example.muzea.ui.chat.ChatConversationFragment
@@ -40,6 +41,9 @@ class MainActivity : AppCompatActivity(), Navigator {
     @Inject
     lateinit var chatSessionRepository: ChatSessionRepository
 
+    @Inject
+    lateinit var appUpdateRepository: AppUpdateRepository
+
     private val requestNotificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
@@ -63,6 +67,7 @@ class MainActivity : AppCompatActivity(), Navigator {
 
         setupBottomNavigation()
         setupUnreadBadge()
+        setupUpdateBadge()
         startPresenceHeartbeat()
 
         // Поделились ссылкой, пока приложение было закрыто. При повороте
@@ -139,6 +144,33 @@ class MainActivity : AppCompatActivity(), Navigator {
             badge.number = count.coerceAtMost(999).toInt()
         } else {
             binding.bottomNavigation.removeBadge(R.id.chatFragment)
+        }
+    }
+
+    /**
+     * Проверка обновления при запуске приложения. Красная точка на иконке
+     * профиля означает «требуется участие пользователя» — есть новый релиз.
+     * Точка (без числа) живёт, пока обновление доступно.
+     */
+    private fun setupUpdateBadge() {
+        lifecycleScope.launch { appUpdateRepository.checkForUpdate() }
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                appUpdateRepository.availableUpdate.collect { update ->
+                    updateProfileBadge(update != null)
+                }
+            }
+        }
+    }
+
+    private fun updateProfileBadge(visible: Boolean) {
+        if (visible) {
+            val badge = binding.bottomNavigation.getOrCreateBadge(R.id.profileFragment)
+            badge.isVisible = true
+            badge.clearNumber()
+        } else {
+            binding.bottomNavigation.removeBadge(R.id.profileFragment)
         }
     }
 

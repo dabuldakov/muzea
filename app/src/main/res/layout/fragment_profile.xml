@@ -217,6 +217,37 @@
                 android:textColor="@color/gray"
                 android:textSize="14sp" />
 
+            <!-- Версия приложения. Красная точка — доступно обновление;
+                 по нажатию предлагаем скачать новую версию. -->
+            <LinearLayout
+                android:id="@+id/rowAppVersion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:padding="8dp">
+
+                <TextView
+                    android:id="@+id/tvAppVersion"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/gray"
+                    android:textSize="13sp" />
+
+                <View
+                    android:id="@+id/updateDot"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/bg_update_dot"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
         </LinearLayout>
 
         <!-- Error Text -->

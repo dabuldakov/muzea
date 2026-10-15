@@ -2,9 +2,12 @@ package com.example.muzea.di
 
 import android.content.Context
 import com.example.muzea.data.api.ApiService
+import com.example.muzea.data.api.AuthApi
 import com.example.muzea.data.api.AuthInterceptor
 import com.example.muzea.data.api.ChatApiService
 import com.example.muzea.data.api.ChatAuthInterceptor
+import com.example.muzea.data.api.GitHubApi
+import com.example.muzea.data.api.TokenRefreshInterceptor
 import com.example.muzea.utils.Constants
 import com.example.muzea.utils.TokenManager
 import dagger.Module
@@ -36,11 +39,36 @@ object NetworkModule {
     @Provides
     @Singleton
     @MainHttpClient
-    fun provideMainHttpClient(authInterceptor: AuthInterceptor): OkHttpClient =
+    fun provideMainHttpClient(
+        authInterceptor: AuthInterceptor,
+        tokenRefreshInterceptor: TokenRefreshInterceptor
+    ): OkHttpClient =
         baseBuilder(authInterceptor)
+            // После добавления токена: при 401/403 перелогинивается и повторяет.
+            .addInterceptor(tokenRefreshInterceptor)
             .readTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(120, TimeUnit.SECONDS)
             .build()
+
+    /**
+     * Клиент и Retrofit только для перелогина. Без интерцепторов авторизации,
+     * чтобы запрос логина не проходил через перелогин и не зациклился.
+     */
+    @Provides
+    @Singleton
+    fun provideAuthApi(): AuthApi =
+        Retrofit.Builder()
+            .baseUrl(Constants.BASE_URL)
+            .client(
+                OkHttpClient.Builder()
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .writeTimeout(30, TimeUnit.SECONDS)
+                    .build()
+            )
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(AuthApi::class.java)
 
     @Provides
     @Singleton
@@ -57,6 +85,27 @@ object NetworkModule {
     @Singleton
     fun provideChatApiService(@ChatHttpClient client: OkHttpClient): ChatApiService =
         retrofit(Constants.CHAT_BASE_URL, client).create(ChatApiService::class.java)
+
+    /**
+     * GitHub — публичный API без авторизации: отдельный чистый клиент без
+     * интерцепторов основного API, чтобы не отправлять туда наш токен.
+     */
+    @Provides
+    @Singleton
+    fun provideGitHubApi(): GitHubApi =
+        Retrofit.Builder()
+            .baseUrl(GITHUB_BASE_URL)
+            .client(
+                OkHttpClient.Builder()
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .build()
+            )
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(GitHubApi::class.java)
+
+    private const val GITHUB_BASE_URL = "https://api.github.com/"
 
     private fun baseBuilder(interceptor: Interceptor): OkHttpClient.Builder =
         OkHttpClient.Builder()

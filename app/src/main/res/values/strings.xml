@@ -105,4 +105,11 @@
     <string name="video_upload_title">Upload Video</string>
     <string name="video_watch_now">Watch Now</string>
     <string name="message_copied">Сообщение скопировано</string>
+    <string name="app_version_format">Версия приложения: %1$s</string>
+    <string name="update_available_title">Доступно обновление</string>
+    <string name="update_available_message">Появилась новая версия %1$s. Давайте скачаем и обновим?</string>
+    <string name="update_action_download">Скачать</string>
+    <string name="update_action_later">Позже</string>
+    <string name="update_open_failed">Не удалось открыть ссылку для скачивания</string>
+    <string name="changelog_title">Что нового</string>
 </resources>

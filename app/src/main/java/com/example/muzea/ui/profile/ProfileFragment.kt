@@ -1,5 +1,6 @@
 package com.example.muzea.ui.profile
 
+import android.content.Intent
 import android.os.Bundle
 import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
@@ -11,6 +12,9 @@ import java.io.File
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -18,6 +22,9 @@ import androidx.lifecycle.lifecycleScope
 import com.example.muzea.R
 import com.example.muzea.databinding.FragmentProfileBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.example.muzea.data.repository.AppUpdate
+import com.example.muzea.data.repository.AppUpdateRepository
+import com.example.muzea.data.repository.ChangelogGroup
 import com.example.muzea.ui.auth.LoginActivity
 import com.example.muzea.utils.CacheManager
 import com.example.muzea.core.Resource
@@ -37,6 +44,9 @@ class ProfileFragment : Fragment() {
 
     @Inject
     lateinit var tokenManager: TokenManager
+
+    @Inject
+    lateinit var appUpdateRepository: AppUpdateRepository
 
     private var isEditing = false
     private val pickAvatar = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -79,8 +89,97 @@ class ProfileFragment : Fragment() {
 
         setupClickListeners()
         setupCacheSection()
+        setupVersionSection()
         observeViewModel()
         viewModel.loadUserProfile()
+    }
+
+    /**
+     * Показывает текущую версию приложения. Если на GitHub есть релиз новее,
+     * рядом с версией загорается красная точка «требуется участие», а по
+     * нажатию предлагается скачать обновление.
+     */
+    private fun setupVersionSection() {
+        binding.tvAppVersion.text =
+            getString(R.string.app_version_format, appUpdateRepository.currentVersionName)
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            appUpdateRepository.availableUpdate.collect { update ->
+                if (_binding == null) return@collect
+                binding.updateDot.visibility = if (update != null) View.VISIBLE else View.GONE
+                binding.rowAppVersion.setOnClickListener {
+                    update?.let { showUpdateDialog(it) }
+                }
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            appUpdateRepository.checkForUpdate()
+        }
+    }
+
+    private fun showUpdateDialog(update: AppUpdate) {
+        val content = layoutInflater.inflate(R.layout.dialog_update_changelog, null)
+        val section = content.findViewById<View>(R.id.changelogSection)
+        val container = content.findViewById<LinearLayout>(R.id.changelogContainer)
+        val scroll = content.findViewById<ScrollView>(R.id.changelogScroll)
+
+        if (update.changelog.isEmpty()) {
+            section.visibility = View.GONE
+        } else {
+            update.changelog.forEach { container.addView(buildChangelogGroup(it)) }
+            capChangelogHeight(container, scroll)
+        }
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.update_available_title)
+            .setMessage(getString(R.string.update_available_message, update.versionName))
+            .setView(content)
+            .setNegativeButton(R.string.update_action_later, null)
+            .setPositiveButton(R.string.update_action_download) { _, _ ->
+                openDownload(update.downloadUrl)
+            }
+            .show()
+    }
+
+    /** Группа «что нового» с раскрытием/сворачиванием пунктов по нажатию. */
+    private fun buildChangelogGroup(group: ChangelogGroup): View {
+        val groupView = layoutInflater.inflate(R.layout.item_changelog_group, null)
+        groupView.findViewById<TextView>(R.id.tvGroupTitle).text = group.title
+
+        val itemsContainer = groupView.findViewById<LinearLayout>(R.id.groupItems)
+        val chevron = groupView.findViewById<TextView>(R.id.tvGroupChevron)
+
+        group.items.forEach { item ->
+            val entry = layoutInflater.inflate(R.layout.item_changelog_entry, itemsContainer, false)
+            entry.findViewById<TextView>(R.id.tvEntry).text = "• $item"
+            itemsContainer.addView(entry)
+        }
+
+        groupView.findViewById<View>(R.id.rowGroupHeader).setOnClickListener {
+            val expanded = itemsContainer.visibility == View.VISIBLE
+            itemsContainer.visibility = if (expanded) View.GONE else View.VISIBLE
+            chevron.text = if (expanded) "▸" else "▾"
+        }
+        return groupView
+    }
+
+    /** Ограничивает высоту списка, чтобы длинный changelog прокручивался в диалоге. */
+    private fun capChangelogHeight(container: View, scroll: ScrollView) {
+        val max = (resources.displayMetrics.density * 280).toInt()
+        container.post {
+            if (container.height > max) {
+                scroll.layoutParams = scroll.layoutParams.also { it.height = max }
+            }
+        }
+    }
+
+    private fun openDownload(url: String) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), R.string.update_open_failed, Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun setupCacheSection() {
