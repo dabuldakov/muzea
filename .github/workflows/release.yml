@@ -30,7 +30,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0 — нужна полная история и теги, чтобы generate_release_notes.sh
+      # мог пройти по коммитам от предыдущего тега.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-java@v4
         with:
@@ -159,6 +163,12 @@ jobs:
           cp app/build/outputs/bundle/release/app-release.aab "dist/muzea-$version.aab"
           ls -lh dist
 
+      - name: Сгенерировать список изменений («что нового»)
+        run: |
+          ./scripts/generate_release_notes.sh "${{ steps.meta.outputs.tag }}" > dist/release-notes.md
+          echo "--- release notes ---"
+          cat dist/release-notes.md
+
       - name: Опубликовать релиз на GitHub
         env:
           GH_TOKEN: ${{ github.token }}
@@ -169,13 +179,18 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           title="muzea $VERSION"
-          if [ "$EVENT" = "workflow_dispatch" ]; then
-            notes="$NOTES"
-            [ -n "$notes" ] || notes="Сборка $VERSION."
-            gh release create "$TAG" "dist/muzea-$VERSION.apk" "dist/muzea-$VERSION.aab" \
-              --repo "$REPO" --title "$title" --notes "$notes"
+          notes_file="dist/release-notes.md"
+          assets=("dist/muzea-$VERSION.apk" "dist/muzea-$VERSION.aab")
+          if [ "$EVENT" = "workflow_dispatch" ] && [ -n "$NOTES" ]; then
+            # Ручной ввод заметок имеет приоритет.
+            gh release create "$TAG" "${assets[@]}" \
+              --repo "$REPO" --title "$title" --notes "$NOTES"
+          elif [ -s "$notes_file" ]; then
+            # Заметки, сгруппированные по conventional-commit префиксам.
+            gh release create "$TAG" "${assets[@]}" \
+              --repo "$REPO" --title "$title" --notes-file "$notes_file"
           else
-            gh release create "$TAG" "dist/muzea-$VERSION.apk" "dist/muzea-$VERSION.aab" \
+            gh release create "$TAG" "${assets[@]}" \
               --repo "$REPO" --title "$title" --generate-notes
           fi
           echo "Релиз опубликован: https://github.com/$REPO/releases/tag/$TAG"
