@@ -14,6 +14,7 @@ class TokenManager(
 
     init {
         migrateLegacyPassword()
+        migrateLegacyTokens()
     }
 
     /**
@@ -23,9 +24,25 @@ class TokenManager(
     private fun migrateLegacyPassword() {
         val legacy = prefs.getString("password", null) ?: return
         if (!legacy.isNullOrEmpty()) {
-            SecurePasswordStore.save(appContext, legacy)
+            SecureStore.savePassword(appContext, legacy)
         }
         prefs.edit().remove("password").apply()
+    }
+
+    /**
+     * Токены раньше тоже лежали в app_prefs открытым текстом. Переносим их в
+     * шифрованное хранилище (однократно, при первом запуске после обновления).
+     */
+    private fun migrateLegacyTokens() {
+        prefs.getString("auth_token", null)?.takeIf { it.isNotEmpty() }?.let {
+            SecureStore.saveAuthToken(appContext, it)
+        }
+        prefs.getString("chat_token", null)?.takeIf { it.isNotEmpty() }?.let {
+            SecureStore.saveChatToken(appContext, it)
+        }
+        if (prefs.contains("auth_token") || prefs.contains("chat_token")) {
+            prefs.edit().remove("auth_token").remove("chat_token").apply()
+        }
     }
 
     override fun getDeviceId(): String {
@@ -52,11 +69,11 @@ class TokenManager(
     }
 
     fun saveToken(token: String) {
-        prefs.edit().putString("auth_token", token).apply()
+        SecureStore.saveAuthToken(appContext, token)
     }
 
     fun getToken(): String? {
-        return prefs.getString("auth_token", null)
+        return SecureStore.loadAuthToken(appContext)
     }
 
     fun saveUsername(username: String) {
@@ -76,19 +93,19 @@ class TokenManager(
     }
 
     fun savePassword(password: String) {
-        SecurePasswordStore.save(appContext, password)
+        SecureStore.savePassword(appContext, password)
     }
 
     override fun getPassword(): String? {
-        return SecurePasswordStore.load(appContext)
+        return SecureStore.loadPassword(appContext)
     }
 
     override fun saveChatToken(token: String) {
-        prefs.edit().putString("chat_token", token).apply()
+        SecureStore.saveChatToken(appContext, token)
     }
 
     override fun getChatToken(): String? {
-        return prefs.getString("chat_token", null)
+        return SecureStore.loadChatToken(appContext)
     }
 
     override fun saveChatTokenUser(username: String) {
@@ -100,12 +117,17 @@ class TokenManager(
     }
 
     override fun clearChatToken() {
-        prefs.edit().remove("chat_token").remove("chat_token_user").apply()
+        SecureStore.clearChatToken(appContext)
+        prefs.edit().remove("chat_token_user").apply()
     }
 
     fun clearToken() {
-        prefs.edit().remove("auth_token").remove("username").remove("chat_token").remove("chat_token_user").apply()
-        SecurePasswordStore.clear(appContext)
+        // Заодно чистим legacy-ключи, если миграция ещё не отработала.
+        prefs.edit()
+            .remove("username").remove("chat_token_user")
+            .remove("auth_token").remove("chat_token")
+            .apply()
+        SecureStore.clearAll(appContext)
     }
 
     /**
@@ -114,6 +136,6 @@ class TokenManager(
      */
     fun clearAll() {
         prefs.edit().clear().apply()
-        SecurePasswordStore.clear(appContext)
+        SecureStore.clearAll(appContext)
     }
 }
