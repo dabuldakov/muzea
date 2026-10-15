@@ -48,6 +48,40 @@ class MessageRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun loadMessagesBefore(
+        chatUuid: String,
+        beforeMessageUuid: String,
+        limit: Int
+    ): Flow<Resource<List<Message>>> = flow {
+        emit(Resource.Loading())
+        try {
+            if (!chatAuthManager.isAuthenticated()) {
+                emit(Resource.Error(chatAuthManager.authFailureMessage()))
+                return@flow
+            }
+
+            var response = apiService.getMessagesBefore(chatUuid, beforeMessageUuid, limit)
+            if (response.code() == 401) {
+                chatAuthManager.invalidate()
+                if (chatAuthManager.isAuthenticated()) {
+                    response = apiService.getMessagesBefore(chatUuid, beforeMessageUuid, limit)
+                }
+            }
+
+            if (response.isSuccessful && response.body() != null) {
+                val older = response.body()!!.map { it.toDomain() }
+                ChatMessagesCache.prependOlder(chatUuid, older)
+                emit(Resource.Success(older))
+            } else {
+                emit(Resource.Error("Failed to load older messages: ${response.message()}"))
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            emit(Resource.Error("Network error: ${e.message}"))
+        }
+    }
+
     override fun cachedMessages(chatUuid: String): List<Message> = ChatMessagesCache.get(chatUuid)
 
     override suspend fun sendMessage(chatUuid: String, text: String): Flow<Resource<Message>> = flow {

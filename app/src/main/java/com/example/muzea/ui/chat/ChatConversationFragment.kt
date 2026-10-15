@@ -26,14 +26,22 @@ class ChatConversationFragment : Fragment() {
     private val viewModel: ChatConversationViewModel by viewModels()
     private lateinit var adapter: MessageAdapter
     private var chatUuid: String = ""
-    private var lastMessageCount = 0
+    private var lastNewestUuid: String? = null
     private var unreadCount = 0L
     private var initialScrollDone = false
     private var pendingScrollPosition: Int? = null
 
+    // Якорь при догрузке истории: сохраняем верхнее видимое сообщение и его
+    // смещение, чтобы после вставки старых сообщений сверху вид не «прыгнул».
+    private var historyAnchorUuid: String? = null
+    private var historyAnchorOffset: Int = 0
+
     private val scrollObserver = object : RecyclerView.AdapterDataObserver() {
         override fun onChanged() = performPendingScroll()
-        override fun onItemRangeInserted(positionStart: Int, itemCount: Int) = performPendingScroll()
+        override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
+            restoreHistoryAnchor()
+            performPendingScroll()
+        }
         override fun onItemRangeRemoved(positionStart: Int, itemCount: Int) = performPendingScroll()
     }
 
@@ -121,6 +129,40 @@ class ChatConversationFragment : Fragment() {
             // должно проходить через crossfade-анимацию: она и выглядит как
             // мигание пузыря.
             (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
+            addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    // Догружаем историю, когда пользователь домотал до самого верха.
+                    if (dy < 0 && !recyclerView.canScrollVertically(-1)) {
+                        requestOlderMessages()
+                    }
+                }
+            })
+        }
+    }
+
+    /** Запоминает якорь и просит ViewModel догрузить историю. */
+    private fun requestOlderMessages() {
+        val layoutManager = binding.recyclerViewMessages.layoutManager as? LinearLayoutManager ?: return
+        val position = layoutManager.findFirstVisibleItemPosition()
+        val uuid = viewModel.uiState.value.messages.getOrNull(position)?.messageUuid
+        if (uuid != null) {
+            historyAnchorUuid = uuid
+            historyAnchorOffset = layoutManager.findViewByPosition(position)?.top ?: 0
+        }
+        viewModel.loadOlder()
+    }
+
+    /** Возвращает список к тому же сообщению, что было сверху до догрузки. */
+    private fun restoreHistoryAnchor() {
+        val uuid = historyAnchorUuid ?: return
+        historyAnchorUuid = null
+        binding.recyclerViewMessages.post {
+            if (_binding == null) return@post
+            val position = adapter.currentList.indexOfFirst { it.messageUuid == uuid }
+            if (position >= 0) {
+                (binding.recyclerViewMessages.layoutManager as? LinearLayoutManager)
+                    ?.scrollToPositionWithOffset(position, historyAnchorOffset)
+            }
         }
     }
 
@@ -179,6 +221,8 @@ class ChatConversationFragment : Fragment() {
             viewModel.uiState.collect { state ->
                 val messages = state.messages
                 val wasAtBottom = isAtBottom()
+                binding.progressHistory.visibility =
+                    if (state.isLoadingMore) View.VISIBLE else View.GONE
                 adapter.updateList(messages)
                 updateEmptyState(messages)
                 renderConversationState(state)
@@ -191,13 +235,16 @@ class ChatConversationFragment : Fragment() {
                         messages.size - 1
                     }
                     pendingScrollPosition = target
-                } else if (messages.size > lastMessageCount) {
+                } else if (messages.isNotEmpty() && messages.last().messageUuid != lastNewestUuid) {
+                    // Реагируем только на действительно новое сообщение внизу.
+                    // Догрузка истории вверх добавляет сообщения в начало и не
+                    // должна уводить список вниз.
                     val lastIsMine = messages.last().senderUuid == viewModel.myUserUuid
                     if (lastIsMine || wasAtBottom) {
                         pendingScrollPosition = messages.size - 1
                     }
                 }
-                lastMessageCount = messages.size
+                if (messages.isNotEmpty()) lastNewestUuid = messages.last().messageUuid
             }
         }
 

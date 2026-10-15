@@ -78,6 +78,12 @@ class ChatAuthManagerTest {
             size: Int
         ): Response<PageResponse<MessageResponse>> = error("unused")
 
+        override suspend fun getMessagesBefore(
+            chatUuid: String,
+            messageUuid: String,
+            limit: Int
+        ): Response<List<MessageResponse>> = error("unused")
+
         override suspend fun sendMessage(chatUuid: String, request: SendMessageRequest): Response<MessageResponse> =
             error("unused")
 

@@ -252,4 +252,38 @@ class ChatConversationViewModelTest {
         assertTrue(viewModel.uiState.value.messages.single().messageUuid.startsWith("local-"))
         assertEquals(listOf("send failed"), errors)
     }
+
+    @Test
+    fun `loadOlder prepends a full page and keeps history open`() = withViewModel(
+        network = flowOf(Resource.Success(listOf(message("m2", "new", "2026-01-02T00:00:00"))))
+    ) { viewModel ->
+        val older = (1..50).map {
+            message("o$it", "old$it", "2026-01-01T00:00:${"%02d".format(it - 1)}")
+        }
+        coEvery { messageRepository.loadMessagesBefore(chatUuid, "m2", 50) } returns
+            flowOf(Resource.Success(older))
+
+        viewModel.loadOlder()
+
+        assertEquals(51, viewModel.uiState.value.messages.size)
+        assertEquals("old1", viewModel.uiState.value.messages.first().text)
+        assertFalse(viewModel.uiState.value.historyReached)
+        coVerify { messageRepository.loadMessagesBefore(chatUuid, "m2", 50) }
+    }
+
+    @Test
+    fun `loadOlder requests messages before the oldest and stops at end`() = withViewModel(
+        network = flowOf(Resource.Success(listOf(message("m2", "new", "2026-01-02T00:00:00"))))
+    ) { viewModel ->
+        coEvery { messageRepository.loadMessagesBefore(chatUuid, "m2", 50) } returns
+            flowOf(Resource.Success(listOf(message("m1", "old", "2026-01-01T00:00:00"))))
+
+        viewModel.loadOlder()
+        // Неполная страница означает конец истории.
+        assertTrue(viewModel.uiState.value.historyReached)
+
+        // Повторный вызов уже не ходит в сеть.
+        viewModel.loadOlder()
+        coVerify(exactly = 1) { messageRepository.loadMessagesBefore(any(), any(), any()) }
+    }
 }

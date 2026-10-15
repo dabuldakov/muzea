@@ -33,6 +33,20 @@ object ChatMessagesCache {
         }
     }
 
+    /**
+     * Дополняет кэш чата более старыми сообщениями (догрузка истории вверх).
+     * Дубликаты по uuid отбрасываются, старые кладутся перед текущими, чтобы
+     * при повторном входе вся загруженная история была на месте.
+     */
+    @Synchronized
+    fun prependOlder(chatUuid: String, older: List<Message>) {
+        val existing = messages[chatUuid].orEmpty()
+        if (older.isEmpty()) return
+        val known = existing.mapTo(HashSet()) { it.messageUuid }
+        val merged = older.filter { it.messageUuid !in known } + existing
+        put(chatUuid, merged)
+    }
+
     @Synchronized
     fun clear() {
         messages.clear()

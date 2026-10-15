@@ -25,6 +25,8 @@ import javax.inject.Inject
 data class ChatConversationUiState(
     val messages: List<Message> = emptyList(),
     val isLoading: Boolean = false,
+    val isLoadingMore: Boolean = false,
+    val historyReached: Boolean = false,
     val error: String? = null
 )
 
@@ -64,6 +66,42 @@ class ChatConversationViewModel @Inject constructor(
     /** Разовая загрузка вне цикла опроса: pull-to-refresh и ручное обновление. */
     fun refresh() {
         viewModelScope.launch { loadOnce() }
+    }
+
+    /**
+     * Догрузка истории вверх: подтягивает сообщения старше самого раннего в
+     * списке. Пока идёт запрос или история исчерпана, повторные вызовы
+     * игнорируются. Локальные (ещё не отправленные) сообщения пропускаем —
+     * у них нет серверного uuid.
+     */
+    fun loadOlder() {
+        val state = _uiState.value
+        if (state.isLoadingMore || state.historyReached) return
+
+        val oldest = state.messages.firstOrNull {
+            it.messageUuid.isNotBlank() && !it.messageUuid.startsWith(LOCAL_PREFIX)
+        } ?: return
+
+        _uiState.value = state.copy(isLoadingMore = true)
+        viewModelScope.launch {
+            messageRepository.loadMessagesBefore(chatUuid, oldest.messageUuid, PAGE_SIZE)
+                .collect { result ->
+                    when (result) {
+                        is Resource.Loading -> Unit
+                        is Resource.Success -> {
+                            val older = result.data.orEmpty()
+                            mergeMessages(older)
+                            _uiState.value = _uiState.value.copy(
+                                isLoadingMore = false,
+                                // Неполная страница означает, что история кончилась.
+                                historyReached = older.size < PAGE_SIZE
+                            )
+                        }
+                        is Resource.Error ->
+                            _uiState.value = _uiState.value.copy(isLoadingMore = false)
+                    }
+                }
+        }
     }
 
     private suspend fun loadOnce() {
@@ -174,5 +212,6 @@ class ChatConversationViewModel @Inject constructor(
         const val ARG_CHAT_UUID = "chat_uuid"
         private const val LOCAL_PREFIX = "local-"
         private const val POLL_INTERVAL_MS = 3_000L
+        private const val PAGE_SIZE = 50
     }
 }

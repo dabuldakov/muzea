@@ -88,6 +88,15 @@
             android:layout_gravity="center"
             android:visibility="gone" />
 
+        <!-- Индикатор догрузки истории: показывается сверху при скролле вверх. -->
+        <ProgressBar
+            android:id="@+id/progressHistory"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="8dp"
+            android:visibility="gone" />
+
     </FrameLayout>
 
     <LinearLayout

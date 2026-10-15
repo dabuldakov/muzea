@@ -145,6 +145,14 @@ interface ChatApiService {
         @Query("size") size: Int = 50
     ): Response<PageResponse<MessageResponse>>
 
+    /** Сообщения старше указанного — для догрузки истории вверх. */
+    @GET("/api/messages/{chatUuid}/before/{messageUuid}")
+    suspend fun getMessagesBefore(
+        @Path("chatUuid") chatUuid: String,
+        @Path("messageUuid") messageUuid: String,
+        @Query("limit") limit: Int = 50
+    ): Response<List<MessageResponse>>
+
     @POST("/api/messages/{chatUuid}")
     suspend fun sendMessage(
         @Path("chatUuid") chatUuid: String,

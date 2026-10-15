@@ -27,6 +27,14 @@ interface ChatRepository {
 
 interface MessageRepository {
     suspend fun loadMessages(chatUuid: String): Flow<Resource<List<Message>>>
+
+    /** Догрузка истории: сообщения старше [beforeMessageUuid]. */
+    suspend fun loadMessagesBefore(
+        chatUuid: String,
+        beforeMessageUuid: String,
+        limit: Int
+    ): Flow<Resource<List<Message>>>
+
     fun cachedMessages(chatUuid: String): List<Message>
     suspend fun sendMessage(chatUuid: String, text: String): Flow<Resource<Message>>
     suspend fun markMessagesAsRead(chatUuid: String, upToMessageUuid: String): Boolean
