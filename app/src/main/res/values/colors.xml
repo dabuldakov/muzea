@@ -12,4 +12,6 @@
     <color name="blue">#FF0000FF</color>
     <color name="green">#FF2E7D32</color>
     <color name="error">#FFB3261E</color>
+    <!-- Фон под гифками: в светлой теме белый, в тёмной — чёрный (values-night). -->
+    <color name="gif_media_background">#FFFFFFFF</color>
 </resources>

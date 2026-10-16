@@ -8,6 +8,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -80,6 +81,21 @@ class GifPickerViewModelTest {
 
         assertEquals(31, vm.state.value.items.size)
         assertTrue(vm.state.value.endReached)
+    }
+
+    @Test
+    fun `switching tab after a cancelled load is not stuck`() {
+        coEvery { repository.recent(0, 30) } returns emptyList()
+        // Поиск «зависает» — как медленный запрос, который отменим переключением.
+        coEvery { repository.search(any(), any(), any()) } coAnswers { awaitCancellation() }
+        coEvery { repository.chatGifs(chatUuid, 0, 30) } returns listOf(gif("c"))
+
+        val vm = viewModel()
+        vm.selectTab(GifTab.SEARCH) // запрос висит, isLoading=true
+        vm.selectTab(GifTab.CHAT)   // отменяет его и грузит чат
+
+        assertFalse(vm.state.value.isLoading)
+        assertEquals(listOf("c"), vm.state.value.items.map { it.providerGifId })
     }
 
     @Test

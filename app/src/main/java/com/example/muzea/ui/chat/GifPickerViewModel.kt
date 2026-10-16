@@ -61,7 +61,9 @@ class GifPickerViewModel @Inject constructor(
     fun reload() {
         loadJob?.cancel()
         page = 0
-        _state.value = _state.value.copy(items = emptyList(), endReached = false)
+        // isLoading сбрасываем явно: отменённый запрос не успевает выставить false,
+        // и без этого следующая загрузка блокировалась бы «навсегда» (вечный спиннер).
+        _state.value = _state.value.copy(items = emptyList(), endReached = false, isLoading = false)
         loadNextPage()
     }
 
