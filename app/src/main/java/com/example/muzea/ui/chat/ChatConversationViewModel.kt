@@ -186,7 +186,8 @@ class ChatConversationViewModel @Inject constructor(
                     thumbnailUrl = gif.previewUrl,
                     type = "GIF",
                     width = gif.width,
-                    height = gif.height
+                    height = gif.height,
+                    mp4Url = gif.mp4Url
                 )
             )
         )
@@ -241,6 +242,7 @@ class ChatConversationViewModel @Inject constructor(
                 previewUrl = attachment.thumbnailUrl,
                 width = attachment.width,
                 height = attachment.height,
+                mp4Url = attachment.mp4Url,
                 gifKey = attachment.gifKey
             )
             messageRepository.cacheSentGif(chatUuid, gif, mine = message.senderUuid == myUserUuid)

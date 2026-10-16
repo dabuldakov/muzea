@@ -10,6 +10,7 @@ data class GifResponse(
     @SerializedName("title") val title: String? = null,
     @SerializedName("url") val url: String,
     @SerializedName("previewUrl") val previewUrl: String? = null,
+    @SerializedName("mp4Url") val mp4Url: String? = null,
     @SerializedName("width") val width: Int? = null,
     @SerializedName("height") val height: Int? = null
 )
@@ -21,6 +22,7 @@ data class GifRequest(
     @SerializedName("title") val title: String? = null,
     @SerializedName("url") val url: String,
     @SerializedName("previewUrl") val previewUrl: String? = null,
+    @SerializedName("mp4Url") val mp4Url: String? = null,
     @SerializedName("width") val width: Int? = null,
     @SerializedName("height") val height: Int? = null
 )

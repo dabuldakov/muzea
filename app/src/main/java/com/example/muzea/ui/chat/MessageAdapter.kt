@@ -9,6 +9,9 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
 import androidx.recyclerview.widget.DiffUtil
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
@@ -67,7 +70,7 @@ class MessageAdapter(
                 copyMessageToClipboard(view, message.text ?: "")
                 true
             }
-            bindGif(binding.tvMessage, binding.ivGif, message)
+            bindMedia(message)
 
             if (!message.senderName.isNullOrEmpty()) {
                 binding.tvSenderName.text = message.senderName
@@ -77,6 +80,36 @@ class MessageAdapter(
             }
 
             binding.tvTime.text = formatTime(message.createdAt)
+        }
+
+        private var player: ExoPlayer? = null
+
+        private fun bindMedia(message: Message) {
+            val mp4 = gifMp4Url(message)?.let { MediaUrl.chat(it) }
+            if (mp4.isNullOrBlank()) {
+                releasePlayer()
+                binding.playerGif.visibility = View.GONE
+                bindGif(binding.tvMessage, binding.ivGif, message)
+                return
+            }
+            binding.tvMessage.visibility = View.GONE
+            binding.ivGif.visibility = View.GONE
+            binding.playerGif.visibility = View.VISIBLE
+            val exo = player ?: ExoPlayer.Builder(binding.root.context).build().also {
+                it.repeatMode = Player.REPEAT_MODE_ONE
+                it.volume = 0f
+                it.playWhenReady = true
+                player = it
+            }
+            binding.playerGif.player = exo
+            exo.setMediaItem(MediaItem.fromUri(mp4))
+            exo.prepare()
+        }
+
+        fun releasePlayer() {
+            player?.release()
+            player = null
+            binding.playerGif.player = null
         }
     }
 
@@ -90,8 +123,46 @@ class MessageAdapter(
                 copyMessageToClipboard(view, message.text ?: "")
                 true
             }
-            bindGif(binding.tvMessage, binding.ivGif, message)
+            bindMedia(message)
             binding.tvTime.text = formatTime(message.createdAt)
+        }
+
+        private var player: ExoPlayer? = null
+
+        private fun bindMedia(message: Message) {
+            val mp4 = gifMp4Url(message)?.let { MediaUrl.chat(it) }
+            if (mp4.isNullOrBlank()) {
+                releasePlayer()
+                binding.playerGif.visibility = View.GONE
+                bindGif(binding.tvMessage, binding.ivGif, message)
+                return
+            }
+            binding.tvMessage.visibility = View.GONE
+            binding.ivGif.visibility = View.GONE
+            binding.playerGif.visibility = View.VISIBLE
+            val exo = player ?: ExoPlayer.Builder(binding.root.context).build().also {
+                it.repeatMode = Player.REPEAT_MODE_ONE
+                it.volume = 0f
+                it.playWhenReady = true
+                player = it
+            }
+            binding.playerGif.player = exo
+            exo.setMediaItem(MediaItem.fromUri(mp4))
+            exo.prepare()
+        }
+
+        fun releasePlayer() {
+            player?.release()
+            player = null
+            binding.playerGif.player = null
+        }
+    }
+
+    override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
+        super.onViewRecycled(holder)
+        when (holder) {
+            is IncomingViewHolder -> holder.releasePlayer()
+            is OutgoingViewHolder -> holder.releasePlayer()
         }
     }
 
@@ -123,6 +194,12 @@ private fun gifUrl(message: Message): String? =
     message.attachments
         .firstOrNull { it.type?.equals("GIF", ignoreCase = true) == true }
         ?.fileUrl
+
+/** MP4-вариант гифки, если есть (для воспроизведения вместо WebP/GIF). */
+private fun gifMp4Url(message: Message): String? =
+    message.attachments
+        .firstOrNull { it.type?.equals("GIF", ignoreCase = true) == true }
+        ?.mp4Url
 
 /**
  * Если сообщение — гифка, показываем её (Glide, анимированный GIF, кэш на

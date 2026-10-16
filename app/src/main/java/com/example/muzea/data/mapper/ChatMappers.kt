@@ -59,6 +59,7 @@ fun com.example.muzea.data.model.MessageResponse.toDomain(): Message = Message(
             type = attachment.type,
             width = attachment.width,
             height = attachment.height,
+            mp4Url = attachment.mp4Url,
             gifKey = attachment.gifKey
         )
     }

@@ -20,7 +20,8 @@ class GifMapperTest {
             file = mapOf(
                 "hd" to mapOf(
                     "gif" to media("https://c/hd.gif", 480, 270),
-                    "webp" to media("https://c/hd.webp", 480, 270)
+                    "webp" to media("https://c/hd.webp", 480, 270),
+                    "mp4" to media("https://c/hd.mp4", 480, 270)
                 ),
                 "sm" to mapOf(
                     "jpg" to media("https://c/sm.jpg", 100, 60),
@@ -35,6 +36,7 @@ class GifMapperTest {
         assertEquals("slug-1", gif.providerGifId)
         assertEquals("https://c/hd.webp", gif.url)
         assertEquals("https://c/sm.jpg", gif.previewUrl)
+        assertEquals("https://c/hd.mp4", gif.mp4Url)
         assertEquals(480, gif.width)
         assertEquals(270, gif.height)
     }

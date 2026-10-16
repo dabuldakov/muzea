@@ -40,6 +40,7 @@ data class AttachmentResponse(
     @SerializedName("attachmentUuid") val attachmentUuid: String?,
     @SerializedName("fileUrl") val fileUrl: String?,
     @SerializedName("thumbnailUrl") val thumbnailUrl: String?,
+    @SerializedName("mp4Url") val mp4Url: String? = null,
     @SerializedName("type") val type: String?,
     @SerializedName("width") val width: Int?,
     @SerializedName("height") val height: Int?,

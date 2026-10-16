@@ -132,6 +132,7 @@ class MessageRepositoryImpl @Inject constructor(
                     title = gif.title,
                     url = gif.url,
                     previewUrl = gif.previewUrl,
+                    mp4Url = gif.mp4Url,
                     width = gif.width,
                     height = gif.height
                 )

@@ -9,6 +9,8 @@ data class Gif(
     val previewUrl: String?,
     val width: Int?,
     val height: Int?,
+    /** MP4-вариант (для плавного беззвучного воспроизведения); может отсутствовать. */
+    val mp4Url: String? = null,
     /** Наш ключ гифки (для «Мои»/«Этот чат»); у результатов поиска может быть null. */
     val gifKey: String? = null
 )

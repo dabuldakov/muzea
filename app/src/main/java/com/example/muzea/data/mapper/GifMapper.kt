@@ -30,6 +30,12 @@ fun KlipyGifDto.toGif(): Gif? {
         ?: sizes["md"]?.get("webp")?.url
         ?: url
 
+    // MP4 — самый плавный/лёгкий вариант; используем, если есть.
+    val mp4 = sizes["hd"]?.get("mp4")?.url
+        ?: sizes["md"]?.get("mp4")?.url
+        ?: sizes["sm"]?.get("mp4")?.url
+        ?: sizes.values.firstNotNullOfOrNull { it["mp4"]?.url }
+
     val identifier = slug ?: id?.toString() ?: return null
 
     return Gif(
@@ -39,7 +45,8 @@ fun KlipyGifDto.toGif(): Gif? {
         url = url,
         previewUrl = preview,
         width = animated.width,
-        height = animated.height
+        height = animated.height,
+        mp4Url = mp4
     )
 }
 
@@ -51,6 +58,7 @@ fun GifResponse.toGif(): Gif = Gif(
     // их в абсолютный адрес чата. Абсолютные (Klipy) остаются как есть.
     url = MediaUrl.chat(url) ?: url,
     previewUrl = MediaUrl.chat(previewUrl),
+    mp4Url = MediaUrl.chat(mp4Url),
     width = width,
     height = height,
     gifKey = gifUuid

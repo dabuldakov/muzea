@@ -53,6 +53,7 @@ data class MessageAttachment(
     val type: String?,
     val width: Int?,
     val height: Int?,
+    val mp4Url: String? = null,
     val gifKey: String? = null
 )
 
