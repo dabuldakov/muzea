@@ -12,14 +12,16 @@ class GifMapperTest {
     private fun media(url: String, w: Int, h: Int) = KlipyMediaDto(url = url, width = w, height = h, size = 1)
 
     @Test
-    fun `klipy gif maps animated gif and static preview`() {
+    fun `klipy prefers animated webp and uses static preview`() {
         val dto = KlipyGifDto(
             id = 1L,
             slug = "slug-1",
             title = "cat",
             file = mapOf(
-                "hd" to mapOf("gif" to media("https://c/hd.gif", 480, 270)),
-                "md" to mapOf("gif" to media("https://c/md.gif", 220, 124)),
+                "hd" to mapOf(
+                    "gif" to media("https://c/hd.gif", 480, 270),
+                    "webp" to media("https://c/hd.webp", 480, 270)
+                ),
                 "sm" to mapOf(
                     "jpg" to media("https://c/sm.jpg", 100, 60),
                     "webp" to media("https://c/sm.webp", 220, 124)
@@ -31,10 +33,19 @@ class GifMapperTest {
 
         assertEquals("klipy", gif.provider)
         assertEquals("slug-1", gif.providerGifId)
-        assertEquals("https://c/hd.gif", gif.url)
+        assertEquals("https://c/hd.webp", gif.url)
         assertEquals("https://c/sm.jpg", gif.previewUrl)
         assertEquals(480, gif.width)
         assertEquals(270, gif.height)
+    }
+
+    @Test
+    fun `klipy falls back to gif when no webp`() {
+        val dto = KlipyGifDto(
+            id = 2L,
+            file = mapOf("sm" to mapOf("gif" to media("https://c/only.gif", 200, 100)))
+        )
+        assertEquals("https://c/only.gif", dto.toGif()!!.url)
     }
 
     @Test

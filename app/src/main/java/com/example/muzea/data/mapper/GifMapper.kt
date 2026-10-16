@@ -13,11 +13,16 @@ import com.example.muzea.utils.MediaUrl
 fun KlipyGifDto.toGif(): Gif? {
     val sizes = file ?: return null
 
-    val gif = sizes["hd"]?.get("gif")
+    // Анимированный WebP предпочитаем GIF: у Klipy те же размеры, но полный цвет,
+    // файл в разы меньше и воспроизведение плавнее. GIF — запасной вариант.
+    val animated = sizes["hd"]?.get("webp")
+        ?: sizes["md"]?.get("webp")
+        ?: sizes["sm"]?.get("webp")
+        ?: sizes["hd"]?.get("gif")
         ?: sizes["md"]?.get("gif")
         ?: sizes["sm"]?.get("gif")
-        ?: sizes.values.firstNotNullOfOrNull { it["gif"] }
-    val url = gif?.url ?: return null
+        ?: sizes.values.firstNotNullOfOrNull { it["webp"] ?: it["gif"] }
+    val url = animated?.url ?: return null
 
     val preview = sizes["sm"]?.get("jpg")?.url
         ?: sizes["sm"]?.get("webp")?.url
@@ -33,8 +38,8 @@ fun KlipyGifDto.toGif(): Gif? {
         title = title,
         url = url,
         previewUrl = preview,
-        width = gif.width,
-        height = gif.height
+        width = animated.width,
+        height = animated.height
     )
 }
 
