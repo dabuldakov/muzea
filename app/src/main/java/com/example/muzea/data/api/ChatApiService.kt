@@ -12,6 +12,7 @@ import com.example.muzea.data.model.ChatUserResponse
 import com.example.muzea.data.model.ContactResponse
 import com.example.muzea.data.model.CreateGroupChatRequest
 import com.example.muzea.data.model.CreatePrivateChatRequest
+import com.example.muzea.data.model.GifResponse
 import com.example.muzea.data.model.MessageResponse
 import com.example.muzea.data.model.PageResponse
 import com.example.muzea.data.model.PresenceResponse
@@ -164,4 +165,27 @@ interface ChatApiService {
         @Path("chatUuid") chatUuid: String,
         @Query("upToMessageUuid") upToMessageUuid: String
     ): Response<Unit>
+
+    /** «Мои» недавние гифки (с нашего API). */
+    @GET("/api/gifs/recent")
+    suspend fun getRecentGifs(
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 30
+    ): Response<List<GifResponse>>
+
+    /** Гифки конкретного чата (с нашего API). */
+    @GET("/api/gifs/chat/{chatUuid}")
+    suspend fun getChatGifs(
+        @Path("chatUuid") chatUuid: String,
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 30
+    ): Response<List<GifResponse>>
+
+    /** Библиотека свободных гифок (наш CC0-каталог); пустой q — подборка. */
+    @GET("/api/gifs/library")
+    suspend fun getLibraryGifs(
+        @Query("q") q: String,
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 30
+    ): Response<List<GifResponse>>
 }

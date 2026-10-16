@@ -90,6 +90,23 @@ class ChatAuthManagerTest {
         override suspend fun markMessagesAsRead(chatUuid: String, upToMessageUuid: String): Response<Unit> =
             error("unused")
 
+        override suspend fun getRecentGifs(
+            page: Int,
+            size: Int
+        ): Response<List<com.example.muzea.data.model.GifResponse>> = error("unused")
+
+        override suspend fun getChatGifs(
+            chatUuid: String,
+            page: Int,
+            size: Int
+        ): Response<List<com.example.muzea.data.model.GifResponse>> = error("unused")
+
+        override suspend fun getLibraryGifs(
+            q: String,
+            page: Int,
+            size: Int
+        ): Response<List<com.example.muzea.data.model.GifResponse>> = error("unused")
+
         override suspend fun registerFcmToken(request: FcmTokenRequest): Response<Unit> =
             error("unused")
 

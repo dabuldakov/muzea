@@ -2,7 +2,9 @@ package com.example.muzea.data.repository
 
 import com.example.muzea.data.api.ChatApiService
 import com.example.muzea.data.mapper.toDomain
+import com.example.muzea.data.model.GifRequest
 import com.example.muzea.data.model.SendMessageRequest
+import com.example.muzea.domain.model.Gif
 import com.example.muzea.domain.model.Message
 import com.example.muzea.core.Resource
 import kotlinx.coroutines.CancellationException
@@ -15,7 +17,8 @@ import javax.inject.Singleton
 @Singleton
 class MessageRepositoryImpl @Inject constructor(
     private val apiService: ChatApiService,
-    private val chatAuthManager: ChatAuthManager
+    private val chatAuthManager: ChatAuthManager,
+    private val gifCache: GifCache
 ) : com.example.muzea.domain.repository.MessageRepository {
 
     override suspend fun loadMessages(chatUuid: String): Flow<Resource<List<Message>>> = flow {
@@ -109,6 +112,55 @@ class MessageRepositoryImpl @Inject constructor(
             throw e
         } catch (e: Exception) {
             emit(Resource.Error("Network error: ${e.message}"))
+        }
+    }
+
+    override suspend fun sendGif(chatUuid: String, gif: Gif): Flow<Resource<Message>> = flow {
+        emit(Resource.Loading())
+        try {
+            if (!chatAuthManager.isAuthenticated()) {
+                emit(Resource.Error(chatAuthManager.authFailureMessage()))
+                return@flow
+            }
+
+            val request = SendMessageRequest(
+                text = "",
+                messageType = "GIF",
+                gif = GifRequest(
+                    provider = gif.provider,
+                    providerGifId = gif.providerGifId,
+                    title = gif.title,
+                    url = gif.url,
+                    previewUrl = gif.previewUrl,
+                    width = gif.width,
+                    height = gif.height
+                )
+            )
+
+            var response = apiService.sendMessage(chatUuid, request)
+            if (response.code() == 401) {
+                chatAuthManager.invalidate()
+                if (chatAuthManager.isAuthenticated()) {
+                    response = apiService.sendMessage(chatUuid, request)
+                }
+            }
+
+            if (response.isSuccessful && response.body() != null) {
+                emit(Resource.Success(response.body()!!.toDomain()))
+            } else {
+                emit(Resource.Error("Failed to send GIF: ${response.message()}"))
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            emit(Resource.Error("Network error: ${e.message}"))
+        }
+    }
+
+    override fun cacheSentGif(chatUuid: String, gif: Gif, mine: Boolean) {
+        gifCache.prepend(GifCache.chatKey(chatUuid), gif)
+        if (mine) {
+            gifCache.prepend(GifCache.recentKey(), gif)
         }
     }
 

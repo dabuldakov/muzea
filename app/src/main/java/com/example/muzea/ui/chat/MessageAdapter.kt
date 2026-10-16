@@ -6,8 +6,12 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.DiffUtil
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.muzea.R
@@ -62,6 +66,7 @@ class MessageAdapter(
                 copyMessageToClipboard(view, message.text ?: "")
                 true
             }
+            bindGif(binding.tvMessage, binding.ivGif, message)
 
             if (!message.senderName.isNullOrEmpty()) {
                 binding.tvSenderName.text = message.senderName
@@ -84,6 +89,7 @@ class MessageAdapter(
                 copyMessageToClipboard(view, message.text ?: "")
                 true
             }
+            bindGif(binding.tvMessage, binding.ivGif, message)
             binding.tvTime.text = formatTime(message.createdAt)
         }
     }
@@ -110,6 +116,30 @@ class MessageAdapter(
             return oldItem == newItem
         }
     }
+}
+
+private fun gifUrl(message: Message): String? =
+    message.attachments
+        .firstOrNull { it.type?.equals("GIF", ignoreCase = true) == true }
+        ?.fileUrl
+
+/**
+ * Если сообщение — гифка, показываем её (Glide, анимированный GIF, кэш на
+ * устройстве) вместо текста. Иначе — обычный текстовый бабл.
+ */
+private fun bindGif(textView: TextView, imageView: ImageView, message: Message) {
+    val url = gifUrl(message)
+    if (url.isNullOrBlank()) {
+        imageView.visibility = View.GONE
+        textView.visibility = View.VISIBLE
+        return
+    }
+    textView.visibility = View.GONE
+    imageView.visibility = View.VISIBLE
+    Glide.with(imageView)
+        .load(url)
+        .diskCacheStrategy(DiskCacheStrategy.ALL)
+        .into(imageView)
 }
 
 private fun copyMessageToClipboard(view: View, text: String) {

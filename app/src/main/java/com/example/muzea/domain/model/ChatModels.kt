@@ -42,7 +42,18 @@ data class Message(
     val isDeleted: Boolean,
     val isPinned: Boolean,
     val createdAt: String?,
-    val updatedAt: String?
+    val updatedAt: String?,
+    val attachments: List<MessageAttachment> = emptyList()
+)
+
+/** Вложение сообщения: для GIF — ссылка на гифку, превью и наш ключ гифки. */
+data class MessageAttachment(
+    val fileUrl: String,
+    val thumbnailUrl: String?,
+    val type: String?,
+    val width: Int?,
+    val height: Int?,
+    val gifKey: String? = null
 )
 
 data class ChatParticipant(

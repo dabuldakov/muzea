@@ -3,7 +3,9 @@ package com.example.muzea.ui.chat
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.muzea.domain.model.Gif
 import com.example.muzea.domain.model.Message
+import com.example.muzea.domain.model.MessageAttachment
 import com.example.muzea.domain.repository.MessageRepository
 import com.example.muzea.domain.ChatUserIdentity
 import com.example.muzea.domain.chat.ChatMessageReducer
@@ -114,7 +116,9 @@ class ChatConversationViewModel @Inject constructor(
 
                 is Resource.Success -> {
                     _uiState.value = _uiState.value.copy(isLoading = false)
-                    mergeMessages(result.data ?: emptyList())
+                    val incoming = result.data ?: emptyList()
+                    cacheNewGifs(incoming)
+                    mergeMessages(incoming)
                 }
 
                 is Resource.Error -> _uiState.value =
@@ -160,6 +164,49 @@ class ChatConversationViewModel @Inject constructor(
         }
     }
 
+    fun sendGif(gif: Gif) {
+        val optimistic = Message(
+            messageUuid = LOCAL_PREFIX + System.currentTimeMillis(),
+            chatUuid = chatUuid,
+            senderId = null,
+            senderUuid = myUserUuid,
+            senderName = null,
+            senderAvatar = null,
+            text = "",
+            messageType = "GIF",
+            replyToMessageUuid = null,
+            isEdited = false,
+            isDeleted = false,
+            isPinned = false,
+            createdAt = null,
+            updatedAt = null,
+            attachments = listOf(
+                MessageAttachment(
+                    fileUrl = gif.url,
+                    thumbnailUrl = gif.previewUrl,
+                    type = "GIF",
+                    width = gif.width,
+                    height = gif.height
+                )
+            )
+        )
+        mergeMessages(listOf(optimistic))
+
+        // Сразу добавляем в кэш «Мои»/«Этот чат» (текущий пользователь — автор).
+        messageRepository.cacheSentGif(chatUuid, gif, mine = true)
+
+        viewModelScope.launch {
+            messageRepository.sendGif(chatUuid, gif).collect { result ->
+                when (result) {
+                    is Resource.Success -> applyServerEcho(optimistic.messageUuid, result.data!!)
+                    is Resource.Error ->
+                        _sendError.emit(result.message ?: "Failed to send GIF")
+                    is Resource.Loading -> {}
+                }
+            }
+        }
+    }
+
     /**
      * Обновляет локальный пузырь данными серверного эха, не меняя его
      * идентификатор в списке. Раньше локальное сообщение удалялось, а серверное
@@ -172,6 +219,37 @@ class ChatConversationViewModel @Inject constructor(
         )
         markLatestAsRead()
     }
+
+    /**
+     * Новая гифка в переписке (в т.ч. от другого участника) — добавляем её в
+     * кэш «Этот чат»/«Мои» из уже полученного сообщения, без обращения к сети.
+     * Никакого сброса кэша: список просто пополняется сверху.
+     */
+    private fun cacheNewGifs(incoming: List<Message>) {
+        if (incoming.isEmpty()) return
+        val known = _uiState.value.messages.mapTo(HashSet()) { it.messageUuid }
+        incoming.forEach { message ->
+            if (message.messageUuid in known || !message.isGifMessage()) return@forEach
+            val attachment = message.attachments.firstOrNull {
+                it.type?.equals("GIF", ignoreCase = true) == true
+            } ?: return@forEach
+            val gif = Gif(
+                provider = "",
+                providerGifId = "",
+                title = null,
+                url = attachment.fileUrl,
+                previewUrl = attachment.thumbnailUrl,
+                width = attachment.width,
+                height = attachment.height,
+                gifKey = attachment.gifKey
+            )
+            messageRepository.cacheSentGif(chatUuid, gif, mine = message.senderUuid == myUserUuid)
+        }
+    }
+
+    private fun Message.isGifMessage(): Boolean =
+        messageType?.equals("GIF", ignoreCase = true) == true ||
+            attachments.any { it.type?.equals("GIF", ignoreCase = true) == true }
 
     private fun mergeMessages(incoming: List<Message>) {
         _uiState.value = _uiState.value.copy(

@@ -124,6 +124,20 @@
             android:textColor="@android:color/black"
             android:textColorHint="@color/gray" />
 
+        <TextView
+            android:id="@+id/btnGif"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/action_gif"
+            android:padding="8dp"
+            android:text="@string/action_gif"
+            android:textColor="?attr/colorPrimary"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
         <ImageButton
             android:id="@+id/btnSend"
             android:layout_width="wrap_content"

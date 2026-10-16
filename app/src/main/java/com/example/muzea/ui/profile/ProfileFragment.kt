@@ -49,6 +49,9 @@ class ProfileFragment : Fragment() {
     @Inject
     lateinit var appUpdateRepository: AppUpdateRepository
 
+    @Inject
+    lateinit var gifCache: com.example.muzea.data.repository.GifCache
+
     private var isEditing = false
     private val pickAvatar = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null && _binding != null) uploadAvatar(uri)
@@ -412,6 +415,7 @@ class ProfileFragment : Fragment() {
         com.example.muzea.data.repository.ChatListCache.clear()
         com.example.muzea.data.repository.VideoListCache.clear()
         com.example.muzea.data.repository.PrivateChatCache.clear()
+        gifCache.clear()
         val intent = android.content.Intent(requireContext(), LoginActivity::class.java)
         intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)

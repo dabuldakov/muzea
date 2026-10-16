@@ -33,7 +33,10 @@ class ChatRepositoryCacheTest {
 
     private fun chatRepo() = ChatRepositoryImpl(IntegrationTestClient.chatApi(server), auth)
 
-    private fun messageRepo() = MessageRepositoryImpl(IntegrationTestClient.chatApi(server), auth)
+    private fun messageRepo() = MessageRepositoryImpl(
+        IntegrationTestClient.chatApi(server), auth,
+        GifCache(java.io.File.createTempFile("gif-cache", ".json").apply { delete() })
+    )
 
     @Before
     fun setUp() {

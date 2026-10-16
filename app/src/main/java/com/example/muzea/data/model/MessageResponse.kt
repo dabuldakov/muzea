@@ -30,5 +30,18 @@ data class MessageResponse(
     @SerializedName("createdAt")
     val createdAt: String?,
     @SerializedName("updatedAt")
-    val updatedAt: String?
+    val updatedAt: String?,
+    @SerializedName("attachments")
+    val attachments: List<AttachmentResponse>? = null
+)
+
+/** Вложение сообщения (в т.ч. GIF). */
+data class AttachmentResponse(
+    @SerializedName("attachmentUuid") val attachmentUuid: String?,
+    @SerializedName("fileUrl") val fileUrl: String?,
+    @SerializedName("thumbnailUrl") val thumbnailUrl: String?,
+    @SerializedName("type") val type: String?,
+    @SerializedName("width") val width: Int?,
+    @SerializedName("height") val height: Int?,
+    @SerializedName("gifKey") val gifKey: String? = null
 )

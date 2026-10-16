@@ -4,7 +4,9 @@ import com.google.gson.annotations.SerializedName
 
 data class SendMessageRequest(
     @SerializedName("text")
-    val text: String,
+    val text: String = "",
     @SerializedName("messageType")
-    val messageType: String = "TEXT"
+    val messageType: String = "TEXT",
+    @SerializedName("gif")
+    val gif: GifRequest? = null
 )

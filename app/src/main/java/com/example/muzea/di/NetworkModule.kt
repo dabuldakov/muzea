@@ -8,6 +8,7 @@ import com.example.muzea.data.api.AuthInterceptor
 import com.example.muzea.data.api.ChatApiService
 import com.example.muzea.data.api.ChatAuthInterceptor
 import com.example.muzea.data.api.GitHubApi
+import com.example.muzea.data.api.KlipyApi
 import com.example.muzea.data.api.TokenRefreshInterceptor
 import com.example.muzea.utils.Constants
 import com.example.muzea.utils.TokenManager
@@ -44,6 +45,12 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideTokenManager(@ApplicationContext context: Context): TokenManager = TokenManager(context)
+
+    /** Постоянный кэш гифок в filesDir (переживает перезапуск приложения). */
+    @Provides
+    @Singleton
+    fun provideGifCache(@ApplicationContext context: Context): com.example.muzea.data.repository.GifCache =
+        com.example.muzea.data.repository.GifCache(java.io.File(context.filesDir, "gif_cache.json"))
 
     @Provides
     @Singleton
@@ -116,6 +123,26 @@ object NetworkModule {
             .create(GitHubApi::class.java)
 
     private const val GITHUB_BASE_URL = "https://api.github.com/"
+
+    /**
+     * Klipy — публичный GIF-API. Запросы идут с устройства напрямую (требование
+     * провайдера), ключ встроен в сборку. Это внешний хост, поэтому клиент без
+     * интерцепторов нашего API и без пиннинга.
+     */
+    @Provides
+    @Singleton
+    fun provideKlipyApi(): KlipyApi =
+        Retrofit.Builder()
+            .baseUrl("https://api.klipy.com/")
+            .client(
+                OkHttpClient.Builder()
+                    .connectTimeout(30, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .build()
+            )
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(KlipyApi::class.java)
 
     private fun baseBuilder(interceptor: Interceptor): OkHttpClient.Builder =
         OkHttpClient.Builder()

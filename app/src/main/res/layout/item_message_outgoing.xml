@@ -8,11 +8,22 @@
     android:orientation="vertical"
     android:paddingStart="48dp">
 
+    <ImageView
+        android:id="@+id/ivGif"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:adjustViewBounds="true"
+        android:background="@drawable/bg_bubble_outgoing"
+        android:contentDescription="@string/gif_message_description"
+        android:maxHeight="240dp"
+        android:maxWidth="240dp"
+        android:scaleType="fitCenter"
+        android:visibility="gone" />
+
     <TextView
         android:id="@+id/tvMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:autoLink="web|email"
         android:background="@drawable/bg_bubble_outgoing"
         android:linksClickable="true"
         android:paddingStart="12dp"

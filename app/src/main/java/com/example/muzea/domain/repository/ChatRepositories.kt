@@ -4,6 +4,7 @@ import com.example.muzea.domain.model.Avatar
 import com.example.muzea.domain.model.Chat
 import com.example.muzea.domain.model.ChatParticipant
 import com.example.muzea.domain.model.Contact
+import com.example.muzea.domain.model.Gif
 import com.example.muzea.domain.model.Message
 import com.example.muzea.domain.model.Presence
 import com.example.muzea.core.Resource
@@ -37,7 +38,22 @@ interface MessageRepository {
 
     fun cachedMessages(chatUuid: String): List<Message>
     suspend fun sendMessage(chatUuid: String, text: String): Flow<Resource<Message>>
+    suspend fun sendGif(chatUuid: String, gif: Gif): Flow<Resource<Message>>
     suspend fun markMessagesAsRead(chatUuid: String, upToMessageUuid: String): Boolean
+
+    /** Живое обновление кэша гифок: добавить гифку из переписки без сети. */
+    fun cacheSentGif(chatUuid: String, gif: Gif, mine: Boolean)
+}
+
+interface GifRepository {
+    /** Поиск у провайдера (пустой запрос — trending). */
+    suspend fun search(query: String, page: Int, size: Int): List<Gif>
+    /** «Мои» использованные гифки (с нашего API). */
+    suspend fun recent(page: Int, size: Int): List<Gif>
+    /** Гифки конкретного чата (с нашего API). */
+    suspend fun chatGifs(chatUuid: String, page: Int, size: Int): List<Gif>
+    /** Библиотека свободных гифок (наш CC0-каталог); пустой запрос — подборка. */
+    suspend fun library(query: String, page: Int, size: Int): List<Gif>
 }
 
 interface ContactRepository {

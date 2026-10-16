@@ -50,7 +50,18 @@ fun com.example.muzea.data.model.MessageResponse.toDomain(): Message = Message(
     isDeleted = isDeleted,
     isPinned = isPinned,
     createdAt = createdAt,
-    updatedAt = updatedAt
+    updatedAt = updatedAt,
+    attachments = attachments.orEmpty().mapNotNull { attachment ->
+        val url = attachment.fileUrl ?: return@mapNotNull null
+        com.example.muzea.domain.model.MessageAttachment(
+            fileUrl = url,
+            thumbnailUrl = attachment.thumbnailUrl,
+            type = attachment.type,
+            width = attachment.width,
+            height = attachment.height,
+            gifKey = attachment.gifKey
+        )
+    }
 )
 
 fun com.example.muzea.data.model.ContactResponse.toDomain(): Contact = Contact(

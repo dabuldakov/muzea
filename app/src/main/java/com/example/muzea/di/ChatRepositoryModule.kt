@@ -4,6 +4,7 @@ import com.example.muzea.data.repository.AvatarRepositoryImpl
 import com.example.muzea.data.repository.ChatRepositoryImpl
 import com.example.muzea.data.repository.ChatSessionRepositoryImpl
 import com.example.muzea.data.repository.ContactRepositoryImpl
+import com.example.muzea.data.repository.GifRepositoryImpl
 import com.example.muzea.data.repository.MessageRepositoryImpl
 import dagger.Binds
 import dagger.Module
@@ -27,6 +28,12 @@ abstract class ChatRepositoryModule {
     abstract fun bindMessageRepository(
         impl: MessageRepositoryImpl
     ): com.example.muzea.domain.repository.MessageRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindGifRepository(
+        impl: GifRepositoryImpl
+    ): com.example.muzea.domain.repository.GifRepository
 
     @Binds
     @Singleton

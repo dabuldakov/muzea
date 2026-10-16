@@ -19,7 +19,10 @@ class ChatRepositoryReadTest {
     private val api = mockk<ChatApiService>()
     private val auth = mockk<ChatAuthManager>(relaxed = true)
     private val chatRepository = ChatRepositoryImpl(api, auth)
-    private val messageRepository = MessageRepositoryImpl(api, auth)
+    private val messageRepository = MessageRepositoryImpl(
+        api, auth,
+        GifCache(java.io.File.createTempFile("gif-cache", ".json").apply { delete() })
+    )
 
     @Test
     fun `marks messages as read up to the given message`() = runTest {

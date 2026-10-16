@@ -19,7 +19,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class ChatConversationFragment : Fragment() {
+class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected {
 
     private var _binding: FragmentChatConversationBinding? = null
     private val binding get() = _binding!!
@@ -191,6 +191,19 @@ class ChatConversationFragment : Fragment() {
             sendClicked()
             false
         }
+
+        // Кнопка GIF доступна, когда поле ввода в фокусе.
+        binding.etMessageInput.setOnFocusChangeListener { _, hasFocus ->
+            binding.btnGif.visibility = if (hasFocus) View.VISIBLE else View.GONE
+        }
+        binding.btnGif.setOnClickListener {
+            GifPickerBottomSheet.newInstance(chatUuid)
+                .show(childFragmentManager, "gif_picker")
+        }
+    }
+
+    override fun onGifSelected(gif: com.example.muzea.domain.model.Gif) {
+        viewModel.sendGif(gif)
     }
 
     /**

@@ -4,7 +4,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
+import com.example.muzea.domain.model.Gif
 import com.example.muzea.domain.model.Message
+import com.example.muzea.domain.model.MessageAttachment
 import com.example.muzea.data.repository.ChatMessagesCache
 import com.example.muzea.domain.repository.MessageRepository
 import com.example.muzea.domain.ChatUserIdentity
@@ -14,6 +16,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -62,6 +65,7 @@ class ChatConversationViewModelTest {
         // mergeMessages() помечает переписку прочитанной; без заглушки строгий
         // mockk упадёт на неожиданном вызове.
         coEvery { messageRepository.markMessagesAsRead(any(), any()) } returns true
+        every { messageRepository.cacheSentGif(any(), any(), any()) } returns Unit
     }
 
     @After
@@ -251,6 +255,48 @@ class ChatConversationViewModelTest {
         assertEquals(1, viewModel.uiState.value.messages.size)
         assertTrue(viewModel.uiState.value.messages.single().messageUuid.startsWith("local-"))
         assertEquals(listOf("send failed"), errors)
+    }
+
+    @Test
+    fun `new gif from another participant is added to chat gif cache without network`() = withViewModel(
+        network = flowOf(
+            Resource.Success(
+                listOf(
+                    message("g1", "", "2026-01-01T00:00:00").copy(
+                        messageType = "GIF",
+                        senderUuid = "other",
+                        attachments = listOf(
+                            MessageAttachment("https://c/x.gif", null, "GIF", 1, 1, "key-1")
+                        )
+                    )
+                )
+            )
+        )
+    ) { _ ->
+        verify { messageRepository.cacheSentGif(chatUuid, any(), false) }
+    }
+
+    @Test
+    fun `sendGif shows optimistic gif and applies server echo`() = withViewModel { viewModel ->
+        val gif = Gif("klipy", "s1", "cat", "https://c/gif.gif", "https://c/tiny.gif", 100, 50)
+        coEvery { messageRepository.sendGif(chatUuid, gif) } returns flowOf(
+            Resource.Success(
+                message("srv", "", "2026-01-01T00:00:00").copy(
+                    messageType = "GIF",
+                    attachments = listOf(
+                        MessageAttachment("https://c/gif.gif", "https://c/tiny.gif", "GIF", 100, 50)
+                    )
+                )
+            )
+        )
+
+        viewModel.sendGif(gif)
+
+        val sent = viewModel.uiState.value.messages.single()
+        // Локальный пузырь сохраняет свой uuid после эха.
+        assertTrue(sent.messageUuid.startsWith("local-"))
+        assertEquals("GIF", sent.messageType)
+        assertEquals("https://c/gif.gif", sent.attachments.single().fileUrl)
     }
 
     @Test
