@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-enum class GifTab { RECENT, CHAT, SEARCH, LIBRARY }
+enum class GifTab { RECENT, CHAT, SEARCH }
 
 data class GifPickerUiState(
     val tab: GifTab = GifTab.RECENT,
@@ -78,7 +78,6 @@ class GifPickerViewModel @Inject constructor(
                 GifTab.RECENT -> gifRepository.recent(page, PAGE_SIZE)
                 GifTab.CHAT -> gifRepository.chatGifs(chatUuid, page, PAGE_SIZE)
                 GifTab.SEARCH -> gifRepository.search(query, page, PAGE_SIZE)
-                GifTab.LIBRARY -> gifRepository.library(query, page, PAGE_SIZE)
             }
             _state.value = _state.value.copy(
                 items = _state.value.items + items,

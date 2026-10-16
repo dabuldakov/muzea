@@ -52,8 +52,6 @@ interface GifRepository {
     suspend fun recent(page: Int, size: Int): List<Gif>
     /** Гифки конкретного чата (с нашего API). */
     suspend fun chatGifs(chatUuid: String, page: Int, size: Int): List<Gif>
-    /** Библиотека свободных гифок (наш CC0-каталог); пустой запрос — подборка. */
-    suspend fun library(query: String, page: Int, size: Int): List<Gif>
 }
 
 interface ContactRepository {

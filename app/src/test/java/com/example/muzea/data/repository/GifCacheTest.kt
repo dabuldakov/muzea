@@ -78,10 +78,10 @@ class GifCacheTest {
 
     @Test
     fun `persists across instances`() {
-        cache.put(GifCache.libraryKey("cat"), listOf(gif("lib1")))
+        cache.put(GifCache.searchKey("cat"), listOf(gif("s1")))
 
         val reloaded = GifCache(file)
 
-        assertEquals("lib1", reloaded.getStale(GifCache.libraryKey("cat"))!!.single().providerGifId)
+        assertEquals("s1", reloaded.getStale(GifCache.searchKey("cat"))!!.single().providerGifId)
     }
 }

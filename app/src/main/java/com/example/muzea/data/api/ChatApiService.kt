@@ -181,11 +181,4 @@ interface ChatApiService {
         @Query("size") size: Int = 30
     ): Response<List<GifResponse>>
 
-    /** Библиотека свободных гифок (наш CC0-каталог); пустой q — подборка. */
-    @GET("/api/gifs/library")
-    suspend fun getLibraryGifs(
-        @Query("q") q: String,
-        @Query("page") page: Int = 0,
-        @Query("size") size: Int = 30
-    ): Response<List<GifResponse>>
 }

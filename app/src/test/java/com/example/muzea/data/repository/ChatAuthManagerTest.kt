@@ -101,12 +101,6 @@ class ChatAuthManagerTest {
             size: Int
         ): Response<List<com.example.muzea.data.model.GifResponse>> = error("unused")
 
-        override suspend fun getLibraryGifs(
-            q: String,
-            page: Int,
-            size: Int
-        ): Response<List<com.example.muzea.data.model.GifResponse>> = error("unused")
-
         override suspend fun registerFcmToken(request: FcmTokenRequest): Response<Unit> =
             error("unused")
 

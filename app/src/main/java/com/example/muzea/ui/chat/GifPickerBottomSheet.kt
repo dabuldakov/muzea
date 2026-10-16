@@ -75,7 +75,6 @@ class GifPickerBottomSheet : BottomSheetDialogFragment() {
         val tabs = listOf(
             R.string.gif_tab_recent to GifTab.RECENT,
             R.string.gif_tab_chat to GifTab.CHAT,
-            R.string.gif_tab_library to GifTab.LIBRARY,
             R.string.gif_tab_search to GifTab.SEARCH
         )
         binding.tabGifTabs.removeAllTabs()

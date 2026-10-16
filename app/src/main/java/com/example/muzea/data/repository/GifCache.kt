@@ -109,6 +109,5 @@ class GifCache(private val file: File) {
         fun recentKey(): String = "recent"
         fun chatKey(chatUuid: String): String = "chat:$chatUuid"
         fun searchKey(query: String): String = "search:${query.trim().lowercase()}"
-        fun libraryKey(query: String): String = "lib:${query.trim().lowercase()}"
     }
 }

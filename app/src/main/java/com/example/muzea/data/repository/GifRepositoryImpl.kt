@@ -54,12 +54,6 @@ class GifRepositoryImpl @Inject constructor(
                 .body()?.map { it.toGif() } ?: emptyList()
         }
 
-    override suspend fun library(query: String, page: Int, size: Int): List<Gif> =
-        cached(page, GifCache.libraryKey(query)) {
-            chatAuthManager.authenticatedRequest { chatApiService.getLibraryGifs(query, page, size) }
-                .body()?.map { it.toGif() } ?: emptyList()
-        }
-
     /**
      * Первая страница: свежий кэш → отдаём без сети; иначе грузим. При ошибке
      * сети/пустом ответе показываем старый кэш. Страницы > 0 всегда из сети.
