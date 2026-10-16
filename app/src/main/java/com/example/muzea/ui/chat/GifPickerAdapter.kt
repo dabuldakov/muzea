@@ -10,6 +10,7 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.muzea.databinding.ItemGifBinding
 import com.example.muzea.domain.model.Gif
+import com.example.muzea.utils.MediaUrl
 
 /** Сетка гифок в пикере. Превью грузим с кэшем на устройстве. */
 class GifPickerAdapter(
@@ -21,8 +22,11 @@ class GifPickerAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(gif: Gif) {
+            // URL мог прийти относительным (наш сервер) и/или из старого кэша —
+            // разрешаем в абсолютный перед загрузкой.
+            val url = gif.previewUrl?.let { MediaUrl.chat(it) } ?: MediaUrl.chat(gif.url)
             Glide.with(binding.ivGifItem)
-                .load(gif.previewUrl ?: gif.url)
+                .load(url)
                 .diskCacheStrategy(DiskCacheStrategy.ALL)
                 .into(binding.ivGifItem)
             binding.ivGifItem.setOnClickListener { onGifClick(gif) }

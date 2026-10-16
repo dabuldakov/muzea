@@ -18,6 +18,7 @@ import com.example.muzea.R
 import com.example.muzea.domain.model.Message
 import com.example.muzea.utils.AvatarLoader
 import com.example.muzea.utils.ChatTimeFormatter
+import com.example.muzea.utils.MediaUrl
 import com.example.muzea.databinding.ItemMessageIncomingBinding
 import com.example.muzea.databinding.ItemMessageOutgoingBinding
 
@@ -128,7 +129,9 @@ private fun gifUrl(message: Message): String? =
  * устройстве) вместо текста. Иначе — обычный текстовый бабл.
  */
 private fun bindGif(textView: TextView, imageView: ImageView, message: Message) {
-    val url = gifUrl(message)
+    // Гифка из «Библиотеки» хранится у нас и приходит относительным URL —
+    // резолвим в абсолютный адрес чата (Klipy-URL уже абсолютные).
+    val url = gifUrl(message)?.let { MediaUrl.chat(it) }
     if (url.isNullOrBlank()) {
         imageView.visibility = View.GONE
         textView.visibility = View.VISIBLE
