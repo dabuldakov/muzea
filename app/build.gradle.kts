@@ -40,6 +40,19 @@ android {
         versionName = "1.5.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Ключ Klipy для поиска гифок. Поиск идёт с клиента напрямую (требование
+        // провайдера), поэтому ключ встраивается в сборку. Значение берётся из
+        // gradle-свойства KLIPY_APP_KEY или из local.properties (в git не хранится).
+        val localProps = Properties().apply {
+            rootProject.file("local.properties")
+                .takeIf { it.exists() }
+                ?.inputStream()?.use { load(it) }
+        }
+        val klipyAppKey: String = (project.findProperty("KLIPY_APP_KEY") as String?)
+            ?: localProps.getProperty("KLIPY_APP_KEY")
+            ?: ""
+        buildConfigField("String", "KLIPY_APP_KEY", "\"$klipyAppKey\"")
     }
 
     signingConfigs {
