@@ -32,10 +32,11 @@ class GifRepositoryImpl @Inject constructor(
         val key = BuildConfig.KLIPY_APP_KEY
         if (key.isBlank()) return emptyList()
         return cached(page, GifCache.searchKey(query)) {
+            // У Klipy страницы с 1, у нас — с 0.
             val response = if (query.isBlank()) {
-                klipyApi.trending(key, page, size, CONTENT_FILTER)
+                klipyApi.trending(key, page + 1, size, CONTENT_FILTER)
             } else {
-                klipyApi.search(key, query, page, size, CONTENT_FILTER)
+                klipyApi.search(key, query, page + 1, size, CONTENT_FILTER)
             }
             response.body()?.items()?.mapNotNull { it.toGif() } ?: emptyList()
         }

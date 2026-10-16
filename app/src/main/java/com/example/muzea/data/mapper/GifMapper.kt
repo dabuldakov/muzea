@@ -5,25 +5,35 @@ import com.example.muzea.data.model.KlipyGifDto
 import com.example.muzea.domain.model.Gif
 
 /**
- * Klipy → домен. Формат берём `gif` (при отсутствии — самый крупный из доступных),
- * превью — `tinygif`/`nanogif`. Если у формата нет URL или идентификатора, гифка
- * пропускается.
+ * Klipy → домен. Для показа берём анимированный `gif` (hd → md → sm), превью —
+ * маленький статичный `jpg`/`webp` (для сетки). Если ни одного URL нет или нет
+ * идентификатора — гифка пропускается.
  */
 fun KlipyGifDto.toGif(): Gif? {
-    val formats = formats()
-    val gif = formats["gif"] ?: formats["mediumgif"] ?: formats.values.firstOrNull()
+    val sizes = file ?: return null
+
+    val gif = sizes["hd"]?.get("gif")
+        ?: sizes["md"]?.get("gif")
+        ?: sizes["sm"]?.get("gif")
+        ?: sizes.values.firstNotNullOfOrNull { it["gif"] }
     val url = gif?.url ?: return null
-    val preview = (formats["tinygif"] ?: formats["nanogif"] ?: formats["tinywebp"])?.url ?: url
-    val dims = gif.dims
-    val identifier = id ?: slug ?: return null
+
+    val preview = sizes["sm"]?.get("jpg")?.url
+        ?: sizes["sm"]?.get("webp")?.url
+        ?: sizes["md"]?.get("jpg")?.url
+        ?: sizes["md"]?.get("webp")?.url
+        ?: url
+
+    val identifier = slug ?: id?.toString() ?: return null
+
     return Gif(
         provider = "klipy",
         providerGifId = identifier,
-        title = title ?: contentDescription,
+        title = title,
         url = url,
         previewUrl = preview,
-        width = dims?.getOrNull(0),
-        height = dims?.getOrNull(1)
+        width = gif.width,
+        height = gif.height
     )
 }
 
