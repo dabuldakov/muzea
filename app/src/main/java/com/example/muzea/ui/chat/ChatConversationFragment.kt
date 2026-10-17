@@ -192,10 +192,6 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
             false
         }
 
-        // Кнопка GIF доступна, когда поле ввода в фокусе.
-        binding.etMessageInput.setOnFocusChangeListener { _, hasFocus ->
-            binding.btnGif.visibility = if (hasFocus) View.VISIBLE else View.GONE
-        }
         binding.btnGif.setOnClickListener {
             GifPickerBottomSheet.newInstance(chatUuid)
                 .show(childFragmentManager, "gif_picker")
