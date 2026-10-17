@@ -26,21 +26,28 @@ class AuthTokenRefresher @Inject constructor(
 
     /** Возвращает новый access-токен или null, если обновить не удалось. */
     fun refreshToken(): String? = synchronized(lock) {
-        val refresh = tokenManager.getAuthRefreshToken()?.takeIf { it.isNotEmpty() } ?: return null
+        val refresh = tokenManager.getAuthRefreshToken()?.takeIf { it.isNotEmpty() }
+        if (refresh == null) {
+            android.util.Log.w("AuthTokenRefresher", "refresh requested but no refresh token stored")
+            return null
+        }
 
         return try {
             val response = authTokenApi.refresh(
                 AuthServiceRefreshRequest(refresh, tokenManager.getDeviceId())
-            )
+            ).execute()
             val body = response.body()
             if (response.isSuccessful && body != null) {
                 tokenManager.saveToken(body.accessToken)
                 tokenManager.saveAuthRefreshToken(body.refreshToken)
+                android.util.Log.i("AuthTokenRefresher", "access token refreshed (HTTP ${response.code()})")
                 body.accessToken
             } else {
+                android.util.Log.w("AuthTokenRefresher", "refresh rejected: HTTP ${response.code()}")
                 null
             }
         } catch (e: Exception) {
+            android.util.Log.w("AuthTokenRefresher", "refresh failed: ${e.message}")
             null
         }
     }

@@ -27,13 +27,18 @@ class TokenRefreshInterceptor @Inject constructor(
         if (path.startsWith(AUTH_PREFIX)) return response
         if (request.header(HEADER_RETRY) != null) return response
 
+        android.util.Log.i("TokenRefreshInterceptor", "got ${response.code} on $path — trying token refresh")
+
         // Если параллельный запрос уже обновил токен — берём его, не обновляемся снова.
         val requestToken = request.header("Authorization")?.removePrefix("Bearer ")?.trim()
         val currentToken = tokenRefresher.currentToken()
         val newToken = if (currentToken != null && currentToken != requestToken) {
             currentToken
         } else {
-            tokenRefresher.refreshToken() ?: return response
+            tokenRefresher.refreshToken() ?: run {
+                android.util.Log.w("TokenRefreshInterceptor", "no new token, returning ${response.code}")
+                return response
+            }
         }
 
         response.close()
