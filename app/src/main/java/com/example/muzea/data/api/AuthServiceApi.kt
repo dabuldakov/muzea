@@ -46,4 +46,8 @@ interface AuthServiceApi {
 
     @GET("/auth/me")
     suspend fun me(): Response<AuthServiceUser>
+
+    /** Полное удаление аккаунта в IdP. */
+    @retrofit2.http.DELETE("/auth/me")
+    suspend fun deleteMe(): Response<AuthServiceMessage>
 }

@@ -71,23 +71,25 @@ object NetworkModule {
      * (это внешний домен IdP; TLS обычный). Отдельные сервисы — suspend для
      * приложения и sync для refresh-интерсептора.
      */
-    private fun authRetrofit(): Retrofit =
-        Retrofit.Builder()
+    private fun authRetrofit(vararg interceptors: Interceptor): Retrofit {
+        val builder = OkHttpClient.Builder()
+            .certificatePinner(certificatePinner())
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+        interceptors.forEach { builder.addInterceptor(it) }
+        return Retrofit.Builder()
             .baseUrl(Constants.AUTH_BASE_URL)
-            .client(
-                OkHttpClient.Builder()
-                    .connectTimeout(30, TimeUnit.SECONDS)
-                    .readTimeout(30, TimeUnit.SECONDS)
-                    .writeTimeout(30, TimeUnit.SECONDS)
-                    .build()
-            )
+            .client(builder.build())
             .addConverterFactory(GsonConverterFactory.create())
             .build()
+    }
 
     @Provides
     @Singleton
-    fun provideAuthServiceApi(): AuthServiceApi =
-        authRetrofit().create(AuthServiceApi::class.java)
+    fun provideAuthServiceApi(authInterceptor: AuthInterceptor): AuthServiceApi =
+        // AuthInterceptor подставляет access-токен, если он есть: нужен для /auth/me.
+        authRetrofit(authInterceptor).create(AuthServiceApi::class.java)
 
     @Provides
     @Singleton
@@ -202,5 +204,6 @@ object NetworkModule {
         CertificatePinner.Builder()
             .add("api-muzea.su", PIN_INTERMEDIATE_CA, PIN_ROOT_CA)
             .add("chat-muzea.su", PIN_INTERMEDIATE_CA, PIN_ROOT_CA)
+            .add("auth.muzea.su", PIN_INTERMEDIATE_CA, PIN_ROOT_CA)
             .build()
 }

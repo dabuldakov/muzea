@@ -96,6 +96,8 @@ class ProfileViewModel @Inject constructor(
                 .filterNot { it is Resource.Loading }
                 .first()
             if (result is Resource.Success && chatErased) {
+                // Удаляем и аккаунт в IdP (best-effort): коды и refresh-сессии там тоже чистятся.
+                authRepository.deleteAccount()
                 tokenManager.clearAll()
                 ConsentManager.revoke(application)
             }

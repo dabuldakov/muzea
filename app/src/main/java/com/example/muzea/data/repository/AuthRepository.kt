@@ -68,6 +68,13 @@ class AuthRepository @Inject constructor(
 
     fun isLoggedIn(): Boolean = !tokenManager.getToken().isNullOrEmpty()
 
+    /** Удаляет аккаунт в IdP (auth-service). Возвращает успех. */
+    suspend fun deleteAccount(): Boolean = try {
+        authServiceApi.deleteMe().isSuccessful
+    } catch (e: Exception) {
+        false
+    }
+
     private fun deviceId(): String? = tokenManager.getDeviceId()
 
     /** Запрос без токенов в ответе (код отправлен и т.п.). */
