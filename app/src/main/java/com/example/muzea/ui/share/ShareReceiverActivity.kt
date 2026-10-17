@@ -28,7 +28,10 @@ class ShareReceiverActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         val sharedText = extractSharedText(intent)
+        // Сессия нового образца: есть access+refresh. Иначе (legacy-токен без
+        // refresh) ведём на экран входа — старая сессия в новом входе не валидна.
         val loggedIn = !tokenManager.getToken().isNullOrEmpty() &&
+            !tokenManager.getAuthRefreshToken().isNullOrEmpty() &&
             !tokenManager.getUsername().isNullOrEmpty()
 
         val target = if (loggedIn && ConsentManager.isAccepted(this)) {

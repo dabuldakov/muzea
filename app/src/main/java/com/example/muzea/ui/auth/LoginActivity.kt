@@ -1,15 +1,19 @@
 package com.example.muzea.ui.auth
 
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.example.muzea.R
 import com.example.muzea.databinding.ActivityLoginBinding
 import com.example.muzea.ui.MainActivity
 import com.example.muzea.utils.ConsentManager
 import com.example.muzea.utils.TokenManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -20,6 +24,8 @@ class LoginActivity : AppCompatActivity() {
     private companion object {
         const val POLICY_URL = "https://muzea.su/privacy"
         const val TERMS_URL = "https://muzea.su/terms"
+        const val PREFS = "app_prefs"
+        const val KEY_REAUTH_NOTICE_SHOWN = "reauth_notice_shown_v1"
     }
 
     private lateinit var binding: ActivityLoginBinding
@@ -27,6 +33,8 @@ class LoginActivity : AppCompatActivity() {
 
     @Inject
     lateinit var tokenManager: TokenManager
+
+    private var pendingEmail: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,11 +46,16 @@ class LoginActivity : AppCompatActivity() {
             return
         }
 
-        // Уже авторизованы (в т.ч. при переходе из пуш-уведомления) — сразу на главный экран.
-        if (!tokenManager.getToken().isNullOrEmpty() && !tokenManager.getUsername().isNullOrEmpty()) {
+        // Сессия нового образца (есть access+refresh) → сразу на главный.
+        if (isUpToDateSession()) {
             startActivity(Intent(this, MainActivity::class.java))
             finish()
             return
+        }
+        // Старая сессия (legacy-токен без refresh) не заведётся в новом входе —
+        // сбрасываем и показываем экран входа с пояснением.
+        if (!tokenManager.getToken().isNullOrEmpty()) {
+            tokenManager.clearToken()
         }
 
         binding = ActivityLoginBinding.inflate(layoutInflater)
@@ -50,7 +63,13 @@ class LoginActivity : AppCompatActivity() {
 
         setupClickListeners()
         observeViewModel()
+        showReauthNoticeIfNeeded()
     }
+
+    private fun isUpToDateSession(): Boolean =
+        !tokenManager.getToken().isNullOrEmpty() &&
+            !tokenManager.getAuthRefreshToken().isNullOrEmpty() &&
+            !tokenManager.getUsername().isNullOrEmpty()
 
     private fun setupClickListeners() {
         binding.btnLogin.setOnClickListener {
@@ -71,10 +90,31 @@ class LoginActivity : AppCompatActivity() {
         binding.tvLegalPolicy.setOnClickListener { openLegalDocument(POLICY_URL) }
     }
 
-    private var pendingEmail: String = ""
-
     private fun openLegalDocument(url: String) {
         runCatching { startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))) }
+    }
+
+    /**
+     * Одноразовая подсказка после перехода на вход по email: существующим
+     * пользователям нужно «зарегистрироваться» (привязать аккаунт) с прежними
+     * email и username.
+     */
+    private fun showReauthNoticeIfNeeded() {
+        val prefs: SharedPreferences = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_REAUTH_NOTICE_SHOWN, false)) return
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.reauth_notice_title)
+            .setMessage(R.string.reauth_notice_body)
+            .setCancelable(false)
+            .setPositiveButton(R.string.reauth_notice_register) { _, _ ->
+                prefs.edit().putBoolean(KEY_REAUTH_NOTICE_SHOWN, true).apply()
+                startActivity(Intent(this, RegisterActivity::class.java))
+            }
+            .setNegativeButton(R.string.reauth_notice_ok) { _, _ ->
+                prefs.edit().putBoolean(KEY_REAUTH_NOTICE_SHOWN, true).apply()
+            }
+            .show()
     }
 
     private fun observeViewModel() {

@@ -84,6 +84,10 @@
     <string name="group_settings_title">Group settings</string>
     <string name="action_login">Login</string>
     <string name="action_get_code">Get code</string>
+    <string name="reauth_notice_title">Обновление входа</string>
+    <string name="reauth_notice_body">Теперь вход и регистрация — по коду на email, без пароля.\n\nЕсли у вас уже был аккаунт, нажмите «Зарегистрироваться» и укажите прежние email и username — доступ, переписки и контакты сохранятся (аккаунт привяжется автоматически).</string>
+    <string name="reauth_notice_register">Зарегистрироваться</string>
+    <string name="reauth_notice_ok">Понятно</string>
     <string name="otp_title">Enter the code</string>
     <string name="otp_subtitle">We sent a code to %1$s</string>
     <string name="otp_hint_code">6-digit code</string>
