@@ -405,7 +405,7 @@ class ProfileFragment : Fragment() {
     }
 
     private fun logout() {
-        tokenManager.clearToken()
+        viewModel.logout()
         goToLogin()
     }
 

@@ -83,6 +83,12 @@
     <string name="profile_edit">Edit Profile</string>
     <string name="group_settings_title">Group settings</string>
     <string name="action_login">Login</string>
+    <string name="action_get_code">Get code</string>
+    <string name="otp_title">Enter the code</string>
+    <string name="otp_subtitle">We sent a code to %1$s</string>
+    <string name="otp_hint_code">6-digit code</string>
+    <string name="otp_verify">Verify</string>
+    <string name="otp_resend">Resend code</string>
     <string name="action_logout">Logout</string>
     <string name="label_news_content">News content</string>
     <string name="news_content_preview">News content preview...</string>

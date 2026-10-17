@@ -9,7 +9,6 @@ import androidx.lifecycle.lifecycleScope
 import com.example.muzea.databinding.ActivityLoginBinding
 import com.example.muzea.ui.MainActivity
 import com.example.muzea.utils.ConsentManager
-import com.example.muzea.core.Resource
 import com.example.muzea.utils.TokenManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -55,13 +54,12 @@ class LoginActivity : AppCompatActivity() {
 
     private fun setupClickListeners() {
         binding.btnLogin.setOnClickListener {
-            val username = binding.etUsername.text.toString().trim()
-            val password = binding.etPassword.text.toString().trim()
-
-            if (username.isNotEmpty() && password.isNotEmpty()) {
-                viewModel.login(username, password)
+            val email = binding.etEmail.text.toString().trim()
+            if (android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                pendingEmail = email
+                viewModel.requestLoginCode(email)
             } else {
-                Toast.makeText(this, "Fill all fields", Toast.LENGTH_SHORT).show()
+                binding.etEmail.error = "Введите корректный email"
             }
         }
 
@@ -72,6 +70,8 @@ class LoginActivity : AppCompatActivity() {
         binding.tvLegalTerms.setOnClickListener { openLegalDocument(TERMS_URL) }
         binding.tvLegalPolicy.setOnClickListener { openLegalDocument(POLICY_URL) }
     }
+
+    private var pendingEmail: String = ""
 
     private fun openLegalDocument(url: String) {
         runCatching { startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))) }
@@ -91,10 +91,8 @@ class LoginActivity : AppCompatActivity() {
         }
 
         lifecycleScope.launch {
-            viewModel.authenticated.collect {
-                Toast.makeText(this@LoginActivity, "Login successful", Toast.LENGTH_SHORT).show()
-                startActivity(Intent(this@LoginActivity, MainActivity::class.java))
-                finish()
+            viewModel.codeSent.collect {
+                startActivity(OtpActivity.intent(this@LoginActivity, pendingEmail, OtpActivity.MODE_LOGIN))
             }
         }
     }

@@ -3,10 +3,10 @@ package com.example.muzea.di
 import android.content.Context
 import com.example.muzea.BuildConfig
 import com.example.muzea.data.api.ApiService
-import com.example.muzea.data.api.AuthApi
 import com.example.muzea.data.api.AuthInterceptor
+import com.example.muzea.data.api.AuthServiceApi
+import com.example.muzea.data.api.AuthTokenApi
 import com.example.muzea.data.api.ChatApiService
-import com.example.muzea.data.api.ChatAuthInterceptor
 import com.example.muzea.data.api.GitHubApi
 import com.example.muzea.data.api.KlipyApi
 import com.example.muzea.data.api.TokenRefreshInterceptor
@@ -67,17 +67,15 @@ object NetworkModule {
             .build()
 
     /**
-     * Клиент и Retrofit только для перелогина. Без интерцепторов авторизации,
-     * чтобы запрос логина не проходил через перелогин и не зациклился.
+     * Клиент для auth-service: без интерцепторов авторизации и без пиннинга CA
+     * (это внешний домен IdP; TLS обычный). Отдельные сервисы — suspend для
+     * приложения и sync для refresh-интерсептора.
      */
-    @Provides
-    @Singleton
-    fun provideAuthApi(): AuthApi =
+    private fun authRetrofit(): Retrofit =
         Retrofit.Builder()
-            .baseUrl(Constants.BASE_URL)
+            .baseUrl(Constants.AUTH_BASE_URL)
             .client(
                 OkHttpClient.Builder()
-                    .certificatePinner(certificatePinner())
                     .connectTimeout(30, TimeUnit.SECONDS)
                     .readTimeout(30, TimeUnit.SECONDS)
                     .writeTimeout(30, TimeUnit.SECONDS)
@@ -85,13 +83,28 @@ object NetworkModule {
             )
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(AuthApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAuthServiceApi(): AuthServiceApi =
+        authRetrofit().create(AuthServiceApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAuthTokenApi(): AuthTokenApi =
+        authRetrofit().create(AuthTokenApi::class.java)
 
     @Provides
     @Singleton
     @ChatHttpClient
-    fun provideChatHttpClient(chatAuthInterceptor: ChatAuthInterceptor): OkHttpClient =
-        baseBuilder(chatAuthInterceptor).build()
+    fun provideChatHttpClient(
+        authInterceptor: AuthInterceptor,
+        tokenRefreshInterceptor: TokenRefreshInterceptor
+    ): OkHttpClient =
+        baseBuilder(authInterceptor)
+            // Единый access-токен IdP; при 401 — обновление пары и повтор.
+            .addInterceptor(tokenRefreshInterceptor)
+            .build()
 
     @Provides
     @Singleton

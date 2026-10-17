@@ -1,21 +1,20 @@
 package com.example.muzea.data.api
 
-import com.example.muzea.data.repository.SessionRefresher
+import com.example.muzea.data.repository.AuthTokenRefresher
 import okhttp3.Interceptor
 import okhttp3.Response
 import javax.inject.Inject
 
 /**
- * При 401/403 от основного API один раз перелогинивается и повторяет запрос.
+ * При 401/403 от ресурс-сервисов один раз обновляет access-токен через
+ * refresh-токен IdP (auth-service) и повторяет запрос.
  *
- * Сервер api-muzea на истёкший токен отвечает 403 (тело пустое), поэтому
- * распознать истечение иначе, чем «отказ на запрос, требующий авторизации»,
- * нельзя. Повторяем ровно один раз, чтобы не зациклиться, и никогда не трогаем
- * сами эндпоинты логина/регистрации — там 401 означает неверный пароль, а не
- * протухший токен.
+ * Повторяем ровно один раз, чтобы не зациклиться, и никогда не трогаем
+ * эндпоинты auth-service — там 401 означает неверный код/токен, а не протухший
+ * access.
  */
 class TokenRefreshInterceptor @Inject constructor(
-    private val sessionRefresher: SessionRefresher
+    private val tokenRefresher: AuthTokenRefresher
 ) : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
@@ -25,17 +24,16 @@ class TokenRefreshInterceptor @Inject constructor(
         if (response.code != 401 && response.code != 403) return response
 
         val path = request.url.encodedPath
-        if (path.endsWith(LOGIN_PATH) || path.endsWith(REGISTER_PATH)) return response
+        if (path.startsWith(AUTH_PREFIX)) return response
         if (request.header(HEADER_RETRY) != null) return response
 
-        // Если другой запрос уже обновил токен, просто берём его, а не логинимся
-        // повторно всем потоком.
+        // Если параллельный запрос уже обновил токен — берём его, не обновляемся снова.
         val requestToken = request.header("Authorization")?.removePrefix("Bearer ")?.trim()
-        val currentToken = sessionRefresher.currentToken()
+        val currentToken = tokenRefresher.currentToken()
         val newToken = if (currentToken != null && currentToken != requestToken) {
             currentToken
         } else {
-            sessionRefresher.refreshToken() ?: return response
+            tokenRefresher.refreshToken() ?: return response
         }
 
         response.close()
@@ -48,7 +46,6 @@ class TokenRefreshInterceptor @Inject constructor(
 
     private companion object {
         const val HEADER_RETRY = "X-Muzea-Retry"
-        const val LOGIN_PATH = "/auth/login"
-        const val REGISTER_PATH = "/auth/register"
+        const val AUTH_PREFIX = "/auth/"
     }
 }

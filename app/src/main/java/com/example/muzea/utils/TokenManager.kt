@@ -76,6 +76,22 @@ class TokenManager(
         return SecureStore.loadAuthToken(appContext)
     }
 
+    fun saveAuthRefreshToken(token: String) {
+        SecureStore.saveAuthRefreshToken(appContext, token)
+    }
+
+    fun getAuthRefreshToken(): String? {
+        return SecureStore.loadAuthRefreshToken(appContext)
+    }
+
+    fun saveChatUserUuid(uuid: String) {
+        prefs.edit().putString("chat_user_uuid", uuid).apply()
+    }
+
+    fun getChatUserUuid(): String? {
+        return prefs.getString("chat_user_uuid", null)
+    }
+
     fun saveUsername(username: String) {
         prefs.edit().putString("username", username).apply()
     }
@@ -124,7 +140,7 @@ class TokenManager(
     fun clearToken() {
         // Заодно чистим legacy-ключи, если миграция ещё не отработала.
         prefs.edit()
-            .remove("username").remove("chat_token_user")
+            .remove("username").remove("chat_token_user").remove("chat_user_uuid")
             .remove("auth_token").remove("chat_token")
             .apply()
         SecureStore.clearAll(appContext)

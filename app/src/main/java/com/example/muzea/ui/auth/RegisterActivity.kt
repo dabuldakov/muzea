@@ -8,8 +8,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.muzea.R
 import com.example.muzea.databinding.ActivityRegisterBinding
-import com.example.muzea.ui.MainActivity
-import com.example.muzea.core.Resource
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -33,6 +31,8 @@ class RegisterActivity : AppCompatActivity() {
         observeViewModel()
     }
 
+    private var pendingEmail: String = ""
+
     private fun setupClickListeners() {
         binding.tvRegisterTerms.setOnClickListener { openLegalDocument(TERMS_URL) }
         binding.tvRegisterPolicy.setOnClickListener { openLegalDocument(POLICY_URL) }
@@ -46,12 +46,11 @@ class RegisterActivity : AppCompatActivity() {
 
             val username = binding.etUsername.text.toString().trim()
             val email = binding.etEmail.text.toString().trim()
-            val password = binding.etPassword.text.toString().trim()
-            val confirmPassword = binding.etConfirmPassword.text.toString().trim()
             val fullName = binding.etFullName.text.toString().trim()
 
-            if (validateInput(username, email, password, confirmPassword, fullName)) {
-                viewModel.register(username, email, password, fullName)
+            if (validateInput(username, email)) {
+                pendingEmail = email
+                viewModel.register(email, username, fullName)
             }
         }
 
@@ -64,31 +63,17 @@ class RegisterActivity : AppCompatActivity() {
         runCatching { startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))) }
     }
 
-    private fun validateInput(
-        username: String,
-        email: String,
-        password: String,
-        confirmPassword: String,
-        fullName: String
-    ): Boolean {
+    private fun validateInput(username: String, email: String): Boolean {
         if (username.length < 3) {
             binding.etUsername.error = "Username must be at least 3 characters"
             return false
         }
+        if (!username.matches(Regex("^[A-Za-z0-9_.]+$"))) {
+            binding.etUsername.error = "Only letters, digits, '_' and '.'"
+            return false
+        }
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             binding.etEmail.error = "Valid email required"
-            return false
-        }
-        if (password.length < 6) {
-            binding.etPassword.error = "Password must be at least 6 characters"
-            return false
-        }
-        if (password != confirmPassword) {
-            binding.etConfirmPassword.error = "Passwords do not match"
-            return false
-        }
-        if (fullName.isEmpty()) {
-            binding.etFullName.error = "Full name required"
             return false
         }
         return true
@@ -108,10 +93,8 @@ class RegisterActivity : AppCompatActivity() {
         }
 
         lifecycleScope.launch {
-            viewModel.authenticated.collect {
-                Toast.makeText(this@RegisterActivity, "Registration successful", Toast.LENGTH_SHORT).show()
-                startActivity(Intent(this@RegisterActivity, MainActivity::class.java))
-                finish()
+            viewModel.codeSent.collect {
+                startActivity(OtpActivity.intent(this@RegisterActivity, pendingEmail, OtpActivity.MODE_REGISTER))
             }
         }
     }

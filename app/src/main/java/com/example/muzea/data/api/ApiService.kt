@@ -8,17 +8,6 @@ import retrofit2.http.*
 
 interface ApiService {
 
-    // Auth endpoints
-    @POST("/auth/register")
-    suspend fun register(
-        @Body request: RegisterRequest
-    ): Response<AuthResponse>
-
-    @POST("/auth/login")
-    suspend fun login(
-        @Body request: LoginRequest
-    ): Response<AuthResponse>
-
     // Video endpoints
     @GET("/api/videos")
     suspend fun getVideos(): Response<List<VideoResponse>>

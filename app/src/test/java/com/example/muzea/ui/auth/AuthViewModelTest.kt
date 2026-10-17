@@ -27,8 +27,25 @@ class AuthViewModelTest {
     private val authRepository = mockk<AuthRepository>()
 
     @Test
-    fun `successful login emits authenticated event`() = runTest {
-        coEvery { authRepository.login("u", "p") } returns flowOf(Resource.Success("token"))
+    fun `requesting login code emits codeSent event`() = runTest {
+        coEvery { authRepository.requestLoginCode("a@b.c") } returns flowOf(Resource.Success(Unit))
+        val viewModel = AuthViewModel(authRepository)
+
+        var codeSent = false
+        val collector = launch(Dispatchers.Unconfined, start = CoroutineStart.UNDISPATCHED) {
+            viewModel.codeSent.collect { codeSent = true }
+        }
+
+        viewModel.requestLoginCode("a@b.c")
+        collector.cancel()
+
+        assertTrue(codeSent)
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `verifying login code emits authenticated event`() = runTest {
+        coEvery { authRepository.verifyLoginCode("a@b.c", "1234") } returns flowOf(Resource.Success(Unit))
         val viewModel = AuthViewModel(authRepository)
 
         var authenticated = false
@@ -36,20 +53,35 @@ class AuthViewModelTest {
             viewModel.authenticated.collect { authenticated = true }
         }
 
-        viewModel.login("u", "p")
+        viewModel.verifyLoginCode("a@b.c", "1234")
         collector.cancel()
 
         assertTrue(authenticated)
-        assertFalse(viewModel.uiState.value.isLoading)
     }
 
     @Test
-    fun `failed login exposes error and can be consumed`() = runTest {
-        coEvery { authRepository.login("u", "p") } returns flowOf(Resource.Error("bad credentials"))
+    fun `register emits codeSent event`() = runTest {
+        coEvery { authRepository.register("a@b.c", "user", null) } returns flowOf(Resource.Success(Unit))
         val viewModel = AuthViewModel(authRepository)
 
-        viewModel.login("u", "p")
-        assertEquals("bad credentials", viewModel.uiState.value.error)
+        var codeSent = false
+        val collector = launch(Dispatchers.Unconfined, start = CoroutineStart.UNDISPATCHED) {
+            viewModel.codeSent.collect { codeSent = true }
+        }
+
+        viewModel.register("a@b.c", "user", "")
+        collector.cancel()
+
+        assertTrue(codeSent)
+    }
+
+    @Test
+    fun `failed request exposes error and can be consumed`() = runTest {
+        coEvery { authRepository.requestLoginCode("a@b.c") } returns flowOf(Resource.Error("bad code"))
+        val viewModel = AuthViewModel(authRepository)
+
+        viewModel.requestLoginCode("a@b.c")
+        assertEquals("bad code", viewModel.uiState.value.error)
 
         viewModel.consumeError()
         assertNull(viewModel.uiState.value.error)

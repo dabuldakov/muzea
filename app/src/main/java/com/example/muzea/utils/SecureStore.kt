@@ -22,6 +22,7 @@ object SecureStore {
     private const val FILE_NAME = "secure_prefs"
     private const val KEY_PASSWORD = "account_password"
     private const val KEY_AUTH_TOKEN = "auth_token"
+    private const val KEY_AUTH_REFRESH = "auth_refresh_token"
     private const val KEY_CHAT_TOKEN = "chat_token"
 
     @Volatile
@@ -57,6 +58,12 @@ object SecureStore {
         prefs(context)?.edit()?.putString(KEY_AUTH_TOKEN, token)?.apply()
 
     fun loadAuthToken(context: Context): String? = prefs(context)?.getString(KEY_AUTH_TOKEN, null)
+
+    fun saveAuthRefreshToken(context: Context, token: String) =
+        prefs(context)?.edit()?.putString(KEY_AUTH_REFRESH, token)?.apply()
+
+    fun loadAuthRefreshToken(context: Context): String? =
+        prefs(context)?.getString(KEY_AUTH_REFRESH, null)
 
     fun saveChatToken(context: Context, token: String) =
         prefs(context)?.edit()?.putString(KEY_CHAT_TOKEN, token)?.apply()

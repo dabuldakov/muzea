@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.muzea.R
+import com.example.muzea.data.repository.AuthRepository
 import com.example.muzea.domain.model.User
 import com.example.muzea.domain.repository.ChatSessionRepository
 import com.example.muzea.domain.repository.UserRepository
@@ -34,6 +35,7 @@ class ProfileViewModel @Inject constructor(
     private val application: Application,
     private val userRepository: UserRepository,
     private val chatSessionRepository: ChatSessionRepository,
+    private val authRepository: AuthRepository,
     private val tokenManager: TokenManager
 ) : ViewModel() {
 
@@ -108,20 +110,13 @@ class ProfileViewModel @Inject constructor(
     }
 
     /**
-     * Разлогин.
-     *
-     * Сначала чат-сервер, и только потом чистим локальный токен. Порядок
-     * обязателен: запрос /logout несёт access-токен, а после clearToken()
-     * сервер его уже не проверит и сессия останется жить — пользователь
-     * продолжит светиться «в сети» у всех контактов до истечения TTL.
-     *
-     * Даже при сбое сети уходим на экран входа: локально пользователь
-     * вышел, а серверную сессию снимет TTL.
+     * Разлогин через единый IdP: отзывает refresh-сессию на auth-service и
+     * чистит локальные токены. Локальная очистка происходит до сетевого вызова,
+     * поэтому экран входа уже не увидит старый токен.
      */
     fun logout() {
         viewModelScope.launch {
-            chatSessionRepository.logout()
-            tokenManager.clearToken()
+            authRepository.logout()
         }
     }
 }

@@ -3,9 +3,6 @@ package com.example.muzea.data.api
 import com.example.muzea.data.model.AddContactRequest
 import com.example.muzea.data.model.AddGroupParticipantsRequest
 import com.example.muzea.data.model.AvatarResponse
-import com.example.muzea.data.model.ChatAuthResponse
-import com.example.muzea.data.model.ChatLoginRequest
-import com.example.muzea.data.model.ChatRegisterRequest
 import com.example.muzea.data.model.ChatParticipantResponse
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.model.ChatUserResponse
@@ -61,20 +58,6 @@ interface ChatApiService {
         @Part file: MultipartBody.Part
     ): Response<okhttp3.ResponseBody>
 
-    @POST("/api/auth/login")
-    suspend fun login(
-        @Body request: ChatLoginRequest
-    ): Response<ChatAuthResponse>
-
-    @POST("/api/auth/register")
-    suspend fun register(
-        @Body request: ChatRegisterRequest
-    ): Response<ChatAuthResponse>
-
-    /**
-     * Серверный разлогин. Обязателен, а не «просто почистить токен локально»:
-     * без него сессия остаётся живой и сервер считает пользователя онлайн.
-     */
     @POST("/api/auth/logout")
     suspend fun logout(): Response<Unit>
 
