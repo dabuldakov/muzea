@@ -42,4 +42,14 @@ class MessageLinksTest {
         assertEquals("http://example.com", MessageLinks.normalize("http://example.com"))
         assertEquals("https://example.com", MessageLinks.normalize("https://example.com"))
     }
+
+    @Test
+    fun `singleUrl returns url only when message is just a link`() {
+        assertEquals("https://muzea.su", MessageLinks.singleUrl("  https://muzea.su "))
+        assertEquals("https://muzea.su/page", MessageLinks.singleUrl("https://muzea.su/page"))
+        assertTrue(MessageLinks.singleUrl("смотри https://muzea.su") == null)
+        assertTrue(MessageLinks.singleUrl("https://a.b https://c.d") == null)
+        assertTrue(MessageLinks.singleUrl("просто текст") == null)
+        assertTrue(MessageLinks.singleUrl(null) == null)
+    }
 }

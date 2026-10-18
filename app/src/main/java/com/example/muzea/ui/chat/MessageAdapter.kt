@@ -25,6 +25,8 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.muzea.R
+import com.example.muzea.data.model.LinkPreview
+import com.example.muzea.data.repository.LinkPreviewStore
 import com.example.muzea.domain.model.Message
 import com.example.muzea.utils.AvatarLoader
 import com.example.muzea.utils.ChatTimeFormatter
@@ -32,10 +34,24 @@ import com.example.muzea.utils.MediaUrl
 import com.example.muzea.utils.MessageLinks
 import com.example.muzea.databinding.ItemMessageIncomingBinding
 import com.example.muzea.databinding.ItemMessageOutgoingBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MessageAdapter(
-    private val myUserUuid: String?
+    private val myUserUuid: String?,
+    private val linkPreviews: LinkPreviewStore
 ) : ListAdapter<Message, RecyclerView.ViewHolder>(MessageDiffCallback()) {
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /** Вызывать при уничтожении вью: отменяет фоновые загрузки превью. */
+    fun release() {
+        scope.cancel()
+    }
 
     override fun getItemViewType(position: Int): Int {
         val message = getItem(position)
@@ -57,8 +73,8 @@ class MessageAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val message = getItem(position)
         when (holder) {
-            is OutgoingViewHolder -> holder.bind(message)
-            is IncomingViewHolder -> holder.bind(message)
+            is OutgoingViewHolder -> holder.bind(message, linkPreviews, scope)
+            is IncomingViewHolder -> holder.bind(message, linkPreviews, scope)
         }
     }
 
@@ -71,14 +87,18 @@ class MessageAdapter(
         private val binding: ItemMessageIncomingBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(message: Message) {
+        fun bind(message: Message, linkPreviews: LinkPreviewStore, scope: CoroutineScope) {
             AvatarLoader.load(binding.ivAvatar, message.senderAvatar)
-            bindMessageText(binding.tvMessage, message.text ?: "")
+            bindMedia(message)
+            bindTextOrPreview(
+                binding.tvMessage, binding.linkPreview,
+                binding.ivLinkImage, binding.tvLinkTitle, binding.tvLinkDomain,
+                message, linkPreviews, scope
+            )
             binding.tvMessage.setOnLongClickListener { view ->
                 copyMessageToClipboard(view, message.text ?: "")
                 true
             }
-            bindMedia(message)
 
             if (!message.senderName.isNullOrEmpty()) {
                 binding.tvSenderName.text = message.senderName
@@ -125,13 +145,17 @@ class MessageAdapter(
         private val binding: ItemMessageOutgoingBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(message: Message) {
-            bindMessageText(binding.tvMessage, message.text ?: "")
+        fun bind(message: Message, linkPreviews: LinkPreviewStore, scope: CoroutineScope) {
+            bindMedia(message)
+            bindTextOrPreview(
+                binding.tvMessage, binding.linkPreview,
+                binding.ivLinkImage, binding.tvLinkTitle, binding.tvLinkDomain,
+                message, linkPreviews, scope
+            )
             binding.tvMessage.setOnLongClickListener { view ->
                 copyMessageToClipboard(view, message.text ?: "")
                 true
             }
-            bindMedia(message)
             binding.tvTime.text = formatTime(message.createdAt)
         }
 
@@ -229,6 +253,94 @@ private fun bindGif(textView: TextView, imageView: ImageView, message: Message) 
         .diskCacheStrategy(DiskCacheStrategy.ALL)
         .into(imageView)
 }
+
+/**
+ * Текст сообщения или превью-карточка ссылки. Если сообщение — целиком одна
+ * ссылка, показываем карточку (картинка + название + домен), сама ссылка
+ * скрыта за названием. Если превью недоступно — деградируем до кликабельного
+ * текста-ссылки.
+ */
+private fun bindTextOrPreview(
+    tvMessage: TextView,
+    card: View,
+    ivImage: ImageView,
+    tvTitle: TextView,
+    tvDomain: TextView,
+    message: Message,
+    linkPreviews: LinkPreviewStore,
+    scope: CoroutineScope
+) {
+    val url = MessageLinks.singleUrl(message.text)
+    if (url == null) {
+        showMessageText(tvMessage, card, message.text ?: "")
+        return
+    }
+
+    card.tag = url
+    linkPreviews.cached(url)?.let {
+        renderPreview(tvMessage, card, ivImage, tvTitle, tvDomain, it)
+        return
+    }
+    if (linkPreviews.isLoaded(url)) {
+        showMessageText(tvMessage, card, url)
+        return
+    }
+
+    // Заглушка, пока грузится превью.
+    tvMessage.visibility = View.GONE
+    card.visibility = View.VISIBLE
+    ivImage.visibility = View.GONE
+    tvTitle.text = url
+    tvDomain.text = hostOf(url)
+    card.setOnClickListener { openUrl(card.context, url) }
+
+    scope.launch {
+        val preview = linkPreviews.load(url)
+        withContext(Dispatchers.Main) {
+            if (card.tag == url) {
+                if (preview != null) {
+                    renderPreview(tvMessage, card, ivImage, tvTitle, tvDomain, preview)
+                } else {
+                    showMessageText(tvMessage, card, url)
+                }
+            }
+        }
+    }
+}
+
+private fun showMessageText(tvMessage: TextView, card: View, text: String) {
+    card.visibility = View.GONE
+    card.setOnClickListener(null)
+    card.tag = null
+    bindMessageText(tvMessage, text)
+}
+
+private fun renderPreview(
+    tvMessage: TextView,
+    card: View,
+    ivImage: ImageView,
+    tvTitle: TextView,
+    tvDomain: TextView,
+    preview: LinkPreview
+) {
+    tvMessage.visibility = View.GONE
+    card.visibility = View.VISIBLE
+    tvTitle.text = preview.title ?: preview.siteName ?: hostOf(preview.url)
+    tvDomain.text = preview.siteName ?: hostOf(preview.url)
+
+    if (!preview.imageUrl.isNullOrBlank()) {
+        ivImage.visibility = View.VISIBLE
+        Glide.with(ivImage)
+            .load(preview.imageUrl)
+            .diskCacheStrategy(DiskCacheStrategy.ALL)
+            .into(ivImage)
+    } else {
+        ivImage.visibility = View.GONE
+    }
+    card.setOnClickListener { openUrl(card.context, preview.url) }
+}
+
+private fun hostOf(url: String): String = Uri.parse(url).host.orEmpty()
 
 /**
  * Делает ссылки в тексте кликабельными (открываются внешним приложением).

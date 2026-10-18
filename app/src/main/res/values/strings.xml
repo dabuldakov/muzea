@@ -116,6 +116,7 @@
     <string name="video_watch_now">Watch Now</string>
     <string name="message_copied">Сообщение скопировано</string>
     <string name="link_open_failed">Не удалось открыть ссылку</string>
+    <string name="link_preview_description">Превью ссылки</string>
     <string name="app_version_format">Версия приложения: %1$s</string>
     <string name="update_available_title">Доступно обновление</string>
     <string name="update_available_message">Появилась новая версия %1$s. Давайте скачаем и обновим?</string>

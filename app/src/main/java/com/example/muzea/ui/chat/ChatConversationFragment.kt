@@ -12,11 +12,13 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.example.muzea.domain.model.Message
+import com.example.muzea.data.repository.LinkPreviewStore
 import com.example.muzea.databinding.FragmentChatConversationBinding
 import com.example.muzea.ui.navigation.navigator
 import com.example.muzea.utils.AvatarLoader
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected {
@@ -25,6 +27,9 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
     private val binding get() = _binding!!
     private val viewModel: ChatConversationViewModel by viewModels()
     private lateinit var adapter: MessageAdapter
+
+    @Inject
+    lateinit var linkPreviewStore: LinkPreviewStore
     private var chatUuid: String = ""
     private var lastNewestUuid: String? = null
     private var unreadCount = 0L
@@ -115,7 +120,7 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
     }
 
     private fun setupRecyclerView() {
-        adapter = MessageAdapter(viewModel.myUserUuid)
+        adapter = MessageAdapter(viewModel.myUserUuid, linkPreviewStore)
         adapter.registerAdapterDataObserver(scrollObserver)
         binding.recyclerViewMessages.apply {
             // stackFromEnd держит ленту «прижатой» к низу: при открытии клавиатуры
@@ -279,6 +284,7 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
     override fun onDestroyView() {
         if (::adapter.isInitialized) {
             adapter.unregisterAdapterDataObserver(scrollObserver)
+            adapter.release()
         }
         super.onDestroyView()
         _binding = null
