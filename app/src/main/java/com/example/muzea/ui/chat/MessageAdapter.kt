@@ -3,6 +3,13 @@ package com.example.muzea.ui.chat
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.TextPaint
+import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -22,6 +29,7 @@ import com.example.muzea.domain.model.Message
 import com.example.muzea.utils.AvatarLoader
 import com.example.muzea.utils.ChatTimeFormatter
 import com.example.muzea.utils.MediaUrl
+import com.example.muzea.utils.MessageLinks
 import com.example.muzea.databinding.ItemMessageIncomingBinding
 import com.example.muzea.databinding.ItemMessageOutgoingBinding
 
@@ -65,7 +73,7 @@ class MessageAdapter(
 
         fun bind(message: Message) {
             AvatarLoader.load(binding.ivAvatar, message.senderAvatar)
-            binding.tvMessage.text = message.text ?: ""
+            bindMessageText(binding.tvMessage, message.text ?: "")
             binding.tvMessage.setOnLongClickListener { view ->
                 copyMessageToClipboard(view, message.text ?: "")
                 true
@@ -118,7 +126,7 @@ class MessageAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(message: Message) {
-            binding.tvMessage.text = message.text ?: ""
+            bindMessageText(binding.tvMessage, message.text ?: "")
             binding.tvMessage.setOnLongClickListener { view ->
                 copyMessageToClipboard(view, message.text ?: "")
                 true
@@ -220,6 +228,48 @@ private fun bindGif(textView: TextView, imageView: ImageView, message: Message) 
         .load(url)
         .diskCacheStrategy(DiskCacheStrategy.ALL)
         .into(imageView)
+}
+
+/**
+ * Делает ссылки в тексте кликабельными (открываются внешним приложением).
+ * Если ссылок нет — просто ставит текст без MovementMethod, чтобы не мешать
+ * прокрутке и long-press-копированию.
+ */
+private fun bindMessageText(textView: TextView, text: String) {
+    val links = MessageLinks.matches(text)
+    if (links.isEmpty()) {
+        textView.movementMethod = null
+        textView.text = text
+        return
+    }
+    val spannable = SpannableString(text)
+    for (link in links) {
+        spannable.setSpan(
+            object : ClickableSpan() {
+                override fun onClick(widget: View) = openUrl(widget.context, link.url)
+                override fun updateDrawState(ds: TextPaint) {
+                    super.updateDrawState(ds)
+                    ds.isUnderlineText = false
+                }
+            },
+            link.start,
+            link.end,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+    }
+    textView.text = spannable
+    textView.movementMethod = LinkMovementMethod.getInstance()
+    // Убираем синюю подсветку при тапе по баблу; ссылку видно по цвету текста.
+    textView.highlightColor = android.graphics.Color.TRANSPARENT
+}
+
+private fun openUrl(context: Context, raw: String) {
+    val uri = Uri.parse(MessageLinks.normalize(raw))
+    try {
+        context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+    } catch (e: Exception) {
+        Toast.makeText(context, R.string.link_open_failed, Toast.LENGTH_SHORT).show()
+    }
 }
 
 private fun copyMessageToClipboard(view: View, text: String) {
