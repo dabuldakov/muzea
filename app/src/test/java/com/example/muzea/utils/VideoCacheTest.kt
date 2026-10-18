@@ -31,6 +31,7 @@ class VideoCacheTest {
     fun tearDown() {
         VideoCache.resetForTests()
         context.cacheDir.deleteRecursively()
+        VideoCache.directory(context).deleteRecursively()
     }
 
     @Test
@@ -49,18 +50,19 @@ class VideoCacheTest {
     }
 
     @Test
-    fun `cache is created under the app cache dir`() {
+    fun `cache is created under the app files dir`() {
         VideoCache.get(context)
 
         // SimpleCache инициализируется в фоновом потоке, поэтому дожидаемся
         // появления директории.
-        val dir = File(context.cacheDir, "video_cache")
+        val dir = VideoCache.directory(context)
         val deadline = System.currentTimeMillis() + 3_000
         while (!dir.isDirectory && System.currentTimeMillis() < deadline) {
             Thread.sleep(20)
         }
 
         assertTrue(dir.isDirectory)
+        assertTrue(dir.absolutePath.startsWith(context.filesDir.absolutePath))
     }
 
     @Test

@@ -21,7 +21,7 @@ import java.io.File
 object CacheManager {
 
     suspend fun totalSizeBytes(context: Context): Long = withContext(Dispatchers.IO) {
-        cacheDirs(context).sumOf { directorySize(it) }
+        (cacheDirs(context) + persistentMediaDirs(context)).sumOf { directorySize(it) }
     }
 
     suspend fun clear(context: Context) {
@@ -54,6 +54,15 @@ object CacheManager {
         context.externalCacheDirs?.filterNotNull()?.forEach { dirs += it }
         return dirs.distinct()
     }
+
+    /**
+     * Постоянные медиа-кэши в filesDir (Glide и видео) — система их не чистит,
+     * но их тоже нужно показывать в размере занятого места.
+     */
+    private fun persistentMediaDirs(context: Context): List<File> = listOf(
+        File(context.filesDir, GLIDE_DISK_CACHE_DIR),
+        VideoCache.directory(context)
+    )
 
     private fun directorySize(dir: File?): Long {
         if (dir == null || !dir.exists()) return 0L

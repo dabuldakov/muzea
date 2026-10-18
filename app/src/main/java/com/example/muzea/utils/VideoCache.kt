@@ -19,17 +19,26 @@ import java.io.File
 @UnstableApi
 object VideoCache {
 
-    private const val DIR_NAME = "video_cache"
+    const val DIR_NAME = "video_cache"
     private const val MAX_BYTES = 300L * 1024 * 1024
 
     @Volatile
     private var instance: SimpleCache? = null
 
+    /**
+     * Каталог кэша — в [Context.getFilesDir], а не в cacheDir: system/OEM
+     * (в т.ч. Samsung Device Care) периодически вычищает cacheDir, из-за чего
+     * скачанные видео «сбрасывались». filesDir система не трогает; чистить —
+     * вручную (кнопка в профиле) или по LRU-лимиту.
+     */
+    fun directory(context: Context): File =
+        File(context.applicationContext.filesDir, DIR_NAME)
+
     @UnstableApi
     fun get(context: Context): SimpleCache {
         return instance ?: synchronized(this) {
             instance ?: SimpleCache(
-                File(context.applicationContext.cacheDir, DIR_NAME),
+                directory(context),
                 LeastRecentlyUsedCacheEvictor(MAX_BYTES)
             ).also { instance = it }
         }
