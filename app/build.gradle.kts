@@ -30,12 +30,13 @@ val releaseSigningReady = releaseStorePath != null &&
 
 android {
     namespace = "com.example.muzea"
-    compileSdk = 34
+    // Google Play требует актуальный target API; SDK 36 (Android 16) установлен.
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.cyber.muzea"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 30
         versionName = "1.7.2"
 
