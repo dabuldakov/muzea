@@ -199,6 +199,32 @@ jobs:
           fi
           echo "Релиз опубликован: https://github.com/$REPO/releases/tag/$TAG"
 
+      - name: Опубликовать в Google Play (если настроен)
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON_B64: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON_B64 }}
+          PLAY_TRACK: ${{ vars.PLAY_TRACK || 'internal' }}
+          PLAY_STATUS: ${{ vars.PLAY_STATUS || 'completed' }}
+          PACKAGE_NAME: com.cyber.muzea
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          # Без секрета шаг молча пропускается: релиз в GitHub всё равно публикуется.
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON_B64" ]; then
+            echo "PLAY_SERVICE_ACCOUNT_JSON_B64 не задан — публикация в Google Play пропущена."
+            exit 0
+          fi
+          printf '%s' "$PLAY_SERVICE_ACCOUNT_JSON_B64" | base64 --decode --ignore-garbage > "$RUNNER_TEMP/play-sa.json"
+          chmod 600 "$RUNNER_TEMP/play-sa.json"
+          python3 -m venv "$RUNNER_TEMP/play-venv"
+          "$RUNNER_TEMP/play-venv/bin/pip" install --quiet --disable-pip-version-check google-auth requests
+          "$RUNNER_TEMP/play-venv/bin/python" scripts/publish_play.py \
+            --aab "dist/muzea-$VERSION.aab" \
+            --package "$PACKAGE_NAME" \
+            --track "$PLAY_TRACK" \
+            --status "$PLAY_STATUS" \
+            --service-account "$RUNNER_TEMP/play-sa.json" \
+            --notes-file dist/release-notes.md
+          shred -u "$RUNNER_TEMP/play-sa.json" 2>/dev/null || rm -f "$RUNNER_TEMP/play-sa.json"
+
       - name: Удалить ключ с раннера
         if: always()
         run: shred -u keystore/muzea.jks 2>/dev/null || rm -f keystore/muzea.jks
