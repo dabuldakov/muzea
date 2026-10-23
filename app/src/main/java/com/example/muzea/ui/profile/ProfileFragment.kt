@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
 import com.example.muzea.utils.AvatarLoader
+import com.example.muzea.utils.AppLanguages
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
@@ -210,6 +211,12 @@ class ProfileFragment : Fragment() {
 
     private fun setupCacheSection() {
         binding.btnClearCache.setOnClickListener { clearCache() }
+
+        binding.btnLanguage.text = getString(
+            R.string.language_current,
+            AppLanguages.label(AppLanguages.current())
+        )
+        binding.btnLanguage.setOnClickListener { showLanguagePicker() }
         refreshCacheSize()
     }
 
@@ -219,6 +226,22 @@ class ProfileFragment : Fragment() {
             if (_binding == null) return@launch
             binding.tvCacheSize.text = getString(R.string.cache_size, formatCacheSize(bytes))
         }
+    }
+
+    private fun showLanguagePicker() {
+        val languages = AppLanguages.ALL
+        val labels = languages.map { AppLanguages.label(it) }.toTypedArray()
+        val selected = languages.indexOfFirst { it.tag == AppLanguages.current().tag }
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.language_dialog_title)
+            .setSingleChoiceItems(labels, selected) { dialog, which ->
+                dialog.dismiss()
+                // AppCompat сам пересоздаст активности с новой локалью.
+                AppLanguages.set(languages[which].tag)
+            }
+            .setNegativeButton(R.string.action_cancel, null)
+            .show()
     }
 
     private fun clearCache() {

@@ -187,6 +187,16 @@
                 android:textColor="?attr/colorError"
                 android:textSize="14sp" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLanguage"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/language_label"
+                android:textColor="@color/purple_500"
+                android:textSize="14sp" />
+
             <TextView
                 android:id="@+id/tvCacheSize"
                 android:layout_width="match_parent"

@@ -6,7 +6,7 @@
     <string name="chat_channel_name">Messages</string>
     <string name="chat_channel_description">Notifications about new chat messages</string>
 
-    <!-- Правовая информация -->
+    <!-- Legal information (operator details stay in Russian: RF legal entity) -->
     <string name="policy_url">https://muzea.su/privacy</string>
     <string name="terms_url">https://muzea.su/terms</string>
     <string name="operator_email">dabuldakov@mail.ru</string>
@@ -16,42 +16,42 @@
     <string name="operator_address">Томская область, г. Томск, ул. Пушкина, д. 61/3, кв. 267</string>
     <string name="operator_status">Физическое лицо, оператор персональных данных</string>
 
-    <string name="consent_title">Условия и обработка персональных данных</string>
-    <string name="consent_body">Чтобы пользоваться приложением «muzea», нужно принять условия использования и дать согласие на обработку персональных данных.\n\nСостав данных: логин, ФИО, адрес электронной почты, одноразовые коды подтверждения (вход по email), идентификатор и модель устройства, токен устройства для доставки push-уведомлений, текст сообщений в чатах, состав групп и их участников, статус «в сети» и время последнего визита, список контактов, изображения, публикации и видео, технические данные аккаунта.\n\nЦели: регистрация и вход, обмен сообщениями, push-уведомления, показ профиля другим пользователям, размещение публикаций и видео, обслуживание обращений.\n\nТокен устройства для push-уведомлений передаётся сервисам Google (Google Ireland Limited, Ирландия) — это трансграничная передача. Другие персональные данные за пределы России не передаются.\n\nСогласие можно отозвать в профиле («Удалить аккаунт») или письмом на %1$s — тогда обработка прекращается и данные уничтожаются в течение 10 рабочих дней.</string>
-    <string name="consent_accept">Принять и продолжить</string>
-    <string name="consent_decline">Не принимать</string>
-    <string name="consent_open_terms">Открыть Пользовательское соглашение</string>
-    <string name="consent_open_policy">Открыть Политику обработки персональных данных</string>
+    <string name="consent_title">Terms and personal data processing</string>
+    <string name="consent_body">To use the muzea app, you need to accept the terms of use and give consent to personal data processing.\n\nData: login, full name, email, one-time confirmation codes (email sign-in), device identifier and model, device token for push notifications, chat message text, group composition and members, online status and last seen time, contacts list, images, posts and videos, technical account data.\n\nPurposes: registration and sign-in, messaging, push notifications, showing your profile to other users, posting content and videos, handling requests.\n\nThe device token for push notifications is transferred to Google services (Google Ireland Limited, Ireland) — a cross-border transfer. Other personal data is not transferred outside Russia.\n\nYou can withdraw consent in the profile (“Delete account”) or by email to %1$s — then processing stops and the data is destroyed within 10 business days.</string>
+    <string name="consent_accept">Accept and continue</string>
+    <string name="consent_decline">Decline</string>
+    <string name="consent_open_terms">Open Terms of Use</string>
+    <string name="consent_open_policy">Open Personal Data Policy</string>
 
-    <string name="register_consent_checkbox">Я принимаю Пользовательское соглашение и Политику обработки персональных данных</string>
-    <string name="consent_required">Нужно принять условия и политику обработки персональных данных</string>
-    <string name="login_legal_note">Продолжая, вы принимаете Пользовательское соглашение и Политику обработки персональных данных</string>
+    <string name="register_consent_checkbox">I accept the Terms of Use and the Personal Data Policy</string>
+    <string name="consent_required">You must accept the terms and the personal data policy</string>
+    <string name="login_legal_note">By continuing, you accept the Terms of Use and the Personal Data Policy</string>
 
-    <string name="operator_info_title">Оператор персональных данных</string>
-    <string name="operator_info_intro">Персональные данные пользователей обрабатывает:</string>
+    <string name="operator_info_title">Personal data operator</string>
+    <string name="operator_info_intro">Personal data is processed by:</string>
 
-    <string name="delete_account">Удалить аккаунт</string>
-    <string name="delete_account_title">Удалить аккаунт?</string>
-    <string name="delete_account_message">Профиль, сообщения, публикации и видео будут удалены, обработка персональных данных прекратится. Отменить удаление нельзя.</string>
-    <string name="delete_account_done">Аккаунт и данные удалены</string>
-    <string name="delete_account_failed">Не удалось удалить данные на сервере. Напишите на %1$s, и мы удалим их вручную в течение 10 рабочих дней.</string>
-    <string name="delete_account_chat_failed">Не удалось удалить переписку на сервере чата. Проверьте подключение и повторите попытку.</string>
-    <string name="delete_account_logout">Выйти из приложения</string>
-    <string name="action_cancel">Отмена</string>
-    <string name="action_delete">Удалить</string>
+    <string name="delete_account">Delete account</string>
+    <string name="delete_account_title">Delete account?</string>
+    <string name="delete_account_message">Your profile, messages, posts and videos will be deleted and personal data processing will stop. This cannot be undone.</string>
+    <string name="delete_account_done">Account and data deleted</string>
+    <string name="delete_account_failed">Could not delete data on the server. Write to %1$s and we will delete it manually within 10 business days.</string>
+    <string name="delete_account_chat_failed">Could not delete the chat history on the chat server. Check your connection and try again.</string>
+    <string name="delete_account_logout">Log out</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
 
-    <string name="clear_cache">Очистить кэш</string>
-    <string name="cache_size">Кэш: %1$s</string>
-    <string name="cache_size_loading">Кэш: …</string>
-    <string name="cache_cleared">Кэш очищен</string>
+    <string name="clear_cache">Clear cache</string>
+    <string name="cache_size">Cache: %1$s</string>
+    <string name="cache_size_loading">Cache: …</string>
+    <string name="cache_cleared">Cache cleared</string>
 
-    <string name="presence_online">в сети</string>
-    <string name="presence_offline">офлайн</string>
-    <string name="presence_last_seen_just_now">был(а) только что</string>
-    <string name="presence_last_seen_minutes">был(а) %1$d мин назад</string>
-    <string name="presence_last_seen_hours">был(а) %1$d ч назад</string>
-    <string name="presence_last_seen_days">был(а) %1$d дн назад</string>
-    <string name="presence_last_seen_at">был(а) в сети %1$s</string>
+    <string name="presence_online">online</string>
+    <string name="presence_offline">offline</string>
+    <string name="presence_last_seen_just_now">last seen just now</string>
+    <string name="presence_last_seen_minutes">last seen %1$d min ago</string>
+    <string name="presence_last_seen_hours">last seen %1$d h ago</string>
+    <string name="presence_last_seen_days">last seen %1$d d ago</string>
+    <string name="presence_last_seen_at">last seen at %1$s</string>
     <string name="action_back">Back</string>
     <string name="action_send">Send</string>
     <string name="cd_video_preview">Video preview</string>
@@ -84,10 +84,10 @@
     <string name="group_settings_title">Group settings</string>
     <string name="action_login">Login</string>
     <string name="action_get_code">Get code</string>
-    <string name="reauth_notice_title">Обновление входа</string>
-    <string name="reauth_notice_body">Теперь вход и регистрация — по коду на email, без пароля.\n\nЕсли у вас уже был аккаунт, нажмите «Зарегистрироваться» и укажите прежние email и username — доступ, переписки и контакты сохранятся (аккаунт привяжется автоматически).</string>
-    <string name="reauth_notice_register">Зарегистрироваться</string>
-    <string name="reauth_notice_ok">Понятно</string>
+    <string name="reauth_notice_title">Sign-in update</string>
+    <string name="reauth_notice_body">Sign-in and registration now use an email code, no password.\n\nIf you already had an account, tap “Register” and enter your previous email and username — your access, chats and contacts will be kept (the account will be linked automatically).</string>
+    <string name="reauth_notice_register">Register</string>
+    <string name="reauth_notice_ok">Got it</string>
     <string name="otp_title">Enter the code</string>
     <string name="otp_subtitle">We sent a code to %1$s</string>
     <string name="otp_hint_code">6-digit code</string>
@@ -114,24 +114,29 @@
     <string name="label_uploaded_by">Uploaded by: </string>
     <string name="video_upload_title">Upload Video</string>
     <string name="video_watch_now">Watch Now</string>
-    <string name="message_copied">Сообщение скопировано</string>
-    <string name="link_open_failed">Не удалось открыть ссылку</string>
-    <string name="link_preview_description">Превью ссылки</string>
-    <string name="app_version_format">Версия приложения: %1$s</string>
-    <string name="update_available_title">Доступно обновление</string>
-    <string name="update_available_message">Появилась новая версия %1$s. Давайте скачаем и обновим?</string>
-    <string name="update_action_download">Скачать</string>
-    <string name="update_action_later">Позже</string>
-    <string name="update_open_failed">Не удалось открыть ссылку для скачивания</string>
-    <string name="update_latest_version">Установлена последняя версия</string>
-    <string name="update_check_failed">Не удалось проверить обновления</string>
-    <string name="changelog_title">Что нового</string>
-    <string name="gif_message_description">Гифка</string>
+    <string name="message_copied">Message copied</string>
+    <string name="link_open_failed">Could not open the link</string>
+    <string name="link_preview_description">Link preview</string>
+    <string name="app_version_format">App version: %1$s</string>
+    <string name="update_available_title">Update available</string>
+    <string name="update_available_message">A new version %1$s is available. Download and update?</string>
+    <string name="update_action_download">Download</string>
+    <string name="update_action_later">Later</string>
+    <string name="update_open_failed">Could not open the download link</string>
+    <string name="update_latest_version">You have the latest version</string>
+    <string name="update_check_failed">Could not check for updates</string>
+    <string name="changelog_title">What\'s new</string>
+    <string name="gif_message_description">GIF</string>
     <string name="action_gif">GIF</string>
-    <string name="gif_tab_recent">Мои</string>
-    <string name="gif_tab_chat">Этот чат</string>
-    <string name="gif_tab_search">Поиск</string>
+    <string name="gif_tab_recent">Mine</string>
+    <string name="gif_tab_chat">This chat</string>
+    <string name="gif_tab_search">Search</string>
     <string name="gif_search_hint">Search KLIPY</string>
     <string name="gif_powered_by">Powered by KLIPY</string>
-    <string name="gif_empty">Ничего не найдено</string>
+    <string name="gif_empty">Nothing found</string>
+
+    <!-- Language selection -->
+    <string name="language_label">Language</string>
+    <string name="language_current">Language: %1$s</string>
+    <string name="language_dialog_title">Choose language</string>
 </resources>
