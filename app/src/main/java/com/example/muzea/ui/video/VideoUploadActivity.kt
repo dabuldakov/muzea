@@ -1,5 +1,6 @@
 package com.example.muzea.ui.video
 
+import com.example.muzea.R
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -75,14 +76,14 @@ class VideoUploadActivity : AppCompatActivity() {
 
             if (cacheFile.exists() && cacheFile.length() > 0) {
                 selectedVideoFile = cacheFile
-                binding.tvSelectedFile.text = "Selected: ${cacheFile.name} (${cacheFile.length() / 1024} KB)"
+                binding.tvSelectedFile.text = getString(R.string.video_selected_format, cacheFile.name, cacheFile.length() / 1024)
                 binding.btnUpload.isEnabled = true
                 extractThumbnail(cacheFile)
             } else {
-                Toast.makeText(this, "Failed to copy video", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.video_copy_failed, Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) {
-            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.error_prefix, e.message ?: ""), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -140,8 +141,8 @@ class VideoUploadActivity : AppCompatActivity() {
         val description = binding.etDescription.text.toString().trim()
 
         when {
-            title.isEmpty() -> binding.etTitle.error = "Title required"
-            selectedVideoFile == null -> Toast.makeText(this, "Select video", Toast.LENGTH_SHORT).show()
+            title.isEmpty() -> binding.etTitle.error = getString(R.string.error_title_required)
+            selectedVideoFile == null -> Toast.makeText(this, R.string.video_select_required, Toast.LENGTH_SHORT).show()
             else -> {
                 val body = MultipartBody.Part.createFormData(
                     "file",
@@ -167,19 +168,19 @@ class VideoUploadActivity : AppCompatActivity() {
                     is Resource.Loading -> {
                         binding.btnUpload.isEnabled = false
                         binding.progressBar.visibility = android.view.View.VISIBLE
-                        binding.tvProgress.text = "Uploading..."
+                        binding.tvProgress.text = getString(R.string.video_uploading)
                     }
                     is Resource.Success -> {
                         binding.btnUpload.isEnabled = true
                         binding.progressBar.visibility = android.view.View.GONE
-                        Toast.makeText(this@VideoUploadActivity, "Upload successful!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@VideoUploadActivity, R.string.video_upload_success, Toast.LENGTH_SHORT).show()
                         setResult(RESULT_OK)
                         finish()
                     }
                     is Resource.Error -> {
                         binding.btnUpload.isEnabled = true
                         binding.progressBar.visibility = android.view.View.GONE
-                        Toast.makeText(this@VideoUploadActivity, "Upload failed: ${result.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@VideoUploadActivity, getString(R.string.video_upload_failed_format, result.message ?: ""), Toast.LENGTH_LONG).show()
                     }
                 }
             }

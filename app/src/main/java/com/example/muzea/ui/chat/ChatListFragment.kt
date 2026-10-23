@@ -1,5 +1,6 @@
 package com.example.muzea.ui.chat
 
+import com.example.muzea.R
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -155,7 +156,7 @@ class ChatListFragment : Fragment() {
                         val adapter = membersAdapter ?: return@collect
                         val contacts = result.data ?: emptyList()
                         if (contacts.isEmpty()) {
-                            Toast.makeText(requireContext(), "No contacts to add", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(requireContext(), R.string.group_no_contacts, Toast.LENGTH_SHORT).show()
                         }
                         adapter.updateList(contacts)
                         membersDialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = true
@@ -171,7 +172,7 @@ class ChatListFragment : Fragment() {
             viewModel.addParticipantsResult.collect { result ->
                 when (result) {
                     is Resource.Success ->
-                        Toast.makeText(requireContext(), "Members added", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), R.string.group_members_added, Toast.LENGTH_SHORT).show()
                     is Resource.Error ->
                         Toast.makeText(requireContext(), result.message ?: "Error", Toast.LENGTH_SHORT).show()
                     is Resource.Loading -> Unit
@@ -182,15 +183,15 @@ class ChatListFragment : Fragment() {
 
     private fun showCreateGroupDialog() {
         val input = EditText(requireContext()).apply {
-            hint = "Group name"
+            hint = getString(R.string.group_name_hint)
             setPadding(dp(16), dp(16), dp(16), dp(16))
         }
 
         val dialog = AlertDialog.Builder(requireContext())
-            .setTitle("Create group chat")
+            .setTitle(R.string.group_create_title)
             .setView(input)
-            .setPositiveButton("Create", null)
-            .setNegativeButton("Cancel", null)
+            .setPositiveButton(R.string.action_create, null)
+            .setNegativeButton(R.string.action_cancel, null)
             .create()
 
         input.doOnTextChanged { text, _, _, _ ->
@@ -226,9 +227,9 @@ class ChatListFragment : Fragment() {
         recyclerView.adapter = adapter
 
         val dialog = AlertDialog.Builder(requireContext())
-            .setTitle(chat.title ?: "Group chat")
+            .setTitle(chat.title ?: getString(R.string.group_chat_default))
             .setView(recyclerView)
-            .setPositiveButton("Add members") { _, _ ->
+            .setPositiveButton(R.string.group_add_members) { _, _ ->
                 val uuids = adapter.selectedUserUuids.toList()
                 if (uuids.isEmpty()) {
                     openGroupChat(chat)
@@ -237,7 +238,7 @@ class ChatListFragment : Fragment() {
                     openGroupChat(chat)
                 }
             }
-            .setNegativeButton("Later") { _, _ ->
+            .setNegativeButton(R.string.action_later) { _, _ ->
                 openGroupChat(chat)
             }
             .setOnCancelListener { openGroupChat(chat) }

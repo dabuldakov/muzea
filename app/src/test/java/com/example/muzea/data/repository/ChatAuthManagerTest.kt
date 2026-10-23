@@ -1,5 +1,7 @@
 package com.example.muzea.data.repository
 
+import android.content.Context
+import com.example.muzea.R
 import com.example.muzea.data.api.ChatApiService
 import com.example.muzea.data.model.ChatUserResponse
 import com.example.muzea.data.model.FcmTokenRequest
@@ -20,8 +22,9 @@ class ChatAuthManagerTest {
 
     private val api = mockk<ChatApiService>()
     private val tokenManager = mockk<TokenManager>()
+    private val context = mockk<Context>(relaxed = true)
 
-    private fun manager() = ChatAuthManager(api, tokenManager)
+    private fun manager() = ChatAuthManager(api, tokenManager, context)
 
     private fun profile(userUuid: String = "uuid-1") = Response.success(
         ChatUserResponse(
@@ -39,6 +42,7 @@ class ChatAuthManagerTest {
     @Test
     fun `returns false when there is no access token`() = runTest {
         every { tokenManager.getToken() } returns null
+        every { context.getString(R.string.error_not_logged_in) } returns "not logged in"
 
         val manager = manager()
         val result = manager.isAuthenticated()

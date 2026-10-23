@@ -1,5 +1,6 @@
 package com.example.muzea.ui.video
 
+import com.example.muzea.R
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -104,7 +105,7 @@ class VideoListFragment : Fragment() {
             binding.tvError.visibility = View.GONE
             binding.recyclerViewVideos.visibility = View.VISIBLE
             state.error?.let {
-                Toast.makeText(requireContext(), "Error: $it", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.error_prefix, it), Toast.LENGTH_SHORT).show()
                 viewModel.consumeFeedError()
             }
         }

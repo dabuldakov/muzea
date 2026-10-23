@@ -16,6 +16,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import com.example.muzea.R
 import com.example.muzea.databinding.ActivityVideoDetailBinding
 import com.example.muzea.utils.LocalTimeFormatter
 import com.example.muzea.core.Resource
@@ -46,7 +47,7 @@ class VideoDetailActivity : AppCompatActivity() {
 
         videoId = intent.getLongExtra("video_id", 0)
         if (videoId == 0L) {
-            Toast.makeText(this, "Invalid video", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.video_invalid, Toast.LENGTH_SHORT).show()
             finish()
             return
         }
@@ -61,13 +62,13 @@ class VideoDetailActivity : AppCompatActivity() {
 
     private fun confirmDelete() {
         AlertDialog.Builder(this)
-            .setTitle("Delete video")
-            .setMessage("Are you sure you want to delete this video?")
-            .setPositiveButton("Delete") { _, _ ->
+            .setTitle(R.string.video_delete_title)
+            .setMessage(R.string.video_delete_message)
+            .setPositiveButton(R.string.action_delete) { _, _ ->
                 binding.btnDelete.isEnabled = false
                 viewModel.deleteVideo(videoId)
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.action_cancel, null)
             .show()
     }
 
@@ -167,7 +168,7 @@ class VideoDetailActivity : AppCompatActivity() {
                 when (result) {
                     is Resource.Loading -> Unit
                     is Resource.Success -> {
-                        Toast.makeText(this@VideoDetailActivity, "Video deleted", Toast.LENGTH_SHORT)
+                        Toast.makeText(this@VideoDetailActivity, R.string.video_deleted, Toast.LENGTH_SHORT)
                             .show()
                         finish()
                     }
@@ -184,10 +185,10 @@ class VideoDetailActivity : AppCompatActivity() {
 
     @UnstableApi private fun displayVideo(video: com.example.muzea.domain.model.Video) {
         binding.tvTitle.text = video.title
-        binding.tvDescription.text = video.description ?: "No description"
-        binding.tvViews.text = "${video.views} views"
-        binding.tvLikes.text = "${video.likes ?: 0} likes"
-        binding.tvUploader.text = "Uploaded by: ${video.uploadedBy}"
+        binding.tvDescription.text = video.description ?: getString(R.string.video_no_description)
+        binding.tvViews.text = getString(R.string.video_views_format, video.views)
+        binding.tvLikes.text = getString(R.string.video_likes_format, video.likes ?: 0)
+        binding.tvUploader.text = getString(R.string.label_uploaded_by) + video.uploadedBy
         binding.tvDate.text = LocalTimeFormatter.format(video.uploadedAt)
 
         val myUsername = tokenManager.getUsername()
@@ -206,7 +207,7 @@ class VideoDetailActivity : AppCompatActivity() {
         val token = tokenManager.getToken()
 
         if (token == null) {
-            Toast.makeText(this, "Authentication required", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.auth_required, Toast.LENGTH_SHORT).show()
             finish()
             return
         }
@@ -217,7 +218,7 @@ class VideoDetailActivity : AppCompatActivity() {
             override fun onPlayerError(error: PlaybackException) {
                 Toast.makeText(
                     this@VideoDetailActivity,
-                    "Не удалось воспроизвести видео (${error.errorCodeName})",
+                    getString(R.string.video_play_failed, error.errorCodeName),
                     Toast.LENGTH_LONG
                 ).show()
             }

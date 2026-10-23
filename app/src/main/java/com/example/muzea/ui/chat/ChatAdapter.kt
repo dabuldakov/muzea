@@ -1,5 +1,6 @@
 package com.example.muzea.ui.chat
 
+import com.example.muzea.R
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -37,7 +38,7 @@ class ChatAdapter(
                 val prefix = lastMessage.senderName?.let { "$it: " } ?: ""
                 binding.tvLastMessage.text = prefix + lastMessage.text
             } else {
-                binding.tvLastMessage.text = "No messages yet"
+                binding.tvLastMessage.text = binding.root.context.getString(R.string.chat_empty)
             }
 
             val time = lastMessage?.createdAt

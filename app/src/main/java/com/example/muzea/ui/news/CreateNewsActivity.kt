@@ -116,7 +116,7 @@ class CreateNewsActivity : AppCompatActivity() {
             binding.tvImageFileName.text = fileName
             binding.tvImageFileName.setTextColor(ContextCompat.getColor(this, R.color.teal_200))
         } catch (e: Exception) {
-            Toast.makeText(this, "Error copying image: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.error_copy_image_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -197,8 +197,8 @@ class CreateNewsActivity : AppCompatActivity() {
         val content = binding.etContent.text.toString().trim()
 
         when {
-            title.isEmpty() -> binding.etTitle.error = "Title is required"
-            content.isEmpty() -> binding.etContent.error = "Content is required"
+            title.isEmpty() -> binding.etTitle.error = getString(R.string.error_title_required)
+            content.isEmpty() -> binding.etContent.error = getString(R.string.error_content_required)
             else -> newsViewModel.createNews(title, content, selectedVideoId, selectedImageFile)
         }
     }
@@ -228,14 +228,14 @@ class CreateNewsActivity : AppCompatActivity() {
 
     private fun handleSuccess() {
         setLoadingState(false)
-        Toast.makeText(this, "News created successfully!", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, R.string.news_created, Toast.LENGTH_LONG).show()
         setResult(RESULT_OK)
         finish()
     }
 
     private fun handleError(message: String) {
         setLoadingState(false)
-        Toast.makeText(this, "Failed to create news: $message", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, getString(R.string.news_create_failed_format, message), Toast.LENGTH_LONG).show()
     }
 
     private fun showProgressBar(show: Boolean) {

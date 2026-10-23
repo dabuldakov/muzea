@@ -116,15 +116,15 @@ class GroupSettingsFragment : Fragment() {
         recyclerView.adapter = adapter
 
         val dialog = AlertDialog.Builder(requireContext())
-            .setTitle("Add members")
+            .setTitle(R.string.group_add_members)
             .setView(recyclerView)
-            .setPositiveButton("Add members") { _, _ ->
+            .setPositiveButton(R.string.group_add_members) { _, _ ->
                 val uuids = adapter.selectedUserUuids.toList()
                 if (uuids.isNotEmpty()) {
                     viewModel.addMembers(uuids)
                 }
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.action_cancel, null)
             .create()
         membersDialog = dialog
 
@@ -219,7 +219,7 @@ class GroupSettingsFragment : Fragment() {
                         val adapter = membersAdapter ?: return@collect
                         val contacts = result.data ?: emptyList()
                         if (contacts.isEmpty()) {
-                            Toast.makeText(requireContext(), "No contacts to add", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(requireContext(), R.string.group_no_contacts, Toast.LENGTH_SHORT).show()
                         }
                         adapter.updateList(contacts)
                         membersDialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.isEnabled = true
@@ -235,7 +235,7 @@ class GroupSettingsFragment : Fragment() {
             viewModel.addParticipantsResult.collect { result ->
                 when (result) {
                     is Resource.Success -> {
-                        Toast.makeText(requireContext(), "Members added", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), R.string.group_members_added, Toast.LENGTH_SHORT).show()
                         viewModel.loadParticipants()
                     }
                     is Resource.Error ->
@@ -250,7 +250,7 @@ class GroupSettingsFragment : Fragment() {
                 when (result) {
                     is Resource.Loading -> Unit
                     is Resource.Success -> {
-                        Toast.makeText(requireContext(), "Chat avatar updated", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), R.string.group_avatar_updated, Toast.LENGTH_SHORT).show()
                     }
                     is Resource.Error -> {
                         AvatarLoader.load(binding.ivHeaderAvatar, chatAvatar)

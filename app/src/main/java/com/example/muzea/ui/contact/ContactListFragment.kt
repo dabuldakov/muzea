@@ -1,5 +1,6 @@
 package com.example.muzea.ui.contact
 
+import com.example.muzea.R
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -92,7 +93,7 @@ class ContactListFragment : Fragment() {
     private fun onContactClick(contact: Contact) {
         val userUuid = contact.contactUserUuid
         if (userUuid.isNullOrEmpty()) {
-            Toast.makeText(requireContext(), "Cannot create chat: no user uuid", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), R.string.error_no_user_uuid, Toast.LENGTH_SHORT).show()
             return
         }
         viewModel.openPrivateChat(userUuid)
@@ -108,15 +109,15 @@ class ContactListFragment : Fragment() {
 
     private fun showAddContactDialog() {
         val input = EditText(requireContext())
-        input.hint = "Enter username"
+        input.hint = getString(R.string.contact_username_hint)
 
         AlertDialog.Builder(requireContext())
-            .setTitle("Add contact")
+            .setTitle(R.string.contact_add_title)
             .setView(input)
             .setPositiveButton("Add") { _, _ ->
                 val username = input.text.toString().trim()
                 if (username.isEmpty()) {
-                    Toast.makeText(requireContext(), "Enter a username", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), R.string.contact_username_required, Toast.LENGTH_SHORT).show()
                 } else {
                     viewModel.addContact(username)
                 }
@@ -155,7 +156,7 @@ class ContactListFragment : Fragment() {
             binding.tvEmpty.visibility = if (hasContacts || state.isLoading) View.GONE else View.VISIBLE
             binding.recyclerViewContacts.visibility = if (hasContacts) View.VISIBLE else View.GONE
             state.error?.let {
-                Toast.makeText(requireContext(), "Error: $it", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.error_prefix, it), Toast.LENGTH_SHORT).show()
                 viewModel.consumeError()
             }
         }
@@ -168,7 +169,7 @@ class ContactListFragment : Fragment() {
                     is Resource.Loading -> isAddingContact = true
                     is Resource.Success -> {
                         isAddingContact = false
-                        Toast.makeText(requireContext(), "Contact added", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), R.string.contact_added, Toast.LENGTH_SHORT).show()
                         loadContacts()
                     }
                     is Resource.Error -> {

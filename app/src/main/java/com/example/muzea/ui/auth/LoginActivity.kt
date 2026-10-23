@@ -78,7 +78,7 @@ class LoginActivity : AppCompatActivity() {
                 pendingEmail = email
                 viewModel.requestLoginCode(email)
             } else {
-                binding.etEmail.error = "Введите корректный email"
+                binding.etEmail.error = getString(R.string.error_invalid_email)
             }
         }
 

@@ -52,7 +52,7 @@ class OtpActivity : AppCompatActivity() {
         binding.btnVerify.setOnClickListener {
             val code = binding.etCode.text.toString().trim()
             if (code.length < 4) {
-                binding.etCode.error = "Введите код из письма"
+                binding.etCode.error = getString(R.string.error_enter_code)
                 return@setOnClickListener
             }
             if (mode == MODE_LOGIN) {
@@ -86,7 +86,7 @@ class OtpActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             viewModel.codeSent.collect {
-                Toast.makeText(this@OtpActivity, "Код отправлен повторно", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@OtpActivity, R.string.otp_code_resent, Toast.LENGTH_SHORT).show()
             }
         }
 

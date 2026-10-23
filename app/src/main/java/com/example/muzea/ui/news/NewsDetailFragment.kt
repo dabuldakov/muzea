@@ -56,7 +56,7 @@ class NewsDetailFragment : Fragment() {
             viewModel.loadNewsById(newsId)
             observeViewModel()
         } else {
-            binding.tvError.text = "Invalid news ID"
+            binding.tvError.text = getString(R.string.news_invalid_id)
             binding.tvError.visibility = View.VISIBLE
         }
     }
@@ -86,7 +86,7 @@ class NewsDetailFragment : Fragment() {
                 when (result) {
                     is Resource.Loading -> binding.btnDeleteNews.isEnabled = false
                     is Resource.Success -> {
-                        Toast.makeText(requireContext(), "News deleted", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), R.string.news_deleted, Toast.LENGTH_SHORT).show()
                         parentFragmentManager.popBackStack()
                     }
                     is Resource.Error -> {
@@ -100,17 +100,17 @@ class NewsDetailFragment : Fragment() {
 
     private fun confirmDelete() {
         AlertDialog.Builder(requireContext())
-            .setTitle("Delete news")
-            .setMessage("Delete this news permanently?")
-            .setPositiveButton("Delete") { _, _ -> viewModel.deleteNews(newsId) }
-            .setNegativeButton("Cancel", null)
+            .setTitle(R.string.delete_news)
+            .setMessage(R.string.delete_news_message)
+            .setPositiveButton(R.string.action_delete) { _, _ -> viewModel.deleteNews(newsId) }
+            .setNegativeButton(R.string.action_cancel, null)
             .show()
     }
 
     private fun displayNews(news: News) {
         binding.tvTitle.text = news.title
         binding.tvContent.text = news.content
-        binding.tvAuthor.text = "By: ${news.author}"
+        binding.tvAuthor.text = getString(R.string.news_by_format, news.author)
         binding.tvDate.text = LocalTimeFormatter.format(news.publishedAt)
 
         val canDelete = !myUsername.isNullOrEmpty() && news.author == myUsername

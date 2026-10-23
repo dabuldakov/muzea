@@ -1,5 +1,6 @@
 package com.example.muzea.ui.chat
 
+import com.example.muzea.R
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -38,7 +39,7 @@ class ParticipantAdapter(
             }
             if (participant.role == "OWNER") {
                 binding.tvRole.visibility = View.VISIBLE
-                binding.tvRole.text = "Owner"
+                binding.tvRole.text = binding.root.context.getString(R.string.group_role_owner)
             } else {
                 binding.tvRole.visibility = View.GONE
             }

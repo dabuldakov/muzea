@@ -255,7 +255,7 @@ class ProfileFragment : Fragment() {
 
     private fun formatCacheSize(bytes: Long): String {
         val mb = bytes / (1024.0 * 1024.0)
-        return String.format(java.util.Locale.US, "%.1f МБ", mb)
+        return getString(R.string.cache_mb_format, mb)
     }
 
     private fun setupClickListeners() {
@@ -298,7 +298,7 @@ class ProfileFragment : Fragment() {
                 withContext(Dispatchers.IO) {
                     val target = File.createTempFile("avatar_", ".image", context.cacheDir)
                     file = target
-                    val input = context.contentResolver.openInputStream(uri) ?: error("Cannot open image")
+                    val input = context.contentResolver.openInputStream(uri) ?: error(getString(R.string.error_cannot_open_image))
                     input.use { source ->
                         target.outputStream().use { output ->
                             val buffer = ByteArray(8192)
@@ -307,7 +307,7 @@ class ProfileFragment : Fragment() {
                                 val count = source.read(buffer)
                                 if (count < 0) break
                                 total += count
-                                check(total <= 5 * 1024 * 1024) { "Choose an image up to 5 MB" }
+                                check(total <= 5 * 1024 * 1024) { getString(R.string.error_image_too_large) }
                                 output.write(buffer, 0, count)
                             }
                         }
@@ -318,7 +318,7 @@ class ProfileFragment : Fragment() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Toast.makeText(context, e.message ?: "Cannot open image", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, e.message ?: getString(R.string.error_cannot_open_image), Toast.LENGTH_LONG).show()
             } finally {
                 file?.delete()
             }
@@ -327,7 +327,7 @@ class ProfileFragment : Fragment() {
 
     private fun enableEditing() {
         isEditing = true
-        binding.btnEditProfile.text = "Save"
+        binding.btnEditProfile.text = getString(R.string.profile_save)
         binding.etFullName.isEnabled = true
         binding.etEmail.isEnabled = true
     }
@@ -337,12 +337,12 @@ class ProfileFragment : Fragment() {
         val email = binding.etEmail.text.toString().trim()
 
         if (fullName.isEmpty()) {
-            binding.etFullName.error = "Full name required"
+            binding.etFullName.error = getString(R.string.error_full_name_required)
             return
         }
 
         if (email.isEmpty() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            binding.etEmail.error = "Valid email required"
+            binding.etEmail.error = getString(R.string.error_invalid_email)
             return
         }
 
@@ -362,7 +362,7 @@ class ProfileFragment : Fragment() {
                     }
                     is Resource.Success -> {
                         binding.progressBar.visibility = View.GONE
-                        Toast.makeText(requireContext(), "Profile updated successfully", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), R.string.profile_updated, Toast.LENGTH_SHORT).show()
                         disableEditing()
                         viewModel.loadUserProfile()
                     }
@@ -415,14 +415,14 @@ class ProfileFragment : Fragment() {
         binding.tvUsername.text = "@${user.userName}"
         binding.etFullName.setText(user.userName)
         binding.etEmail.setText(user.email)
-        binding.tvRole.text = "Role: ${user.role}"
+        binding.tvRole.text = getString(R.string.profile_role_format, user.role)
 
         disableEditing()
     }
 
     private fun disableEditing() {
         isEditing = false
-        binding.btnEditProfile.text = "Edit Profile"
+        binding.btnEditProfile.text = getString(R.string.profile_edit)
         binding.etFullName.isEnabled = false
         binding.etEmail.isEnabled = false
     }

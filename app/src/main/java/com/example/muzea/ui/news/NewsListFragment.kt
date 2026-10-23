@@ -1,5 +1,6 @@
 package com.example.muzea.ui.news
 
+import com.example.muzea.R
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -140,7 +141,7 @@ class NewsListFragment : Fragment() {
             binding.tvEmpty.visibility = if (hasNews || state.isLoading) View.GONE else View.VISIBLE
             binding.recyclerViewNews.visibility = if (hasNews) View.VISIBLE else View.GONE
             state.error?.let {
-                Toast.makeText(requireContext(), "Error: $it", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.error_prefix, it), Toast.LENGTH_SHORT).show()
                 viewModel.consumeError()
             }
         }

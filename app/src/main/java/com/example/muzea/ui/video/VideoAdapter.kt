@@ -40,7 +40,7 @@ class VideoAdapter(
         fun bind(video: Video) {
             with(binding) {
                 tvTitle.text = video.title
-                tvViews.text = "${video.views} views"
+                tvViews.text = tvViews.context.getString(R.string.video_views_format, video.views)
                 loadThumbnail(video)
             }
             itemView.setOnClickListener { onItemClick(video.id) }

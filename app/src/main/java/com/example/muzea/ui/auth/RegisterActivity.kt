@@ -65,15 +65,15 @@ class RegisterActivity : AppCompatActivity() {
 
     private fun validateInput(username: String, email: String): Boolean {
         if (username.length < 3) {
-            binding.etUsername.error = "Username must be at least 3 characters"
+            binding.etUsername.error = getString(R.string.error_username_min)
             return false
         }
         if (!username.matches(Regex("^[A-Za-z0-9_.]+$"))) {
-            binding.etUsername.error = "Only letters, digits, '_' and '.'"
+            binding.etUsername.error = getString(R.string.error_username_charset)
             return false
         }
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            binding.etEmail.error = "Valid email required"
+            binding.etEmail.error = getString(R.string.error_invalid_email)
             return false
         }
         return true

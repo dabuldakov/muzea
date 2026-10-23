@@ -94,7 +94,7 @@
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="12dp"
             android:letterSpacing="0.01"
-            android:text="username"
+            android:text="@string/profile_username_placeholder"
             android:textColor="@android:color/black"
             android:textFontWeight="500"
             android:textSize="22sp" />
@@ -107,7 +107,7 @@
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="2dp"
             android:letterSpacing="0.08"
-            android:text="Role: User"
+            android:text="@string/profile_role_placeholder"
             android:textAllCaps="true"
             android:textColor="@color/gray"
             android:textSize="12sp" />

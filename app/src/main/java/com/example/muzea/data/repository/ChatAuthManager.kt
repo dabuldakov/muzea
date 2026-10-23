@@ -1,8 +1,11 @@
 package com.example.muzea.data.repository
 
+import android.content.Context
+import com.example.muzea.R
 import com.example.muzea.data.api.ChatApiService
 import com.example.muzea.data.model.FcmTokenRequest
 import com.example.muzea.utils.TokenManager
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,7 +21,8 @@ import javax.inject.Singleton
 @Singleton
 class ChatAuthManager @Inject constructor(
     private val apiService: ChatApiService,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    @ApplicationContext private val context: Context
 ) {
 
     var lastFailureMessage: String? = null
@@ -27,7 +31,7 @@ class ChatAuthManager @Inject constructor(
     suspend fun isAuthenticated(): Boolean {
         lastFailureMessage = null
         if (tokenManager.getToken().isNullOrEmpty()) {
-            lastFailureMessage = "Вы не авторизованы. Войдите в приложение."
+            lastFailureMessage = context.getString(R.string.error_not_logged_in)
             return false
         }
         ensureChatProfile()

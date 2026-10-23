@@ -1,5 +1,7 @@
 package com.example.muzea.data.repository
 
+import android.content.Context
+import com.example.muzea.R
 import com.example.muzea.core.Resource
 import com.example.muzea.data.api.AuthServiceApi
 import com.example.muzea.data.model.AuthServiceError
@@ -11,6 +13,7 @@ import com.example.muzea.data.model.AuthServiceTokenResponse
 import com.example.muzea.data.model.AuthServiceVerifyEmailRequest
 import com.example.muzea.utils.TokenManager
 import com.google.gson.Gson
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -26,7 +29,8 @@ import retrofit2.Response
 @Singleton
 class AuthRepository @Inject constructor(
     private val authServiceApi: AuthServiceApi,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    @ApplicationContext private val context: Context
 ) {
 
     /** Регистрация: создаёт пользователя и отправляет код на email. */
@@ -90,7 +94,7 @@ class AuthRepository @Inject constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            emit(Resource.Error("Нет соединения. Проверьте интернет."))
+            emit(Resource.Error(context.getString(R.string.error_no_connection)))
         }
     }
 
@@ -111,7 +115,7 @@ class AuthRepository @Inject constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            emit(Resource.Error("Нет соединения. Проверьте интернет."))
+            emit(Resource.Error(context.getString(R.string.error_no_connection)))
         }
     }
 
@@ -136,16 +140,16 @@ class AuthRepository @Inject constructor(
             }
             parsed?.message?.takeIf { it.isNotBlank() }?.let { return localize(it) }
         }
-        return "Ошибка (${response.code()})"
+        return context.getString(R.string.error_generic, response.code())
     }
 
     private fun localize(message: String): String = when {
-        message.contains("Invalid code") -> "Неверный код"
-        message.contains("expired", ignoreCase = true) -> "Код истёк. Запросите новый"
-        message.contains("Too many", ignoreCase = true) -> "Слишком много попыток. Попробуйте позже"
-        message.contains("already registered") -> "Этот email уже зарегистрирован"
-        message.contains("already taken") -> "Этот username уже занят"
-        message.contains("Please wait", ignoreCase = true) -> "Подождите перед повторной отправкой"
+        message.contains("Invalid code") -> context.getString(R.string.error_invalid_code)
+        message.contains("expired", ignoreCase = true) -> context.getString(R.string.error_code_expired)
+        message.contains("Too many", ignoreCase = true) -> context.getString(R.string.error_too_many_attempts)
+        message.contains("already registered") -> context.getString(R.string.error_email_registered)
+        message.contains("already taken") -> context.getString(R.string.error_username_taken)
+        message.contains("Please wait", ignoreCase = true) -> context.getString(R.string.error_wait_before_resend)
         else -> message
     }
 }

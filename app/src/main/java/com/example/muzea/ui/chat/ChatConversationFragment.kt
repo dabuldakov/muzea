@@ -1,5 +1,6 @@
 package com.example.muzea.ui.chat
 
+import com.example.muzea.R
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -264,7 +265,7 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.sendError.collect { message ->
-                Toast.makeText(requireContext(), "Error: $message", Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), getString(R.string.error_prefix, message), Toast.LENGTH_LONG).show()
             }
         }
     }
