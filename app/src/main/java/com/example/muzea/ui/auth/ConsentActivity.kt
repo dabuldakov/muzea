@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.muzea.R
 import com.example.muzea.databinding.ActivityConsentBinding
 import com.example.muzea.utils.ConsentManager
+import com.example.muzea.ui.common.SystemBars
 
 /**
  * Экран согласия на обработку персональных данных. Показывается при первом запуске
@@ -21,6 +22,7 @@ class ConsentActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityConsentBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        SystemBars.apply(this)
 
         binding.tvConsentBody.text = getString(R.string.consent_body, getString(R.string.operator_email))
 

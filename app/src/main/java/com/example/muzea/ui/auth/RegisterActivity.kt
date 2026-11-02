@@ -10,6 +10,7 @@ import com.example.muzea.R
 import com.example.muzea.databinding.ActivityRegisterBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import com.example.muzea.ui.common.SystemBars
 
 @AndroidEntryPoint
 class RegisterActivity : AppCompatActivity() {
@@ -26,6 +27,7 @@ class RegisterActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityRegisterBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        SystemBars.apply(this)
 
         setupClickListeners()
         observeViewModel()

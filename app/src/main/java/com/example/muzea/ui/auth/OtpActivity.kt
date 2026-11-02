@@ -12,6 +12,7 @@ import com.example.muzea.databinding.ActivityOtpBinding
 import com.example.muzea.ui.MainActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import com.example.muzea.ui.common.SystemBars
 
 /**
  * Ввод одноразового кода из письма. Используется и для входа (passwordless),
@@ -43,6 +44,7 @@ class OtpActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityOtpBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        SystemBars.apply(this)
 
         email = intent.getStringExtra(EXTRA_EMAIL).orEmpty()
         mode = intent.getStringExtra(EXTRA_MODE) ?: MODE_LOGIN

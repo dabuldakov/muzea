@@ -27,6 +27,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import com.example.muzea.ui.common.SystemBars
 
 @AndroidEntryPoint
 class VideoUploadActivity : AppCompatActivity() {
@@ -44,6 +45,7 @@ class VideoUploadActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityVideoUploadBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        SystemBars.apply(this)
 
         setupToolbar()
         setupClickListeners()

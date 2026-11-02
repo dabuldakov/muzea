@@ -20,6 +20,7 @@ import com.example.muzea.databinding.ActivityMainBinding
 import com.example.muzea.ui.chat.ChatConversationFragment
 import com.example.muzea.ui.chat.ChatListFragment
 import com.example.muzea.ui.chat.GroupSettingsFragment
+import com.example.muzea.ui.common.SystemBars
 import com.example.muzea.ui.contact.ContactListFragment
 import com.example.muzea.ui.news.NewsDetailFragment
 import com.example.muzea.ui.news.NewsListFragment
@@ -51,6 +52,9 @@ class MainActivity : AppCompatActivity(), Navigator {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        // Нижний отступ не добавляем: BottomNavigationView сам учитывает
+        // навигационную панель, иначе получится двойной зазор.
+        SystemBars.apply(this, applyBottomInset = false)
 
         requestNotificationPermissionIfNeeded()
 

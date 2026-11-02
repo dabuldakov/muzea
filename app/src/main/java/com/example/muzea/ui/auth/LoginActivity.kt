@@ -17,6 +17,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.example.muzea.ui.common.SystemBars
 
 @AndroidEntryPoint
 class LoginActivity : AppCompatActivity() {
@@ -60,6 +61,7 @@ class LoginActivity : AppCompatActivity() {
 
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        SystemBars.apply(this)
 
         setupClickListeners()
         observeViewModel()

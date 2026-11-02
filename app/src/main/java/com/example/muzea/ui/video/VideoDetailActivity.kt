@@ -21,6 +21,7 @@ import com.example.muzea.databinding.ActivityVideoDetailBinding
 import com.example.muzea.utils.LocalTimeFormatter
 import com.example.muzea.core.Resource
 import com.example.muzea.ui.common.ReportDialog
+import com.example.muzea.ui.common.SystemBars
 import com.example.muzea.utils.TokenManager
 import com.example.muzea.utils.VideoPlayerHelper
 import dagger.hilt.android.AndroidEntryPoint
@@ -45,6 +46,7 @@ class VideoDetailActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityVideoDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        SystemBars.apply(this)
 
         videoId = intent.getLongExtra("video_id", 0)
         if (videoId == 0L) {
@@ -152,7 +154,8 @@ class VideoDetailActivity : AppCompatActivity() {
     }
 
     private fun showSystemUi() {
-        WindowCompat.setDecorFitsSystemWindows(window, true)
+        // Оставляем edge-to-edge: отступы контента пересчитывает SystemBars,
+        // когда системные панели снова становятся видимыми.
         WindowInsetsControllerCompat(window, window.decorView)
             .show(WindowInsetsCompat.Type.systemBars())
     }

@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
+import com.example.muzea.ui.common.SystemBars
 
 @AndroidEntryPoint
 class CreateNewsActivity : AppCompatActivity() {
@@ -56,6 +57,7 @@ class CreateNewsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityCreateNewsBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        SystemBars.apply(this)
 
         initViewModels()
         setupUI()
