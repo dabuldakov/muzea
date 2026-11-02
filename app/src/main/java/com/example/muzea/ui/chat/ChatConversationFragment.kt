@@ -10,6 +10,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -17,9 +19,11 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.example.muzea.domain.model.Message
+import com.example.muzea.domain.model.MessageAttachment
 import com.example.muzea.domain.model.MessageDeliveryStatus
 import com.example.muzea.data.repository.LinkPreviewStore
 import com.example.muzea.databinding.FragmentChatConversationBinding
+import com.example.muzea.databinding.ItemPendingAttachmentBinding
 import com.example.muzea.ui.common.ReportDialog
 import com.example.muzea.ui.navigation.navigator
 import com.example.muzea.utils.AvatarLoader
@@ -44,6 +48,23 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
     private var initialScrollDone = false
     private var pendingScrollPosition: Int? = null
     private var lastStatuses: Map<String, MessageDeliveryStatus> = emptyMap()
+    private var lastPending: List<PendingAttachment> = emptyList()
+
+    private val pickPhotos = registerForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(10)
+    ) { uris -> if (uris.isNotEmpty()) viewModel.addAttachments(uris) }
+
+    private val pickVideo = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let { viewModel.addAttachments(listOf(it)) }
+    }
+
+    private val pickAudio = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let { viewModel.addAttachments(listOf(it)) }
+    }
+
+    private val pickFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let { viewModel.addAttachments(listOf(it)) }
+    }
 
     // Якорь при догрузке истории: сохраняем верхнее видимое сообщение и его
     // смещение, чтобы после вставки старых сообщений сверху вид не «прыгнул».
@@ -64,6 +85,15 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
         private const val ARG_CHAT_AVATAR = "chat_avatar"
         private const val ARG_UNREAD_COUNT = "chat_unread_count"
         private const val ARG_DRAFT_TEXT = "chat_draft_text"
+
+        private val DOCUMENT_MIME_TYPES = arrayOf(
+            "application/pdf", "text/plain", "text/csv", "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        )
 
         fun newInstance(
             chatUuid: String,
@@ -110,6 +140,7 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
 
         setupRecyclerView()
         setupInput()
+        setupAttachments()
         prefillDraft()
         observeViewModel()
     }
@@ -230,7 +261,8 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
             linkPreviews = linkPreviewStore,
             onMessageLongPress = { message -> showMessageActions(message) },
             statusFor = { message -> viewModel.deliveryStatus(message.messageUuid) },
-            onStatusClick = { message -> showMessageInfo(message) }
+            onStatusClick = { message -> showMessageInfo(message) },
+            onAttachmentClick = { attachment -> openAttachment(attachment) }
         )
         adapter.registerAdapterDataObserver(scrollObserver)
         binding.recyclerViewMessages.apply {
@@ -293,10 +325,92 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
         return layoutManager.findLastVisibleItemPosition() >= adapter.itemCount - 2
     }
 
+    private fun setupAttachments() {
+        binding.btnAdd.setOnClickListener { showAttachmentPicker() }
+    }
+
+    private fun showAttachmentPicker() {
+        val options = arrayOf(
+            getString(R.string.attach_photo),
+            getString(R.string.attach_video),
+            getString(R.string.attach_audio),
+            getString(R.string.attach_file)
+        )
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.attach_title)
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> pickPhotos.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                    1 -> pickVideo.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
+                    )
+                    2 -> pickAudio.launch(arrayOf("audio/*"))
+                    3 -> pickFile.launch(DOCUMENT_MIME_TYPES)
+                }
+            }
+            .setNegativeButton(R.string.action_cancel, null)
+            .show()
+    }
+
+    private fun renderPendingAttachments(pending: List<PendingAttachment>) {
+        binding.scrollPending.visibility = if (pending.isEmpty()) View.GONE else View.VISIBLE
+        binding.pendingAttachments.removeAllViews()
+        pending.forEach { item ->
+            val row = ItemPendingAttachmentBinding.inflate(
+                layoutInflater, binding.pendingAttachments, false
+            )
+            row.tvName.text = item.name
+            row.pbUploading.visibility =
+                if (item.isUploaded || item.error != null) View.GONE else View.VISIBLE
+            row.tvError.visibility = if (item.error != null) View.VISIBLE else View.GONE
+            row.tvError.text = item.error
+            row.ivRemove.setOnClickListener { viewModel.removePendingAttachment(item.id) }
+            if (item.error != null) {
+                row.root.setOnClickListener { viewModel.retryPendingAttachment(item.id) }
+            }
+            binding.pendingAttachments.addView(row.root)
+        }
+    }
+
+    private fun openAttachment(attachment: MessageAttachment) {
+        when (attachment.type?.uppercase()) {
+            "IMAGE", "VIDEO", "AUDIO" -> AttachmentViewerActivity.start(
+                requireContext(), attachment
+            )
+            else -> downloadAndOpen(attachment)
+        }
+    }
+
+    private fun downloadAndOpen(attachment: MessageAttachment) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val file = viewModel.downloadAttachment(attachment)
+            if (file == null) {
+                Toast.makeText(requireContext(), R.string.attachment_download_failed, Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            try {
+                val uri = androidx.core.content.FileProvider.getUriForFile(
+                    requireContext(),
+                    "${requireContext().packageName}.fileprovider",
+                    file
+                )
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, attachment.mimeType ?: "*/*")
+                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), R.string.attachment_open_failed, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     private fun setupInput() {
         val sendClicked = {
             val text = binding.etMessageInput.text?.toString().orEmpty()
-            if (text.isNotBlank()) {
+            if (text.isNotBlank() || viewModel.uiState.value.pendingAttachments.isNotEmpty()) {
                 viewModel.sendText(text)
                 binding.etMessageInput.setText("")
             }
@@ -349,6 +463,11 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
                 binding.progressHistory.visibility =
                     if (state.isLoadingMore) View.VISIBLE else View.GONE
                 adapter.updateList(messages)
+                if (state.pendingAttachments != lastPending) {
+                    lastPending = state.pendingAttachments
+                    renderPendingAttachments(state.pendingAttachments)
+                }
+                binding.btnSend.isEnabled = state.pendingAttachments.all { it.isUploaded }
                 // Статусы приходят отдельным полем состояния: список сообщений
                 // при этом не меняется, поэтому DiffUtil сам строки не обновит.
                 if (state.statuses != lastStatuses) {

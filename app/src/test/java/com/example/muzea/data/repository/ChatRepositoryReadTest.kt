@@ -18,10 +18,12 @@ class ChatRepositoryReadTest {
 
     private val api = mockk<ChatApiService>()
     private val auth = mockk<ChatAuthManager>(relaxed = true)
+    private val context = mockk<android.content.Context>(relaxed = true)
     private val chatRepository = ChatRepositoryImpl(api, auth)
     private val messageRepository = MessageRepositoryImpl(
         api, auth,
-        GifCache(java.io.File.createTempFile("gif-cache", ".json").apply { delete() })
+        GifCache(java.io.File.createTempFile("gif-cache", ".json").apply { delete() }),
+        context
     )
 
     @Test

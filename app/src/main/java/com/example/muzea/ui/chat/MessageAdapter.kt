@@ -27,11 +27,16 @@ import com.example.muzea.R
 import com.example.muzea.data.model.LinkPreview
 import com.example.muzea.data.repository.LinkPreviewStore
 import com.example.muzea.domain.model.Message
+import com.example.muzea.domain.model.MessageAttachment
 import com.example.muzea.domain.model.MessageDeliveryStatus
 import com.example.muzea.utils.AvatarLoader
 import com.example.muzea.utils.ChatTimeFormatter
 import com.example.muzea.utils.MediaUrl
 import com.example.muzea.utils.MessageLinks
+import com.example.muzea.databinding.ItemAttachmentAudioBinding
+import com.example.muzea.databinding.ItemAttachmentDocumentBinding
+import com.example.muzea.databinding.ItemAttachmentImageBinding
+import com.example.muzea.databinding.ItemAttachmentVideoBinding
 import com.example.muzea.databinding.ItemMessageIncomingBinding
 import com.example.muzea.databinding.ItemMessageOutgoingBinding
 import kotlinx.coroutines.CoroutineScope
@@ -46,7 +51,8 @@ class MessageAdapter(
     private val linkPreviews: LinkPreviewStore,
     private val onMessageLongPress: (Message) -> Unit,
     private val statusFor: (Message) -> MessageDeliveryStatus?,
-    private val onStatusClick: (Message) -> Unit
+    private val onStatusClick: (Message) -> Unit,
+    private val onAttachmentClick: (MessageAttachment) -> Unit
 ) : ListAdapter<Message, RecyclerView.ViewHolder>(MessageDiffCallback()) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -77,9 +83,12 @@ class MessageAdapter(
         val message = getItem(position)
         when (holder) {
             is OutgoingViewHolder -> holder.bind(
-                message, linkPreviews, scope, onMessageLongPress, statusFor(message), onStatusClick
+                message, linkPreviews, scope, onMessageLongPress, statusFor(message), onStatusClick,
+                onAttachmentClick
             )
-            is IncomingViewHolder -> holder.bind(message, linkPreviews, scope, onMessageLongPress)
+            is IncomingViewHolder -> holder.bind(
+                message, linkPreviews, scope, onMessageLongPress, onAttachmentClick
+            )
         }
     }
 
@@ -96,10 +105,15 @@ class MessageAdapter(
             message: Message,
             linkPreviews: LinkPreviewStore,
             scope: CoroutineScope,
-            onLongPress: (Message) -> Unit
+            onLongPress: (Message) -> Unit,
+            onAttachmentClick: (MessageAttachment) -> Unit
         ) {
             AvatarLoader.load(binding.ivAvatar, message.senderAvatar)
             bindMedia(message)
+            bindAttachments(
+                binding.attachmentsContainer, binding.tvMessage, binding.linkPreview,
+                message, onAttachmentClick
+            )
             bindTextOrPreview(
                 binding.tvMessage, binding.linkPreview,
                 binding.ivLinkImage, binding.tvLinkTitle, binding.tvLinkDomain,
@@ -173,9 +187,14 @@ class MessageAdapter(
             scope: CoroutineScope,
             onLongPress: (Message) -> Unit,
             status: MessageDeliveryStatus?,
-            onStatusClick: (Message) -> Unit
+            onStatusClick: (Message) -> Unit,
+            onAttachmentClick: (MessageAttachment) -> Unit
         ) {
             bindMedia(message)
+            bindAttachments(
+                binding.attachmentsContainer, binding.tvMessage, binding.linkPreview,
+                message, onAttachmentClick
+            )
             bindTextOrPreview(
                 binding.tvMessage, binding.linkPreview,
                 binding.ivLinkImage, binding.tvLinkTitle, binding.tvLinkDomain,
@@ -316,6 +335,117 @@ private fun gifMp4Url(message: Message): String? =
     message.attachments
         .firstOrNull { it.type?.equals("GIF", ignoreCase = true) == true }
         ?.mp4Url
+
+private fun hasNonGifAttachments(message: Message): Boolean =
+    message.attachments.any { !it.type.equals("GIF", ignoreCase = true) }
+
+private fun attachmentUrl(attachment: MessageAttachment): String? {
+    val uuid = attachment.attachmentUuid
+    return if (!uuid.isNullOrBlank()) {
+        MediaUrl.chat("/api/attachments/$uuid")
+    } else {
+        MediaUrl.chat(attachment.fileUrl)
+    }
+}
+
+private fun attachmentPreviewUrl(attachment: MessageAttachment): String? {
+    val uuid = attachment.attachmentUuid
+    return if (!uuid.isNullOrBlank() && !attachment.thumbnailUrl.isNullOrBlank()) {
+        MediaUrl.chat("/api/attachments/$uuid/preview")
+    } else {
+        null
+    }
+}
+
+/**
+ * Фото, видео, аудио и документы. Гифки обрабатываются отдельно в [bindGif].
+ * Вложения рисуются карточками; пустой текстовый пузырь скрывается.
+ */
+private fun bindAttachments(
+    container: android.widget.LinearLayout,
+    textView: TextView,
+    linkCard: View,
+    message: Message,
+    onClick: (MessageAttachment) -> Unit
+) {
+    container.removeAllViews()
+    val attachments = message.attachments.filterNot {
+        it.type.equals("GIF", ignoreCase = true)
+    }
+    if (attachments.isEmpty()) {
+        container.visibility = View.GONE
+        return
+    }
+
+    container.visibility = View.VISIBLE
+    if (message.text.isNullOrBlank()) {
+        textView.visibility = View.GONE
+        linkCard.visibility = View.GONE
+    }
+
+    val inflater = LayoutInflater.from(container.context)
+    attachments.forEach { attachment ->
+        when (attachment.type?.uppercase()) {
+            "IMAGE" -> {
+                val item = ItemAttachmentImageBinding.inflate(inflater, container, false)
+                Glide.with(item.ivImage)
+                    .load(attachmentUrl(attachment))
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .into(item.ivImage)
+                item.root.setOnClickListener { onClick(attachment) }
+                container.addView(item.root)
+            }
+            "VIDEO" -> {
+                val item = ItemAttachmentVideoBinding.inflate(inflater, container, false)
+                Glide.with(item.ivThumb)
+                    .load(attachmentPreviewUrl(attachment))
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .into(item.ivThumb)
+                item.tvDuration.text = formatDuration(attachment.duration)
+                item.tvDuration.visibility =
+                    if (attachment.duration != null) View.VISIBLE else View.GONE
+                item.root.setOnClickListener { onClick(attachment) }
+                container.addView(item.root)
+            }
+            "AUDIO" -> {
+                val item = ItemAttachmentAudioBinding.inflate(inflater, container, false)
+                item.tvName.text = attachment.fileName ?: "Audio"
+                item.tvSize.text = formatSize(attachment.fileSize)
+                item.root.setOnClickListener { onClick(attachment) }
+                container.addView(item.root)
+            }
+            else -> {
+                val item = ItemAttachmentDocumentBinding.inflate(inflater, container, false)
+                item.tvName.text = attachment.fileName ?: "File"
+                item.tvSize.text = formatSize(attachment.fileSize)
+                item.root.setOnClickListener { onClick(attachment) }
+                container.addView(item.root)
+            }
+        }
+
+        if (attachments.last() !== attachment) {
+            // небольшой отступ между карточками
+            container.getChildAt(container.childCount - 1)?.setPadding(0, 2, 0, 2)
+        }
+    }
+}
+
+private fun formatDuration(seconds: Int?): String {
+    if (seconds == null || seconds <= 0) return ""
+    val minutes = seconds / 60
+    val rest = seconds % 60
+    return "%d:%02d".format(minutes, rest)
+}
+
+private fun formatSize(bytes: Long?): String {
+    if (bytes == null || bytes <= 0) return ""
+    val kb = bytes / 1024.0
+    return if (kb < 1024) {
+        "%.0f KB".format(kb)
+    } else {
+        "%.1f MB".format(kb / 1024.0)
+    }
+}
 
 /**
  * Если сообщение — гифка, показываем её (Glide, анимированный GIF, кэш на

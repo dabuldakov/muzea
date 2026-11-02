@@ -227,4 +227,24 @@
     <string name="message_status_failed">Не отправлено</string>
     <string name="message_info_title">Статус сообщения</string>
     <string name="message_info_empty">Пока нет получателей</string>
+
+    <string name="action_attach">Прикрепить</string>
+    <string name="attach_title">Прикрепить файл</string>
+    <string name="attach_photo">Фото</string>
+    <string name="attach_video">Видео</string>
+    <string name="attach_audio">Аудио</string>
+    <string name="attach_file">Файл</string>
+    <string name="attachment_image">Изображение</string>
+    <string name="attachment_video">Видео</string>
+    <string name="attachment_audio">Аудио</string>
+    <string name="attachment_document">Документ</string>
+    <string name="attachment_download_failed">Не удалось скачать файл</string>
+    <string name="attachment_open_failed">Нет приложения для открытия файла</string>
+    <string name="attachment_play">Воспроизвести</string>
+    <string name="attachment_wait_upload">Дождитесь загрузки файлов</string>
+    <string name="attachment_cannot_attach">Не удалось прикрепить файл</string>
+    <string name="attachment_size_limit">Файл слишком большой, максимум %1$d МБ</string>
+    <string name="attachment_type_not_allowed">Этот тип файлов запрещён</string>
+    <string name="attachment_cannot_read">Не удалось прочитать файл</string>
+    <string name="attachment_unknown_type">Неизвестный тип файла</string>
 </resources>

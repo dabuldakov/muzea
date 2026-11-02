@@ -226,4 +226,24 @@
     <string name="message_status_failed">नहीं भेजा गया</string>
     <string name="message_info_title">संदेश स्थिति</string>
     <string name="message_info_empty">अभी कोई प्राप्तकर्ता नहीं</string>
+
+    <string name="action_attach">अटैच करें</string>
+    <string name="attach_title">फ़ाइल अटैच करें</string>
+    <string name="attach_photo">फ़ोटो</string>
+    <string name="attach_video">वीडियो</string>
+    <string name="attach_audio">ऑडियो</string>
+    <string name="attach_file">फ़ाइल</string>
+    <string name="attachment_image">छवि</string>
+    <string name="attachment_video">वीडियो</string>
+    <string name="attachment_audio">ऑडियो</string>
+    <string name="attachment_document">दस्तावेज़</string>
+    <string name="attachment_download_failed">फ़ाइल डाउनलोड नहीं हो सकी</string>
+    <string name="attachment_open_failed">यह फ़ाइल खोलने के लिए कोई ऐप नहीं है</string>
+    <string name="attachment_play">चलाएँ</string>
+    <string name="attachment_wait_upload">फ़ाइलें अपलोड होने तक प्रतीक्षा करें</string>
+    <string name="attachment_cannot_attach">यह फ़ाइल अटैच नहीं हो सकी</string>
+    <string name="attachment_size_limit">फ़ाइल बहुत बड़ी है, अधिकतम %1$d MB</string>
+    <string name="attachment_type_not_allowed">यह फ़ाइल प्रकार अनुमत नहीं है</string>
+    <string name="attachment_cannot_read">फ़ाइल पढ़ी नहीं जा सकी</string>
+    <string name="attachment_unknown_type">अज्ञात फ़ाइल प्रकार</string>
 </resources>

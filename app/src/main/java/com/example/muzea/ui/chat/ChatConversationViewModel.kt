@@ -1,5 +1,6 @@
 package com.example.muzea.ui.chat
 
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,9 +9,12 @@ import com.example.muzea.domain.model.Gif
 import com.example.muzea.domain.model.Message
 import com.example.muzea.domain.model.MessageAttachment
 import com.example.muzea.domain.model.MessageDeliveryStatus
+import com.example.muzea.utils.MediaFileReader
+import com.example.muzea.utils.PreparedAttachment
 import com.example.muzea.domain.repository.MessageRepository
 import com.example.muzea.domain.ChatUserIdentity
 import com.example.muzea.domain.chat.ChatMessageReducer
+import com.example.muzea.R
 import com.example.muzea.core.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -26,6 +30,20 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /** Единое состояние экрана переписки. */
+/** Файл, выбранный для отправки, и состояние его загрузки. */
+data class PendingAttachment(
+    val id: String,
+    val name: String,
+    val size: Long,
+    val mimeType: String,
+    val type: String,
+    val prepared: PreparedAttachment? = null,
+    val uploaded: MessageAttachment? = null,
+    val error: String? = null
+) {
+    val isUploaded: Boolean get() = uploaded != null
+}
+
 data class ChatConversationUiState(
     val messages: List<Message> = emptyList(),
     val isLoading: Boolean = false,
@@ -39,14 +57,19 @@ data class ChatConversationUiState(
     /** Статус своих сообщений: uuid → галочка. */
     val statuses: Map<String, MessageDeliveryStatus> = emptyMap(),
     /** Локальные сообщения, отправка которых не удалась. */
-    val failedMessages: Set<String> = emptySet()
+    val failedMessages: Set<String> = emptySet(),
+    /** Выбранные, но ещё не отправленные вложения. */
+    val pendingAttachments: List<PendingAttachment> = emptyList(),
+    val isUploadingAttachments: Boolean = false
 )
 
 @HiltViewModel
 class ChatConversationViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val messageRepository: MessageRepository,
-    chatUserIdentity: ChatUserIdentity
+    chatUserIdentity: ChatUserIdentity,
+    private val mediaFileReader: MediaFileReader,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context
 ) : ViewModel() {
 
     private val chatUuid: String = savedStateHandle.get<String>(ARG_CHAT_UUID).orEmpty()
@@ -141,8 +164,16 @@ class ChatConversationViewModel @Inject constructor(
 
     fun sendText(text: String) {
         val trimmed = text.trim()
-        if (trimmed.isEmpty()) return
+        val state = _uiState.value
+        val attachments = state.pendingAttachments
+        if (trimmed.isEmpty() && attachments.isEmpty()) return
+        if (attachments.any { !it.isUploaded }) {
+            viewModelScope.launch { _sendError.emit(appContext.getString(R.string.attachment_wait_upload)) }
+            return
+        }
 
+        val uploaded = attachments.mapNotNull { it.uploaded }
+        val type = messageTypeFor(uploaded)
         val optimistic = Message(
             messageUuid = LOCAL_PREFIX + System.currentTimeMillis(),
             chatUuid = chatUuid,
@@ -151,18 +182,24 @@ class ChatConversationViewModel @Inject constructor(
             senderName = null,
             senderAvatar = null,
             text = trimmed,
-            messageType = "TEXT",
+            messageType = type,
             replyToMessageUuid = null,
             isEdited = false,
             isDeleted = false,
             isPinned = false,
             createdAt = null,
-            updatedAt = null
+            updatedAt = null,
+            attachments = uploaded
         )
         mergeMessages(listOf(optimistic))
+        clearPendingAttachments()
 
         viewModelScope.launch {
-            messageRepository.sendMessage(chatUuid, trimmed).collect { result ->
+            messageRepository.sendMessage(
+                chatUuid = chatUuid,
+                text = trimmed,
+                attachments = uploaded.mapNotNull { it.attachmentUuid }
+            ).collect { result ->
                 when (result) {
                     is Resource.Success -> {
                         applyServerEcho(optimistic.messageUuid, result.data!!)
@@ -175,6 +212,97 @@ class ChatConversationViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /** Добавляет выбранные в системном пикере файлы и сразу загружает их. */
+    fun addAttachments(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isUploadingAttachments = true)
+            try {
+                for (uri in uris) {
+                    val prepared = try {
+                        mediaFileReader.prepare(uri)
+                    } catch (e: Exception) {
+                        _sendError.emit(e.message ?: appContext.getString(R.string.attachment_cannot_attach))
+                        continue
+                    }
+
+                    val id = java.util.UUID.randomUUID().toString()
+                    val pending = PendingAttachment(
+                        id = id,
+                        name = prepared.name,
+                        size = prepared.size,
+                        mimeType = prepared.mimeType,
+                        type = prepared.type,
+                        prepared = prepared
+                    )
+                    _uiState.value = _uiState.value.copy(
+                        pendingAttachments = _uiState.value.pendingAttachments + pending
+                    )
+                    uploadPending(id)
+                }
+            } finally {
+                _uiState.value = _uiState.value.copy(isUploadingAttachments = false)
+            }
+        }
+    }
+
+    fun removePendingAttachment(id: String) {
+        val pending = _uiState.value.pendingAttachments.firstOrNull { it.id == id } ?: return
+        mediaFileReader.cleanup(pending.prepared)
+        _uiState.value = _uiState.value.copy(
+            pendingAttachments = _uiState.value.pendingAttachments.filterNot { it.id == id }
+        )
+    }
+
+    fun retryPendingAttachment(id: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isUploadingAttachments = true)
+            try {
+                uploadPending(id)
+            } finally {
+                _uiState.value = _uiState.value.copy(isUploadingAttachments = false)
+            }
+        }
+    }
+
+    private suspend fun uploadPending(id: String) {
+        val pending = _uiState.value.pendingAttachments.firstOrNull { it.id == id } ?: return
+        val prepared = pending.prepared ?: return
+        _uiState.value = _uiState.value.copy(
+            pendingAttachments = _uiState.value.pendingAttachments.map {
+                if (it.id == id) it.copy(error = null) else it
+            }
+        )
+
+        when (val result = messageRepository.uploadAttachment(chatUuid, prepared)) {
+            is Resource.Success -> _uiState.value = _uiState.value.copy(
+                pendingAttachments = _uiState.value.pendingAttachments.map {
+                    if (it.id == id) it.copy(uploaded = result.data) else it
+                }
+            )
+            is Resource.Error -> _uiState.value = _uiState.value.copy(
+                pendingAttachments = _uiState.value.pendingAttachments.map {
+                    if (it.id == id) it.copy(error = result.message) else it
+                }
+            )
+            is Resource.Loading -> Unit
+        }
+    }
+
+    private fun clearPendingAttachments() {
+        _uiState.value.pendingAttachments.forEach { mediaFileReader.cleanup(it.prepared) }
+        _uiState.value = _uiState.value.copy(pendingAttachments = emptyList())
+    }
+
+    private fun messageTypeFor(attachments: List<MessageAttachment>): String {
+        if (attachments.isEmpty()) return "TEXT"
+        if (attachments.all { it.type == "IMAGE" }) return "IMAGE"
+        if (attachments.all { it.type == "AUDIO" }) return "AUDIO"
+        if (attachments.size == 1 && attachments.single().type == "VIDEO") return "VIDEO"
+        return "FILE"
     }
 
     fun sendGif(gif: Gif) {
@@ -325,6 +453,12 @@ class ChatConversationViewModel @Inject constructor(
                 receiptsLoaded = state.receiptsLoaded
             )
         )
+
+    /** Скачивает документ во временный файл для открытия системным приложением. */
+    suspend fun downloadAttachment(attachment: MessageAttachment): java.io.File? {
+        val uuid = attachment.attachmentUuid ?: return null
+        return messageRepository.downloadAttachment(uuid, attachment.fileName)
+    }
 
     /** Статус сообщения для адаптера; null — у входящих и пока неизвестных. */
     fun deliveryStatus(messageUuid: String): MessageDeliveryStatus? =

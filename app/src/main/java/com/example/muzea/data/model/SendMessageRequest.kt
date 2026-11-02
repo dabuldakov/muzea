@@ -8,5 +8,7 @@ data class SendMessageRequest(
     @SerializedName("messageType")
     val messageType: String = "TEXT",
     @SerializedName("gif")
-    val gif: GifRequest? = null
+    val gif: GifRequest? = null,
+    @SerializedName("attachments")
+    val attachments: List<String>? = null
 )

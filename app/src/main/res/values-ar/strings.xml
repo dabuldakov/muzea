@@ -226,4 +226,24 @@
     <string name="message_status_failed">لم يتم الإرسال</string>
     <string name="message_info_title">حالة الرسالة</string>
     <string name="message_info_empty">لا يوجد مستلمون بعد</string>
+
+    <string name="action_attach">إرفاق</string>
+    <string name="attach_title">إرفاق ملف</string>
+    <string name="attach_photo">صورة</string>
+    <string name="attach_video">فيديو</string>
+    <string name="attach_audio">صوت</string>
+    <string name="attach_file">ملف</string>
+    <string name="attachment_image">صورة</string>
+    <string name="attachment_video">فيديو</string>
+    <string name="attachment_audio">صوت</string>
+    <string name="attachment_document">مستند</string>
+    <string name="attachment_download_failed">تعذر تنزيل الملف</string>
+    <string name="attachment_open_failed">لا يوجد تطبيق لفتح هذا الملف</string>
+    <string name="attachment_play">تشغيل</string>
+    <string name="attachment_wait_upload">انتظر حتى يتم رفع الملفات</string>
+    <string name="attachment_cannot_attach">تعذر إرفاق هذا الملف</string>
+    <string name="attachment_size_limit">الملف كبير جدًا، الحد الأقصى %1$d ميغابايت</string>
+    <string name="attachment_type_not_allowed">هذا النوع من الملفات غير مسموح</string>
+    <string name="attachment_cannot_read">تعذر قراءة الملف</string>
+    <string name="attachment_unknown_type">نوع ملف غير معروف</string>
 </resources>

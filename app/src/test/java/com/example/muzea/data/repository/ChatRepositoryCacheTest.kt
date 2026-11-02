@@ -30,12 +30,14 @@ class ChatRepositoryCacheTest {
     val server = MockWebServer()
 
     private val auth = io.mockk.mockk<ChatAuthManager>(relaxed = true)
+    private val context = io.mockk.mockk<android.content.Context>(relaxed = true)
 
     private fun chatRepo() = ChatRepositoryImpl(IntegrationTestClient.chatApi(server), auth)
 
     private fun messageRepo() = MessageRepositoryImpl(
         IntegrationTestClient.chatApi(server), auth,
-        GifCache(java.io.File.createTempFile("gif-cache", ".json").apply { delete() })
+        GifCache(java.io.File.createTempFile("gif-cache", ".json").apply { delete() }),
+        context
     )
 
     @Before

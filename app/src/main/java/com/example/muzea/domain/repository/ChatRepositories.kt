@@ -6,6 +6,7 @@ import com.example.muzea.domain.model.ChatParticipant
 import com.example.muzea.domain.model.Contact
 import com.example.muzea.domain.model.Gif
 import com.example.muzea.domain.model.Message
+import com.example.muzea.domain.model.MessageAttachment
 import com.example.muzea.domain.model.Presence
 import com.example.muzea.core.Resource
 import kotlinx.coroutines.flow.Flow
@@ -37,8 +38,21 @@ interface MessageRepository {
     ): Flow<Resource<List<Message>>>
 
     fun cachedMessages(chatUuid: String): List<Message>
-    suspend fun sendMessage(chatUuid: String, text: String): Flow<Resource<Message>>
+    suspend fun sendMessage(
+        chatUuid: String,
+        text: String,
+        attachments: List<String> = emptyList()
+    ): Flow<Resource<Message>>
     suspend fun sendGif(chatUuid: String, gif: Gif): Flow<Resource<Message>>
+
+    /** Загружает файл в чат; [attachmentUuid] потом передаётся в сообщение. */
+    suspend fun uploadAttachment(
+        chatUuid: String,
+        prepared: com.example.muzea.utils.PreparedAttachment
+    ): Resource<MessageAttachment>
+
+    /** Скачивает вложение в cacheDir; null — если не удалось. */
+    suspend fun downloadAttachment(attachmentUuid: String, fileName: String?): java.io.File?
     suspend fun markMessagesAsRead(chatUuid: String, upToMessageUuid: String): Boolean
 
     /** Подтверждает доставку всей ленты до [upToMessageUuid] на это устройство. */

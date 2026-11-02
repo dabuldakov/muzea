@@ -5,12 +5,14 @@ import com.example.muzea.data.api.ChatApiService
 import com.example.muzea.data.httpError
 import com.example.muzea.data.httpOk
 import com.example.muzea.data.model.ContactResponse
+import com.example.muzea.data.model.AttachmentResponse
 import com.example.muzea.data.model.ChatReceiptResponse
 import com.example.muzea.data.model.PageResponse
 import com.example.muzea.data.model.SendMessageRequest
 import com.example.muzea.data.mapper.toDomain
 import com.example.muzea.data.model.MessageResponse
 import com.example.muzea.domain.model.Gif
+import com.example.muzea.utils.PreparedAttachment
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -31,6 +33,7 @@ class MessageRepositoryImplTest {
 
     private val api = mockk<ChatApiService>()
     private val auth = mockk<ChatAuthManager>(relaxed = true)
+    private val context = mockk<android.content.Context>(relaxed = true)
     private lateinit var gifCache: GifCache
     private lateinit var repository: MessageRepositoryImpl
 
@@ -38,7 +41,7 @@ class MessageRepositoryImplTest {
     fun setUp() {
         ChatMessagesCache.clear()
         gifCache = GifCache(File.createTempFile("gif-cache", ".json").apply { delete() })
-        repository = MessageRepositoryImpl(api, auth, gifCache)
+        repository = MessageRepositoryImpl(api, auth, gifCache, context)
     }
 
     @Test
@@ -268,5 +271,61 @@ class MessageRepositoryImplTest {
         coEvery { api.getChatReceipts("chat-1") } throws IOException("offline")
 
         assertNull(repository.loadChatReceipts("chat-1"))
+    }
+
+    @Test
+    fun `uploadAttachment returns the server attachment`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.uploadAttachment(any(), any(), any(), any(), any(), any()) } returns httpOk(
+            AttachmentResponse(
+                attachmentUuid = "a-1",
+                fileUrl = "attachments/a-1.jpg",
+                thumbnailUrl = null,
+                type = "IMAGE",
+                width = 100,
+                height = 200
+            )
+        )
+        val file = File.createTempFile("photo", ".jpg").apply {
+            writeBytes(byteArrayOf(1, 2, 3))
+            deleteOnExit()
+        }
+        val prepared = PreparedAttachment(
+            file = file,
+            thumbnail = null,
+            name = "photo.jpg",
+            size = file.length(),
+            mimeType = "image/jpeg",
+            type = "IMAGE",
+            width = 100,
+            height = 200,
+            duration = null
+        )
+
+        val result = repository.uploadAttachment("chat-1", prepared)
+
+        assertEquals("a-1", (result as Resource.Success).data!!.attachmentUuid)
+        assertEquals("IMAGE", result.data!!.type)
+    }
+
+    @Test
+    fun `uploadAttachment reports a rejected file`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.uploadAttachment(any(), any(), any(), any(), any(), any()) } returns httpError(400)
+        val prepared = PreparedAttachment(
+            file = File.createTempFile("bad", ".exe"),
+            thumbnail = null,
+            name = "bad.exe",
+            size = 1,
+            mimeType = "application/octet-stream",
+            type = "DOCUMENT",
+            width = null,
+            height = null,
+            duration = null
+        )
+
+        val result = repository.uploadAttachment("chat-1", prepared)
+
+        assertTrue(result is Resource.Error)
     }
 }

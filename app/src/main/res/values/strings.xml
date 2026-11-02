@@ -230,4 +230,24 @@
     <string name="message_status_failed">Not sent</string>
     <string name="message_info_title">Message status</string>
     <string name="message_info_empty">No recipients yet</string>
+
+    <string name="action_attach">Attach</string>
+    <string name="attach_title">Attach file</string>
+    <string name="attach_photo">Photo</string>
+    <string name="attach_video">Video</string>
+    <string name="attach_audio">Audio</string>
+    <string name="attach_file">File</string>
+    <string name="attachment_image">Image</string>
+    <string name="attachment_video">Video</string>
+    <string name="attachment_audio">Audio</string>
+    <string name="attachment_document">Document</string>
+    <string name="attachment_download_failed">Could not download the file</string>
+    <string name="attachment_open_failed">No app to open this file</string>
+    <string name="attachment_play">Play</string>
+    <string name="attachment_wait_upload">Wait until the files are uploaded</string>
+    <string name="attachment_cannot_attach">Could not attach this file</string>
+    <string name="attachment_size_limit">File is too large, maximum %1$d MB</string>
+    <string name="attachment_type_not_allowed">This file type is not allowed</string>
+    <string name="attachment_cannot_read">Could not read the file</string>
+    <string name="attachment_unknown_type">Unknown file type</string>
 </resources>

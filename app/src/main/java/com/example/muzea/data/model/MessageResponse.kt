@@ -47,5 +47,9 @@ data class AttachmentResponse(
     @SerializedName("type") val type: String?,
     @SerializedName("width") val width: Int?,
     @SerializedName("height") val height: Int?,
-    @SerializedName("gifKey") val gifKey: String? = null
+    @SerializedName("gifKey") val gifKey: String? = null,
+    @SerializedName("fileName") val fileName: String? = null,
+    @SerializedName("fileSize") val fileSize: Long? = null,
+    @SerializedName("mimeType") val mimeType: String? = null,
+    @SerializedName("duration") val duration: Int? = null
 )

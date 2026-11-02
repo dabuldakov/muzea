@@ -226,4 +226,24 @@
     <string name="message_status_failed">发送失败</string>
     <string name="message_info_title">消息状态</string>
     <string name="message_info_empty">暂无接收者</string>
+
+    <string name="action_attach">添加</string>
+    <string name="attach_title">添加文件</string>
+    <string name="attach_photo">照片</string>
+    <string name="attach_video">视频</string>
+    <string name="attach_audio">音频</string>
+    <string name="attach_file">文件</string>
+    <string name="attachment_image">图片</string>
+    <string name="attachment_video">视频</string>
+    <string name="attachment_audio">音频</string>
+    <string name="attachment_document">文档</string>
+    <string name="attachment_download_failed">无法下载文件</string>
+    <string name="attachment_open_failed">没有可打开此文件的应用</string>
+    <string name="attachment_play">播放</string>
+    <string name="attachment_wait_upload">请等待文件上传完成</string>
+    <string name="attachment_cannot_attach">无法添加此文件</string>
+    <string name="attachment_size_limit">文件太大，最大 %1$d MB</string>
+    <string name="attachment_type_not_allowed">不允许此文件类型</string>
+    <string name="attachment_cannot_read">无法读取文件</string>
+    <string name="attachment_unknown_type">未知文件类型</string>
 </resources>

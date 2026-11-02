@@ -226,4 +226,24 @@
     <string name="message_status_failed">Non envoyé</string>
     <string name="message_info_title">Statut du message</string>
     <string name="message_info_empty">Aucun destinataire pour l’instant</string>
+
+    <string name="action_attach">Joindre</string>
+    <string name="attach_title">Joindre un fichier</string>
+    <string name="attach_photo">Photo</string>
+    <string name="attach_video">Vidéo</string>
+    <string name="attach_audio">Audio</string>
+    <string name="attach_file">Fichier</string>
+    <string name="attachment_image">Image</string>
+    <string name="attachment_video">Vidéo</string>
+    <string name="attachment_audio">Audio</string>
+    <string name="attachment_document">Document</string>
+    <string name="attachment_download_failed">Impossible de télécharger le fichier</string>
+    <string name="attachment_open_failed">Aucune application pour ouvrir ce fichier</string>
+    <string name="attachment_play">Lire</string>
+    <string name="attachment_wait_upload">Attendez la fin du téléversement</string>
+    <string name="attachment_cannot_attach">Impossible de joindre ce fichier</string>
+    <string name="attachment_size_limit">Fichier trop volumineux, maximum %1$d Mo</string>
+    <string name="attachment_type_not_allowed">Ce type de fichier n’est pas autorisé</string>
+    <string name="attachment_cannot_read">Impossible de lire le fichier</string>
+    <string name="attachment_unknown_type">Type de fichier inconnu</string>
 </resources>

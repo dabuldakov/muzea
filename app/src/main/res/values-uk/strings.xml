@@ -226,4 +226,24 @@
     <string name="message_status_failed">Не надіслано</string>
     <string name="message_info_title">Статус повідомлення</string>
     <string name="message_info_empty">Поки немає отримувачів</string>
+
+    <string name="action_attach">Прикріпити</string>
+    <string name="attach_title">Прикріпити файл</string>
+    <string name="attach_photo">Фото</string>
+    <string name="attach_video">Відео</string>
+    <string name="attach_audio">Аудіо</string>
+    <string name="attach_file">Файл</string>
+    <string name="attachment_image">Зображення</string>
+    <string name="attachment_video">Відео</string>
+    <string name="attachment_audio">Аудіо</string>
+    <string name="attachment_document">Документ</string>
+    <string name="attachment_download_failed">Не вдалося завантажити файл</string>
+    <string name="attachment_open_failed">Немає програми для відкриття файлу</string>
+    <string name="attachment_play">Відтворити</string>
+    <string name="attachment_wait_upload">Зачекайте на завантаження файлів</string>
+    <string name="attachment_cannot_attach">Не вдалося прикріпити файл</string>
+    <string name="attachment_size_limit">Файл завеликий, максимум %1$d МБ</string>
+    <string name="attachment_type_not_allowed">Цей тип файлів заборонено</string>
+    <string name="attachment_cannot_read">Не вдалося прочитати файл</string>
+    <string name="attachment_unknown_type">Невідомий тип файлу</string>
 </resources>

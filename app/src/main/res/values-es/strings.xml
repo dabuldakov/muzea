@@ -226,4 +226,24 @@
     <string name="message_status_failed">No enviado</string>
     <string name="message_info_title">Estado del mensaje</string>
     <string name="message_info_empty">Aún no hay destinatarios</string>
+
+    <string name="action_attach">Adjuntar</string>
+    <string name="attach_title">Adjuntar archivo</string>
+    <string name="attach_photo">Foto</string>
+    <string name="attach_video">Vídeo</string>
+    <string name="attach_audio">Audio</string>
+    <string name="attach_file">Archivo</string>
+    <string name="attachment_image">Imagen</string>
+    <string name="attachment_video">Vídeo</string>
+    <string name="attachment_audio">Audio</string>
+    <string name="attachment_document">Documento</string>
+    <string name="attachment_download_failed">No se pudo descargar el archivo</string>
+    <string name="attachment_open_failed">No hay ninguna app para abrir este archivo</string>
+    <string name="attachment_play">Reproducir</string>
+    <string name="attachment_wait_upload">Espera a que se suban los archivos</string>
+    <string name="attachment_cannot_attach">No se pudo adjuntar el archivo</string>
+    <string name="attachment_size_limit">El archivo es demasiado grande, máximo %1$d MB</string>
+    <string name="attachment_type_not_allowed">Este tipo de archivo no está permitido</string>
+    <string name="attachment_cannot_read">No se pudo leer el archivo</string>
+    <string name="attachment_unknown_type">Tipo de archivo desconocido</string>
 </resources>

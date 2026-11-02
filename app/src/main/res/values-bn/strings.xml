@@ -226,4 +226,24 @@
     <string name="message_status_failed">পাঠানো যায়নি</string>
     <string name="message_info_title">বার্তার অবস্থা</string>
     <string name="message_info_empty">এখনও কোনো প্রাপক নেই</string>
+
+    <string name="action_attach">সংযুক্ত করুন</string>
+    <string name="attach_title">ফাইল সংযুক্ত করুন</string>
+    <string name="attach_photo">ছবি</string>
+    <string name="attach_video">ভিডিও</string>
+    <string name="attach_audio">অডিও</string>
+    <string name="attach_file">ফাইল</string>
+    <string name="attachment_image">ছবি</string>
+    <string name="attachment_video">ভিডিও</string>
+    <string name="attachment_audio">অডিও</string>
+    <string name="attachment_document">নথি</string>
+    <string name="attachment_download_failed">ফাইল ডাউনলোড করা যায়নি</string>
+    <string name="attachment_open_failed">এই ফাইল খোলার জন্য কোনো অ্যাপ নেই</string>
+    <string name="attachment_play">চালান</string>
+    <string name="attachment_wait_upload">ফাইল আপলোড হওয়া পর্যন্ত অপেক্ষা করুন</string>
+    <string name="attachment_cannot_attach">এই ফাইল সংযুক্ত করা যায়নি</string>
+    <string name="attachment_size_limit">ফাইলটি খুব বড়, সর্বোচ্চ %1$d MB</string>
+    <string name="attachment_type_not_allowed">এই ফাইল ধরন অনুমোদিত নয়</string>
+    <string name="attachment_cannot_read">ফাইল পড়া যায়নি</string>
+    <string name="attachment_unknown_type">অজানা ফাইল ধরন</string>
 </resources>

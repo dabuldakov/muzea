@@ -1,6 +1,7 @@
 package com.example.muzea.data.api
 
 import com.example.muzea.data.model.AddContactRequest
+import com.example.muzea.data.model.AttachmentResponse
 import com.example.muzea.data.model.AddGroupParticipantsRequest
 import com.example.muzea.data.model.AvatarResponse
 import com.example.muzea.data.model.BlockUserRequest
@@ -24,7 +25,10 @@ import retrofit2.http.DELETE
 import retrofit2.http.Multipart
 import retrofit2.http.Part
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import okhttp3.ResponseBody
 import retrofit2.http.POST
+import retrofit2.http.Streaming
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -164,6 +168,23 @@ interface ChatApiService {
     suspend fun getChatReceipts(
         @Path("chatUuid") chatUuid: String
     ): Response<List<ChatReceiptResponse>>
+
+    @Multipart
+    @POST("/api/attachments/upload")
+    suspend fun uploadAttachment(
+        @Part file: MultipartBody.Part,
+        @Part("chatUuid") chatUuid: RequestBody,
+        @Part thumbnail: MultipartBody.Part?,
+        @Part("width") width: RequestBody?,
+        @Part("height") height: RequestBody?,
+        @Part("duration") duration: RequestBody?
+    ): Response<AttachmentResponse>
+
+    @Streaming
+    @GET("/api/attachments/{attachmentUuid}")
+    suspend fun downloadAttachment(
+        @Path("attachmentUuid") attachmentUuid: String
+    ): Response<ResponseBody>
 
     @POST("/api/reports")
     suspend fun reportContent(

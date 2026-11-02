@@ -53,18 +53,7 @@ fun com.example.muzea.data.model.MessageResponse.toDomain(): Message = Message(
     isPinned = isPinned,
     createdAt = createdAt,
     updatedAt = updatedAt,
-    attachments = attachments.orEmpty().mapNotNull { attachment ->
-        val url = attachment.fileUrl ?: return@mapNotNull null
-        com.example.muzea.domain.model.MessageAttachment(
-            fileUrl = url,
-            thumbnailUrl = attachment.thumbnailUrl,
-            type = attachment.type,
-            width = attachment.width,
-            height = attachment.height,
-            mp4Url = attachment.mp4Url,
-            gifKey = attachment.gifKey
-        )
-    }
+    attachments = attachments.orEmpty().mapNotNull { it.toDomainAttachment() }
 )
 
 fun com.example.muzea.data.model.ContactResponse.toDomain(): Contact = Contact(
@@ -117,3 +106,22 @@ fun com.example.muzea.data.model.ChatReceiptResponse.toDomain(): ChatReceipt = C
     lastReadMessageId = lastReadMessageId,
     lastReadAt = lastReadAt
 )
+
+/** Вложение сообщения; null, если сервер не отдал URL файла. */
+fun com.example.muzea.data.model.AttachmentResponse.toDomainAttachment(): com.example.muzea.domain.model.MessageAttachment? {
+    val url = fileUrl ?: return null
+    return com.example.muzea.domain.model.MessageAttachment(
+        fileUrl = url,
+        thumbnailUrl = thumbnailUrl,
+        type = type,
+        width = width,
+        height = height,
+        mp4Url = mp4Url,
+        gifKey = gifKey,
+        attachmentUuid = attachmentUuid,
+        fileName = fileName,
+        fileSize = fileSize,
+        mimeType = mimeType,
+        duration = duration
+    )
+}

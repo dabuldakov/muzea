@@ -56,7 +56,12 @@ data class MessageAttachment(
     val width: Int?,
     val height: Int?,
     val mp4Url: String? = null,
-    val gifKey: String? = null
+    val gifKey: String? = null,
+    val attachmentUuid: String? = null,
+    val fileName: String? = null,
+    val fileSize: Long? = null,
+    val mimeType: String? = null,
+    val duration: Int? = null
 )
 
 data class ChatParticipant(

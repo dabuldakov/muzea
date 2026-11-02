@@ -226,4 +226,24 @@
     <string name="message_status_failed">Не адпраўлена</string>
     <string name="message_info_title">Статус паведамлення</string>
     <string name="message_info_empty">Пакуль няма атрымальнікаў</string>
+
+    <string name="action_attach">Далучыць</string>
+    <string name="attach_title">Далучыць файл</string>
+    <string name="attach_photo">Фота</string>
+    <string name="attach_video">Відэа</string>
+    <string name="attach_audio">Аўдыя</string>
+    <string name="attach_file">Файл</string>
+    <string name="attachment_image">Выява</string>
+    <string name="attachment_video">Відэа</string>
+    <string name="attachment_audio">Аўдыя</string>
+    <string name="attachment_document">Дакумент</string>
+    <string name="attachment_download_failed">Не ўдалося спампаваць файл</string>
+    <string name="attachment_open_failed">Няма праграмы для адкрыцця файла</string>
+    <string name="attachment_play">Прайграць</string>
+    <string name="attachment_wait_upload">Пачакайце загрузкі файлаў</string>
+    <string name="attachment_cannot_attach">Не ўдалося далучыць файл</string>
+    <string name="attachment_size_limit">Файл занадта вялікі, максімум %1$d МБ</string>
+    <string name="attachment_type_not_allowed">Гэты тып файлаў забаронены</string>
+    <string name="attachment_cannot_read">Не ўдалося прачытаць файл</string>
+    <string name="attachment_unknown_type">Невядомы тып файла</string>
 </resources>

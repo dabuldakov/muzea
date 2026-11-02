@@ -226,4 +226,24 @@
     <string name="message_status_failed">Илгээгээгүй</string>
     <string name="message_info_title">Мессежийн төлөв</string>
     <string name="message_info_empty">Хүлээн авагч байхгүй</string>
+
+    <string name="action_attach">Хавсаргах</string>
+    <string name="attach_title">Файл хавсаргах</string>
+    <string name="attach_photo">Зураг</string>
+    <string name="attach_video">Видео</string>
+    <string name="attach_audio">Аудио</string>
+    <string name="attach_file">Файл</string>
+    <string name="attachment_image">Зураг</string>
+    <string name="attachment_video">Видео</string>
+    <string name="attachment_audio">Аудио</string>
+    <string name="attachment_document">Баримт бичиг</string>
+    <string name="attachment_download_failed">Файлыг татаж чадсангүй</string>
+    <string name="attachment_open_failed">Энэ файлыг нээх програм байхгүй</string>
+    <string name="attachment_play">Тоглуулах</string>
+    <string name="attachment_wait_upload">Файлууд ачаалагдахыг хүлээнэ үү</string>
+    <string name="attachment_cannot_attach">Файлыг хавсаргаж чадсангүй</string>
+    <string name="attachment_size_limit">Файл хэт том, дээд тал нь %1$d МБ</string>
+    <string name="attachment_type_not_allowed">Энэ төрлийн файлыг зөвшөөрөхгүй</string>
+    <string name="attachment_cannot_read">Файлыг уншиж чадсангүй</string>
+    <string name="attachment_unknown_type">Файлын төрөл тодорхойгүй</string>
 </resources>

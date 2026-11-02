@@ -226,4 +226,24 @@
     <string name="message_status_failed">Жіберілмеді</string>
     <string name="message_info_title">Хабарлама мәртебесі</string>
     <string name="message_info_empty">Әзірге алушылар жоқ</string>
+
+    <string name="action_attach">Тіркеу</string>
+    <string name="attach_title">Файл тіркеу</string>
+    <string name="attach_photo">Фото</string>
+    <string name="attach_video">Видео</string>
+    <string name="attach_audio">Аудио</string>
+    <string name="attach_file">Файл</string>
+    <string name="attachment_image">Сурет</string>
+    <string name="attachment_video">Видео</string>
+    <string name="attachment_audio">Аудио</string>
+    <string name="attachment_document">Құжат</string>
+    <string name="attachment_download_failed">Файлды жүктеу мүмкін болмады</string>
+    <string name="attachment_open_failed">Бұл файлды ашу үшін қолданба жоқ</string>
+    <string name="attachment_play">Ойнату</string>
+    <string name="attachment_wait_upload">Файлдар жүктелгенше күтіңіз</string>
+    <string name="attachment_cannot_attach">Файлды тіркеу мүмкін болмады</string>
+    <string name="attachment_size_limit">Файл тым үлкен, ең көбі %1$d МБ</string>
+    <string name="attachment_type_not_allowed">Бұл файл түріне рұқсат жоқ</string>
+    <string name="attachment_cannot_read">Файлды оқу мүмкін болмады</string>
+    <string name="attachment_unknown_type">Белгісіз файл түрі</string>
 </resources>

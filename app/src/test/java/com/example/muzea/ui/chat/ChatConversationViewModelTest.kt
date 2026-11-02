@@ -9,6 +9,7 @@ import com.example.muzea.domain.model.Gif
 import com.example.muzea.domain.model.Message
 import com.example.muzea.domain.model.MessageAttachment
 import com.example.muzea.domain.model.MessageDeliveryStatus
+import com.example.muzea.utils.PreparedAttachment
 import com.example.muzea.data.repository.ChatMessagesCache
 import com.example.muzea.domain.repository.MessageRepository
 import com.example.muzea.domain.ChatUserIdentity
@@ -43,6 +44,8 @@ class ChatConversationViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val messageRepository = mockk<MessageRepository>()
+    private val mediaFileReader = mockk<com.example.muzea.utils.MediaFileReader>(relaxed = true)
+    private val appContext = mockk<android.content.Context>(relaxed = true)
     private val chatUuid = "chat-1"
 
     private fun message(
@@ -77,6 +80,7 @@ class ChatConversationViewModelTest {
         coEvery { messageRepository.markMessagesAsRead(any(), any()) } returns true
         coEvery { messageRepository.markMessagesAsDelivered(any(), any()) } returns true
         coEvery { messageRepository.loadChatReceipts(any()) } returns emptyList()
+        every { appContext.getString(any()) } returns "error"
         every { messageRepository.cacheSentGif(any(), any(), any()) } returns Unit
     }
 
@@ -116,7 +120,7 @@ class ChatConversationViewModelTest {
         val factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                ChatConversationViewModel(savedStateHandle, messageRepository, identity) as T
+                ChatConversationViewModel(savedStateHandle, messageRepository, identity, mediaFileReader, appContext) as T
         }
         try {
             block(ViewModelProvider(store, factory)[ChatConversationViewModel::class.java])
@@ -396,5 +400,69 @@ class ChatConversationViewModelTest {
         )
     ) { viewModel ->
         assertNull(viewModel.deliveryStatus("m1"))
+    }
+
+    @Test
+    fun `attachments are uploaded and then sent with the message`() = withViewModel { viewModel ->
+        val file = java.io.File.createTempFile("photo", ".jpg").apply { deleteOnExit() }
+        val prepared = PreparedAttachment(
+            file = file, thumbnail = null, name = "photo.jpg", size = 3,
+            mimeType = "image/jpeg", type = "IMAGE", width = 10, height = 10, duration = null
+        )
+        coEvery { mediaFileReader.prepare(any()) } returns prepared
+        coEvery { messageRepository.uploadAttachment(chatUuid, any()) } returns Resource.Success(
+            MessageAttachment(
+                fileUrl = "/api/attachments/a-1", thumbnailUrl = null, type = "IMAGE",
+                width = 10, height = 10, attachmentUuid = "a-1", fileName = "photo.jpg"
+            )
+        )
+        coEvery { messageRepository.sendMessage(chatUuid, "", listOf("a-1")) } returns
+            flowOf(Resource.Success(message("srv", "", "2026-01-01T00:00:00", messageId = 10)))
+
+        viewModel.addAttachments(listOf(android.net.Uri.parse("content://photo/1")))
+        assertTrue(viewModel.uiState.value.pendingAttachments.single().isUploaded)
+
+        viewModel.sendText("")
+
+        assertTrue(viewModel.uiState.value.pendingAttachments.isEmpty())
+        coVerify { messageRepository.sendMessage(chatUuid, "", listOf("a-1")) }
+        coVerify { mediaFileReader.cleanup(prepared) }
+    }
+
+    @Test
+    fun `failed upload blocks sending until retried`() = withViewModel { viewModel ->
+        val file = java.io.File.createTempFile("photo", ".jpg").apply { deleteOnExit() }
+        val prepared = PreparedAttachment(
+            file = file, thumbnail = null, name = "photo.jpg", size = 3,
+            mimeType = "image/jpeg", type = "IMAGE", width = 10, height = 10, duration = null
+        )
+        coEvery { mediaFileReader.prepare(any()) } returns prepared
+        coEvery { messageRepository.uploadAttachment(chatUuid, any()) } returns
+            Resource.Error("boom")
+
+        viewModel.addAttachments(listOf(android.net.Uri.parse("content://photo/1")))
+        assertEquals("boom", viewModel.uiState.value.pendingAttachments.single().error)
+
+        viewModel.sendText("")
+
+        coVerify(exactly = 0) { messageRepository.sendMessage(any(), any(), any()) }
+    }
+
+    @Test
+    fun `removing a pending attachment deletes its temp file`() = withViewModel { viewModel ->
+        val file = java.io.File.createTempFile("photo", ".jpg").apply { deleteOnExit() }
+        val prepared = PreparedAttachment(
+            file = file, thumbnail = null, name = "photo.jpg", size = 3,
+            mimeType = "image/jpeg", type = "IMAGE", width = 10, height = 10, duration = null
+        )
+        coEvery { mediaFileReader.prepare(any()) } returns prepared
+        coEvery { messageRepository.uploadAttachment(chatUuid, any()) } returns Resource.Error("x")
+
+        viewModel.addAttachments(listOf(android.net.Uri.parse("content://photo/1")))
+        val id = viewModel.uiState.value.pendingAttachments.single().id
+        viewModel.removePendingAttachment(id)
+
+        assertTrue(viewModel.uiState.value.pendingAttachments.isEmpty())
+        coVerify { mediaFileReader.cleanup(prepared) }
     }
 }
