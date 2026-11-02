@@ -60,9 +60,10 @@
 
 ## 3. Осталось для Play
 
-- [ ] Загрузить `muzea-legal` на хостинг и проверить `/delete-account`
-      (архив `muzea-site.zip`, скрипты `deploy.sh` / `verify.sh`).
-- [ ] Указать URL удаления аккаунта в Play Console.
+- [x] Загрузить `muzea-legal` на хостинг и проверить `/delete-account`
+      (веб-корень reg.ru `/www/muzea.su`, скрипты `deploy.sh` / `verify.sh`).
+- [ ] Указать URL удаления аккаунта в Play Console:
+      `https://muzea.su/delete-account`.
 - [ ] Заполнить Data safety: жалобы и удаление аккаунта.
 - [ ] Добавить тестовый доступ для ревьюера (OTP-вход): временный аккаунт или
       фиксированный код только для review-сборки.
@@ -74,8 +75,12 @@
 | Версия | versionCode | Тег | Артефакты |
 |--------|-------------|-----|-----------|
 | 1.7.4 | 32 | `v1.7.4` | `muzea-1.7.4.apk`, `muzea-1.7.4.aab` |
+| 1.7.5 | 33 | `v1.7.5` | `muzea-1.7.5.apk`, `muzea-1.7.5.aab` |
 
-Сборка релиза: https://github.com/dabuldakov/muzea/releases/tag/v1.7.4
+Сборка релиза: https://github.com/dabuldakov/muzea/releases/tag/v1.7.5
+
+В 1.7.5 исправлено наложение контента на строку состояния на Android 15+
+(edge-to-edge): отступы системных баров применяются на всех экранах.
 
 Файлы сайта для загрузки: `index.html`, `lang.js`, `icon-512.png`,
 `icon-512.webp`, `privacy/index.html`, `terms/index.html`,
