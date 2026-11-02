@@ -20,12 +20,14 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.recyclerview.widget.DiffUtil
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.muzea.R
 import com.example.muzea.data.model.LinkPreview
 import com.example.muzea.data.repository.LinkPreviewStore
 import com.example.muzea.domain.model.Message
+import com.example.muzea.domain.model.MessageDeliveryStatus
 import com.example.muzea.utils.AvatarLoader
 import com.example.muzea.utils.ChatTimeFormatter
 import com.example.muzea.utils.MediaUrl
@@ -42,7 +44,9 @@ import kotlinx.coroutines.withContext
 class MessageAdapter(
     private val myUserUuid: String?,
     private val linkPreviews: LinkPreviewStore,
-    private val onMessageLongPress: (Message) -> Unit
+    private val onMessageLongPress: (Message) -> Unit,
+    private val statusFor: (Message) -> MessageDeliveryStatus?,
+    private val onStatusClick: (Message) -> Unit
 ) : ListAdapter<Message, RecyclerView.ViewHolder>(MessageDiffCallback()) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -72,7 +76,9 @@ class MessageAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val message = getItem(position)
         when (holder) {
-            is OutgoingViewHolder -> holder.bind(message, linkPreviews, scope, onMessageLongPress)
+            is OutgoingViewHolder -> holder.bind(
+                message, linkPreviews, scope, onMessageLongPress, statusFor(message), onStatusClick
+            )
             is IncomingViewHolder -> holder.bind(message, linkPreviews, scope, onMessageLongPress)
         }
     }
@@ -165,7 +171,9 @@ class MessageAdapter(
             message: Message,
             linkPreviews: LinkPreviewStore,
             scope: CoroutineScope,
-            onLongPress: (Message) -> Unit
+            onLongPress: (Message) -> Unit,
+            status: MessageDeliveryStatus?,
+            onStatusClick: (Message) -> Unit
         ) {
             bindMedia(message)
             bindTextOrPreview(
@@ -190,6 +198,49 @@ class MessageAdapter(
                 true
             }
             binding.tvTime.text = formatTime(message.createdAt)
+            bindStatus(message, status, onStatusClick)
+        }
+
+        private fun bindStatus(
+            message: Message,
+            status: MessageDeliveryStatus?,
+            onStatusClick: (Message) -> Unit
+        ) {
+            if (status == null) {
+                binding.ivStatus.visibility = View.GONE
+                binding.tvTime.setOnClickListener(null)
+                return
+            }
+
+            val context = binding.root.context
+            val (icon, color, label) = when (status) {
+                MessageDeliveryStatus.SENDING ->
+                    Triple(R.drawable.ic_message_sending, R.color.gray, R.string.message_status_sending)
+                MessageDeliveryStatus.SENT ->
+                    Triple(R.drawable.ic_message_sent, R.color.gray, R.string.message_status_sent)
+                MessageDeliveryStatus.DELIVERED ->
+                    Triple(R.drawable.ic_message_delivered, R.color.gray, R.string.message_status_delivered)
+                MessageDeliveryStatus.READ ->
+                    Triple(R.drawable.ic_message_read, R.color.teal_700, R.string.message_status_read)
+                MessageDeliveryStatus.FAILED ->
+                    Triple(R.drawable.ic_message_failed, R.color.error, R.string.message_status_failed)
+            }
+
+            binding.ivStatus.visibility = View.VISIBLE
+            binding.ivStatus.setImageResource(icon)
+            binding.ivStatus.setColorFilter(ContextCompat.getColor(context, color))
+            binding.ivStatus.contentDescription = context.getString(label)
+
+            // Подробности доступны и по галочке, и по времени — так проще попасть.
+            // У локального/неотправленного сообщения получателей ещё нет.
+            if (status == MessageDeliveryStatus.SENDING || status == MessageDeliveryStatus.FAILED) {
+                binding.ivStatus.setOnClickListener(null)
+                binding.tvTime.setOnClickListener(null)
+                return
+            }
+            val openDetails = View.OnClickListener { onStatusClick(message) }
+            binding.ivStatus.setOnClickListener(openDetails)
+            binding.tvTime.setOnClickListener(openDetails)
         }
 
         private var player: ExoPlayer? = null

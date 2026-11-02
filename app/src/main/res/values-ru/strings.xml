@@ -218,4 +218,13 @@
     <string name="block_confirm_message">Он не сможет писать вам. Разблокировать можно позже.</string>
     <string name="block_success">Пользователь заблокирован</string>
     <string name="block_failed">Не удалось заблокировать пользователя</string>
+
+    <string name="message_status_content_description">Статус сообщения</string>
+    <string name="message_status_sending">Отправляется</string>
+    <string name="message_status_sent">Отправлено</string>
+    <string name="message_status_delivered">Доставлено</string>
+    <string name="message_status_read">Прочитано</string>
+    <string name="message_status_failed">Не отправлено</string>
+    <string name="message_info_title">Статус сообщения</string>
+    <string name="message_info_empty">Пока нет получателей</string>
 </resources>

@@ -217,4 +217,13 @@
     <string name="block_confirm_message">Ён не зможа пісаць вам. Разблакаваць можна пазней.</string>
     <string name="block_success">Карыстальнік заблакаваны</string>
     <string name="block_failed">Не ўдалося заблакаваць карыстальніка</string>
+
+    <string name="message_status_content_description">Статус паведамлення</string>
+    <string name="message_status_sending">Адпраўляецца</string>
+    <string name="message_status_sent">Адпраўлена</string>
+    <string name="message_status_delivered">Дастаўлена</string>
+    <string name="message_status_read">Прачытана</string>
+    <string name="message_status_failed">Не адпраўлена</string>
+    <string name="message_info_title">Статус паведамлення</string>
+    <string name="message_info_empty">Пакуль няма атрымальнікаў</string>
 </resources>

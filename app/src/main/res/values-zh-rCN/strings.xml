@@ -217,4 +217,13 @@
     <string name="block_confirm_message">对方将无法给你发消息。之后可以取消屏蔽。</string>
     <string name="block_success">已屏蔽该用户</string>
     <string name="block_failed">无法屏蔽该用户</string>
+
+    <string name="message_status_content_description">消息状态</string>
+    <string name="message_status_sending">发送中</string>
+    <string name="message_status_sent">已发送</string>
+    <string name="message_status_delivered">已送达</string>
+    <string name="message_status_read">已读</string>
+    <string name="message_status_failed">发送失败</string>
+    <string name="message_info_title">消息状态</string>
+    <string name="message_info_empty">暂无接收者</string>
 </resources>

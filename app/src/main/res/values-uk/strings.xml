@@ -217,4 +217,13 @@
     <string name="block_confirm_message">Він не зможе писати вам. Розблокувати можна пізніше.</string>
     <string name="block_success">Користувача заблоковано</string>
     <string name="block_failed">Не вдалося заблокувати користувача</string>
+
+    <string name="message_status_content_description">Статус повідомлення</string>
+    <string name="message_status_sending">Надсилається</string>
+    <string name="message_status_sent">Надіслано</string>
+    <string name="message_status_delivered">Доставлено</string>
+    <string name="message_status_read">Прочитано</string>
+    <string name="message_status_failed">Не надіслано</string>
+    <string name="message_info_title">Статус повідомлення</string>
+    <string name="message_info_empty">Поки немає отримувачів</string>
 </resources>

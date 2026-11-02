@@ -217,4 +217,13 @@
     <string name="block_confirm_message">No podrá enviarte mensajes. Puedes desbloquearlo más tarde.</string>
     <string name="block_success">Usuario bloqueado</string>
     <string name="block_failed">No se pudo bloquear al usuario</string>
+
+    <string name="message_status_content_description">Estado del mensaje</string>
+    <string name="message_status_sending">Enviando</string>
+    <string name="message_status_sent">Enviado</string>
+    <string name="message_status_delivered">Entregado</string>
+    <string name="message_status_read">Leído</string>
+    <string name="message_status_failed">No enviado</string>
+    <string name="message_info_title">Estado del mensaje</string>
+    <string name="message_info_empty">Aún no hay destinatarios</string>
 </resources>

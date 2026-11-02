@@ -4,8 +4,8 @@ import com.example.muzea.core.Resource
 import com.example.muzea.data.api.ChatApiService
 import com.example.muzea.data.httpError
 import com.example.muzea.data.httpOk
-import com.example.muzea.data.model.AddContactRequest
 import com.example.muzea.data.model.ContactResponse
+import com.example.muzea.data.model.ChatReceiptResponse
 import com.example.muzea.data.model.PageResponse
 import com.example.muzea.data.model.SendMessageRequest
 import com.example.muzea.data.mapper.toDomain
@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -206,4 +207,66 @@ class MessageRepositoryImplTest {
         height = 200,
         mp4Url = "https://cdn/gif.mp4"
     )
+
+    @Test
+    fun `markMessagesAsDelivered returns true on success and retries after 401`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.markMessagesAsDelivered("chat-1", "m1") } returnsMany listOf(
+            httpError(401),
+            httpOk(Unit)
+        )
+
+        assertTrue(repository.markMessagesAsDelivered("chat-1", "m1"))
+        coVerify(exactly = 2) { api.markMessagesAsDelivered("chat-1", "m1") }
+        verify(exactly = 1) { auth.invalidate() }
+    }
+
+    @Test
+    fun `markMessagesAsDelivered fails without a token or on error`() = runTest {
+        coEvery { auth.isAuthenticated() } returns false
+        assertFalse(repository.markMessagesAsDelivered("chat-1", "m1"))
+
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.markMessagesAsDelivered("chat-1", "m2") } returns httpError(500)
+        assertFalse(repository.markMessagesAsDelivered("chat-1", "m2"))
+    }
+
+    @Test
+    fun `loadChatReceipts maps participant watermarks`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.getChatReceipts("chat-1") } returns httpOk(
+            listOf(
+                ChatReceiptResponse(
+                    userUuid = "u1",
+                    username = "anna",
+                    fullName = "Anna",
+                    avatarUrl = null,
+                    joinedAt = "2026-01-01T10:00:00",
+                    lastDeliveredMessageId = 12,
+                    lastDeliveredAt = "2026-01-01T10:01:00",
+                    lastReadMessageId = 11,
+                    lastReadAt = "2026-01-01T10:02:00"
+                )
+            )
+        )
+
+        val receipts = repository.loadChatReceipts("chat-1")!!
+
+        assertEquals(1, receipts.size)
+        assertEquals("u1", receipts.single().userUuid)
+        assertEquals(12L, receipts.single().lastDeliveredMessageId)
+        assertEquals(11L, receipts.single().lastReadMessageId)
+    }
+
+    @Test
+    fun `loadChatReceipts returns null on http error and exception`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.getChatReceipts("chat-1") } returns httpError(500)
+
+        assertNull(repository.loadChatReceipts("chat-1"))
+
+        coEvery { api.getChatReceipts("chat-1") } throws IOException("offline")
+
+        assertNull(repository.loadChatReceipts("chat-1"))
+    }
 }

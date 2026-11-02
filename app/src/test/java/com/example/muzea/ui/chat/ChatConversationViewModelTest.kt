@@ -4,9 +4,11 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
+import com.example.muzea.domain.model.ChatReceipt
 import com.example.muzea.domain.model.Gif
 import com.example.muzea.domain.model.Message
 import com.example.muzea.domain.model.MessageAttachment
+import com.example.muzea.domain.model.MessageDeliveryStatus
 import com.example.muzea.data.repository.ChatMessagesCache
 import com.example.muzea.domain.repository.MessageRepository
 import com.example.muzea.domain.ChatUserIdentity
@@ -28,6 +30,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -42,11 +45,18 @@ class ChatConversationViewModelTest {
     private val messageRepository = mockk<MessageRepository>()
     private val chatUuid = "chat-1"
 
-    private fun message(uuid: String, text: String, createdAt: String) = Message(
+    private fun message(
+        uuid: String,
+        text: String,
+        createdAt: String,
+        messageId: Long? = null,
+        sender: String = "me"
+    ) = Message(
         messageUuid = uuid,
+        messageId = messageId,
         chatUuid = chatUuid,
         senderId = null,
-        senderUuid = "me",
+        senderUuid = sender,
         senderName = "Me",
         senderAvatar = null,
         text = text,
@@ -65,6 +75,8 @@ class ChatConversationViewModelTest {
         // mergeMessages() помечает переписку прочитанной; без заглушки строгий
         // mockk упадёт на неожиданном вызове.
         coEvery { messageRepository.markMessagesAsRead(any(), any()) } returns true
+        coEvery { messageRepository.markMessagesAsDelivered(any(), any()) } returns true
+        coEvery { messageRepository.loadChatReceipts(any()) } returns emptyList()
         every { messageRepository.cacheSentGif(any(), any(), any()) } returns Unit
     }
 
@@ -331,5 +343,58 @@ class ChatConversationViewModelTest {
         // Повторный вызов уже не ходит в сеть.
         viewModel.loadOlder()
         coVerify(exactly = 1) { messageRepository.loadMessagesBefore(any(), any(), any()) }
+    }
+
+    @Test
+    fun `receipts turn own message into read and acknowledge delivery`() = withViewModel(
+        network = flowOf(
+            Resource.Success(
+                listOf(message("m1", "hi", "2026-01-01T10:00:00", messageId = 10))
+            )
+        )
+    ) { viewModel ->
+        coEvery { messageRepository.loadChatReceipts(chatUuid) } returns listOf(
+            ChatReceipt(
+                userUuid = "other",
+                username = "anna",
+                fullName = "Anna",
+                avatarUrl = null,
+                joinedAt = "2025-01-01T00:00:00",
+                lastDeliveredMessageId = 10,
+                lastDeliveredAt = "2026-01-01T10:01:00",
+                lastReadMessageId = 10,
+                lastReadAt = "2026-01-01T10:02:00"
+            )
+        )
+
+        viewModel.refresh()
+
+        assertEquals(MessageDeliveryStatus.READ, viewModel.deliveryStatus("m1"))
+        coVerify { messageRepository.markMessagesAsDelivered(chatUuid, "m1") }
+        assertEquals("Anna", viewModel.participantStatuses(viewModel.uiState.value.messages.single()).single().receipt.displayName())
+    }
+
+    @Test
+    fun `failed send marks the optimistic message as failed`() = withViewModel { viewModel ->
+        coEvery { messageRepository.sendMessage(chatUuid, "hello") } returns flowOf(
+            Resource.Error("send failed")
+        )
+
+        viewModel.sendText("hello")
+
+        val local = viewModel.uiState.value.messages.single()
+        assertEquals(MessageDeliveryStatus.FAILED, viewModel.deliveryStatus(local.messageUuid))
+        assertTrue(local.messageUuid in viewModel.uiState.value.failedMessages)
+    }
+
+    @Test
+    fun `incoming message has no delivery status`() = withViewModel(
+        network = flowOf(
+            Resource.Success(
+                listOf(message("m1", "hi", "2026-01-01T10:00:00", messageId = 10, sender = "other"))
+            )
+        )
+    ) { viewModel ->
+        assertNull(viewModel.deliveryStatus("m1"))
     }
 }

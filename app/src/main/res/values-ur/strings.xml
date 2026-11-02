@@ -217,4 +217,13 @@
     <string name="block_confirm_message">وہ آپ کو پیغام نہیں بھیج سکے گا۔ آپ بعد میں بلاک ہٹا سکتے ہیں۔</string>
     <string name="block_success">صارف بلاک ہو گیا</string>
     <string name="block_failed">صارف کو بلاک نہیں کیا جا سکا</string>
+
+    <string name="message_status_content_description">پیغام کی حیثیت</string>
+    <string name="message_status_sending">بھیجا جا رہا ہے</string>
+    <string name="message_status_sent">بھیج دیا گیا</string>
+    <string name="message_status_delivered">پہنچا دیا گیا</string>
+    <string name="message_status_read">پڑھ لیا گیا</string>
+    <string name="message_status_failed">نہیں بھیجا گیا</string>
+    <string name="message_info_title">پیغام کی حیثیت</string>
+    <string name="message_info_empty">ابھی کوئی وصول کنندہ نہیں</string>
 </resources>

@@ -30,6 +30,8 @@ data class MessagePreview(
 
 data class Message(
     val messageUuid: String,
+    /** Серверный id сообщения; null у локальных, ещё не отправленных. */
+    val messageId: Long? = null,
     val chatUuid: String?,
     val senderId: Long?,
     val senderUuid: String?,
@@ -99,3 +101,35 @@ data class Presence(
 data class Avatar(
     val avatarUrl: String?
 )
+
+/** Статус своего сообщения в чате. */
+enum class MessageDeliveryStatus {
+    /** Ещё не подтверждено сервером (локальное сообщение). */
+    SENDING,
+    /** Отправка не удалась. */
+    FAILED,
+    /** Сервер принял сообщение. */
+    SENT,
+    /** Доставлено устройствам всех получателей. */
+    DELIVERED,
+    /** Прочитано всеми получателями. */
+    READ
+}
+
+/**
+ * Квитанция участника чата: докуда его устройство доставило и докуда он прочитал.
+ * [lastDeliveredMessageId] и [lastReadMessageId] сравниваются с [Message.messageId].
+ */
+data class ChatReceipt(
+    val userUuid: String?,
+    val username: String?,
+    val fullName: String?,
+    val avatarUrl: String?,
+    val joinedAt: String?,
+    val lastDeliveredMessageId: Long?,
+    val lastDeliveredAt: String?,
+    val lastReadMessageId: Long?,
+    val lastReadAt: String?
+) {
+    fun displayName(): String = fullName ?: username ?: "Participant"
+}

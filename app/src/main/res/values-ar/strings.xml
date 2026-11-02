@@ -217,4 +217,13 @@
     <string name="block_confirm_message">لن يتمكن من مراسلتك. يمكنك إلغاء الحظر لاحقًا.</string>
     <string name="block_success">تم حظر المستخدم</string>
     <string name="block_failed">تعذر حظر المستخدم</string>
+
+    <string name="message_status_content_description">حالة الرسالة</string>
+    <string name="message_status_sending">جارٍ الإرسال</string>
+    <string name="message_status_sent">تم الإرسال</string>
+    <string name="message_status_delivered">تم التسليم</string>
+    <string name="message_status_read">تمت القراءة</string>
+    <string name="message_status_failed">لم يتم الإرسال</string>
+    <string name="message_info_title">حالة الرسالة</string>
+    <string name="message_info_empty">لا يوجد مستلمون بعد</string>
 </resources>

@@ -4,6 +4,7 @@ import com.example.muzea.data.model.MessagePreview as MessagePreviewDto
 import com.example.muzea.domain.model.Avatar
 import com.example.muzea.domain.model.Chat
 import com.example.muzea.domain.model.ChatParticipant
+import com.example.muzea.domain.model.ChatReceipt
 import com.example.muzea.domain.model.Contact
 import com.example.muzea.domain.model.Message
 import com.example.muzea.domain.model.MessagePreview
@@ -38,6 +39,7 @@ fun MessagePreviewDto.toDomain(): MessagePreview = MessagePreview(
 
 fun com.example.muzea.data.model.MessageResponse.toDomain(): Message = Message(
     messageUuid = messageUuid,
+    messageId = messageId,
     chatUuid = chatUuid,
     senderId = senderId,
     senderUuid = senderUuid,
@@ -102,4 +104,16 @@ fun com.example.muzea.data.model.PresenceResponse.toDomain(): Presence = Presenc
 
 fun com.example.muzea.data.model.AvatarResponse.toDomain(): Avatar = Avatar(
     avatarUrl = avatarUrl
+)
+
+fun com.example.muzea.data.model.ChatReceiptResponse.toDomain(): ChatReceipt = ChatReceipt(
+    userUuid = userUuid,
+    username = username,
+    fullName = fullName,
+    avatarUrl = avatarUrl,
+    joinedAt = joinedAt,
+    lastDeliveredMessageId = lastDeliveredMessageId,
+    lastDeliveredAt = lastDeliveredAt,
+    lastReadMessageId = lastReadMessageId,
+    lastReadAt = lastReadAt
 )

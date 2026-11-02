@@ -217,4 +217,13 @@
     <string name="block_confirm_message">Ол сізге жаза алмайды. Кейінірек бұғаттан шығаруға болады.</string>
     <string name="block_success">Пайдаланушы бұғатталды</string>
     <string name="block_failed">Пайдаланушыны бұғаттау мүмкін болмады</string>
+
+    <string name="message_status_content_description">Хабарлама мәртебесі</string>
+    <string name="message_status_sending">Жіберілуде</string>
+    <string name="message_status_sent">Жіберілді</string>
+    <string name="message_status_delivered">Жеткізілді</string>
+    <string name="message_status_read">Оқылды</string>
+    <string name="message_status_failed">Жіберілмеді</string>
+    <string name="message_info_title">Хабарлама мәртебесі</string>
+    <string name="message_info_empty">Әзірге алушылар жоқ</string>
 </resources>

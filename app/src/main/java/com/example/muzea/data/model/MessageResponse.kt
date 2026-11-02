@@ -5,6 +5,9 @@ import com.google.gson.annotations.SerializedName
 data class MessageResponse(
     @SerializedName("messageUuid")
     val messageUuid: String,
+    /** Монотонный id в БД: по нему сравниваются watermark-и статусов. */
+    @SerializedName("messageId")
+    val messageId: Long? = null,
     @SerializedName("chatUuid")
     val chatUuid: String?,
     @SerializedName("senderId")

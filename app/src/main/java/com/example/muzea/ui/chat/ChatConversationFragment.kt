@@ -17,11 +17,13 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.example.muzea.domain.model.Message
+import com.example.muzea.domain.model.MessageDeliveryStatus
 import com.example.muzea.data.repository.LinkPreviewStore
 import com.example.muzea.databinding.FragmentChatConversationBinding
 import com.example.muzea.ui.common.ReportDialog
 import com.example.muzea.ui.navigation.navigator
 import com.example.muzea.utils.AvatarLoader
+import com.example.muzea.utils.LocalTimeFormatter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -41,6 +43,7 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
     private var unreadCount = 0L
     private var initialScrollDone = false
     private var pendingScrollPosition: Int? = null
+    private var lastStatuses: Map<String, MessageDeliveryStatus> = emptyMap()
 
     // Якорь при догрузке истории: сохраняем верхнее видимое сообщение и его
     // смещение, чтобы после вставки старых сообщений сверху вид не «прыгнул».
@@ -161,6 +164,26 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
             .show()
     }
 
+    /** Шторка «кто прочитал / кому доставлено» для своего сообщения. */
+    private fun showMessageInfo(message: Message) {
+        if (message.messageId == null) return
+        val rows = viewModel.participantStatuses(message).map { row ->
+            val at = if (row.status == MessageDeliveryStatus.READ) {
+                row.receipt.lastReadAt
+            } else {
+                row.receipt.lastDeliveredAt
+            }
+            MessageStatusRow(
+                name = row.receipt.displayName(),
+                avatarUrl = row.receipt.avatarUrl,
+                status = row.status.name,
+                at = LocalTimeFormatter.format(at).takeIf { it.isNotBlank() }
+            )
+        }
+        MessageInfoBottomSheet.newInstance(rows)
+            .show(childFragmentManager, "message_info")
+    }
+
     private fun copyMessage(text: String) {
         val clipboard = requireContext()
             .getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -202,9 +225,13 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
     }
 
     private fun setupRecyclerView() {
-        adapter = MessageAdapter(viewModel.myUserUuid, linkPreviewStore) { message ->
-            showMessageActions(message)
-        }
+        adapter = MessageAdapter(
+            myUserUuid = viewModel.myUserUuid,
+            linkPreviews = linkPreviewStore,
+            onMessageLongPress = { message -> showMessageActions(message) },
+            statusFor = { message -> viewModel.deliveryStatus(message.messageUuid) },
+            onStatusClick = { message -> showMessageInfo(message) }
+        )
         adapter.registerAdapterDataObserver(scrollObserver)
         binding.recyclerViewMessages.apply {
             // stackFromEnd держит ленту «прижатой» к низу: при открытии клавиатуры
@@ -322,6 +349,12 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
                 binding.progressHistory.visibility =
                     if (state.isLoadingMore) View.VISIBLE else View.GONE
                 adapter.updateList(messages)
+                // Статусы приходят отдельным полем состояния: список сообщений
+                // при этом не меняется, поэтому DiffUtil сам строки не обновит.
+                if (state.statuses != lastStatuses) {
+                    lastStatuses = state.statuses
+                    adapter.notifyItemRangeChanged(0, messages.size)
+                }
                 updateEmptyState(messages)
                 renderConversationState(state)
 

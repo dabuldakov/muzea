@@ -217,4 +217,13 @@
     <string name="block_confirm_message">Тэр танд бичих боломжгүй болно. Дараа нь хаалтыг нээж болно.</string>
     <string name="block_success">Хэрэглэгчийг хаалаа</string>
     <string name="block_failed">Хэрэглэгчийг хаах боломжгүй</string>
+
+    <string name="message_status_content_description">Мессежийн төлөв</string>
+    <string name="message_status_sending">Илгээж байна</string>
+    <string name="message_status_sent">Илгээсэн</string>
+    <string name="message_status_delivered">Хүргэсэн</string>
+    <string name="message_status_read">Уншсан</string>
+    <string name="message_status_failed">Илгээгээгүй</string>
+    <string name="message_info_title">Мессежийн төлөв</string>
+    <string name="message_info_empty">Хүлээн авагч байхгүй</string>
 </resources>

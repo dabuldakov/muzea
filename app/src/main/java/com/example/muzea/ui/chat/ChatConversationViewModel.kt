@@ -3,9 +3,11 @@ package com.example.muzea.ui.chat
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.muzea.domain.model.ChatReceipt
 import com.example.muzea.domain.model.Gif
 import com.example.muzea.domain.model.Message
 import com.example.muzea.domain.model.MessageAttachment
+import com.example.muzea.domain.model.MessageDeliveryStatus
 import com.example.muzea.domain.repository.MessageRepository
 import com.example.muzea.domain.ChatUserIdentity
 import com.example.muzea.domain.chat.ChatMessageReducer
@@ -29,7 +31,15 @@ data class ChatConversationUiState(
     val isLoading: Boolean = false,
     val isLoadingMore: Boolean = false,
     val historyReached: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    /** Квитанции участников: из них считаются галочки и «кто прочитал». */
+    val receipts: List<ChatReceipt> = emptyList(),
+    /** true после первой успешной загрузки квитанций. */
+    val receiptsLoaded: Boolean = false,
+    /** Статус своих сообщений: uuid → галочка. */
+    val statuses: Map<String, MessageDeliveryStatus> = emptyMap(),
+    /** Локальные сообщения, отправка которых не удалась. */
+    val failedMessages: Set<String> = emptySet()
 )
 
 @HiltViewModel
@@ -58,6 +68,7 @@ class ChatConversationViewModel @Inject constructor(
 
     private var pollingJob: Job? = null
     private var lastMarkedReadUuid: String? = null
+    private var lastMarkedDeliveredUuid: String? = null
 
     init {
         // Опрос сам выполняет первый запрос, поэтому отдельный refresh() в init
@@ -119,6 +130,7 @@ class ChatConversationViewModel @Inject constructor(
                     val incoming = result.data ?: emptyList()
                     cacheNewGifs(incoming)
                     mergeMessages(incoming)
+                    refreshReceipts()
                 }
 
                 is Resource.Error -> _uiState.value =
@@ -156,6 +168,7 @@ class ChatConversationViewModel @Inject constructor(
                         applyServerEcho(optimistic.messageUuid, result.data!!)
                     }
                     is Resource.Error -> {
+                        markFailed(optimistic.messageUuid)
                         _sendError.emit(result.message ?: "Failed to send message")
                     }
                     is Resource.Loading -> {}
@@ -200,8 +213,10 @@ class ChatConversationViewModel @Inject constructor(
             messageRepository.sendGif(chatUuid, gif).collect { result ->
                 when (result) {
                     is Resource.Success -> applyServerEcho(optimistic.messageUuid, result.data!!)
-                    is Resource.Error ->
+                    is Resource.Error -> {
+                        markFailed(optimistic.messageUuid)
                         _sendError.emit(result.message ?: "Failed to send GIF")
+                    }
                     is Resource.Loading -> {}
                 }
             }
@@ -215,10 +230,20 @@ class ChatConversationViewModel @Inject constructor(
      * при отправке список мигал. Теперь это обычное изменение содержимого.
      */
     private fun applyServerEcho(localUuid: String, serverMessage: Message) {
-        _uiState.value = _uiState.value.copy(
-            messages = reducer.applyServerEcho(_uiState.value.messages, localUuid, serverMessage)
+        _uiState.value = withStatuses(
+            _uiState.value.copy(
+                messages = reducer.applyServerEcho(_uiState.value.messages, localUuid, serverMessage),
+                failedMessages = _uiState.value.failedMessages - localUuid
+            )
         )
         markLatestAsRead()
+        markLatestAsDelivered()
+    }
+
+    private fun markFailed(localUuid: String) {
+        _uiState.value = withStatuses(
+            _uiState.value.copy(failedMessages = _uiState.value.failedMessages + localUuid)
+        )
     }
 
     /**
@@ -254,11 +279,64 @@ class ChatConversationViewModel @Inject constructor(
             attachments.any { it.type?.equals("GIF", ignoreCase = true) == true }
 
     private fun mergeMessages(incoming: List<Message>) {
-        _uiState.value = _uiState.value.copy(
-            messages = reducer.merge(_uiState.value.messages, incoming)
+        _uiState.value = withStatuses(
+            _uiState.value.copy(messages = reducer.merge(_uiState.value.messages, incoming))
         )
         markLatestAsRead()
+        markLatestAsDelivered()
     }
+
+    /**
+     * Подтверждает доставку ленты до последнего полученного сообщения.
+     * Watermark на сервере двигается только вперёд, поэтому повторный вызов
+     * безопасен.
+     */
+    private fun markLatestAsDelivered() {
+        val latest = _uiState.value.messages.lastOrNull {
+            it.messageId != null && !it.messageUuid.startsWith(LOCAL_PREFIX)
+        } ?: return
+        if (latest.messageUuid == lastMarkedDeliveredUuid) return
+        lastMarkedDeliveredUuid = latest.messageUuid
+        viewModelScope.launch {
+            if (!messageRepository.markMessagesAsDelivered(chatUuid, latest.messageUuid)) {
+                lastMarkedDeliveredUuid = null
+            }
+        }
+    }
+
+    /**
+     * Подтягивает квитанции участников вместе с очередным опросом сообщений.
+     * Ошибку не показываем: галочки просто останутся на прошлом значении.
+     */
+    private suspend fun refreshReceipts() {
+        val receipts = messageRepository.loadChatReceipts(chatUuid) ?: return
+        _uiState.value = withStatuses(
+            _uiState.value.copy(receipts = receipts, receiptsLoaded = true)
+        )
+    }
+
+    private fun withStatuses(state: ChatConversationUiState): ChatConversationUiState =
+        state.copy(
+            statuses = MessageStatusCalculator.statuses(
+                messages = state.messages,
+                receipts = state.receipts,
+                myUserUuid = myUserUuid,
+                failedMessages = state.failedMessages,
+                receiptsLoaded = state.receiptsLoaded
+            )
+        )
+
+    /** Статус сообщения для адаптера; null — у входящих и пока неизвестных. */
+    fun deliveryStatus(messageUuid: String): MessageDeliveryStatus? =
+        _uiState.value.statuses[messageUuid]
+
+    /** Кто прочитал/получил сообщение — для шторки статуса. */
+    fun participantStatuses(message: Message): List<ParticipantDeliveryStatus> =
+        MessageStatusCalculator.participantStatuses(
+            message = message,
+            receipts = _uiState.value.receipts,
+            myUserUuid = myUserUuid
+        )
 
     private fun markLatestAsRead() {
         val latest = _uiState.value.messages.lastOrNull {

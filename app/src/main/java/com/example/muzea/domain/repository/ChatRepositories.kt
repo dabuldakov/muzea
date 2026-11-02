@@ -41,6 +41,12 @@ interface MessageRepository {
     suspend fun sendGif(chatUuid: String, gif: Gif): Flow<Resource<Message>>
     suspend fun markMessagesAsRead(chatUuid: String, upToMessageUuid: String): Boolean
 
+    /** Подтверждает доставку всей ленты до [upToMessageUuid] на это устройство. */
+    suspend fun markMessagesAsDelivered(chatUuid: String, upToMessageUuid: String): Boolean
+
+    /** Квитанции участников чата; null — если загрузить не удалось. */
+    suspend fun loadChatReceipts(chatUuid: String): List<com.example.muzea.domain.model.ChatReceipt>?
+
     /** Живое обновление кэша гифок: добавить гифку из переписки без сети. */
     fun cacheSentGif(chatUuid: String, gif: Gif, mine: Boolean)
 

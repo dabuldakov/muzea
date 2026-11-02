@@ -3,6 +3,7 @@ package com.example.muzea.data.mapper
 import com.example.muzea.data.model.AttachmentResponse
 import com.example.muzea.data.model.AvatarResponse
 import com.example.muzea.data.model.ChatParticipantResponse
+import com.example.muzea.data.model.ChatReceiptResponse
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.model.ContactResponse
 import com.example.muzea.data.model.MessagePreview
@@ -186,4 +187,31 @@ class MappersTest {
             height = 200,
             gifKey = gifKey
         )
+
+    @Test
+    fun `message id is preserved for status comparisons`() {
+        val message = message(attachments = null).copy(messageId = 42).toDomain()
+
+        assertEquals(42L, message.messageId)
+    }
+
+    @Test
+    fun `receipt response maps all watermark fields`() {
+        val receipt = ChatReceiptResponse(
+            userUuid = "u1",
+            username = "anna",
+            fullName = "Anna",
+            avatarUrl = "https://a/1.jpg",
+            joinedAt = "2026-01-01T10:00:00",
+            lastDeliveredMessageId = 12,
+            lastDeliveredAt = "2026-01-01T10:01:00",
+            lastReadMessageId = 11,
+            lastReadAt = "2026-01-01T10:02:00"
+        ).toDomain()
+
+        assertEquals("u1", receipt.userUuid)
+        assertEquals("Anna", receipt.displayName())
+        assertEquals(12L, receipt.lastDeliveredMessageId)
+        assertEquals(11L, receipt.lastReadMessageId)
+    }
 }

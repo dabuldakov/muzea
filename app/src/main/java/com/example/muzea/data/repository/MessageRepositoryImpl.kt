@@ -161,6 +161,40 @@ class MessageRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun markMessagesAsDelivered(
+        chatUuid: String,
+        upToMessageUuid: String
+    ): Boolean {
+        return try {
+            chatAuthManager.authenticatedRequest {
+                apiService.markMessagesAsDelivered(chatUuid, upToMessageUuid)
+            }.isSuccessful
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    override suspend fun loadChatReceipts(
+        chatUuid: String
+    ): List<com.example.muzea.domain.model.ChatReceipt>? {
+        return try {
+            val response = chatAuthManager.authenticatedRequest {
+                apiService.getChatReceipts(chatUuid)
+            }
+            if (response.isSuccessful) {
+                response.body()?.map { it.toDomain() }.orEmpty()
+            } else {
+                null
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     override suspend fun reportMessage(messageUuid: String, reason: String): Boolean {
         return try {
             chatAuthManager.authenticatedRequest {

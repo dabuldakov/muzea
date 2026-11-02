@@ -217,4 +217,13 @@
     <string name="block_confirm_message">वे आपको संदेश नहीं भेज पाएंगे। आप बाद में अनब्लॉक कर सकते हैं।</string>
     <string name="block_success">उपयोगकर्ता ब्लॉक कर दिया गया</string>
     <string name="block_failed">उपयोगकर्ता को ब्लॉक नहीं किया जा सका</string>
+
+    <string name="message_status_content_description">संदेश स्थिति</string>
+    <string name="message_status_sending">भेजा जा रहा है</string>
+    <string name="message_status_sent">भेजा गया</string>
+    <string name="message_status_delivered">पहुँच गया</string>
+    <string name="message_status_read">पढ़ा गया</string>
+    <string name="message_status_failed">नहीं भेजा गया</string>
+    <string name="message_info_title">संदेश स्थिति</string>
+    <string name="message_info_empty">अभी कोई प्राप्तकर्ता नहीं</string>
 </resources>

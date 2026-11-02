@@ -6,6 +6,7 @@ import com.example.muzea.data.model.AvatarResponse
 import com.example.muzea.data.model.BlockUserRequest
 import com.example.muzea.data.model.ChatParticipantResponse
 import com.example.muzea.data.model.ChatReportRequest
+import com.example.muzea.data.model.ChatReceiptResponse
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.model.ChatUserResponse
 import com.example.muzea.data.model.ContactResponse
@@ -150,6 +151,19 @@ interface ChatApiService {
         @Path("chatUuid") chatUuid: String,
         @Query("upToMessageUuid") upToMessageUuid: String
     ): Response<Unit>
+
+    /** Подтверждение доставки всей ленты до указанного сообщения. */
+    @POST("/api/messages/{chatUuid}/delivered")
+    suspend fun markMessagesAsDelivered(
+        @Path("chatUuid") chatUuid: String,
+        @Query("upToMessageUuid") upToMessageUuid: String
+    ): Response<Unit>
+
+    /** Квитанции участников: докуда доставлено и докуда прочитано. */
+    @GET("/api/chats/{chatUuid}/receipts")
+    suspend fun getChatReceipts(
+        @Path("chatUuid") chatUuid: String
+    ): Response<List<ChatReceiptResponse>>
 
     @POST("/api/reports")
     suspend fun reportContent(
