@@ -60,10 +60,24 @@
 
 ## 3. Осталось для Play
 
-- [ ] Загрузить `muzea-legal` на хостинг и проверить `/delete-account`.
+- [ ] Загрузить `muzea-legal` на хостинг и проверить `/delete-account`
+      (архив `muzea-site.zip`, скрипты `deploy.sh` / `verify.sh`).
 - [ ] Указать URL удаления аккаунта в Play Console.
 - [ ] Заполнить Data safety: жалобы и удаление аккаунта.
 - [ ] Добавить тестовый доступ для ревьюера (OTP-вход): временный аккаунт или
       фиксированный код только для review-сборки.
 - [ ] Проверить, что в Play Console указана ссылка на политику конфиденциальности
       и контакт разработчика.
+
+## 4. Релиз
+
+| Версия | versionCode | Тег | Артефакты |
+|--------|-------------|-----|-----------|
+| 1.7.4 | 32 | `v1.7.4` | `muzea-1.7.4.apk`, `muzea-1.7.4.aab` |
+
+Сборка релиза: https://github.com/dabuldakov/muzea/releases/tag/v1.7.4
+
+Файлы сайта для загрузки: `index.html`, `lang.js`, `icon-512.png`,
+`icon-512.webp`, `privacy/index.html`, `terms/index.html`,
+`delete-account/index.html`, `en/index.html`, `en/privacy/index.html`,
+`en/terms/index.html`, `en/delete-account/index.html`.
