@@ -100,7 +100,13 @@ class ContactListFragment : Fragment() {
     }
 
     private fun setupSwipeRefresh() {
-        binding.swipeRefresh.setOnRefreshListener { loadContacts() }
+        binding.swipeRefresh.setOnRefreshListener {
+            loadContacts()
+            viewLifecycleOwner.lifecycleScope.launch {
+                viewModel.awaitContactsLoaded()
+                binding.swipeRefresh.isRefreshing = false
+            }
+        }
     }
 
     private fun setupFab() {

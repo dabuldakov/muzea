@@ -9,6 +9,7 @@ import com.example.muzea.domain.usecase.OpenPrivateChatUseCase
 import com.example.muzea.core.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -37,11 +38,16 @@ class ContactViewModel @Inject constructor(
     private val _addContactResult = MutableSharedFlow<Resource<Contact>>()
     val addContactResult: SharedFlow<Resource<Contact>> = _addContactResult.asSharedFlow()
 
+    private var contactsJob: Job? = null
+
     private val _createChatResult = MutableSharedFlow<Resource<Chat>>()
     val createChatResult: SharedFlow<Resource<Chat>> = _createChatResult.asSharedFlow()
 
     fun loadContacts() {
-        viewModelScope.launch {
+        // Защита от наложения запросов: pull-to-refresh и onResume могут
+        // сработать одновременно.
+        if (contactsJob?.isActive == true) return
+        contactsJob = viewModelScope.launch {
             contactRepository.loadContacts().collect { result ->
                 when (result) {
                     is Resource.Loading -> _uiState.value =
@@ -60,6 +66,16 @@ class ContactViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /**
+     * Дождаться текущей загрузки — для pull-to-refresh.
+     *
+     * StateFlow не эмитит одинаковое состояние, поэтому по нему нельзя
+     * определить момент завершения запроса, и спиннер мог висеть вечно.
+     */
+    suspend fun awaitContactsLoaded() {
+        contactsJob?.join()
     }
 
     /** Ошибку показали — сбрасываем, чтобы не повторялась. */

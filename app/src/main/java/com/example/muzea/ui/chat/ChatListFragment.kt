@@ -125,7 +125,14 @@ class ChatListFragment : Fragment() {
 
     private fun setupSwipeRefresh() {
         binding.swipeRefresh.setOnRefreshListener {
-            loadChats()
+            viewModel.loadChats()
+            // Скрываем спиннер по завершении запроса, а не по изменению
+            // состояния: одинаковый ответ StateFlow не эмитит, и индикатор
+            // иначе остаётся крутиться навсегда.
+            viewLifecycleOwner.lifecycleScope.launch {
+                viewModel.awaitChatsLoaded()
+                binding.swipeRefresh.isRefreshing = false
+            }
         }
     }
 

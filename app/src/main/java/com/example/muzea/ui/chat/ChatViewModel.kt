@@ -94,6 +94,17 @@ class ChatViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(error = null)
     }
 
+    /**
+     * Дождаться завершения текущей загрузки списка.
+     *
+     * Нужно для pull-to-refresh: StateFlow не эмитит одинаковое состояние,
+     * поэтому по нему нельзя понять, что запрос закончился, и спиннер
+     * SwipeRefreshLayout мог висеть бесконечно.
+     */
+    suspend fun awaitChatsLoaded() {
+        chatsJob?.join()
+    }
+
     fun loadContacts() {
         viewModelScope.launch {
             contactRepository.loadContacts().collect { result ->

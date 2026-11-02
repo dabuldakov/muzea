@@ -9,11 +9,13 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -177,6 +179,33 @@ class ChatViewModelTest {
 
         assertTrue(viewModel.uiState.value.chats.isEmpty())
         assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `awaitChatsLoaded finishes only after the request completes`() = runTest {
+        every { chatRepository.cachedChats() } returns listOf(chat("same"))
+        val gate = CompletableDeferred<Unit>()
+        coEvery { chatRepository.loadChats() } returns flow {
+            emit(Resource.Loading())
+            gate.await()
+            // Тот же список: StateFlow не эмитит новое состояние, поэтому
+            // спиннер нельзя скрывать по подписке — только по завершении job.
+            emit(Resource.Success(listOf(chat("same"))))
+        }
+
+        val viewModel = ChatViewModel(chatRepository, contactRepository)
+        viewModel.loadChats()
+
+        var awaited = false
+        val waiter = launch {
+            viewModel.awaitChatsLoaded()
+            awaited = true
+        }
+
+        assertFalse(awaited)
+        gate.complete(Unit)
+        waiter.join()
+        assertTrue(awaited)
     }
 
 }

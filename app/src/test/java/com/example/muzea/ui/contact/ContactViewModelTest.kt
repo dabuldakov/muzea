@@ -11,10 +11,12 @@ import com.example.muzea.core.Resource
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
@@ -151,5 +153,29 @@ class ContactViewModelTest {
         viewModel.refreshPresence()
 
         assertTrue(viewModel.uiState.value.contacts.single().isOnline)
+    }
+
+    @Test
+    fun `awaitContactsLoaded finishes only after the request completes`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        coEvery { contactRepository.loadContacts() } returns flow {
+            emit(Resource.Loading())
+            gate.await()
+            // Тот же список: StateFlow не эмитит состояние повторно.
+            emit(Resource.Success(listOf(contact("a"))))
+        }
+        val viewModel = ContactViewModel(contactRepository, OpenPrivateChatUseCase(chatRepository))
+        viewModel.loadContacts()
+
+        var awaited = false
+        val waiter = launch {
+            viewModel.awaitContactsLoaded()
+            awaited = true
+        }
+
+        assertFalse(awaited)
+        gate.complete(Unit)
+        waiter.join()
+        assertTrue(awaited)
     }
 }
