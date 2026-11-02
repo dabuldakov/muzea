@@ -9,9 +9,11 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import retrofit2.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
 
 class GifRepositoryCacheTest {
 
@@ -56,5 +58,31 @@ class GifRepositoryCacheTest {
         repository.chatGifs("c1", 0, 30)
 
         coVerify(exactly = 1) { chatApiService.getChatGifs("c1", 0, 30) }
+    }
+
+    @Test
+    fun `pages after the first are never cached`() = runTest {
+        coEvery { chatApiService.getRecentGifs(1, 30) } returns Response.success(listOf(response("b")))
+
+        repository.recent(1, 30)
+        repository.recent(1, 30)
+
+        coVerify(exactly = 2) { chatApiService.getRecentGifs(1, 30) }
+    }
+
+    @Test
+    fun `first page failure without cache returns an empty list`() = runTest {
+        coEvery { chatApiService.getRecentGifs(0, 30) } returns
+            Response.error(500, "boom".toResponseBody())
+
+        assertTrue(repository.recent(0, 30).isEmpty())
+    }
+
+    @Test
+    fun `chat gifs failure returns an empty list`() = runTest {
+        coEvery { chatApiService.getChatGifs("c1", 0, 30) } returns
+            Response.error(500, "boom".toResponseBody())
+
+        assertTrue(repository.chatGifs("c1", 0, 30).isEmpty())
     }
 }

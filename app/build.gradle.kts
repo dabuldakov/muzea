@@ -69,6 +69,8 @@ android {
 
     buildTypes {
         debug {
+            // Отчёт покрытия unit-тестами: ./gradlew :app:createDebugUnitTestCoverageReport
+            enableUnitTestCoverage = true
             // Тот же ключ, что и у релиза. Иначе сборка из Android Studio не
             // встанет поверх установленной релизной (INSTALL_FAILED_UPDATE_
             // INCOMPATIBLE), а релизная — поверх отладочной. Флаг DEBUGGABLE
@@ -121,6 +123,9 @@ android {
             // Нужно Robolectric: тесты кэша работают с реальным Context
             // (cacheDir, externalCacheDirs) и ресурсами приложения.
             isIncludeAndroidResources = true
+            // android.util.Log и подобные заглушки не должны ронять тесты,
+            // которые проверяют логику, а не Android-рантайм.
+            isReturnDefaultValues = true
         }
     }
 }

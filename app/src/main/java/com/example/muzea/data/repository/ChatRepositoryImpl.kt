@@ -36,12 +36,8 @@ class ChatRepositoryImpl @Inject constructor(
                 return@flow
             }
 
-            var response = apiService.getChats()
-            if (response.code() == 401) {
-                chatAuthManager.invalidate()
-                if (chatAuthManager.isAuthenticated()) {
-                    response = apiService.getChats()
-                }
+            val response = chatAuthManager.retryOnceAfterUnauthorized {
+                apiService.getChats()
             }
 
             if (response.isSuccessful && response.body() != null) {
@@ -70,12 +66,8 @@ class ChatRepositoryImpl @Inject constructor(
                 return@flow
             }
 
-            var response = apiService.getChatParticipants(chatUuid)
-            if (response.code() == 401) {
-                chatAuthManager.invalidate()
-                if (chatAuthManager.isAuthenticated()) {
-                    response = apiService.getChatParticipants(chatUuid)
-                }
+            val response = chatAuthManager.retryOnceAfterUnauthorized {
+                apiService.getChatParticipants(chatUuid)
             }
 
             if (response.isSuccessful && response.body() != null) {
@@ -98,12 +90,8 @@ class ChatRepositoryImpl @Inject constructor(
                 return@flow
             }
 
-            var response = apiService.createPrivateChat(CreatePrivateChatRequest(userUuid))
-            if (response.code() == 401) {
-                chatAuthManager.invalidate()
-                if (chatAuthManager.isAuthenticated()) {
-                    response = apiService.createPrivateChat(CreatePrivateChatRequest(userUuid))
-                }
+            val response = chatAuthManager.retryOnceAfterUnauthorized {
+                apiService.createPrivateChat(CreatePrivateChatRequest(userUuid))
             }
 
             if (response.isSuccessful && response.body() != null) {
@@ -172,12 +160,8 @@ class ChatRepositoryImpl @Inject constructor(
                 return@flow
             }
 
-            var response = apiService.createGroupChat(CreateGroupChatRequest(title, memberUuids))
-            if (response.code() == 401) {
-                chatAuthManager.invalidate()
-                if (chatAuthManager.isAuthenticated()) {
-                    response = apiService.createGroupChat(CreateGroupChatRequest(title, memberUuids))
-                }
+            val response = chatAuthManager.retryOnceAfterUnauthorized {
+                apiService.createGroupChat(CreateGroupChatRequest(title, memberUuids))
             }
 
             if (response.isSuccessful && response.body() != null) {
@@ -203,18 +187,11 @@ class ChatRepositoryImpl @Inject constructor(
                 return@flow
             }
 
-            var response = apiService.addGroupParticipants(
-                chatUuid,
-                AddGroupParticipantsRequest(memberUuids)
-            )
-            if (response.code() == 401) {
-                chatAuthManager.invalidate()
-                if (chatAuthManager.isAuthenticated()) {
-                    response = apiService.addGroupParticipants(
-                        chatUuid,
-                        AddGroupParticipantsRequest(memberUuids)
-                    )
-                }
+            val response = chatAuthManager.retryOnceAfterUnauthorized {
+                apiService.addGroupParticipants(
+                    chatUuid,
+                    AddGroupParticipantsRequest(memberUuids)
+                )
             }
 
             if (response.isSuccessful) {

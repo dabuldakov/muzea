@@ -9,16 +9,20 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -142,5 +146,91 @@ class NewsViewModelTest {
         viewModel.loadNews(pageSize = 20, ownUsername = null)
 
         assertTrue(viewModel.feedState.value.news.isEmpty())
+    }
+
+    @Test
+    fun `pull-to-refresh flag is set during the request and cleared after`() = runTest {
+        coEvery { contactRepository.loadContacts() } returns flowOf(Resource.Success(emptyList()))
+        val gate = CompletableDeferred<Unit>()
+        coEvery { newsRepository.getNews(any(), any()) } returns flow {
+            emit(Resource.Loading())
+            gate.await()
+            emit(Resource.Success(listOf(news(1, "vovan"))))
+        }
+
+        val viewModel = NewsViewModel(newsRepository, contactRepository)
+        viewModel.loadNews(ownUsername = "vovan", fromRefresh = true)
+
+        assertTrue(viewModel.feedState.value.isRefreshing)
+
+        gate.complete(Unit)
+
+        assertFalse(viewModel.feedState.value.isRefreshing)
+        assertFalse(viewModel.feedState.value.isLoading)
+        assertEquals(listOf(1L), viewModel.feedState.value.news.map { it.id })
+    }
+
+    @Test
+    fun `consumeError clears the message`() = runTest {
+        coEvery { contactRepository.loadContacts() } returns flowOf(Resource.Success(emptyList()))
+        coEvery { newsRepository.getNews(any(), any()) } returns flowOf(Resource.Error("down"))
+        val viewModel = NewsViewModel(newsRepository, contactRepository)
+        viewModel.loadNews(ownUsername = "vovan")
+
+        assertTrue(viewModel.feedState.value.error != null)
+
+        viewModel.consumeError()
+
+        assertNull(viewModel.feedState.value.error)
+    }
+
+    @Test
+    fun `loadMoreNews does not request a new page after the end`() = runTest {
+        coEvery { contactRepository.loadContacts() } returns flowOf(Resource.Success(emptyList()))
+        coEvery { newsRepository.getNews(0, 20) } returns
+            flowOf(Resource.Success(listOf(news(1, "vovan"))))
+        val viewModel = NewsViewModel(newsRepository, contactRepository)
+        viewModel.loadNews(pageSize = 20, ownUsername = "vovan")
+
+        viewModel.loadMoreNews()
+
+        coVerify(exactly = 1) { newsRepository.getNews(any(), any()) }
+    }
+
+    @Test
+    fun `detail create and delete results are forwarded`() = runTest {
+        coEvery { newsRepository.getNewsById(1L) } returns flowOf(Resource.Success(news(1, "vovan")))
+        coEvery { newsRepository.createNews(any(), any(), any(), any()) } returns
+            flowOf(Resource.Success(5L))
+        coEvery { newsRepository.deleteNews(1L) } returns flowOf(Resource.Success(Unit))
+        val viewModel = NewsViewModel(newsRepository, contactRepository)
+
+        val details = mutableListOf<Resource<News>>()
+        val creates = mutableListOf<Resource<Long>>()
+        val deletes = mutableListOf<Resource<Unit>>()
+        val collectors = listOf(
+            launch(Dispatchers.Unconfined) { viewModel.newsDetailResult.collect { details += it } },
+            launch(Dispatchers.Unconfined) { viewModel.createNewsResult.collect { creates += it } },
+            launch(Dispatchers.Unconfined) { viewModel.deleteNewsResult.collect { deletes += it } }
+        )
+
+        viewModel.loadNewsById(1L)
+        viewModel.createNews("t", "c", null, null)
+        viewModel.deleteNews(1L)
+
+        assertTrue(details.last() is Resource.Success)
+        assertEquals(5L, (creates.last() as Resource.Success).data)
+        assertTrue(deletes.last() is Resource.Success)
+        collectors.forEach { it.cancel() }
+    }
+
+    @Test
+    fun `reportNews delegates to the repository`() = runTest {
+        coEvery { newsRepository.reportNews(1L, "SPAM") } returns true
+        val viewModel = NewsViewModel(newsRepository, contactRepository)
+
+        assertTrue(viewModel.reportNews(1L, "SPAM"))
+
+        coVerify(exactly = 1) { newsRepository.reportNews(1L, "SPAM") }
     }
 }

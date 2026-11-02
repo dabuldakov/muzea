@@ -9,15 +9,22 @@ import com.example.muzea.domain.repository.ChatRepository
 import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.ui.news.MainDispatcherRule
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import java.io.File
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class GroupSettingsViewModelTest {
@@ -80,5 +87,79 @@ class GroupSettingsViewModelTest {
 
         viewModel.consumeError()
         assertNull(viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `own uuid comes from the chat identity`() {
+        assertEquals("me", viewModel().myUserUuid)
+    }
+
+    @Test
+    fun `contacts result is forwarded to the screen`() = runTest {
+        coEvery { contactRepository.loadContacts() } returns flowOf(
+            Resource.Success(emptyList())
+        )
+        val viewModel = viewModel()
+        val results = mutableListOf<Resource<List<com.example.muzea.domain.model.Contact>>>()
+        val collector = launch(Dispatchers.Unconfined) {
+            viewModel.contactsResult.collect { results += it }
+        }
+
+        viewModel.loadContacts()
+
+        assertTrue(results.last() is Resource.Success)
+        collector.cancel()
+    }
+
+    @Test
+    fun `addMembers forwards the repository result`() = runTest {
+        coEvery { chatRepository.addGroupParticipants("chat-1", listOf("a", "b")) } returns
+            flowOf(Resource.Success(Unit))
+        val viewModel = viewModel()
+        val results = mutableListOf<Resource<Unit>>()
+        val collector = launch(Dispatchers.Unconfined) {
+            viewModel.addParticipantsResult.collect { results += it }
+        }
+
+        viewModel.addMembers(listOf("a", "b"))
+
+        assertTrue(results.last() is Resource.Success)
+        coVerify(exactly = 1) { chatRepository.addGroupParticipants("chat-1", listOf("a", "b")) }
+        collector.cancel()
+    }
+
+    @Test
+    fun `avatar upload emits the url and deletes the temporary file`() = runTest {
+        coEvery { avatarRepository.uploadChatAvatar("chat-1", any(), "image/jpeg") } returns
+            flowOf(Resource.Success("https://a/group.jpg"))
+        val viewModel = viewModel()
+        val results = mutableListOf<Resource<String>>()
+        val collector = launch(Dispatchers.Unconfined) {
+            viewModel.avatarState.collect { results += it }
+        }
+        val file = File.createTempFile("group-avatar", ".jpg").apply { deleteOnExit() }
+
+        viewModel.uploadAvatar(file, "image/jpeg")
+
+        assertEquals("https://a/group.jpg", (results.last() as Resource.Success).data)
+        assertFalse(file.exists())
+        collector.cancel()
+    }
+
+    @Test
+    fun `upload while active drops the file without a request`() = runTest {
+        coEvery { avatarRepository.uploadChatAvatar("chat-1", any(), any()) } returns flow {
+            emit(Resource.Loading())
+            awaitCancellation()
+        }
+        val viewModel = viewModel()
+        val first = File.createTempFile("group-avatar", ".jpg").apply { deleteOnExit() }
+        val second = File.createTempFile("group-avatar", ".jpg").apply { deleteOnExit() }
+
+        viewModel.uploadAvatar(first, "image/jpeg")
+        viewModel.uploadAvatar(second, "image/jpeg")
+
+        assertFalse(second.exists())
+        coVerify(exactly = 1) { avatarRepository.uploadChatAvatar("chat-1", any(), any()) }
     }
 }

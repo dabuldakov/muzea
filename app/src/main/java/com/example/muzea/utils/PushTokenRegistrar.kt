@@ -1,9 +1,9 @@
 package com.example.muzea.utils
 
+import com.example.muzea.core.DispatcherProvider
 import com.example.muzea.data.repository.ChatAuthManager
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -16,7 +16,8 @@ import javax.inject.Singleton
 @Singleton
 class PushTokenRegistrar @Inject constructor(
     private val tokenManager: TokenManager,
-    private val chatAuthManager: ChatAuthManager
+    private val chatAuthManager: ChatAuthManager,
+    private val dispatchers: DispatcherProvider
 ) {
 
     fun sync() {
@@ -28,7 +29,9 @@ class PushTokenRegistrar @Inject constructor(
         tokenManager.saveFcmToken(token)
         tokenManager.saveRegisteredFcmToken("")
 
-        CoroutineScope(Dispatchers.IO).launch {
+        // Отправка идёт через ChatAuthManager: он сам зарегистрирует токен,
+        // когда пользователь авторизован, и повторит позже, если нет.
+        CoroutineScope(dispatchers.io).launch {
             chatAuthManager.isAuthenticated()
         }
     }

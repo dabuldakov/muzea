@@ -1,8 +1,6 @@
 package com.example.muzea.utils
 
-import android.app.Application
 import android.content.Context
-import androidx.test.core.app.ApplicationProvider
 import com.bumptech.glide.Glide
 import com.example.muzea.domain.model.Chat
 import com.example.muzea.domain.model.Message
@@ -26,29 +24,32 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
 import java.io.File
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@RunWith(RobolectricTestRunner::class)
-// Пустое Application вместо MuzeaApplication: тесты не должны поднимать Firebase.
-@Config(sdk = [34], application = Application::class)
 class CacheManagerTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
     private lateinit var context: Context
+    private lateinit var filesDir: File
+    private lateinit var cacheDir: File
+    private lateinit var externalCacheDir: File
 
     @Before
     fun setUp() {
-        context = ApplicationProvider.getApplicationContext()
+        filesDir = createTempDir("cache-files")
+        cacheDir = createTempDir("cache-root")
+        externalCacheDir = createTempDir("cache-external")
+        context = mockk()
+        every { context.applicationContext } returns context
+        every { context.filesDir } returns filesDir
+        every { context.cacheDir } returns cacheDir
+        every { context.externalCacheDirs } returns arrayOf(externalCacheDir)
         // Glide в JVM-тесте не инициализируем — подменяем статику.
         mockkStatic(Glide::class)
-        val glide = mockk<Glide>(relaxed = true)
-        every { Glide.get(any()) } returns glide
+        every { Glide.get(any()) } returns mockk<Glide>(relaxed = true)
         VideoCache.resetForTests()
     }
 
@@ -60,32 +61,42 @@ class CacheManagerTest {
         VideoListCache.clear()
         PrivateChatCache.clear()
         VideoCache.resetForTests()
-        context.cacheDir.deleteRecursively()
+        filesDir.deleteRecursively()
+        cacheDir.deleteRecursively()
+        externalCacheDir.deleteRecursively()
     }
 
     @Test
     fun `totalSizeBytes sums nested files in the cache dir`() = runTest {
-        writeFile(File(context.cacheDir, "a.bin"), 1000)
-        writeFile(File(context.cacheDir, "nested/b.bin"), 2000)
+        writeFile(File(cacheDir, "a.bin"), 1000)
+        writeFile(File(cacheDir, "nested/b.bin"), 2000)
 
         assertEquals(3000L, CacheManager.totalSizeBytes(context))
     }
 
     @Test
+    fun `totalSizeBytes includes the external cache dir`() = runTest {
+        writeFile(File(cacheDir, "a.bin"), 1000)
+        writeFile(File(externalCacheDir, "b.bin"), 500)
+
+        assertEquals(1500L, CacheManager.totalSizeBytes(context))
+    }
+
+    @Test
     fun `totalSizeBytes is zero for an empty cache`() = runTest {
-        context.cacheDir.deleteRecursively()
+        cacheDir.deleteRecursively()
 
         assertEquals(0L, CacheManager.totalSizeBytes(context))
     }
 
     @Test
     fun `clear removes temporary files from the cache root`() = runTest {
-        writeFile(File(context.cacheDir, "temp.bin"), 4096)
+        writeFile(File(cacheDir, "temp.bin"), 4096)
         assertTrue(CacheManager.totalSizeBytes(context) >= 4096L)
 
         CacheManager.clear(context)
 
-        assertFalse(File(context.cacheDir, "temp.bin").exists())
+        assertFalse(File(cacheDir, "temp.bin").exists())
         assertEquals(0L, CacheManager.totalSizeBytes(context))
     }
 
@@ -106,6 +117,13 @@ class CacheManagerTest {
         file.parentFile?.mkdirs()
         file.writeBytes(ByteArray(size))
     }
+
+    private fun createTempDir(prefix: String): File =
+        File.createTempFile(prefix, "").let {
+            it.delete()
+            it.mkdirs()
+            it
+        }
 
     private fun message() = Message(
         messageUuid = "m1",
@@ -138,15 +156,15 @@ class CacheManagerTest {
 
     private fun video() = Video(
         id = 1L,
-        title = "v",
+        title = "Video",
         description = null,
-        url = "https://example.com/v",
+        url = "/v.mp4",
         thumbnailUrl = null,
         fileSize = null,
         duration = null,
         views = 0,
-        likes = null,
-        uploadedBy = "me",
+        likes = 0,
+        uploadedBy = "vovan",
         uploadedAt = "2026-01-01T00:00:00"
     )
 }

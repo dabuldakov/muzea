@@ -36,12 +36,8 @@ class ContactRepositoryImpl @Inject constructor(
                 return@flow
             }
 
-            var response = apiService.getContacts()
-            if (response.code() == 401) {
-                chatAuthManager.invalidate()
-                if (chatAuthManager.isAuthenticated()) {
-                    response = apiService.getContacts()
-                }
+            val response = chatAuthManager.retryOnceAfterUnauthorized {
+                apiService.getContacts()
             }
 
             if (response.isSuccessful && response.body() != null) {
@@ -99,11 +95,8 @@ class ContactRepositoryImpl @Inject constructor(
         val result = LinkedHashMap<String, Presence>()
         for (chunk in wanted.chunked(PRESENCE_BATCH_SIZE)) {
             try {
-                var response = apiService.getPresence(chunk)
-                if (response.code() == 401) {
-                    chatAuthManager.invalidate()
-                    if (!chatAuthManager.isAuthenticated()) return result
-                    response = apiService.getPresence(chunk)
+                val response = chatAuthManager.retryOnceAfterUnauthorized {
+                    apiService.getPresence(chunk)
                 }
                 if (response.isSuccessful) {
                     response.body()?.forEach { result[it.userUuid] = it.toDomain() }

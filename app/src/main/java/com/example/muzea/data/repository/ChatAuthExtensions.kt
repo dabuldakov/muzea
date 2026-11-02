@@ -17,11 +17,23 @@ internal suspend fun <T> ChatAuthManager.authenticatedRequest(
     action: suspend () -> retrofit2.Response<T>
 ): retrofit2.Response<T> {
     check(isAuthenticated()) { authFailureMessage() }
-    var response = action()
-    if (response.code() == 401) {
-        invalidate()
-        check(isAuthenticated()) { authFailureMessage() }
-        response = action()
-    }
-    return response
+    return retryOnceAfterUnauthorized(action)
+}
+
+/**
+ * Повторяет запрос ровно один раз после 401.
+ *
+ * Единая точка для всех чат-репозиториев: раньше этот блок копировался в
+ * каждый метод и легко расходился при правках. Если после инвалидации токена
+ * чат всё ещё недоступен, возвращается первый ответ — вызывающий код сам
+ * превратит его в понятную ошибку.
+ */
+internal suspend fun <T> ChatAuthManager.retryOnceAfterUnauthorized(
+    action: suspend () -> retrofit2.Response<T>
+): retrofit2.Response<T> {
+    val first = action()
+    if (first.code() != 401) return first
+    invalidate()
+    if (!isAuthenticated()) return first
+    return action()
 }

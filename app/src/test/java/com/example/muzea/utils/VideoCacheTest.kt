@@ -1,37 +1,38 @@
 package com.example.muzea.utils
 
-import android.app.Application
 import android.content.Context
-import androidx.test.core.app.ApplicationProvider
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
 import java.io.File
 
-@RunWith(RobolectricTestRunner::class)
-// Пустое Application вместо MuzeaApplication: тесты не должны поднимать Firebase.
-@Config(sdk = [34], application = Application::class)
 class VideoCacheTest {
 
     private lateinit var context: Context
+    private lateinit var filesDir: File
+    private lateinit var cacheDir: File
 
     @Before
     fun setUp() {
-        context = ApplicationProvider.getApplicationContext()
+        filesDir = createTempDir("video-files")
+        cacheDir = createTempDir("video-cache")
+        context = mockk()
+        every { context.applicationContext } returns context
+        every { context.filesDir } returns filesDir
+        every { context.cacheDir } returns cacheDir
         VideoCache.resetForTests()
     }
 
     @After
     fun tearDown() {
         VideoCache.resetForTests()
-        context.cacheDir.deleteRecursively()
-        VideoCache.directory(context).deleteRecursively()
+        filesDir.deleteRecursively()
+        cacheDir.deleteRecursively()
     }
 
     @Test
@@ -62,7 +63,7 @@ class VideoCacheTest {
         }
 
         assertTrue(dir.isDirectory)
-        assertTrue(dir.absolutePath.startsWith(context.filesDir.absolutePath))
+        assertTrue(dir.absolutePath.startsWith(filesDir.absolutePath))
     }
 
     @Test
@@ -80,4 +81,11 @@ class VideoCacheTest {
 
         assertEquals(0L, VideoCache.sizeBytes())
     }
+
+    private fun createTempDir(prefix: String): File =
+        File.createTempFile(prefix, "").let {
+            it.delete()
+            it.mkdirs()
+            it
+        }
 }

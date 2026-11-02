@@ -29,12 +29,8 @@ class MessageRepositoryImpl @Inject constructor(
                 return@flow
             }
 
-            var response = apiService.getMessages(chatUuid)
-            if (response.code() == 401) {
-                chatAuthManager.invalidate()
-                if (chatAuthManager.isAuthenticated()) {
-                    response = apiService.getMessages(chatUuid)
-                }
+            val response = chatAuthManager.retryOnceAfterUnauthorized {
+                apiService.getMessages(chatUuid)
             }
 
             if (response.isSuccessful && response.body() != null) {
@@ -63,12 +59,8 @@ class MessageRepositoryImpl @Inject constructor(
                 return@flow
             }
 
-            var response = apiService.getMessagesBefore(chatUuid, beforeMessageUuid, limit)
-            if (response.code() == 401) {
-                chatAuthManager.invalidate()
-                if (chatAuthManager.isAuthenticated()) {
-                    response = apiService.getMessagesBefore(chatUuid, beforeMessageUuid, limit)
-                }
+            val response = chatAuthManager.retryOnceAfterUnauthorized {
+                apiService.getMessagesBefore(chatUuid, beforeMessageUuid, limit)
             }
 
             if (response.isSuccessful && response.body() != null) {
@@ -95,12 +87,8 @@ class MessageRepositoryImpl @Inject constructor(
                 return@flow
             }
 
-            var response = apiService.sendMessage(chatUuid, SendMessageRequest(text))
-            if (response.code() == 401) {
-                chatAuthManager.invalidate()
-                if (chatAuthManager.isAuthenticated()) {
-                    response = apiService.sendMessage(chatUuid, SendMessageRequest(text))
-                }
+            val response = chatAuthManager.retryOnceAfterUnauthorized {
+                apiService.sendMessage(chatUuid, SendMessageRequest(text))
             }
 
             if (response.isSuccessful && response.body() != null) {
@@ -138,12 +126,8 @@ class MessageRepositoryImpl @Inject constructor(
                 )
             )
 
-            var response = apiService.sendMessage(chatUuid, request)
-            if (response.code() == 401) {
-                chatAuthManager.invalidate()
-                if (chatAuthManager.isAuthenticated()) {
-                    response = apiService.sendMessage(chatUuid, request)
-                }
+            val response = chatAuthManager.retryOnceAfterUnauthorized {
+                apiService.sendMessage(chatUuid, request)
             }
 
             if (response.isSuccessful && response.body() != null) {

@@ -10,6 +10,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.first
@@ -20,6 +21,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -208,4 +210,65 @@ class ChatViewModelTest {
         assertTrue(awaited)
     }
 
+
+    @Test
+    fun `createGroupChat forwards the result`() = runTest {
+        every { chatRepository.cachedChats() } returns emptyList()
+        coEvery { chatRepository.createGroupChat("G", listOf("u1")) } returns
+            flowOf(Resource.Success(chat("group-1")))
+        val viewModel = ChatViewModel(chatRepository, contactRepository)
+        val results = mutableListOf<Resource<Chat>>()
+        val collector = launch(Dispatchers.Unconfined) {
+            viewModel.createGroupChatResult.collect { results += it }
+        }
+
+        viewModel.createGroupChat("G", listOf("u1"))
+
+        assertEquals("group-1", (results.last() as Resource.Success).data!!.chatUuid)
+        collector.cancel()
+    }
+
+    @Test
+    fun `addGroupParticipants forwards the result`() = runTest {
+        every { chatRepository.cachedChats() } returns emptyList()
+        coEvery { chatRepository.addGroupParticipants("group-1", listOf("u2")) } returns
+            flowOf(Resource.Success(Unit))
+        val viewModel = ChatViewModel(chatRepository, contactRepository)
+        val results = mutableListOf<Resource<Unit>>()
+        val collector = launch(Dispatchers.Unconfined) {
+            viewModel.addParticipantsResult.collect { results += it }
+        }
+
+        viewModel.addGroupParticipants("group-1", listOf("u2"))
+
+        assertTrue(results.last() is Resource.Success)
+        collector.cancel()
+    }
+
+    @Test
+    fun `loadContacts publishes the contact flow`() = runTest {
+        every { chatRepository.cachedChats() } returns emptyList()
+        coEvery { contactRepository.loadContacts() } returns flowOf(
+            Resource.Success(emptyList())
+        )
+        val viewModel = ChatViewModel(chatRepository, contactRepository)
+
+        viewModel.loadContacts()
+
+        assertTrue(viewModel.contactsResult.value is Resource.Success)
+    }
+
+    @Test
+    fun `chatsErrorShown clears the error`() = runTest {
+        every { chatRepository.cachedChats() } returns listOf(chat("a"))
+        coEvery { chatRepository.loadChats() } returns flowOf(Resource.Error("down"))
+        val viewModel = ChatViewModel(chatRepository, contactRepository)
+        viewModel.loadChats()
+
+        assertTrue(viewModel.uiState.value.error != null)
+
+        viewModel.chatsErrorShown()
+
+        assertNull(viewModel.uiState.value.error)
+    }
 }
