@@ -200,4 +200,21 @@
     <string name="contact_add_title">Додати контакт</string>
     <string name="contact_username_required">Введіть логін</string>
     <string name="contact_added">Контакт додано</string>
+
+    <string name="action_copy">Копіювати</string>
+    <string name="action_report">Поскаржитися</string>
+    <string name="action_block">Заблокувати</string>
+    <string name="report_reason_title">Причина скарги</string>
+    <string name="report_reason_spam">Спам або реклама</string>
+    <string name="report_reason_abuse">Образи та цькування</string>
+    <string name="report_reason_violence">Насильство або погрози</string>
+    <string name="report_reason_adult">Матеріали для дорослих</string>
+    <string name="report_reason_illegal">Незаконний контент</string>
+    <string name="report_reason_other">Інше</string>
+    <string name="report_sent">Скаргу надіслано. Ми її розглянемо.</string>
+    <string name="report_failed">Не вдалося надіслати скаргу</string>
+    <string name="block_confirm_title">Заблокувати користувача?</string>
+    <string name="block_confirm_message">Він не зможе писати вам. Розблокувати можна пізніше.</string>
+    <string name="block_success">Користувача заблоковано</string>
+    <string name="block_failed">Не вдалося заблокувати користувача</string>
 </resources>

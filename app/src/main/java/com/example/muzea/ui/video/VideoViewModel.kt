@@ -113,4 +113,8 @@ class VideoViewModel @Inject constructor(
             }
         }
     }
+
+    /** Пожаловаться на видео. true — жалоба принята. */
+    suspend fun reportVideo(id: Long, reason: String): Boolean =
+        videoRepository.reportVideo(id, reason)
 }

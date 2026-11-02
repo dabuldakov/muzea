@@ -1,11 +1,15 @@
 package com.example.muzea.ui.chat
 
 import com.example.muzea.R
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -15,6 +19,7 @@ import androidx.recyclerview.widget.SimpleItemAnimator
 import com.example.muzea.domain.model.Message
 import com.example.muzea.data.repository.LinkPreviewStore
 import com.example.muzea.databinding.FragmentChatConversationBinding
+import com.example.muzea.ui.common.ReportDialog
 import com.example.muzea.ui.navigation.navigator
 import com.example.muzea.utils.AvatarLoader
 import dagger.hilt.android.AndroidEntryPoint
@@ -116,12 +121,90 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
         binding.etMessageInput.setSelection(draft.length)
     }
 
+    /**
+     * Действия по долгому нажатию на сообщение: копирование, жалоба (UGC)
+     * и блокировка автора. Чужие сообщения можно только копировать/жаловаться,
+     * свои — копировать.
+     */
+    private fun showMessageActions(message: Message) {
+        val isMine = message.senderUuid != null && message.senderUuid == viewModel.myUserUuid
+        val labels = mutableListOf<String>()
+        val actions = mutableListOf<() -> Unit>()
+
+        if (!message.text.isNullOrBlank()) {
+            labels += getString(R.string.action_copy)
+            actions += { copyMessage(message.text) }
+        }
+
+        val isServerMessage = message.messageUuid.isNotBlank() &&
+            !message.messageUuid.startsWith("local-")
+        if (!isMine && isServerMessage) {
+            labels += getString(R.string.action_report)
+            actions += {
+                ReportDialog.show(requireContext()) { reason ->
+                    reportMessage(message.messageUuid, reason)
+                }
+            }
+        }
+
+        val senderUuid = message.senderUuid
+        if (!isMine && senderUuid != null) {
+            labels += getString(R.string.action_block)
+            actions += { confirmBlock(senderUuid) }
+        }
+
+        if (labels.isEmpty()) return
+
+        AlertDialog.Builder(requireContext())
+            .setItems(labels.toTypedArray()) { _, which -> actions[which]() }
+            .setNegativeButton(R.string.action_cancel, null)
+            .show()
+    }
+
+    private fun copyMessage(text: String) {
+        val clipboard = requireContext()
+            .getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText(null, text))
+        Toast.makeText(requireContext(), R.string.message_copied, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun reportMessage(messageUuid: String, reason: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val ok = viewModel.reportMessage(messageUuid, reason)
+            Toast.makeText(
+                requireContext(),
+                if (ok) R.string.report_sent else R.string.report_failed,
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun confirmBlock(userUuid: String) {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.block_confirm_title)
+            .setMessage(R.string.block_confirm_message)
+            .setPositiveButton(R.string.action_block) { _, _ ->
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val ok = viewModel.blockUser(userUuid)
+                    Toast.makeText(
+                        requireContext(),
+                        if (ok) R.string.block_success else R.string.block_failed,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .setNegativeButton(R.string.action_cancel, null)
+            .show()
+    }
+
     private fun openGroupSettings(chatTitle: String) {
         navigator.openGroupSettings(chatUuid, chatTitle, arguments?.getString(ARG_CHAT_AVATAR))
     }
 
     private fun setupRecyclerView() {
-        adapter = MessageAdapter(viewModel.myUserUuid, linkPreviewStore)
+        adapter = MessageAdapter(viewModel.myUserUuid, linkPreviewStore) { message ->
+            showMessageActions(message)
+        }
         adapter.registerAdapterDataObserver(scrollObserver)
         binding.recyclerViewMessages.apply {
             // stackFromEnd держит ленту «прижатой» к низу: при открытии клавиатуры

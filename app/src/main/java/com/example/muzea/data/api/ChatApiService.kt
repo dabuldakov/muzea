@@ -3,7 +3,9 @@ package com.example.muzea.data.api
 import com.example.muzea.data.model.AddContactRequest
 import com.example.muzea.data.model.AddGroupParticipantsRequest
 import com.example.muzea.data.model.AvatarResponse
+import com.example.muzea.data.model.BlockUserRequest
 import com.example.muzea.data.model.ChatParticipantResponse
+import com.example.muzea.data.model.ChatReportRequest
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.model.ChatUserResponse
 import com.example.muzea.data.model.ContactResponse
@@ -147,6 +149,16 @@ interface ChatApiService {
     suspend fun markMessagesAsRead(
         @Path("chatUuid") chatUuid: String,
         @Query("upToMessageUuid") upToMessageUuid: String
+    ): Response<Unit>
+
+    @POST("/api/reports")
+    suspend fun reportContent(
+        @Body request: ChatReportRequest
+    ): Response<Unit>
+
+    @POST("/api/blocked")
+    suspend fun blockUser(
+        @Body request: BlockUserRequest
     ): Response<Unit>
 
     /** «Мои» недавние гифки (с нашего API). */

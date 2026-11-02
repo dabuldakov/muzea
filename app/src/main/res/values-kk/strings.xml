@@ -200,4 +200,21 @@
     <string name="contact_add_title">Контакт қосу</string>
     <string name="contact_username_required">Логинді енгізіңіз</string>
     <string name="contact_added">Контакт қосылды</string>
+
+    <string name="action_copy">Көшіру</string>
+    <string name="action_report">Шағымдану</string>
+    <string name="action_block">Бұғаттау</string>
+    <string name="report_reason_title">Шағым себебі</string>
+    <string name="report_reason_spam">Спам немесе жарнама</string>
+    <string name="report_reason_abuse">Қорлау және қудалау</string>
+    <string name="report_reason_violence">Зорлық-зомбылық немесе қауіп</string>
+    <string name="report_reason_adult">Ересектерге арналған материалдар</string>
+    <string name="report_reason_illegal">Заңсыз контент</string>
+    <string name="report_reason_other">Басқа</string>
+    <string name="report_sent">Шағым жіберілді. Біз оны қарастырамыз.</string>
+    <string name="report_failed">Шағымды жіберу мүмкін болмады</string>
+    <string name="block_confirm_title">Пайдаланушыны бұғаттау керек пе?</string>
+    <string name="block_confirm_message">Ол сізге жаза алмайды. Кейінірек бұғаттан шығаруға болады.</string>
+    <string name="block_success">Пайдаланушы бұғатталды</string>
+    <string name="block_failed">Пайдаланушыны бұғаттау мүмкін болмады</string>
 </resources>

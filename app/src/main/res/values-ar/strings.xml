@@ -200,4 +200,21 @@
     <string name="contact_add_title">إضافة جهة اتصال</string>
     <string name="contact_username_required">أدخل اسم المستخدم</string>
     <string name="contact_added">تمت إضافة جهة الاتصال</string>
+
+    <string name="action_copy">نسخ</string>
+    <string name="action_report">إبلاغ</string>
+    <string name="action_block">حظر</string>
+    <string name="report_reason_title">سبب الإبلاغ</string>
+    <string name="report_reason_spam">بريد مزعج أو إعلانات</string>
+    <string name="report_reason_abuse">تحرش أو تنمر</string>
+    <string name="report_reason_violence">عنف أو تهديدات</string>
+    <string name="report_reason_adult">محتوى للبالغين</string>
+    <string name="report_reason_illegal">محتوى غير قانوني</string>
+    <string name="report_reason_other">أخرى</string>
+    <string name="report_sent">تم إرسال البلاغ. سنراجعه.</string>
+    <string name="report_failed">تعذر إرسال البلاغ</string>
+    <string name="block_confirm_title">حظر هذا المستخدم؟</string>
+    <string name="block_confirm_message">لن يتمكن من مراسلتك. يمكنك إلغاء الحظر لاحقًا.</string>
+    <string name="block_success">تم حظر المستخدم</string>
+    <string name="block_failed">تعذر حظر المستخدم</string>
 </resources>

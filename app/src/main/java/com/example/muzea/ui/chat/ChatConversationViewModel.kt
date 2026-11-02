@@ -288,6 +288,14 @@ class ChatConversationViewModel @Inject constructor(
         super.onCleared()
     }
 
+    /** Отправить жалобу на сообщение. Возвращает true, если сервер её принял. */
+    suspend fun reportMessage(messageUuid: String, reason: String): Boolean =
+        messageRepository.reportMessage(messageUuid, reason)
+
+    /** Заблокировать автора сообщения. */
+    suspend fun blockUser(userUuid: String): Boolean =
+        messageRepository.blockUser(userUuid)
+
     companion object {
         const val ARG_CHAT_UUID = "chat_uuid"
         private const val LOCAL_PREFIX = "local-"

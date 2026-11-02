@@ -1,7 +1,5 @@
 package com.example.muzea.ui.chat
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -43,7 +41,8 @@ import kotlinx.coroutines.withContext
 
 class MessageAdapter(
     private val myUserUuid: String?,
-    private val linkPreviews: LinkPreviewStore
+    private val linkPreviews: LinkPreviewStore,
+    private val onMessageLongPress: (Message) -> Unit
 ) : ListAdapter<Message, RecyclerView.ViewHolder>(MessageDiffCallback()) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -73,8 +72,8 @@ class MessageAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val message = getItem(position)
         when (holder) {
-            is OutgoingViewHolder -> holder.bind(message, linkPreviews, scope)
-            is IncomingViewHolder -> holder.bind(message, linkPreviews, scope)
+            is OutgoingViewHolder -> holder.bind(message, linkPreviews, scope, onMessageLongPress)
+            is IncomingViewHolder -> holder.bind(message, linkPreviews, scope, onMessageLongPress)
         }
     }
 
@@ -87,7 +86,12 @@ class MessageAdapter(
         private val binding: ItemMessageIncomingBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(message: Message, linkPreviews: LinkPreviewStore, scope: CoroutineScope) {
+        fun bind(
+            message: Message,
+            linkPreviews: LinkPreviewStore,
+            scope: CoroutineScope,
+            onLongPress: (Message) -> Unit
+        ) {
             AvatarLoader.load(binding.ivAvatar, message.senderAvatar)
             bindMedia(message)
             bindTextOrPreview(
@@ -95,8 +99,20 @@ class MessageAdapter(
                 binding.ivLinkImage, binding.tvLinkTitle, binding.tvLinkDomain,
                 message, linkPreviews, scope
             )
-            binding.tvMessage.setOnLongClickListener { view ->
-                copyMessageToClipboard(view, message.text ?: "")
+            binding.root.setOnLongClickListener {
+                onLongPress(message)
+                true
+            }
+            binding.tvMessage.setOnLongClickListener {
+                onLongPress(message)
+                true
+            }
+            binding.ivGif.setOnLongClickListener {
+                onLongPress(message)
+                true
+            }
+            binding.linkPreview.setOnLongClickListener {
+                onLongPress(message)
                 true
             }
 
@@ -145,15 +161,32 @@ class MessageAdapter(
         private val binding: ItemMessageOutgoingBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(message: Message, linkPreviews: LinkPreviewStore, scope: CoroutineScope) {
+        fun bind(
+            message: Message,
+            linkPreviews: LinkPreviewStore,
+            scope: CoroutineScope,
+            onLongPress: (Message) -> Unit
+        ) {
             bindMedia(message)
             bindTextOrPreview(
                 binding.tvMessage, binding.linkPreview,
                 binding.ivLinkImage, binding.tvLinkTitle, binding.tvLinkDomain,
                 message, linkPreviews, scope
             )
-            binding.tvMessage.setOnLongClickListener { view ->
-                copyMessageToClipboard(view, message.text ?: "")
+            binding.root.setOnLongClickListener {
+                onLongPress(message)
+                true
+            }
+            binding.tvMessage.setOnLongClickListener {
+                onLongPress(message)
+                true
+            }
+            binding.ivGif.setOnLongClickListener {
+                onLongPress(message)
+                true
+            }
+            binding.linkPreview.setOnLongClickListener {
+                onLongPress(message)
                 true
             }
             binding.tvTime.text = formatTime(message.createdAt)
@@ -382,11 +415,4 @@ private fun openUrl(context: Context, raw: String) {
     } catch (e: Exception) {
         Toast.makeText(context, R.string.link_open_failed, Toast.LENGTH_SHORT).show()
     }
-}
-
-private fun copyMessageToClipboard(view: View, text: String) {
-    if (text.isBlank()) return
-    val clipboard = view.context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    clipboard.setPrimaryClip(ClipData.newPlainText(null, text))
-    Toast.makeText(view.context, R.string.message_copied, Toast.LENGTH_SHORT).show()
 }

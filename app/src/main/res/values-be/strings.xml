@@ -200,4 +200,21 @@
     <string name="contact_add_title">Дадаць кантакт</string>
     <string name="contact_username_required">Увядзіце лагін</string>
     <string name="contact_added">Кантакт дададзены</string>
+
+    <string name="action_copy">Капіяваць</string>
+    <string name="action_report">Паскардзіцца</string>
+    <string name="action_block">Заблакаваць</string>
+    <string name="report_reason_title">Прычына скаргі</string>
+    <string name="report_reason_spam">Спам або рэклама</string>
+    <string name="report_reason_abuse">Абраза і цкаванне</string>
+    <string name="report_reason_violence">Гвалт або пагрозы</string>
+    <string name="report_reason_adult">Матэрыялы для дарослых</string>
+    <string name="report_reason_illegal">Незаконны кантэнт</string>
+    <string name="report_reason_other">Іншае</string>
+    <string name="report_sent">Скарга адпраўлена. Мы яе разгледзім.</string>
+    <string name="report_failed">Не ўдалося адправіць скаргу</string>
+    <string name="block_confirm_title">Заблакаваць карыстальніка?</string>
+    <string name="block_confirm_message">Ён не зможа пісаць вам. Разблакаваць можна пазней.</string>
+    <string name="block_success">Карыстальнік заблакаваны</string>
+    <string name="block_failed">Не ўдалося заблакаваць карыстальніка</string>
 </resources>

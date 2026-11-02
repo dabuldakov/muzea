@@ -43,6 +43,12 @@ interface MessageRepository {
 
     /** Живое обновление кэша гифок: добавить гифку из переписки без сети. */
     fun cacheSentGif(chatUuid: String, gif: Gif, mine: Boolean)
+
+    /** Жалоба на сообщение (UGC). true — сервер принял жалобу. */
+    suspend fun reportMessage(messageUuid: String, reason: String): Boolean
+
+    /** Блокировка пользователя. true — пользователь заблокирован. */
+    suspend fun blockUser(userUuid: String): Boolean
 }
 
 interface GifRepository {

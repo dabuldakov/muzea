@@ -200,4 +200,21 @@
     <string name="contact_add_title">添加联系人</string>
     <string name="contact_username_required">请输入用户名</string>
     <string name="contact_added">联系人已添加</string>
+
+    <string name="action_copy">复制</string>
+    <string name="action_report">举报</string>
+    <string name="action_block">屏蔽</string>
+    <string name="report_reason_title">举报原因</string>
+    <string name="report_reason_spam">垃圾信息或广告</string>
+    <string name="report_reason_abuse">骚扰或欺凌</string>
+    <string name="report_reason_violence">暴力或威胁</string>
+    <string name="report_reason_adult">成人内容</string>
+    <string name="report_reason_illegal">违法内容</string>
+    <string name="report_reason_other">其他</string>
+    <string name="report_sent">举报已提交，我们将进行审核。</string>
+    <string name="report_failed">无法提交举报</string>
+    <string name="block_confirm_title">屏蔽该用户？</string>
+    <string name="block_confirm_message">对方将无法给你发消息。之后可以取消屏蔽。</string>
+    <string name="block_success">已屏蔽该用户</string>
+    <string name="block_failed">无法屏蔽该用户</string>
 </resources>

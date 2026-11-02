@@ -16,6 +16,7 @@ import com.example.muzea.databinding.FragmentNewsDetailBinding
 import com.example.muzea.domain.model.News
 import com.example.muzea.utils.LocalTimeFormatter
 import com.example.muzea.utils.MediaUrl
+import com.example.muzea.ui.common.ReportDialog
 import com.example.muzea.core.Resource
 import com.example.muzea.utils.TokenManager
 import dagger.hilt.android.AndroidEntryPoint
@@ -107,6 +108,19 @@ class NewsDetailFragment : Fragment() {
             .show()
     }
 
+    private fun reportNews(reason: String) {
+        binding.btnReportNews.isEnabled = false
+        viewLifecycleOwner.lifecycleScope.launch {
+            val ok = viewModel.reportNews(newsId, reason)
+            binding.btnReportNews.isEnabled = true
+            Toast.makeText(
+                requireContext(),
+                if (ok) R.string.report_sent else R.string.report_failed,
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
     private fun displayNews(news: News) {
         binding.tvTitle.text = news.title
         binding.tvContent.text = news.content
@@ -117,6 +131,12 @@ class NewsDetailFragment : Fragment() {
         binding.btnDeleteNews.visibility = if (canDelete) View.VISIBLE else View.GONE
         binding.btnDeleteNews.isEnabled = true
         binding.btnDeleteNews.setOnClickListener { confirmDelete() }
+
+        binding.btnReportNews.visibility = if (canDelete) View.GONE else View.VISIBLE
+        binding.btnReportNews.isEnabled = true
+        binding.btnReportNews.setOnClickListener {
+            ReportDialog.show(requireContext()) { reason -> reportNews(reason) }
+        }
 
         if (!news.imageUrl.isNullOrEmpty()) {
             Glide.with(requireContext())

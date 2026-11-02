@@ -95,4 +95,20 @@ class VideoRepositoryImpl @Inject constructor(
             emit(Resource.Error("Network error: ${e.message}"))
         }
     }
+
+    override suspend fun reportVideo(id: Long, reason: String): Boolean {
+        return try {
+            apiService.reportContent(
+                com.example.muzea.data.model.ContentReportRequest(
+                    contentType = "VIDEO",
+                    contentId = id,
+                    reason = reason
+                )
+            ).isSuccessful
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            false
+        }
+    }
 }

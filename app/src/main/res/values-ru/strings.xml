@@ -201,4 +201,21 @@
     <string name="contact_add_title">Добавить контакт</string>
     <string name="contact_username_required">Введите логин</string>
     <string name="contact_added">Контакт добавлен</string>
+
+    <string name="action_copy">Копировать</string>
+    <string name="action_report">Пожаловаться</string>
+    <string name="action_block">Заблокировать</string>
+    <string name="report_reason_title">Причина жалобы</string>
+    <string name="report_reason_spam">Спам или реклама</string>
+    <string name="report_reason_abuse">Оскорбления и травля</string>
+    <string name="report_reason_violence">Насилие или угрозы</string>
+    <string name="report_reason_adult">Материалы для взрослых</string>
+    <string name="report_reason_illegal">Незаконный контент</string>
+    <string name="report_reason_other">Другое</string>
+    <string name="report_sent">Жалоба отправлена. Мы её рассмотрим.</string>
+    <string name="report_failed">Не удалось отправить жалобу</string>
+    <string name="block_confirm_title">Заблокировать пользователя?</string>
+    <string name="block_confirm_message">Он не сможет писать вам. Разблокировать можно позже.</string>
+    <string name="block_success">Пользователь заблокирован</string>
+    <string name="block_failed">Не удалось заблокировать пользователя</string>
 </resources>

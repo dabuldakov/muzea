@@ -200,4 +200,21 @@
     <string name="contact_add_title">Añadir contacto</string>
     <string name="contact_username_required">Introduce un nombre de usuario</string>
     <string name="contact_added">Contacto añadido</string>
+
+    <string name="action_copy">Copiar</string>
+    <string name="action_report">Denunciar</string>
+    <string name="action_block">Bloquear</string>
+    <string name="report_reason_title">Motivo de la denuncia</string>
+    <string name="report_reason_spam">Spam o publicidad</string>
+    <string name="report_reason_abuse">Acoso o intimidación</string>
+    <string name="report_reason_violence">Violencia o amenazas</string>
+    <string name="report_reason_adult">Contenido para adultos</string>
+    <string name="report_reason_illegal">Contenido ilegal</string>
+    <string name="report_reason_other">Otro</string>
+    <string name="report_sent">Denuncia enviada. La revisaremos.</string>
+    <string name="report_failed">No se pudo enviar la denuncia</string>
+    <string name="block_confirm_title">¿Bloquear a este usuario?</string>
+    <string name="block_confirm_message">No podrá enviarte mensajes. Puedes desbloquearlo más tarde.</string>
+    <string name="block_success">Usuario bloqueado</string>
+    <string name="block_failed">No se pudo bloquear al usuario</string>
 </resources>

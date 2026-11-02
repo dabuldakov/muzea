@@ -181,4 +181,8 @@ class NewsViewModel @Inject constructor(
             }
         }
     }
+
+    /** Пожаловаться на новость. true — жалоба принята. */
+    suspend fun reportNews(id: Long, reason: String): Boolean =
+        newsRepository.reportNews(id, reason)
 }

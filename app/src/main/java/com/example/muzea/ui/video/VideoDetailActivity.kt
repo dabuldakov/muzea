@@ -20,6 +20,7 @@ import com.example.muzea.R
 import com.example.muzea.databinding.ActivityVideoDetailBinding
 import com.example.muzea.utils.LocalTimeFormatter
 import com.example.muzea.core.Resource
+import com.example.muzea.ui.common.ReportDialog
 import com.example.muzea.utils.TokenManager
 import com.example.muzea.utils.VideoPlayerHelper
 import dagger.hilt.android.AndroidEntryPoint
@@ -53,6 +54,9 @@ class VideoDetailActivity : AppCompatActivity() {
         }
 
         binding.btnDelete.setOnClickListener { confirmDelete() }
+        binding.btnReport.setOnClickListener {
+            ReportDialog.show(this) { reason -> reportVideo(reason) }
+        }
         setupToolbar()
         setupFullscreen()
         setupBackPressHandling()
@@ -70,6 +74,19 @@ class VideoDetailActivity : AppCompatActivity() {
             }
             .setNegativeButton(R.string.action_cancel, null)
             .show()
+    }
+
+    private fun reportVideo(reason: String) {
+        binding.btnReport.isEnabled = false
+        lifecycleScope.launch {
+            val ok = viewModel.reportVideo(videoId, reason)
+            binding.btnReport.isEnabled = true
+            Toast.makeText(
+                this@VideoDetailActivity,
+                if (ok) R.string.report_sent else R.string.report_failed,
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun setupToolbar() {
@@ -192,12 +209,10 @@ class VideoDetailActivity : AppCompatActivity() {
         binding.tvDate.text = LocalTimeFormatter.format(video.uploadedAt)
 
         val myUsername = tokenManager.getUsername()
-        binding.btnDelete.visibility =
-            if (myUsername != null && video.uploadedBy.trim() == myUsername.trim()) {
-                View.VISIBLE
-            } else {
-                View.GONE
-            }
+        val isMine = myUsername != null && video.uploadedBy.trim() == myUsername.trim()
+        binding.btnDelete.visibility = if (isMine) View.VISIBLE else View.GONE
+        binding.btnReport.visibility = if (isMine) View.GONE else View.VISIBLE
+        binding.btnReport.isEnabled = true
 
         val fullVideoUrl = video.getFullVideoUrl(com.example.muzea.utils.Constants.BASE_URL)
         initializePlayer(fullVideoUrl)

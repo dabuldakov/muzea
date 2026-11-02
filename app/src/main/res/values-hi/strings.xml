@@ -200,4 +200,21 @@
     <string name="contact_add_title">संपर्क जोड़ें</string>
     <string name="contact_username_required">उपयोगकर्ता नाम दर्ज करें</string>
     <string name="contact_added">संपर्क जोड़ा गया</string>
+
+    <string name="action_copy">कॉपी करें</string>
+    <string name="action_report">रिपोर्ट करें</string>
+    <string name="action_block">ब्लॉक करें</string>
+    <string name="report_reason_title">रिपोर्ट करने का कारण</string>
+    <string name="report_reason_spam">स्पैम या विज्ञापन</string>
+    <string name="report_reason_abuse">उत्पीड़न या धमकाना</string>
+    <string name="report_reason_violence">हिंसा या धमकियाँ</string>
+    <string name="report_reason_adult">वयस्क सामग्री</string>
+    <string name="report_reason_illegal">अवैध सामग्री</string>
+    <string name="report_reason_other">अन्य</string>
+    <string name="report_sent">रिपोर्ट भेज दी गई। हम इसकी समीक्षा करेंगे।</string>
+    <string name="report_failed">रिपोर्ट नहीं भेजी जा सकी</string>
+    <string name="block_confirm_title">इस उपयोगकर्ता को ब्लॉक करें?</string>
+    <string name="block_confirm_message">वे आपको संदेश नहीं भेज पाएंगे। आप बाद में अनब्लॉक कर सकते हैं।</string>
+    <string name="block_success">उपयोगकर्ता ब्लॉक कर दिया गया</string>
+    <string name="block_failed">उपयोगकर्ता को ब्लॉक नहीं किया जा सका</string>
 </resources>

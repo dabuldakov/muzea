@@ -200,4 +200,21 @@
     <string name="contact_add_title">Харилцагч нэмэх</string>
     <string name="contact_username_required">Нэвтрэх нэр оруулна уу</string>
     <string name="contact_added">Харилцагч нэмэгдлээ</string>
+
+    <string name="action_copy">Хуулах</string>
+    <string name="action_report">Мэдэгдэх</string>
+    <string name="action_block">Хаах</string>
+    <string name="report_reason_title">Мэдэгдэх шалтгаан</string>
+    <string name="report_reason_spam">Спам эсвэл зар</string>
+    <string name="report_reason_abuse">Дээрэмдэх, доромжлох</string>
+    <string name="report_reason_violence">Хүчирхийлэл эсвэл аюул</string>
+    <string name="report_reason_adult">Насанд хүрэгчдийн агуулга</string>
+    <string name="report_reason_illegal">Хууль бус агуулга</string>
+    <string name="report_reason_other">Бусад</string>
+    <string name="report_sent">Мэдэгдэл илгээгдлээ. Бид хянан үзнэ.</string>
+    <string name="report_failed">Мэдэгдэл илгээх боломжгүй</string>
+    <string name="block_confirm_title">Хэрэглэгчийг хаах уу?</string>
+    <string name="block_confirm_message">Тэр танд бичих боломжгүй болно. Дараа нь хаалтыг нээж болно.</string>
+    <string name="block_success">Хэрэглэгчийг хаалаа</string>
+    <string name="block_failed">Хэрэглэгчийг хаах боломжгүй</string>
 </resources>

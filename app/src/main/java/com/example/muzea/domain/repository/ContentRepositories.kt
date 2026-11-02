@@ -19,6 +19,9 @@ interface NewsRepository {
         imageFile: File?
     ): Flow<Resource<Long>>
     suspend fun deleteNews(id: Long): Flow<Resource<Unit>>
+
+    /** Пожаловаться на новость (UGC). true — сервер принял жалобу. */
+    suspend fun reportNews(id: Long, reason: String): Boolean
 }
 
 interface VideoRepository {
@@ -32,4 +35,7 @@ interface VideoRepository {
         thumbnailPart: MultipartBody.Part?
     ): Flow<Resource<Video>>
     suspend fun deleteVideo(id: Long): Flow<Resource<Unit>>
+
+    /** Пожаловаться на видео (UGC). true — сервер принял жалобу. */
+    suspend fun reportVideo(id: Long, reason: String): Boolean
 }

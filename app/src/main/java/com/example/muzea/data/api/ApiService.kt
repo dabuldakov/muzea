@@ -79,6 +79,12 @@ interface ApiService {
         @Path("id") id: Long
     ): Response<Unit>
 
+    /** Пожаловаться на новость или видео (UGC). */
+    @POST("/api/reports")
+    suspend fun reportContent(
+        @Body request: ContentReportRequest
+    ): Response<Unit>
+
     @GET
     @Streaming
     suspend fun downloadFile(@Url url: String): Response<ResponseBody>

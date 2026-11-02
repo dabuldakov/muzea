@@ -96,4 +96,20 @@ class NewsRepositoryImpl @Inject constructor(
             emit(Resource.Error("Network error: ${e.message}"))
         }
     }
+
+    override suspend fun reportNews(id: Long, reason: String): Boolean {
+        return try {
+            apiService.reportContent(
+                com.example.muzea.data.model.ContentReportRequest(
+                    contentType = "NEWS",
+                    contentId = id,
+                    reason = reason
+                )
+            ).isSuccessful
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            false
+        }
+    }
 }

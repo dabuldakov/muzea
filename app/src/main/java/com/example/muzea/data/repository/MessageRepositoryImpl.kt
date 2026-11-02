@@ -176,4 +176,36 @@ class MessageRepositoryImpl @Inject constructor(
             false
         }
     }
+
+    override suspend fun reportMessage(messageUuid: String, reason: String): Boolean {
+        return try {
+            chatAuthManager.authenticatedRequest {
+                apiService.reportContent(
+                    com.example.muzea.data.model.ChatReportRequest(
+                        contentType = "MESSAGE",
+                        contentUuid = messageUuid,
+                        reason = reason
+                    )
+                )
+            }.isSuccessful
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    override suspend fun blockUser(userUuid: String): Boolean {
+        return try {
+            chatAuthManager.authenticatedRequest {
+                apiService.blockUser(
+                    com.example.muzea.data.model.BlockUserRequest(blockUserUuid = userUuid)
+                )
+            }.isSuccessful
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            false
+        }
+    }
 }
