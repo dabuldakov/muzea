@@ -45,6 +45,12 @@ object CacheManager {
                     }
                 }
             }
+
+            // Скачанные документы лежат в filesDir и должны удаляться только
+            // по команде пользователя, поэтому чистим их здесь.
+            File(context.filesDir, Constants.CHAT_DOWNLOADS_DIR)
+                .listFiles()
+                ?.forEach { runCatching { it.deleteRecursively() } }
         }
     }
 
@@ -61,7 +67,8 @@ object CacheManager {
      */
     private fun persistentMediaDirs(context: Context): List<File> = listOf(
         File(context.filesDir, GLIDE_DISK_CACHE_DIR),
-        VideoCache.directory(context)
+        VideoCache.directory(context),
+        File(context.filesDir, Constants.CHAT_DOWNLOADS_DIR)
     )
 
     private fun directorySize(dir: File?): Long {

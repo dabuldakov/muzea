@@ -79,6 +79,8 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
     private var recordStartMs = 0L
     private var pressStartY = 0f
     private var cancelArmed = false
+    private var sendPressed = false
+    private var videoReady = false
     private var finishingRecording = false
     private var voiceRecorder: VoiceRecorder? = null
     private var videoRecorder: VideoNoteRecorder? = null
@@ -566,6 +568,7 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 if (!ensurePermisssionsFor(sendMode)) return true
+                sendPressed = true
                 pressStartY = event.rawY
                 cancelArmed = false
                 recordingStartJob?.cancel()
@@ -586,6 +589,7 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
                 return true
             }
             MotionEvent.ACTION_UP -> {
+                sendPressed = false
                 val wasRecording = activeRecorderMode != null
                 if (wasRecording) {
                     finishRecording(cancelArmed)
@@ -596,6 +600,7 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
                 return true
             }
             MotionEvent.ACTION_CANCEL -> {
+                sendPressed = false
                 if (activeRecorderMode != null) finishRecording(cancel = true)
                 else recordingStartJob?.cancel()
                 return true
@@ -677,14 +682,29 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
 
     private fun startVideoRecording() {
         val texture = binding.videoNotePreview
+        val recorder = VideoNoteRecorder(requireContext())
+        videoRecorder = recorder
+        videoReady = false
+        binding.tvRecordingHint.setText(R.string.recording_starting_camera)
         val start = {
-            val recorder = VideoNoteRecorder(requireContext())
-            if (recorder.start(texture)) {
-                videoRecorder = recorder
-                startRecordingTimer(MAX_VIDEO_MS)
-            } else {
-                abortRecording(R.string.recording_failed)
-            }
+            recorder.start(
+                texture,
+                onReady = {
+                    // Пока камера открывалась, палец могли отпустить.
+                    if (sendPressed && activeRecorderMode == SendMode.VIDEO) {
+                        videoReady = true
+                        updateRecordingHint()
+                        startRecordingTimer(MAX_VIDEO_MS)
+                    } else {
+                        recorder.cancel()
+                        if (activeRecorderMode == SendMode.VIDEO) {
+                            activeRecorderMode = null
+                            hideRecordingOverlay()
+                        }
+                    }
+                },
+                onError = { abortRecording(R.string.recording_failed) }
+            )
         }
         if (texture.isAvailable) {
             texture.post(start)
@@ -739,8 +759,10 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
         activeRecorderMode = null
         recordTimerJob?.cancel()
         recordTimerJob = null
+        val cancelEffective = cancel || (mode == SendMode.VIDEO && !videoReady)
+        videoReady = false
 
-        if (cancel) {
+        if (cancelEffective) {
             voiceRecorder?.cancel()
             videoRecorder?.cancel()
             voiceRecorder = null

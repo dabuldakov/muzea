@@ -257,4 +257,5 @@
     <string name="permission_camera_denied">Камера мен микрофонға рұқсат қажет</string>
     <string name="voice_message">Дауыстық хабарлама</string>
     <string name="video_message">Бейне хабарлама</string>
+    <string name="recording_starting_camera">Камера іске қосылуда…</string>
 </resources>

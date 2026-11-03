@@ -257,4 +257,5 @@
     <string name="permission_camera_denied">کیمرہ اور مائیکروفون اجازت درکار ہے</string>
     <string name="voice_message">وائس پیغام</string>
     <string name="video_message">ویڈیو پیغام</string>
+    <string name="recording_starting_camera">کیمرہ شروع ہو رہا ہے…</string>
 </resources>

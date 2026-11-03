@@ -314,7 +314,10 @@ class MessageRepositoryImpl @Inject constructor(
             if (!response.isSuccessful || body == null) {
                 null
             } else {
-                val targetDir = File(context.cacheDir, "chat_downloads").apply { mkdirs() }
+                val targetDir = File(
+                    context.filesDir,
+                    com.example.muzea.utils.Constants.CHAT_DOWNLOADS_DIR
+                ).apply { mkdirs() }
                 val safeName = (fileName ?: "file").replace(Regex("""[\\/:*?"<>|]"""), "_")
                 val target = File(targetDir, safeName)
                 body.byteStream().use { input ->

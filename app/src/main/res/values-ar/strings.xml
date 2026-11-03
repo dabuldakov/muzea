@@ -257,4 +257,5 @@
     <string name="permission_camera_denied">أذونات الكاميرا والميكروفون مطلوبة</string>
     <string name="voice_message">رسالة صوتية</string>
     <string name="video_message">رسالة فيديو</string>
+    <string name="recording_starting_camera">جارٍ تشغيل الكاميرا…</string>
 </resources>

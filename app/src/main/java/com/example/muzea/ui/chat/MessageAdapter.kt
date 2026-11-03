@@ -71,9 +71,19 @@ class MessageAdapter(
 
     fun setAudioState(messageUuid: String?, playing: Boolean) {
         if (playingAudioUuid == messageUuid && audioIsPlaying == playing) return
+        val previous = playingAudioUuid
         playingAudioUuid = messageUuid
         audioIsPlaying = playing
-        notifyItemRangeChanged(0, itemCount)
+        // Обновляем только две затронутые строки: полный notifyItemRangeChanged
+        // пересоздавал все SurfaceView/Glide и давал мерцание списка.
+        notifyAudioRow(previous)
+        if (messageUuid != previous) notifyAudioRow(messageUuid)
+    }
+
+    private fun notifyAudioRow(messageUuid: String?) {
+        if (messageUuid == null) return
+        val position = currentList.indexOfFirst { it.messageUuid == messageUuid }
+        if (position >= 0) notifyItemChanged(position)
     }
 
     override fun getItemViewType(position: Int): Int {

@@ -10,6 +10,7 @@ import com.example.muzea.data.repository.ChatMessagesCache
 import com.example.muzea.data.repository.PrivateChatCache
 import com.example.muzea.data.repository.VideoListCache
 import com.example.muzea.ui.news.MainDispatcherRule
+import com.example.muzea.utils.Constants
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -167,4 +168,16 @@ class CacheManagerTest {
         uploadedBy = "vovan",
         uploadedAt = "2026-01-01T00:00:00"
     )
+
+    @Test
+    fun `downloaded documents are counted and cleared`() = runTest {
+        val downloads = File(filesDir, Constants.CHAT_DOWNLOADS_DIR).apply { mkdirs() }
+        writeFile(File(downloads, "document.pdf"), 2048)
+
+        assertTrue(CacheManager.totalSizeBytes(context) >= 2048L)
+
+        CacheManager.clear(context)
+
+        assertFalse(File(downloads, "document.pdf").exists())
+    }
 }

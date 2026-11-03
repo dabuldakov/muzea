@@ -257,4 +257,5 @@
     <string name="permission_camera_denied">Потрібен доступ до камери й мікрофона</string>
     <string name="voice_message">Голосове повідомлення</string>
     <string name="video_message">Відеоповідомлення</string>
+    <string name="recording_starting_camera">Запуск камери…</string>
 </resources>

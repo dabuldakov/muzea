@@ -257,4 +257,5 @@
     <string name="permission_camera_denied">Se necesitan permisos de cámara y micrófono</string>
     <string name="voice_message">Mensaje de voz</string>
     <string name="video_message">Mensaje de vídeo</string>
+    <string name="recording_starting_camera">Iniciando cámara…</string>
 </resources>

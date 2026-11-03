@@ -257,4 +257,5 @@
     <string name="permission_camera_denied">ক্যামেরা ও মাইক্রোফোন অনুমতি প্রয়োজন</string>
     <string name="voice_message">ভয়েস বার্তা</string>
     <string name="video_message">ভিডিও বার্তা</string>
+    <string name="recording_starting_camera">ক্যামেরা চালু হচ্ছে…</string>
 </resources>

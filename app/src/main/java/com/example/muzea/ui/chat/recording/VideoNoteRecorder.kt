@@ -21,8 +21,10 @@ data class RecordedVideo(
 /**
  * Запись видео-кружка фронтальной камерой.
  *
- * Камера открывается только на время записи, превью показывается в круглой
- * карточке. Максимальная длительность контролируется экраном.
+ * Камера открывается только на время записи, превью — в круглой карточке.
+ * Запись стартует не сразу, а после первого кадра превью: на части устройств
+ * (Samsung и др.) MediaRecorder, запущенный до готовности камеры, создаёт пустой
+ * файл и падает на stop().
  */
 class VideoNoteRecorder(private val context: Context) {
 
@@ -30,12 +32,24 @@ class VideoNoteRecorder(private val context: Context) {
     private var recorder: MediaRecorder? = null
     private var file: File? = null
     private var startedAt: Long = 0
+    private var videoSize: Camera.Size? = null
 
     val isRecording: Boolean get() = recorder != null
 
-    fun start(textureView: TextureView): Boolean {
-        if (!textureView.isAvailable) return false
-        return try {
+    /**
+     * Открывает камеру и запускает запись, когда придёт первый кадр.
+     * Колбэки вызываются на главном потоке.
+     */
+    fun start(
+        textureView: TextureView,
+        onReady: () -> Unit,
+        onError: () -> Unit
+    ) {
+        if (!textureView.isAvailable) {
+            onError()
+            return
+        }
+        try {
             val dir = File(context.cacheDir, "chat_recordings").apply { mkdirs() }
             val target = File(dir, "video_note_${System.currentTimeMillis()}.mp4")
 
@@ -44,16 +58,49 @@ class VideoNoteRecorder(private val context: Context) {
             val info = Camera.CameraInfo().apply { Camera.getCameraInfo(cameraId, this) }
             cam.setDisplayOrientation(previewOrientation(info))
             val params = cam.parameters
-            val size = params.supportedPreviewSizes
+            val sizes = params.supportedVideoSizes ?: params.supportedPreviewSizes
+            val size = sizes
                 .filter { it.width <= 1280 && it.height <= 1280 }
                 .minByOrNull { kotlin.math.abs(it.width - 640) + kotlin.math.abs(it.height - 480) }
-                ?: params.supportedPreviewSizes.first()
+                ?: sizes.first()
             params.setPreviewSize(size.width, size.height)
-            params.focusMode = Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO
+            val focusModes = params.supportedFocusModes.orEmpty()
+            when {
+                focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO) ->
+                    params.focusMode = Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO
+                focusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO) ->
+                    params.focusMode = Camera.Parameters.FOCUS_MODE_AUTO
+            }
             cam.parameters = params
             cam.setPreviewTexture(textureView.surfaceTexture)
             cam.startPreview()
 
+            camera = cam
+            file = target
+            videoSize = size
+
+            // Ждём первый кадр: только после него камера реально отдаёт данные.
+            cam.setOneShotPreviewCallback { _, _ ->
+                startRecorder(cam, size, target, info, onReady, onError)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("VideoNoteRecorder", "prepare failed", e)
+            releaseCamera()
+            targetOrNull()?.delete()
+            onError()
+        }
+    }
+
+    private fun startRecorder(
+        cam: Camera,
+        size: Camera.Size,
+        target: File,
+        info: Camera.CameraInfo,
+        onReady: () -> Unit,
+        onError: () -> Unit
+    ) {
+        try {
+            cam.setOneShotPreviewCallback(null)
             cam.unlock()
             val mediaRecorder = MediaRecorder().apply {
                 setCamera(cam)
@@ -70,38 +117,31 @@ class VideoNoteRecorder(private val context: Context) {
                 prepare()
                 start()
             }
-
-            camera = cam
             recorder = mediaRecorder
-            file = target
             startedAt = System.currentTimeMillis()
-            true
+            mainThread(onReady)
         } catch (e: Exception) {
+            android.util.Log.e("VideoNoteRecorder", "start failed", e)
             runCatching { recorder?.release() }
             recorder = null
-            runCatching { camera?.lock() }
-            runCatching { camera?.release() }
-            camera = null
-            file?.delete()
-            file = null
-            false
+            releaseCamera()
+            target.delete()
+            this.file = null
+            mainThread(onError)
         }
     }
 
     /** Останавливает запись и готовит превью; null — если запись не удалась. */
     fun stop(): RecordedVideo? {
         val mediaRecorder = recorder ?: return null
-        val cam = camera
         val target = file
         val duration = ((System.currentTimeMillis() - startedAt) / 1000).toInt()
         recorder = null
-        camera = null
         file = null
+        releaseCameraLocked()
         return try {
             mediaRecorder.stop()
             mediaRecorder.release()
-            runCatching { cam?.lock() }
-            runCatching { cam?.release() }
             if (target == null || !target.exists() || duration < 1) {
                 target?.delete()
                 null
@@ -111,8 +151,6 @@ class VideoNoteRecorder(private val context: Context) {
             }
         } catch (e: Exception) {
             runCatching { mediaRecorder.release() }
-            runCatching { cam?.lock() }
-            runCatching { cam?.release() }
             target?.delete()
             null
         }
@@ -120,16 +158,32 @@ class VideoNoteRecorder(private val context: Context) {
 
     fun cancel() {
         val mediaRecorder = recorder
-        val cam = camera
         val target = file
         recorder = null
-        camera = null
         file = null
+        releaseCameraLocked()
         runCatching { mediaRecorder?.stop() }
         runCatching { mediaRecorder?.release() }
-        runCatching { cam?.lock() }
-        runCatching { cam?.release() }
         target?.delete()
+    }
+
+    private fun releaseCameraLocked() {
+        runCatching { camera?.lock() }
+        releaseCamera()
+    }
+
+    private fun releaseCamera() {
+        val cam = camera ?: return
+        camera = null
+        runCatching { cam.setOneShotPreviewCallback(null) }
+        runCatching { cam.stopPreview() }
+        runCatching { cam.release() }
+    }
+
+    private fun targetOrNull(): File? = file
+
+    private fun mainThread(action: () -> Unit) {
+        android.os.Handler(android.os.Looper.getMainLooper()).post(action)
     }
 
     private fun frontCameraId(): Int {
@@ -142,12 +196,7 @@ class VideoNoteRecorder(private val context: Context) {
     }
 
     private fun previewOrientation(info: Camera.CameraInfo): Int {
-        val rotation = when (context.display?.rotation ?: Surface.ROTATION_0) {
-            Surface.ROTATION_90 -> 90
-            Surface.ROTATION_180 -> 180
-            Surface.ROTATION_270 -> 270
-            else -> 0
-        }
+        val rotation = rotationDegrees()
         return if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
             (360 - ((info.orientation + rotation) % 360)) % 360
         } else {
@@ -156,17 +205,19 @@ class VideoNoteRecorder(private val context: Context) {
     }
 
     private fun recordingOrientation(info: Camera.CameraInfo): Int {
-        val rotation = when (context.display?.rotation ?: Surface.ROTATION_0) {
-            Surface.ROTATION_90 -> 90
-            Surface.ROTATION_180 -> 180
-            Surface.ROTATION_270 -> 270
-            else -> 0
-        }
+        val rotation = rotationDegrees()
         return if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
             (info.orientation - rotation + 360) % 360
         } else {
             (info.orientation + rotation) % 360
         }
+    }
+
+    private fun rotationDegrees(): Int = when (context.display?.rotation ?: Surface.ROTATION_0) {
+        Surface.ROTATION_90 -> 90
+        Surface.ROTATION_180 -> 180
+        Surface.ROTATION_270 -> 270
+        else -> 0
     }
 
     private fun readMetadata(file: File): Metadata {
