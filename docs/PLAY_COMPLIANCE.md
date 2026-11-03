@@ -84,8 +84,9 @@
 | 1.7.11 | 39 | `v1.7.11` | `muzea-1.7.11.apk`, `muzea-1.7.11.aab` |
 | 1.7.12 | 40 | `v1.7.12` | `muzea-1.7.12.apk`, `muzea-1.7.12.aab` |
 | 1.7.13 | 41 | `v1.7.13` | `muzea-1.7.13.apk`, `muzea-1.7.13.aab` |
+| 1.7.14 | 42 | `v1.7.14` | `muzea-1.7.14.apk`, `muzea-1.7.14.aab` |
 
-Сборка релиза: https://github.com/dabuldakov/muzea/releases/tag/v1.7.13
+Сборка релиза: https://github.com/dabuldakov/muzea/releases/tag/v1.7.14
 
 В 1.7.5 исправлено наложение контента на строку состояния на Android 15+
 (edge-to-edge): отступы системных баров применяются на всех экранах.
