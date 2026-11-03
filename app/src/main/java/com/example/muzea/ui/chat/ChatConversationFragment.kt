@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -1025,11 +1026,12 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
     override fun onStart() {
         super.onStart()
         viewModel.resumePolling()
-        updateActiveChat()
+        // Внутри onStart lifecycle ещё CREATED, поэтому смотрим только на hidden.
+        if (!isHidden) ActiveChatTracker.chatUuid = chatUuid
     }
 
     override fun onStop() {
-        updateActiveChat()
+        clearActiveChat()
         viewModel.pausePolling()
         super.onStop()
     }
@@ -1041,18 +1043,15 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
      */
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)
-        updateActiveChat()
+        if (hidden) {
+            clearActiveChat()
+        } else if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+            ActiveChatTracker.chatUuid = chatUuid
+        }
     }
 
-    private fun updateActiveChat() {
-        val visible = isAdded &&
-            lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED) &&
-            !isHidden
-        if (visible) {
-            ActiveChatTracker.chatUuid = chatUuid
-        } else if (ActiveChatTracker.chatUuid == chatUuid) {
-            ActiveChatTracker.chatUuid = null
-        }
+    private fun clearActiveChat() {
+        if (ActiveChatTracker.chatUuid == chatUuid) ActiveChatTracker.chatUuid = null
     }
 
     override fun onPause() {
