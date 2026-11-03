@@ -262,4 +262,5 @@
     <string name="voice_message">Voice message</string>
     <string name="video_message">Video message</string>
     <string name="recording_starting_camera">Starting camera…</string>
+    <string name="action_retry">Retry</string>
 </resources>

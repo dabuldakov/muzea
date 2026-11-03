@@ -258,4 +258,5 @@
     <string name="voice_message">语音消息</string>
     <string name="video_message">视频消息</string>
     <string name="recording_starting_camera">正在启动相机…</string>
+    <string name="action_retry">重试</string>
 </resources>

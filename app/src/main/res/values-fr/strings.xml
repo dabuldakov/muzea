@@ -258,4 +258,5 @@
     <string name="voice_message">Message vocal</string>
     <string name="video_message">Message vidéo</string>
     <string name="recording_starting_camera">Démarrage de la caméra…</string>
+    <string name="action_retry">Réessayer</string>
 </resources>

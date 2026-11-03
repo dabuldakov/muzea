@@ -410,7 +410,7 @@ class ChatConversationViewModelTest {
             mimeType = "image/jpeg", type = "IMAGE", width = 10, height = 10, duration = null
         )
         coEvery { mediaFileReader.prepare(any()) } returns prepared
-        coEvery { messageRepository.uploadAttachment(chatUuid, any()) } returns Resource.Success(
+        coEvery { messageRepository.uploadAttachment(chatUuid, any(), any()) } returns Resource.Success(
             MessageAttachment(
                 fileUrl = "/api/attachments/a-1", thumbnailUrl = null, type = "IMAGE",
                 width = 10, height = 10, attachmentUuid = "a-1", fileName = "photo.jpg"
@@ -437,7 +437,7 @@ class ChatConversationViewModelTest {
             mimeType = "image/jpeg", type = "IMAGE", width = 10, height = 10, duration = null
         )
         coEvery { mediaFileReader.prepare(any()) } returns prepared
-        coEvery { messageRepository.uploadAttachment(chatUuid, any()) } returns
+        coEvery { messageRepository.uploadAttachment(chatUuid, any(), any()) } returns
             Resource.Error("boom")
 
         viewModel.addAttachments(listOf(android.net.Uri.parse("content://photo/1")))
@@ -456,7 +456,7 @@ class ChatConversationViewModelTest {
             mimeType = "image/jpeg", type = "IMAGE", width = 10, height = 10, duration = null
         )
         coEvery { mediaFileReader.prepare(any()) } returns prepared
-        coEvery { messageRepository.uploadAttachment(chatUuid, any()) } returns Resource.Error("x")
+        coEvery { messageRepository.uploadAttachment(chatUuid, any(), any()) } returns Resource.Error("x")
 
         viewModel.addAttachments(listOf(android.net.Uri.parse("content://photo/1")))
         val id = viewModel.uiState.value.pendingAttachments.single().id
@@ -473,7 +473,7 @@ class ChatConversationViewModelTest {
             file = file, thumbnail = null, name = "voice.m4a", size = 3,
             mimeType = "audio/mp4", type = "AUDIO", width = null, height = null, duration = 2
         )
-        coEvery { messageRepository.uploadAttachment(chatUuid, any()) } returns Resource.Success(
+        coEvery { messageRepository.uploadAttachment(chatUuid, any(), any()) } returns Resource.Success(
             MessageAttachment(
                 fileUrl = "/api/attachments/a-voice", thumbnailUrl = null, type = "AUDIO",
                 width = null, height = null, attachmentUuid = "a-voice",
@@ -501,7 +501,7 @@ class ChatConversationViewModelTest {
             file = file, thumbnail = null, name = "voice.m4a", size = 3,
             mimeType = "audio/mp4", type = "AUDIO", width = null, height = null, duration = 2
         )
-        coEvery { messageRepository.uploadAttachment(chatUuid, any()) } returns
+        coEvery { messageRepository.uploadAttachment(chatUuid, any(), any()) } returns
             Resource.Error("offline")
 
         viewModel.sendRecordedAttachment(prepared, "VOICE")
@@ -511,5 +511,41 @@ class ChatConversationViewModelTest {
         assertEquals(MessageDeliveryStatus.FAILED, viewModel.deliveryStatus(local.messageUuid))
         // Файл не удаляем: на слабой сети запись не должна пропадать.
         coVerify(exactly = 0) { mediaFileReader.cleanup(prepared) }
+    }
+
+    @Test
+    fun `failed voice message can be retried`() = withViewModel { viewModel ->
+        val file = java.io.File.createTempFile("voice", ".m4a").apply { deleteOnExit() }
+        val prepared = PreparedAttachment(
+            file = file, thumbnail = null, name = "voice.m4a", size = 3,
+            mimeType = "audio/mp4", type = "AUDIO", width = null, height = null, duration = 2
+        )
+        coEvery { messageRepository.uploadAttachment(chatUuid, any(), any()) } returnsMany listOf(
+            Resource.Error("offline"),
+            Resource.Success(
+                MessageAttachment(
+                    fileUrl = "/api/attachments/a-voice", thumbnailUrl = null, type = "AUDIO",
+                    width = null, height = null, attachmentUuid = "a-voice",
+                    fileName = "voice.m4a", duration = 2
+                )
+            )
+        )
+        coEvery {
+            messageRepository.sendMessage(chatUuid, "", listOf("a-voice"), "VOICE")
+        } returns flowOf(
+            Resource.Success(
+                message("srv", "", "2026-01-01T00:00:00", messageId = 10)
+                    .copy(messageType = "VOICE")
+            )
+        )
+
+        viewModel.sendRecordedAttachment(prepared, "VOICE")
+        val failed = viewModel.uiState.value.messages.single()
+        assertEquals(MessageDeliveryStatus.FAILED, viewModel.deliveryStatus(failed.messageUuid))
+
+        viewModel.retryMessage(failed)
+
+        coVerify { messageRepository.sendMessage(chatUuid, "", listOf("a-voice"), "VOICE") }
+        assertEquals(failed.messageUuid, viewModel.uiState.value.messages.single().messageUuid)
     }
 }

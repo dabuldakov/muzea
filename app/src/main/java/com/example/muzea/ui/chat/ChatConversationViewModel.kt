@@ -1,6 +1,7 @@
 package com.example.muzea.ui.chat
 
 import android.net.Uri
+import java.io.File
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -39,7 +40,8 @@ data class PendingAttachment(
     val type: String,
     val prepared: PreparedAttachment? = null,
     val uploaded: MessageAttachment? = null,
-    val error: String? = null
+    val error: String? = null,
+    val progress: Int = 0
 ) {
     val isUploaded: Boolean get() = uploaded != null
 }
@@ -295,7 +297,13 @@ class ChatConversationViewModel @Inject constructor(
             }
         )
 
-        when (val result = messageRepository.uploadAttachment(chatUuid, prepared)) {
+        when (val result = messageRepository.uploadAttachment(chatUuid, prepared) { percent ->
+            _uiState.value = _uiState.value.copy(
+                pendingAttachments = _uiState.value.pendingAttachments.map {
+                    if (it.id == id) it.copy(progress = percent) else it
+                }
+            )
+        }) {
             is Resource.Success -> _uiState.value = _uiState.value.copy(
                 pendingAttachments = _uiState.value.pendingAttachments.map {
                     if (it.id == id) it.copy(uploaded = result.data) else it
@@ -547,17 +555,93 @@ class ChatConversationViewModel @Inject constructor(
     }
 
     private fun replaceLocalAttachment(localUuid: String, attachment: MessageAttachment) {
+        replaceMessageAttachments(localUuid, listOf(attachment))
+    }
+
+    private fun replaceMessageAttachments(localUuid: String, attachments: List<MessageAttachment>) {
         _uiState.value = withStatuses(
             _uiState.value.copy(
                 messages = _uiState.value.messages.map { message ->
                     if (message.messageUuid == localUuid) {
-                        message.copy(attachments = listOf(attachment))
+                        message.copy(attachments = attachments)
                     } else {
                         message
                     }
                 }
             )
         )
+    }
+
+    /**
+     * Повторная отправка неудавшегося сообщения. Для локальных голосовых и
+     * видео сначала повторно загружает файл (он сохранён на устройстве),
+     * затем отправляет сообщение.
+     */
+    fun retryMessage(message: Message) {
+        val localUuid = message.messageUuid
+        if (!localUuid.startsWith(LOCAL_PREFIX)) return
+        if (localUuid !in _uiState.value.failedMessages) return
+
+        // Сбрасываем FAILED -> SENDING.
+        _uiState.value = withStatuses(
+            _uiState.value.copy(failedMessages = _uiState.value.failedMessages - localUuid)
+        )
+
+        viewModelScope.launch {
+            val uploaded = mutableListOf<MessageAttachment>()
+            for (attachment in message.attachments) {
+                if (!attachment.attachmentUuid.isNullOrBlank()) {
+                    uploaded += attachment
+                    continue
+                }
+                val file = File(attachment.fileUrl)
+                if (!file.exists()) {
+                    retryFailed(localUuid, "Attachment file is no longer available")
+                    return@launch
+                }
+                val prepared = PreparedAttachment(
+                    file = file,
+                    thumbnail = attachment.thumbnailUrl?.let(::File)?.takeIf { it.exists() },
+                    name = attachment.fileName ?: file.name,
+                    size = file.length(),
+                    mimeType = attachment.mimeType ?: "application/octet-stream",
+                    type = attachment.type ?: "FILE",
+                    width = attachment.width,
+                    height = attachment.height,
+                    duration = attachment.duration
+                )
+                when (val result = messageRepository.uploadAttachment(chatUuid, prepared)) {
+                    is Resource.Success -> {
+                        result.data?.let { uploaded += it }
+                        mediaFileReader.cleanup(prepared)
+                    }
+                    is Resource.Error -> {
+                        retryFailed(localUuid, result.message ?: "Upload failed")
+                        return@launch
+                    }
+                    is Resource.Loading -> Unit
+                }
+            }
+
+            replaceMessageAttachments(localUuid, uploaded)
+            messageRepository.sendMessage(
+                chatUuid = chatUuid,
+                text = message.text.orEmpty(),
+                attachments = uploaded.mapNotNull { it.attachmentUuid },
+                messageType = message.messageType ?: "TEXT"
+            ).collect { result ->
+                when (result) {
+                    is Resource.Success -> applyServerEcho(localUuid, result.data!!)
+                    is Resource.Error -> retryFailed(localUuid, result.message ?: "Failed to send message")
+                    is Resource.Loading -> Unit
+                }
+            }
+        }
+    }
+
+    private fun retryFailed(localUuid: String, error: String) {
+        markFailed(localUuid)
+        viewModelScope.launch { _sendError.emit(error) }
     }
 
     /** Скачивает документ во временный файл для открытия системным приложением. */

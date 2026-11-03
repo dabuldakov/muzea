@@ -259,4 +259,5 @@
     <string name="voice_message">Голосовое сообщение</string>
     <string name="video_message">Видеосообщение</string>
     <string name="recording_starting_camera">Запуск камеры…</string>
+    <string name="action_retry">Повторить</string>
 </resources>

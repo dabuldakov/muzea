@@ -330,8 +330,8 @@ class MessageAdapter(
         }
     }
 
-    fun updateList(newList: List<Message>) {
-        submitList(newList)
+    fun updateList(newList: List<Message>, onCommitted: (() -> Unit)? = null) {
+        submitList(newList) { onCommitted?.invoke() }
     }
 
     companion object {
@@ -452,6 +452,22 @@ private fun bindAttachments(
         when (attachment.type?.uppercase()) {
             "IMAGE" -> {
                 val item = ItemAttachmentImageBinding.inflate(inflater, container, false)
+                // Резервируем высоту до загрузки картинки: иначе пузырь
+                // «прыгает» и список дёргается при появлении изображения.
+                val width = attachment.width?.takeIf { it > 0 }
+                val height = attachment.height?.takeIf { it > 0 }
+                if (width != null && height != null) {
+                    val cardWidth = dpToPx(container.context, 220)
+                    val cardHeight = (cardWidth.toLong() * height / width)
+                        .toInt()
+                        .coerceIn(dpToPx(container.context, 120), dpToPx(container.context, 280))
+                    item.root.layoutParams = item.root.layoutParams.apply {
+                        this.height = cardHeight
+                    }
+                    item.ivImage.layoutParams = item.ivImage.layoutParams.apply {
+                        this.height = cardHeight
+                    }
+                }
                 Glide.with(item.ivImage)
                     .load(attachmentUrl(attachment))
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
@@ -497,6 +513,9 @@ private fun bindAttachments(
         }
     }
 }
+
+private fun dpToPx(context: android.content.Context, dp: Int): Int =
+    (dp * context.resources.displayMetrics.density).toInt()
 
 private fun formatDuration(seconds: Int?): String {
     if (seconds == null || seconds <= 0) return ""

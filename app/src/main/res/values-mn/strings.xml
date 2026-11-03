@@ -258,4 +258,5 @@
     <string name="voice_message">Дуут мессеж</string>
     <string name="video_message">Видео мессеж</string>
     <string name="recording_starting_camera">Камер ажиллаж байна…</string>
+    <string name="action_retry">Дахин илгээх</string>
 </resources>

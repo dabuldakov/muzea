@@ -183,19 +183,6 @@
             android:src="@android:drawable/ic_input_add"
             android:tint="?attr/colorPrimary" />
 
-        <EditText
-            android:id="@+id/etMessageInput"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="@string/hint_message"
-            android:imeOptions="actionSend"
-            android:inputType="textMultiLine"
-            android:maxLines="4"
-            android:minLines="1"
-            android:textColor="@android:color/black"
-            android:textColorHint="@color/gray" />
-
         <TextView
             android:id="@+id/btnGif"
             android:layout_width="wrap_content"
@@ -208,6 +195,19 @@
             android:textColor="?attr/colorPrimary"
             android:textSize="15sp"
             android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etMessageInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="@string/hint_message"
+            android:imeOptions="actionSend"
+            android:inputType="textMultiLine"
+            android:maxLines="4"
+            android:minLines="1"
+            android:textColor="@android:color/black"
+            android:textColorHint="@color/gray" />
 
         <ImageButton
             android:id="@+id/btnSend"

@@ -68,6 +68,7 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
     private var initialScrollDone = false
     private var pendingScrollPosition: Int? = null
     private var lastStatuses: Map<String, MessageDeliveryStatus> = emptyMap()
+    private var lastMessages: List<Message>? = null
     private var lastPending: List<PendingAttachment> = emptyList()
 
     private enum class SendMode { TEXT, VOICE, VIDEO }
@@ -217,6 +218,13 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
         val isMine = message.senderUuid != null && message.senderUuid == viewModel.myUserUuid
         val labels = mutableListOf<String>()
         val actions = mutableListOf<() -> Unit>()
+
+        val failedLocal = message.messageUuid.startsWith("local-") &&
+            viewModel.deliveryStatus(message.messageUuid) == MessageDeliveryStatus.FAILED
+        if (failedLocal) {
+            labels += getString(R.string.action_retry)
+            actions += { viewModel.retryMessage(message) }
+        }
 
         if (!message.text.isNullOrBlank()) {
             labels += getString(R.string.action_copy)
@@ -419,6 +427,8 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
             row.tvName.text = item.name
             row.pbUploading.visibility =
                 if (item.isUploaded || item.error != null) View.GONE else View.VISIBLE
+            row.pbUploading.isIndeterminate = item.progress <= 0
+            row.pbUploading.progress = item.progress
             row.tvError.visibility = if (item.error != null) View.VISIBLE else View.GONE
             row.tvError.text = item.error
             row.ivRemove.setOnClickListener { viewModel.removePendingAttachment(item.id) }
@@ -872,19 +882,37 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
                 val wasAtBottom = isAtBottom()
                 binding.progressHistory.visibility =
                     if (state.isLoadingMore) View.VISIBLE else View.GONE
-                adapter.updateList(messages)
+                val previousStatuses = lastStatuses
+                val statusesChanged = state.statuses != previousStatuses
+                val changedStatusUuids = if (statusesChanged) {
+                    (previousStatuses.keys + state.statuses.keys).filter {
+                        previousStatuses[it] != state.statuses[it]
+                    }
+                } else {
+                    emptyList()
+                }
+                val notifyChangedStatuses = {
+                    changedStatusUuids.forEach { uuid ->
+                        val position = messages.indexOfFirst { it.messageUuid == uuid }
+                        if (position >= 0) adapter.notifyItemChanged(position)
+                    }
+                }
+                val listChanged = messages !== lastMessages
+                if (listChanged) {
+                    lastMessages = messages
+                    adapter.updateList(messages) {
+                        if (statusesChanged) notifyChangedStatuses()
+                    }
+                } else if (statusesChanged) {
+                    notifyChangedStatuses()
+                }
+                if (statusesChanged) lastStatuses = state.statuses
                 if (state.pendingAttachments != lastPending) {
                     lastPending = state.pendingAttachments
                     renderPendingAttachments(state.pendingAttachments)
                 }
                 binding.btnSend.isEnabled = state.pendingAttachments.all { it.isUploaded }
                 updateSendButton()
-                // Статусы приходят отдельным полем состояния: список сообщений
-                // при этом не меняется, поэтому DiffUtil сам строки не обновит.
-                if (state.statuses != lastStatuses) {
-                    lastStatuses = state.statuses
-                    adapter.notifyItemRangeChanged(0, messages.size)
-                }
                 updateEmptyState(messages)
                 renderConversationState(state)
 

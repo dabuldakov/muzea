@@ -258,4 +258,5 @@
     <string name="voice_message">वॉइस संदेश</string>
     <string name="video_message">वीडियो संदेश</string>
     <string name="recording_starting_camera">कैमरा शुरू हो रहा है…</string>
+    <string name="action_retry">पुनः प्रयास करें</string>
 </resources>

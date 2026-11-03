@@ -49,7 +49,8 @@ interface MessageRepository {
     /** Загружает файл в чат; [attachmentUuid] потом передаётся в сообщение. */
     suspend fun uploadAttachment(
         chatUuid: String,
-        prepared: com.example.muzea.utils.PreparedAttachment
+        prepared: com.example.muzea.utils.PreparedAttachment,
+        onProgress: (Int) -> Unit = {}
     ): Resource<MessageAttachment>
 
     /** Скачивает вложение в cacheDir; null — если не удалось. */

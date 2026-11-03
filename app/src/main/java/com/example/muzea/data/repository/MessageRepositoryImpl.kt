@@ -252,7 +252,8 @@ class MessageRepositoryImpl @Inject constructor(
 
     override suspend fun uploadAttachment(
         chatUuid: String,
-        prepared: PreparedAttachment
+        prepared: PreparedAttachment,
+        onProgress: (Int) -> Unit
     ): Resource<MessageAttachment> {
         return try {
             if (!chatAuthManager.isAuthenticated()) {
@@ -262,7 +263,11 @@ class MessageRepositoryImpl @Inject constructor(
             val filePart = MultipartBody.Part.createFormData(
                 "file",
                 prepared.name,
-                prepared.file.asRequestBody(prepared.mimeType.toMediaTypeOrNull())
+                ProgressRequestBody(
+                    prepared.file,
+                    prepared.mimeType.toMediaTypeOrNull(),
+                    onProgress
+                )
             )
             val thumbPart = prepared.thumbnail?.let { thumb ->
                 MultipartBody.Part.createFormData(
