@@ -36,7 +36,7 @@ class AvatarRepositoryImpl @Inject constructor(
         val part = MultipartBody.Part.createFormData("file", file.name, file.asRequestBody(mimeType.toMediaType()))
         val response = chatAuthManager.authenticatedRequest { apiService.uploadAvatar(part) }
         check(response.isSuccessful && response.body()?.avatarUrl != null) {
-            "Could not upload avatar (${response.code()}). Use a JPEG or PNG image up to 5 MB."
+            "Could not upload avatar (${response.code()}). Use a JPEG or PNG image up to 20 MB."
         }
         response.body()!!.toDomain()
     }
@@ -75,7 +75,7 @@ class AvatarRepositoryImpl @Inject constructor(
             } else {
                 emit(
                     Resource.Error(
-                        "Failed to upload avatar (${response.code()}). Use a JPEG or PNG image up to 5 MB."
+                        "Failed to upload avatar (${response.code()}). Use a JPEG or PNG image up to 20 MB."
                     )
                 )
             }

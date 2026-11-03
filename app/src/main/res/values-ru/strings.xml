@@ -156,7 +156,7 @@
     <string name="profile_role_format">Роль: %1$s</string>
     <string name="profile_role_placeholder">Роль: Пользователь</string>
     <string name="profile_username_placeholder">логин</string>
-    <string name="error_image_too_large">Выберите изображение до 5 МБ</string>
+    <string name="error_image_too_large">Выберите изображение до 20 МБ</string>
     <string name="error_cannot_open_image">Не удалось открыть изображение</string>
     <string name="cache_mb_format">%1$.1f МБ</string>
     <string name="video_invalid">Некорректное видео</string>
@@ -260,4 +260,8 @@
     <string name="video_message">Видеосообщение</string>
     <string name="recording_starting_camera">Запуск камеры…</string>
     <string name="action_retry">Повторить</string>
+
+    <string name="news_channel_id">news</string>
+    <string name="news_channel_name">Новости</string>
+    <string name="news_channel_description">Уведомления о новых новостях</string>
 </resources>

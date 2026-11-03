@@ -159,7 +159,7 @@
     <string name="profile_role_format">Role: %1$s</string>
     <string name="profile_role_placeholder">Role: User</string>
     <string name="profile_username_placeholder">username</string>
-    <string name="error_image_too_large">Choose an image up to 5 MB</string>
+    <string name="error_image_too_large">Choose an image up to 20 MB</string>
     <string name="error_cannot_open_image">Cannot open image</string>
     <string name="cache_mb_format">%1$.1f MB</string>
     <string name="video_invalid">Invalid video</string>
@@ -263,4 +263,8 @@
     <string name="video_message">Video message</string>
     <string name="recording_starting_camera">Starting camera…</string>
     <string name="action_retry">Retry</string>
+
+    <string name="news_channel_id">news</string>
+    <string name="news_channel_name">News</string>
+    <string name="news_channel_description">Notifications about new news</string>
 </resources>

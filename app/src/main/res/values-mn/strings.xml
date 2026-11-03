@@ -156,7 +156,7 @@
     <string name="profile_role_format">Эрх: %1$s</string>
     <string name="profile_role_placeholder">Эрх: Хэрэглэгч</string>
     <string name="profile_username_placeholder">нэвтрэх нэр</string>
-    <string name="error_image_too_large">5 МБ хүртэлх зураг сонгоно уу</string>
+    <string name="error_image_too_large">20 МБ хүртэлх зураг сонгоно уу</string>
     <string name="error_cannot_open_image">Зургийг нээж чадсангүй</string>
     <string name="cache_mb_format">%1$.1f МБ</string>
     <string name="video_invalid">Буруу видео</string>
@@ -259,4 +259,8 @@
     <string name="video_message">Видео мессеж</string>
     <string name="recording_starting_camera">Камер ажиллаж байна…</string>
     <string name="action_retry">Дахин илгээх</string>
+
+    <string name="news_channel_id">news</string>
+    <string name="news_channel_name">Мэдээ</string>
+    <string name="news_channel_description">Шинэ мэдээний тухай мэдэгдэл</string>
 </resources>

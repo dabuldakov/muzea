@@ -144,10 +144,10 @@ class MediaFileReader @Inject constructor(
 
     private fun checkSize(type: String, size: Long) {
         val limit = when (type) {
-            "IMAGE" -> 15L * 1024 * 1024
-            "VIDEO" -> 64L * 1024 * 1024
-            "AUDIO" -> 20L * 1024 * 1024
-            else -> 20L * 1024 * 1024
+            "IMAGE" -> 50L * 1024 * 1024
+            "VIDEO" -> 200L * 1024 * 1024
+            "AUDIO" -> 50L * 1024 * 1024
+            else -> 100L * 1024 * 1024
         }
         if (size > limit) {
             throw IllegalArgumentException(context.getString(R.string.attachment_size_limit, limit / (1024 * 1024)))

@@ -156,7 +156,7 @@
     <string name="profile_role_format">Роль: %1$s</string>
     <string name="profile_role_placeholder">Роль: Користувач</string>
     <string name="profile_username_placeholder">логін</string>
-    <string name="error_image_too_large">Виберіть зображення до 5 МБ</string>
+    <string name="error_image_too_large">Виберіть зображення до 20 МБ</string>
     <string name="error_cannot_open_image">Не вдалося відкрити зображення</string>
     <string name="cache_mb_format">%1$.1f МБ</string>
     <string name="video_invalid">Некоректне відео</string>
@@ -259,4 +259,8 @@
     <string name="video_message">Відеоповідомлення</string>
     <string name="recording_starting_camera">Запуск камери…</string>
     <string name="action_retry">Повторити</string>
+
+    <string name="news_channel_id">news</string>
+    <string name="news_channel_name">Новини</string>
+    <string name="news_channel_description">Сповіщення про нові новини</string>
 </resources>

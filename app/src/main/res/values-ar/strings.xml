@@ -156,7 +156,7 @@
     <string name="profile_role_format">الدور: %1$s</string>
     <string name="profile_role_placeholder">الدور: مستخدم</string>
     <string name="profile_username_placeholder">اسم المستخدم</string>
-    <string name="error_image_too_large">اختر صورة حتى 5 ميغابايت</string>
+    <string name="error_image_too_large">اختر صورة حتى 20 ميغابايت</string>
     <string name="error_cannot_open_image">تعذر فتح الصورة</string>
     <string name="cache_mb_format">%1$.1f ميغابايت</string>
     <string name="video_invalid">فيديو غير صالح</string>
@@ -259,4 +259,8 @@
     <string name="video_message">رسالة فيديو</string>
     <string name="recording_starting_camera">جارٍ تشغيل الكاميرا…</string>
     <string name="action_retry">إعادة المحاولة</string>
+
+    <string name="news_channel_id">news</string>
+    <string name="news_channel_name">الأخبار</string>
+    <string name="news_channel_description">إشعارات حول الأخبار الجديدة</string>
 </resources>

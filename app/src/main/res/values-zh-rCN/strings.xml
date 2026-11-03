@@ -156,7 +156,7 @@
     <string name="profile_role_format">角色：%1$s</string>
     <string name="profile_role_placeholder">角色：用户</string>
     <string name="profile_username_placeholder">用户名</string>
-    <string name="error_image_too_large">请选择 5 MB 以内的图片</string>
+    <string name="error_image_too_large">请选择 20 MB 以内的图片</string>
     <string name="error_cannot_open_image">无法打开图片</string>
     <string name="cache_mb_format">%1$.1f MB</string>
     <string name="video_invalid">无效的视频</string>
@@ -259,4 +259,8 @@
     <string name="video_message">视频消息</string>
     <string name="recording_starting_camera">正在启动相机…</string>
     <string name="action_retry">重试</string>
+
+    <string name="news_channel_id">news</string>
+    <string name="news_channel_name">新闻</string>
+    <string name="news_channel_description">新新闻通知</string>
 </resources>

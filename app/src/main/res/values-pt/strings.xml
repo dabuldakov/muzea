@@ -156,7 +156,7 @@
     <string name="profile_role_format">Função: %1$s</string>
     <string name="profile_role_placeholder">Função: Usuário</string>
     <string name="profile_username_placeholder">nome de usuário</string>
-    <string name="error_image_too_large">Escolha uma imagem de até 5 MB</string>
+    <string name="error_image_too_large">Escolha uma imagem de até 20 MB</string>
     <string name="error_cannot_open_image">Não foi possível abrir a imagem</string>
     <string name="cache_mb_format">%1$.1f MB</string>
     <string name="video_invalid">Vídeo inválido</string>
@@ -259,4 +259,8 @@
     <string name="video_message">Mensagem de vídeo</string>
     <string name="recording_starting_camera">Iniciando a câmera…</string>
     <string name="action_retry">Tentar novamente</string>
+
+    <string name="news_channel_id">news</string>
+    <string name="news_channel_name">Notícias</string>
+    <string name="news_channel_description">Notificações sobre novas notícias</string>
 </resources>

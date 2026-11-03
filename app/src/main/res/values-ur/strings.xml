@@ -156,7 +156,7 @@
     <string name="profile_role_format">کردار: %1$s</string>
     <string name="profile_role_placeholder">کردار: صارف</string>
     <string name="profile_username_placeholder">صارف نام</string>
-    <string name="error_image_too_large">5 MB تک کی تصویر منتخب کریں</string>
+    <string name="error_image_too_large">20 MB تک کی تصویر منتخب کریں</string>
     <string name="error_cannot_open_image">تصویر نہیں کھل سکی</string>
     <string name="cache_mb_format">%1$.1f MB</string>
     <string name="video_invalid">غلط ویڈیو</string>
@@ -259,4 +259,8 @@
     <string name="video_message">ویڈیو پیغام</string>
     <string name="recording_starting_camera">کیمرہ شروع ہو رہا ہے…</string>
     <string name="action_retry">دوبارہ کوشش کریں</string>
+
+    <string name="news_channel_id">news</string>
+    <string name="news_channel_name">خبریں</string>
+    <string name="news_channel_description">نئی خبروں کی اطلاعات</string>
 </resources>

@@ -307,7 +307,7 @@ class ProfileFragment : Fragment() {
                                 val count = source.read(buffer)
                                 if (count < 0) break
                                 total += count
-                                check(total <= 5 * 1024 * 1024) { getString(R.string.error_image_too_large) }
+                                check(total <= 20 * 1024 * 1024) { getString(R.string.error_image_too_large) }
                                 output.write(buffer, 0, count)
                             }
                         }

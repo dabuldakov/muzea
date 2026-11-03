@@ -163,7 +163,7 @@ class GroupSettingsFragment : Fragment() {
                                 val count = source.read(buffer)
                                 if (count < 0) break
                                 total += count
-                                check(total <= 5 * 1024 * 1024) { "Choose an image up to 5 MB" }
+                                check(total <= 20 * 1024 * 1024) { "Choose an image up to 20 MB" }
                                 output.write(buffer, 0, count)
                             }
                         }

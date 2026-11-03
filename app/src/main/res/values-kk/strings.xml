@@ -156,7 +156,7 @@
     <string name="profile_role_format">Рөлі: %1$s</string>
     <string name="profile_role_placeholder">Рөлі: Пайдаланушы</string>
     <string name="profile_username_placeholder">логин</string>
-    <string name="error_image_too_large">5 МБ дейінгі суретті таңдаңыз</string>
+    <string name="error_image_too_large">20 МБ дейінгі суретті таңдаңыз</string>
     <string name="error_cannot_open_image">Суретті ашу мүмкін болмады</string>
     <string name="cache_mb_format">%1$.1f МБ</string>
     <string name="video_invalid">Жарамсыз бейне</string>
@@ -259,4 +259,8 @@
     <string name="video_message">Бейне хабарлама</string>
     <string name="recording_starting_camera">Камера іске қосылуда…</string>
     <string name="action_retry">Қайталау</string>
+
+    <string name="news_channel_id">news</string>
+    <string name="news_channel_name">Жаңалықтар</string>
+    <string name="news_channel_description">Жаңа жаңалықтар туралы хабарламалар</string>
 </resources>

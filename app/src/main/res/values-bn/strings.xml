@@ -156,7 +156,7 @@
     <string name="profile_role_format">ভূমিকা: %1$s</string>
     <string name="profile_role_placeholder">ভূমিকা: ব্যবহারকারী</string>
     <string name="profile_username_placeholder">ব্যবহারকারীর নাম</string>
-    <string name="error_image_too_large">৫ MB পর্যন্ত ছবি নির্বাচন করুন</string>
+    <string name="error_image_too_large">২০ MB পর্যন্ত ছবি নির্বাচন করুন</string>
     <string name="error_cannot_open_image">ছবি খোলা যায়নি</string>
     <string name="cache_mb_format">%1$.1f MB</string>
     <string name="video_invalid">অবৈধ ভিডিও</string>
@@ -259,4 +259,8 @@
     <string name="video_message">ভিডিও বার্তা</string>
     <string name="recording_starting_camera">ক্যামেরা চালু হচ্ছে…</string>
     <string name="action_retry">আবার চেষ্টা করুন</string>
+
+    <string name="news_channel_id">news</string>
+    <string name="news_channel_name">সংবাদ</string>
+    <string name="news_channel_description">নতুন সংবাদের বিজ্ঞপ্তি</string>
 </resources>

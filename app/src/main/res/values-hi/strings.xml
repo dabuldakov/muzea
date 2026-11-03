@@ -156,7 +156,7 @@
     <string name="profile_role_format">भूमिका: %1$s</string>
     <string name="profile_role_placeholder">भूमिका: उपयोगकर्ता</string>
     <string name="profile_username_placeholder">उपयोगकर्ता नाम</string>
-    <string name="error_image_too_large">5 MB तक की छवि चुनें</string>
+    <string name="error_image_too_large">20 MB तक की छवि चुनें</string>
     <string name="error_cannot_open_image">छवि नहीं खोली जा सकी</string>
     <string name="cache_mb_format">%1$.1f MB</string>
     <string name="video_invalid">अमान्य वीडियो</string>
@@ -259,4 +259,8 @@
     <string name="video_message">वीडियो संदेश</string>
     <string name="recording_starting_camera">कैमरा शुरू हो रहा है…</string>
     <string name="action_retry">पुनः प्रयास करें</string>
+
+    <string name="news_channel_id">news</string>
+    <string name="news_channel_name">समाचार</string>
+    <string name="news_channel_description">नए समाचारों की सूचनाएँ</string>
 </resources>
