@@ -48,6 +48,9 @@ class MainActivity : AppCompatActivity(), Navigator {
     private val requestNotificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
+    /** Ключ последнего обработанного push-перехода: не открываем его повторно при пересоздании. */
+    private var handledNotificationKey: String? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -80,6 +83,13 @@ class MainActivity : AppCompatActivity(), Navigator {
         if (savedInstanceState == null) {
             intent.getStringExtra(EXTRA_SHARED_TEXT)?.let(::openChatTabForShare)
         }
+        handledNotificationKey = savedInstanceState?.getString(STATE_HANDLED_NOTIFICATION)
+        handleNotificationIntent(intent)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(STATE_HANDLED_NOTIFICATION, handledNotificationKey)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -87,6 +97,50 @@ class MainActivity : AppCompatActivity(), Navigator {
         setIntent(intent)
         // Поделились, пока приложение уже открыто.
         intent.getStringExtra(EXTRA_SHARED_TEXT)?.let(::openChatTabForShare)
+        handleNotificationIntent(intent)
+    }
+
+    /** Переход из push: конкретный чат/сообщение или новость. */
+    private fun handleNotificationIntent(intent: Intent) {
+        // Свои extras (foreground) или исходные data-ключи FCM (фон).
+        val chatUuid = intent.getStringExtra(EXTRA_OPEN_CHAT_UUID)
+            ?: intent.getStringExtra("chatUuid")
+        val newsId = intent.getLongExtra(EXTRA_OPEN_NEWS_ID, -1L)
+            .takeIf { it > 0 }
+            ?: intent.getStringExtra("newsId")?.toLongOrNull()
+            ?: -1L
+
+        // Тот же push уже обработали ранее (например, после поворота экрана).
+        val key = when {
+            !chatUuid.isNullOrBlank() -> "chat:$chatUuid:${intent.getStringExtra(EXTRA_OPEN_MESSAGE_UUID) ?: intent.getStringExtra("messageUuid")}"
+            newsId > 0 -> "news:$newsId"
+            else -> null
+        }
+        if (key != null && key == handledNotificationKey) return
+        handledNotificationKey = key
+
+        if (!chatUuid.isNullOrBlank()) {
+            binding.bottomNavigation.selectedItemId = R.id.chatFragment
+            supportFragmentManager.executePendingTransactions()
+            openConversation(
+                chatUuid = chatUuid,
+                title = intent.getStringExtra(EXTRA_OPEN_CHAT_TITLE)
+                    ?: intent.getStringExtra("chatTitle")
+                    ?: intent.getStringExtra("senderName")
+                    ?: "Chat",
+                avatarUrl = intent.getStringExtra(EXTRA_OPEN_CHAT_AVATAR)
+                    ?: intent.getStringExtra("chatAvatar"),
+                unreadCount = intent.getLongExtra(EXTRA_OPEN_CHAT_UNREAD, 0L),
+                draftText = null,
+                highlightMessageUuid = intent.getStringExtra(EXTRA_OPEN_MESSAGE_UUID)
+                    ?: intent.getStringExtra("messageUuid")
+            )
+            intent.removeExtra(EXTRA_OPEN_CHAT_UUID)
+            intent.removeExtra(EXTRA_OPEN_MESSAGE_UUID)
+        } else if (newsId > 0) {
+            openNewsDetail(newsId)
+            intent.removeExtra(EXTRA_OPEN_NEWS_ID)
+        }
     }
 
     /**
@@ -239,10 +293,13 @@ class MainActivity : AppCompatActivity(), Navigator {
         title: String,
         avatarUrl: String?,
         unreadCount: Long,
-        draftText: String?
+        draftText: String?,
+        highlightMessageUuid: String?
     ) {
         openDetail(
-            ChatConversationFragment.newInstance(chatUuid, title, avatarUrl, unreadCount, draftText)
+            ChatConversationFragment.newInstance(
+                chatUuid, title, avatarUrl, unreadCount, draftText, highlightMessageUuid
+            )
         )
     }
 
@@ -286,6 +343,13 @@ class MainActivity : AppCompatActivity(), Navigator {
         /** Ссылка (или любой текст), которой поделились с приложением через ACTION_SEND. */
         const val EXTRA_SHARED_TEXT = "extra_shared_text"
 
+        const val EXTRA_OPEN_CHAT_UUID = "open_chat_uuid"
+        const val EXTRA_OPEN_CHAT_TITLE = "open_chat_title"
+        const val EXTRA_OPEN_CHAT_AVATAR = "open_chat_avatar"
+        const val EXTRA_OPEN_CHAT_UNREAD = "open_chat_unread"
+        const val EXTRA_OPEN_MESSAGE_UUID = "open_message_uuid"
+        const val EXTRA_OPEN_NEWS_ID = "open_news_id"
+
         private val TAB_TAGS = mapOf(
             R.id.newsListFragment to "tab_news",
             R.id.chatFragment to "tab_chat",
@@ -294,6 +358,7 @@ class MainActivity : AppCompatActivity(), Navigator {
             R.id.profileFragment to "tab_profile"
         )
 
+        private const val STATE_HANDLED_NOTIFICATION = "state_handled_notification"
         private const val UNREAD_REFRESH_INTERVAL_MS = 10_000L
 
         /**

@@ -40,6 +40,7 @@ import com.example.muzea.databinding.FragmentChatConversationBinding
 import com.example.muzea.databinding.ItemPendingAttachmentBinding
 import com.example.muzea.ui.common.ReportDialog
 import com.example.muzea.ui.navigation.navigator
+import com.example.muzea.utils.ActiveChatTracker
 import com.example.muzea.utils.AvatarLoader
 import com.example.muzea.utils.LocalTimeFormatter
 import dagger.hilt.android.AndroidEntryPoint
@@ -69,6 +70,8 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
     private var pendingScrollPosition: Int? = null
     private var lastStatuses: Map<String, MessageDeliveryStatus> = emptyMap()
     private var lastMessages: List<Message>? = null
+    private var pendingHighlightUuid: String? = null
+    private var highlightAttempts = 0
     private var lastPending: List<PendingAttachment> = emptyList()
 
     private enum class SendMode { TEXT, VOICE, VIDEO }
@@ -135,10 +138,15 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
         private const val ARG_CHAT_AVATAR = "chat_avatar"
         private const val ARG_UNREAD_COUNT = "chat_unread_count"
         private const val ARG_DRAFT_TEXT = "chat_draft_text"
+        private const val ARG_HIGHLIGHT_MESSAGE = "chat_highlight_message"
         private const val LONG_PRESS_MS = 250L
         private const val RECORD_CANCEL_DP = 72
         private const val MAX_VOICE_MS = 5 * 60 * 1000L
         private const val MAX_VIDEO_MS = 60 * 1000L
+        private const val MAX_HIGHLIGHT_PAGES = 5
+        private const val HIGHLIGHT_MS = 1800L
+        private const val HIGHLIGHT_ATTEMPTS = 5
+        private const val HIGHLIGHT_COLOR = 0x55FFEB3B
 
         private val DOCUMENT_MIME_TYPES = arrayOf(
             "application/pdf", "text/plain", "text/csv", "application/msword",
@@ -154,7 +162,8 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
             chatTitle: String,
             avatarUrl: String? = null,
             unreadCount: Long = 0L,
-            draftText: String? = null
+            draftText: String? = null,
+            highlightMessageUuid: String? = null
         ): ChatConversationFragment {
             return ChatConversationFragment().apply {
                 arguments = Bundle().apply {
@@ -163,6 +172,7 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
                     putString(ARG_CHAT_AVATAR, avatarUrl)
                     putLong(ARG_UNREAD_COUNT, unreadCount)
                     putString(ARG_DRAFT_TEXT, draftText)
+                    putString(ARG_HIGHLIGHT_MESSAGE, highlightMessageUuid)
                 }
             }
         }
@@ -184,6 +194,7 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
         unreadCount = arguments?.getLong(ARG_UNREAD_COUNT, 0L) ?: 0L
 
         binding.tvTitle.text = chatTitle
+        pendingHighlightUuid = arguments?.getString(ARG_HIGHLIGHT_MESSAGE)
         AvatarLoader.load(binding.ivAvatar, arguments?.getString(ARG_CHAT_AVATAR))
         binding.tvTitle.setOnClickListener {
             openGroupSettings(chatTitle)
@@ -934,6 +945,19 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
                     }
                 }
                 if (messages.isNotEmpty()) lastNewestUuid = messages.last().messageUuid
+
+                val targetUuid = pendingHighlightUuid
+                if (targetUuid != null) {
+                    val targetPosition = messages.indexOfFirst { it.messageUuid == targetUuid }
+                    if (targetPosition >= 0) {
+                        pendingHighlightUuid = null
+                        scrollToAndHighlight(targetPosition, targetUuid)
+                    } else if (!state.historyReached && !state.isLoadingMore && highlightAttempts < MAX_HIGHLIGHT_PAGES) {
+                        // Сообщение из push может быть выше первой страницы.
+                        highlightAttempts++
+                        viewModel.loadOlder()
+                    }
+                }
             }
         }
 
@@ -956,14 +980,79 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
         }
     }
 
+    /**
+     * Прокручивает к сообщению из push и коротко подсвечивает его.
+     *
+     * Подсветка — полупрозрачный foreground строки: он рисуется поверх
+     * содержимого и не ломает скругления пузыря.
+     */
+    private fun scrollToAndHighlight(position: Int, uuid: String) {
+        val recyclerView = binding.recyclerViewMessages
+        recyclerView.post {
+            val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
+            layoutManager?.scrollToPositionWithOffset(position, dp(80))
+            attemptHighlight(recyclerView, position, uuid, attempt = 0)
+        }
+    }
+
+    private fun attemptHighlight(
+        recyclerView: androidx.recyclerview.widget.RecyclerView,
+        position: Int,
+        uuid: String,
+        attempt: Int
+    ) {
+        recyclerView.postDelayed({
+            val holder = recyclerView.findViewHolderForAdapterPosition(position)
+            if (holder == null) {
+                // Строка могла ещё не разложиться после прокрутки.
+                if (attempt < HIGHLIGHT_ATTEMPTS) {
+                    attemptHighlight(recyclerView, position, uuid, attempt + 1)
+                }
+                return@postDelayed
+            }
+            val view = holder.itemView
+            view.tag = uuid
+            view.foreground = android.graphics.drawable.ColorDrawable(HIGHLIGHT_COLOR)
+            view.postDelayed({
+                if (view.tag == uuid) {
+                    view.foreground = null
+                    view.tag = null
+                }
+            }, HIGHLIGHT_MS)
+        }, if (attempt == 0) 250L else 120L)
+    }
+
     override fun onStart() {
         super.onStart()
         viewModel.resumePolling()
+        updateActiveChat()
     }
 
     override fun onStop() {
+        updateActiveChat()
         viewModel.pausePolling()
         super.onStop()
+    }
+
+    /**
+     * Вкладки и экраны «поверх» не останавливают фрагмент, а прячут его.
+     * Без этого чат считался бы открытым, пока пользователь на другой вкладке,
+     * и push этого чата ошибочно подавлялся бы.
+     */
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        updateActiveChat()
+    }
+
+    private fun updateActiveChat() {
+        val visible = isAdded &&
+            lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED) &&
+            !isHidden
+        if (visible) {
+            ActiveChatTracker.chatUuid = chatUuid
+        } else if (ActiveChatTracker.chatUuid == chatUuid) {
+            ActiveChatTracker.chatUuid = null
+        }
     }
 
     override fun onPause() {
