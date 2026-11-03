@@ -19,7 +19,8 @@
 - В FCM-data есть только `type=MESSAGE`, `senderId`, `senderName`, `messageText`.
 - **Нет** `chatUuid`, `messageUuid`, `chatTitle`, аватара отправителя.
 - Отправляется и `notification`, и `data`. В фоне Android показывает уведомление
-  сам, в foreground вызывается `onMessageReceived`.
+  сам, в foreground вызывается `onMessageReceived`. (Так было до 1.7.15; сейчас
+  только data — см. раздел 3.)
 - Уведомление не группируется: каждое сообщение — отдельное.
 
 **Android**
@@ -62,8 +63,12 @@
 }
 ```
 
-- В `AndroidNotification` добавить `tag = chatUuid` и `collapseKey = chatUuid`:
-  Android заменит предыдущее уведомление этого чата, а не создаст новое.
+- Push отправляется **только с data**, без блока `notification`. Иначе в фоне
+  уведомление рисует система, и тап открывает приложение без data-extras:
+  чат/сообщение не находятся. Приложение строит уведомление само и само
+  задаёт `tag = chatUuid` (одно уведомление на чат).
+- `AndroidConfig.priority = HIGH` — чтобы data-сообщение будило приложение
+  в фоне.
 - `messageUuid` нужен, чтобы при открытии чата можно было подсветить/проскроллить
   к сообщению (опционально).
 
@@ -194,8 +199,9 @@ if (data["type"] == "MESSAGE" &&
 
 **Chat backend**
 
-- `FcmService`/`PushNotificationService`: `chatUuid`, `messageUuid`, `chatTitle`,
-  `senderUuid`, `senderAvatar`; `tag` и `collapseKey` = `chatUuid`.
+- `FcmService`/`PushNotificationService`: data-only (`type`, `title`, `body`,
+  `chatUuid`, `messageUuid`, `chatTitle`, `senderUuid`, `senderAvatar`),
+  `priority = HIGH`.
 - `newspush/NewsPushService` + `newspush/InternalPushController` (отдельный
   модуль, чтобы не тянуть `contacts` в `notification`).
 - `ContactRepository.findUserIdsByContactUserId` — подписчики автора.
