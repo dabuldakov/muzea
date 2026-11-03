@@ -33,6 +33,8 @@ import com.example.muzea.ui.chat.recording.RecordedVideo
 import com.example.muzea.ui.chat.recording.VideoNoteRecorder
 import com.example.muzea.ui.chat.recording.VoiceRecorder
 import com.example.muzea.utils.PreparedAttachment
+import com.example.muzea.utils.MediaUrl
+import com.example.muzea.utils.TokenManager
 import com.example.muzea.data.repository.LinkPreviewStore
 import com.example.muzea.databinding.FragmentChatConversationBinding
 import com.example.muzea.databinding.ItemPendingAttachmentBinding
@@ -57,6 +59,9 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
 
     @Inject
     lateinit var linkPreviewStore: LinkPreviewStore
+
+    @Inject
+    lateinit var tokenManager: TokenManager
     private var chatUuid: String = ""
     private var lastNewestUuid: String? = null
     private var unreadCount = 0L
@@ -77,6 +82,8 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
     private var finishingRecording = false
     private var voiceRecorder: VoiceRecorder? = null
     private var videoRecorder: VideoNoteRecorder? = null
+    private var audioPlayer: ChatAudioPlayer? = null
+    private var playingAudioUuid: String? = null
 
     private val micPermission = registerForActivityResult(RequestPermission()) { granted ->
         if (!granted) {
@@ -306,7 +313,9 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
             onMessageLongPress = { message -> showMessageActions(message) },
             statusFor = { message -> viewModel.deliveryStatus(message.messageUuid) },
             onStatusClick = { message -> showMessageInfo(message) },
-            onAttachmentClick = { attachment -> openAttachment(attachment) }
+            onAttachmentClick = { message, attachment ->
+                openAttachment(message, attachment)
+            }
         )
         adapter.registerAdapterDataObserver(scrollObserver)
         binding.recyclerViewMessages.apply {
@@ -418,12 +427,54 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
         }
     }
 
-    private fun openAttachment(attachment: MessageAttachment) {
+    private fun openAttachment(message: Message, attachment: MessageAttachment) {
         when (attachment.type?.uppercase()) {
-            "IMAGE", "VIDEO", "AUDIO" -> AttachmentViewerActivity.start(
+            "AUDIO" -> toggleAudio(message, attachment)
+            "IMAGE", "VIDEO" -> AttachmentViewerActivity.start(
                 requireContext(), attachment
             )
             else -> downloadAndOpen(attachment)
+        }
+    }
+
+    /** Воспроизведение голосового/аудио прямо в чате, без отдельного экрана. */
+    private fun toggleAudio(message: Message, attachment: MessageAttachment) {
+        val url = resolveAttachmentUrl(attachment) ?: return
+        val uuid = message.messageUuid
+        val player = audioPlayer ?: ChatAudioPlayer(
+            context = requireContext(),
+            token = tokenManager.getToken().orEmpty(),
+            onFinished = { resetAudioState() },
+            onError = {
+                resetAudioState()
+                Toast.makeText(requireContext(), R.string.attachment_open_failed, Toast.LENGTH_SHORT)
+                    .show()
+            }
+        ).also { audioPlayer = it }
+
+        if (playingAudioUuid == uuid) {
+            if (player.isPlaying) player.pause() else player.resume()
+            adapter.setAudioState(uuid, player.isPlaying)
+            return
+        }
+
+        playingAudioUuid = uuid
+        adapter.setAudioState(uuid, playing = true)
+        player.play(url)
+    }
+
+    private fun resetAudioState() {
+        playingAudioUuid = null
+        adapter.setAudioState(null, playing = false)
+    }
+
+    private fun resolveAttachmentUrl(attachment: MessageAttachment): String? {
+        val uuid = attachment.attachmentUuid
+        return when {
+            !uuid.isNullOrBlank() -> MediaUrl.chat("/api/attachments/$uuid")
+            attachment.fileUrl.startsWith("/") || attachment.fileUrl.startsWith("http") ->
+                attachment.fileUrl
+            else -> MediaUrl.chat(attachment.fileUrl)
         }
     }
 
@@ -871,6 +922,9 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
     }
 
     override fun onDestroyView() {
+        audioPlayer?.release()
+        audioPlayer = null
+        playingAudioUuid = null
         if (::adapter.isInitialized) {
             adapter.unregisterAdapterDataObserver(scrollObserver)
             adapter.release()

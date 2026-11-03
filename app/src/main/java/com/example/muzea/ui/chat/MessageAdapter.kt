@@ -54,7 +54,7 @@ class MessageAdapter(
     private val onMessageLongPress: (Message) -> Unit,
     private val statusFor: (Message) -> MessageDeliveryStatus?,
     private val onStatusClick: (Message) -> Unit,
-    private val onAttachmentClick: (MessageAttachment) -> Unit
+    private val onAttachmentClick: (Message, MessageAttachment) -> Unit
 ) : ListAdapter<Message, RecyclerView.ViewHolder>(MessageDiffCallback()) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -62,6 +62,18 @@ class MessageAdapter(
     /** Вызывать при уничтожении вью: отменяет фоновые загрузки превью. */
     fun release() {
         scope.cancel()
+    }
+
+    /** UUID сообщения, которое сейчас проигрывается в чате (для иконки play/pause). */
+    var playingAudioUuid: String? = null
+        private set
+    private var audioIsPlaying = false
+
+    fun setAudioState(messageUuid: String?, playing: Boolean) {
+        if (playingAudioUuid == messageUuid && audioIsPlaying == playing) return
+        playingAudioUuid = messageUuid
+        audioIsPlaying = playing
+        notifyItemRangeChanged(0, itemCount)
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -86,10 +98,11 @@ class MessageAdapter(
         when (holder) {
             is OutgoingViewHolder -> holder.bind(
                 message, linkPreviews, scope, onMessageLongPress, statusFor(message), onStatusClick,
-                onAttachmentClick
+                onAttachmentClick, playingAudioUuid, audioIsPlaying
             )
             is IncomingViewHolder -> holder.bind(
-                message, linkPreviews, scope, onMessageLongPress, onAttachmentClick
+                message, linkPreviews, scope, onMessageLongPress, onAttachmentClick,
+                playingAudioUuid, audioIsPlaying
             )
         }
     }
@@ -108,13 +121,15 @@ class MessageAdapter(
             linkPreviews: LinkPreviewStore,
             scope: CoroutineScope,
             onLongPress: (Message) -> Unit,
-            onAttachmentClick: (MessageAttachment) -> Unit
+            onAttachmentClick: (Message, MessageAttachment) -> Unit,
+            playingAudioUuid: String?,
+            audioIsPlaying: Boolean
         ) {
             AvatarLoader.load(binding.ivAvatar, message.senderAvatar)
             bindMedia(message)
             bindAttachments(
                 binding.attachmentsContainer, binding.tvMessage, binding.linkPreview,
-                message, onAttachmentClick
+                message, playingAudioUuid, audioIsPlaying, onAttachmentClick
             )
             bindTextOrPreview(
                 binding.tvMessage, binding.linkPreview,
@@ -190,12 +205,14 @@ class MessageAdapter(
             onLongPress: (Message) -> Unit,
             status: MessageDeliveryStatus?,
             onStatusClick: (Message) -> Unit,
-            onAttachmentClick: (MessageAttachment) -> Unit
+            onAttachmentClick: (Message, MessageAttachment) -> Unit,
+            playingAudioUuid: String?,
+            audioIsPlaying: Boolean
         ) {
             bindMedia(message)
             bindAttachments(
                 binding.attachmentsContainer, binding.tvMessage, binding.linkPreview,
-                message, onAttachmentClick
+                message, playingAudioUuid, audioIsPlaying, onAttachmentClick
             )
             bindTextOrPreview(
                 binding.tvMessage, binding.linkPreview,
@@ -371,7 +388,9 @@ private fun bindAttachments(
     textView: TextView,
     linkCard: View,
     message: Message,
-    onClick: (MessageAttachment) -> Unit
+    playingAudioUuid: String?,
+    audioIsPlaying: Boolean,
+    onClick: (Message, MessageAttachment) -> Unit
 ) {
     container.removeAllViews()
     val attachments = message.attachments.filterNot {
@@ -395,7 +414,11 @@ private fun bindAttachments(
         if (audio != null) {
             val item = ItemAttachmentVoiceBinding.inflate(inflater, container, false)
             item.tvDuration.text = formatDuration(audio.duration)
-            item.root.setOnClickListener { onClick(audio) }
+            item.ivPlay.setImageResource(
+                if (playingAudioUuid == message.messageUuid && audioIsPlaying) R.drawable.ic_pause
+                else R.drawable.ic_play_circle
+            )
+            item.root.setOnClickListener { onClick(message, audio) }
             container.addView(item.root)
         }
         return
@@ -410,7 +433,7 @@ private fun bindAttachments(
                 .diskCacheStrategy(DiskCacheStrategy.ALL)
                 .into(item.ivThumb)
             item.tvDuration.text = formatDuration(video.duration)
-            item.root.setOnClickListener { onClick(video) }
+            item.root.setOnClickListener { onClick(message, video) }
             container.addView(item.root)
         }
         return
@@ -423,7 +446,7 @@ private fun bindAttachments(
                     .load(attachmentUrl(attachment))
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .into(item.ivImage)
-                item.root.setOnClickListener { onClick(attachment) }
+                item.root.setOnClickListener { onClick(message, attachment) }
                 container.addView(item.root)
             }
             "VIDEO" -> {
@@ -435,21 +458,25 @@ private fun bindAttachments(
                 item.tvDuration.text = formatDuration(attachment.duration)
                 item.tvDuration.visibility =
                     if (attachment.duration != null) View.VISIBLE else View.GONE
-                item.root.setOnClickListener { onClick(attachment) }
+                item.root.setOnClickListener { onClick(message, attachment) }
                 container.addView(item.root)
             }
             "AUDIO" -> {
                 val item = ItemAttachmentAudioBinding.inflate(inflater, container, false)
                 item.tvName.text = attachment.fileName ?: "Audio"
                 item.tvSize.text = formatSize(attachment.fileSize)
-                item.root.setOnClickListener { onClick(attachment) }
+                item.ivPlay.setImageResource(
+                    if (playingAudioUuid == message.messageUuid && audioIsPlaying) R.drawable.ic_pause
+                    else R.drawable.ic_play_circle
+                )
+                item.root.setOnClickListener { onClick(message, attachment) }
                 container.addView(item.root)
             }
             else -> {
                 val item = ItemAttachmentDocumentBinding.inflate(inflater, container, false)
                 item.tvName.text = attachment.fileName ?: "File"
                 item.tvSize.text = formatSize(attachment.fileSize)
-                item.root.setOnClickListener { onClick(attachment) }
+                item.root.setOnClickListener { onClick(message, attachment) }
                 container.addView(item.root)
             }
         }

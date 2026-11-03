@@ -73,6 +73,8 @@ class AttachmentViewerActivity : AppCompatActivity() {
     private fun showAudio(url: String) {
         binding.audioControls.visibility = android.view.View.VISIBLE
         player = VideoPlayerHelper.createPlayerWithAuth(this, url, tokenManager.getToken().orEmpty())
+        // Аудио начинаем сразу: пользователь уже нажал Play в чате.
+        player?.playWhenReady = true
         binding.btnPlay.setImageResource(R.drawable.ic_pause)
 
         binding.btnPlay.setOnClickListener {
@@ -91,6 +93,12 @@ class AttachmentViewerActivity : AppCompatActivity() {
                     binding.btnPlay.setImageResource(R.drawable.ic_play_circle)
                     binding.seekBar.progress = 0
                 }
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                binding.btnPlay.setImageResource(
+                    if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play_circle
+                )
             }
         })
 
