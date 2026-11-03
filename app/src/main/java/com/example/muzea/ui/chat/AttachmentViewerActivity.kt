@@ -157,10 +157,13 @@ class AttachmentViewerActivity : AppCompatActivity() {
         private const val EXTRA_NAME = "name"
 
         fun start(context: Context, attachment: MessageAttachment) {
-            val url = if (!attachment.attachmentUuid.isNullOrBlank()) {
-                MediaUrl.chat("/api/attachments/${attachment.attachmentUuid}")
-            } else {
-                MediaUrl.chat(attachment.fileUrl)
+            val url = when {
+                !attachment.attachmentUuid.isNullOrBlank() ->
+                    MediaUrl.chat("/api/attachments/${attachment.attachmentUuid}")
+                // Локальная запись до загрузки: абсолютный путь к файлу.
+                attachment.fileUrl.startsWith("/") || attachment.fileUrl.startsWith("http") ->
+                    attachment.fileUrl
+                else -> MediaUrl.chat(attachment.fileUrl)
             }.orEmpty()
 
             context.startActivity(

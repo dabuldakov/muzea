@@ -345,6 +345,8 @@ private fun attachmentUrl(attachment: MessageAttachment): String? {
     val uuid = attachment.attachmentUuid
     return if (!uuid.isNullOrBlank()) {
         MediaUrl.chat("/api/attachments/$uuid")
+    } else if (attachment.fileUrl.startsWith("/") || attachment.fileUrl.startsWith("http")) {
+        attachment.fileUrl
     } else {
         MediaUrl.chat(attachment.fileUrl)
     }
@@ -352,10 +354,11 @@ private fun attachmentUrl(attachment: MessageAttachment): String? {
 
 private fun attachmentPreviewUrl(attachment: MessageAttachment): String? {
     val uuid = attachment.attachmentUuid
-    return if (!uuid.isNullOrBlank() && !attachment.thumbnailUrl.isNullOrBlank()) {
-        MediaUrl.chat("/api/attachments/$uuid/preview")
-    } else {
-        null
+    return when {
+        !uuid.isNullOrBlank() && !attachment.thumbnailUrl.isNullOrBlank() ->
+            MediaUrl.chat("/api/attachments/$uuid/preview")
+        attachment.thumbnailUrl?.startsWith("/") == true -> attachment.thumbnailUrl
+        else -> null
     }
 }
 

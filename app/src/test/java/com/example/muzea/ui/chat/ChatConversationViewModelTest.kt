@@ -493,4 +493,23 @@ class ChatConversationViewModelTest {
         coVerify { messageRepository.sendMessage(chatUuid, "", listOf("a-voice"), "VOICE") }
         coVerify { mediaFileReader.cleanup(prepared) }
     }
+
+    @Test
+    fun `failed voice upload keeps the local bubble and the file`() = withViewModel { viewModel ->
+        val file = java.io.File.createTempFile("voice", ".m4a").apply { deleteOnExit() }
+        val prepared = PreparedAttachment(
+            file = file, thumbnail = null, name = "voice.m4a", size = 3,
+            mimeType = "audio/mp4", type = "AUDIO", width = null, height = null, duration = 2
+        )
+        coEvery { messageRepository.uploadAttachment(chatUuid, any()) } returns
+            Resource.Error("offline")
+
+        viewModel.sendRecordedAttachment(prepared, "VOICE")
+
+        val local = viewModel.uiState.value.messages.single()
+        assertTrue(local.messageUuid.startsWith("local-"))
+        assertEquals(MessageDeliveryStatus.FAILED, viewModel.deliveryStatus(local.messageUuid))
+        // Файл не удаляем: на слабой сети запись не должна пропадать.
+        coVerify(exactly = 0) { mediaFileReader.cleanup(prepared) }
+    }
 }

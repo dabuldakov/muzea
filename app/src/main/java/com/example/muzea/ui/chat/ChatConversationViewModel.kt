@@ -90,6 +90,8 @@ class ChatConversationViewModel @Inject constructor(
     val sendError: SharedFlow<String> = _sendError.asSharedFlow()
 
     private var pollingJob: Job? = null
+    @Volatile
+    private var pollingPaused = false
     private var lastMarkedReadUuid: String? = null
     private var lastMarkedDeliveredUuid: String? = null
 
@@ -140,7 +142,9 @@ class ChatConversationViewModel @Inject constructor(
         }
     }
 
-    private suspend fun loadOnce() {
+    /** @return true, если запрос завершился успешно (нужно для backoff-а). */
+    private suspend fun loadOnce(): Boolean {
+        var success = true
         messageRepository.loadMessages(chatUuid).collect { result ->
             when (result) {
                 // Спиннер показываем только когда показать нечего: переписка из
@@ -156,10 +160,24 @@ class ChatConversationViewModel @Inject constructor(
                     refreshReceipts()
                 }
 
-                is Resource.Error -> _uiState.value =
-                    _uiState.value.copy(isLoading = false, error = result.message)
+                is Resource.Error -> {
+                    success = false
+                    _uiState.value =
+                        _uiState.value.copy(isLoading = false, error = result.message)
+                }
             }
         }
+        return success
+    }
+
+    /** Пауза опроса, когда экран не виден: не тратим сеть и батарею. */
+    fun pausePolling() {
+        pollingPaused = true
+    }
+
+    fun resumePolling() {
+        pollingPaused = false
+        if (pollingJob?.isActive != true) startPolling()
     }
 
     fun sendText(text: String) {
@@ -459,28 +477,45 @@ class ChatConversationViewModel @Inject constructor(
      * Тип VOICE/VIDEO_NOTE передаётся явно — по нему UI рисует волну/кружок.
      */
     fun sendRecordedAttachment(prepared: PreparedAttachment, messageType: String) {
+        val localUuid = LOCAL_PREFIX + System.currentTimeMillis()
+        val localAttachment = MessageAttachment(
+            fileUrl = prepared.file.absolutePath,
+            thumbnailUrl = prepared.thumbnail?.absolutePath,
+            type = prepared.type,
+            width = prepared.width,
+            height = prepared.height,
+            attachmentUuid = null,
+            fileName = prepared.name,
+            fileSize = prepared.size,
+            mimeType = prepared.mimeType,
+            duration = prepared.duration
+        )
+        val optimistic = Message(
+            messageUuid = localUuid,
+            chatUuid = chatUuid,
+            senderId = null,
+            senderUuid = myUserUuid,
+            senderName = null,
+            senderAvatar = null,
+            text = "",
+            messageType = messageType,
+            replyToMessageUuid = null,
+            isEdited = false,
+            isDeleted = false,
+            isPinned = false,
+            createdAt = null,
+            updatedAt = null,
+            attachments = listOf(localAttachment)
+        )
+        // Пузырь появляется сразу, ещё до загрузки: на слабой сети иначе
+        // пользователь несколько секунд не видит, что запись вообще есть.
+        mergeMessages(listOf(optimistic))
+
         viewModelScope.launch {
             when (val uploaded = messageRepository.uploadAttachment(chatUuid, prepared)) {
                 is Resource.Success -> {
                     val attachment = uploaded.data ?: return@launch
-                    val optimistic = Message(
-                        messageUuid = LOCAL_PREFIX + System.currentTimeMillis(),
-                        chatUuid = chatUuid,
-                        senderId = null,
-                        senderUuid = myUserUuid,
-                        senderName = null,
-                        senderAvatar = null,
-                        text = "",
-                        messageType = messageType,
-                        replyToMessageUuid = null,
-                        isEdited = false,
-                        isDeleted = false,
-                        isPinned = false,
-                        createdAt = null,
-                        updatedAt = null,
-                        attachments = listOf(attachment)
-                    )
-                    mergeMessages(listOf(optimistic))
+                    replaceLocalAttachment(localUuid, attachment)
                     mediaFileReader.cleanup(prepared)
 
                     messageRepository.sendMessage(
@@ -491,9 +526,9 @@ class ChatConversationViewModel @Inject constructor(
                     ).collect { result ->
                         when (result) {
                             is Resource.Success ->
-                                applyServerEcho(optimistic.messageUuid, result.data!!)
+                                applyServerEcho(localUuid, result.data!!)
                             is Resource.Error -> {
-                                markFailed(optimistic.messageUuid)
+                                markFailed(localUuid)
                                 _sendError.emit(result.message ?: "Failed to send message")
                             }
                             is Resource.Loading -> Unit
@@ -501,12 +536,28 @@ class ChatConversationViewModel @Inject constructor(
                     }
                 }
                 is Resource.Error -> {
-                    mediaFileReader.cleanup(prepared)
+                    // Файл не удаляем: запись остаётся в пузыре и её можно
+                    // перезаписать/отправить позже, когда появится сеть.
+                    markFailed(localUuid)
                     _sendError.emit(uploaded.message ?: "Upload failed")
                 }
                 is Resource.Loading -> Unit
             }
         }
+    }
+
+    private fun replaceLocalAttachment(localUuid: String, attachment: MessageAttachment) {
+        _uiState.value = withStatuses(
+            _uiState.value.copy(
+                messages = _uiState.value.messages.map { message ->
+                    if (message.messageUuid == localUuid) {
+                        message.copy(attachments = listOf(attachment))
+                    } else {
+                        message
+                    }
+                }
+            )
+        )
     }
 
     /** Скачивает документ во временный файл для открытия системным приложением. */
@@ -544,8 +595,9 @@ class ChatConversationViewModel @Inject constructor(
     private fun startPolling() {
         pollingJob = viewModelScope.launch {
             while (isActive) {
-                loadOnce()
-                delay(POLL_INTERVAL_MS)
+                val success = if (pollingPaused) true else loadOnce()
+                // На слабой сети не долбим сервер каждые 3 секунды.
+                delay(if (success) POLL_INTERVAL_MS else ERROR_POLL_INTERVAL_MS)
             }
         }
     }
@@ -567,6 +619,7 @@ class ChatConversationViewModel @Inject constructor(
         const val ARG_CHAT_UUID = "chat_uuid"
         private const val LOCAL_PREFIX = "local-"
         private const val POLL_INTERVAL_MS = 3_000L
+        private const val ERROR_POLL_INTERVAL_MS = 15_000L
         private const val PAGE_SIZE = 50
     }
 }

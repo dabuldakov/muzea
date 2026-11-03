@@ -855,6 +855,16 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        viewModel.resumePolling()
+    }
+
+    override fun onStop() {
+        viewModel.pausePolling()
+        super.onStop()
+    }
+
     override fun onPause() {
         if (activeRecorderMode != null) finishRecording(cancel = true)
         super.onPause()
