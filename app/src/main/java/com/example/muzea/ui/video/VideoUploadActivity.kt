@@ -70,7 +70,10 @@ class VideoUploadActivity : AppCompatActivity() {
     private fun copyVideoToCache(uri: Uri) {
         try {
             val fileName = getFileName(uri)
-            val cacheFile = File(cacheDir, "video_${System.currentTimeMillis()}_$fileName")
+            // filesDir, а не cacheDir: cacheDir вычищается системой и кнопкой
+            // «Очистить кэш», из-за чего выбранное видео пропадало до отправки.
+            val uploadDir = File(filesDir, "video_draft").apply { mkdirs() }
+            val cacheFile = File(uploadDir, "video_${System.currentTimeMillis()}_$fileName")
 
             contentResolver.openInputStream(uri)?.use { input ->
                 FileOutputStream(cacheFile).use { output -> input.copyTo(output) }
@@ -142,10 +145,20 @@ class VideoUploadActivity : AppCompatActivity() {
         val title = binding.etTitle.text.toString().trim()
         val description = binding.etDescription.text.toString().trim()
 
+        val video = selectedVideoFile?.takeIf { it.exists() && it.length() > 0 }
+        if (selectedVideoFile != null && video == null) {
+            selectedVideoFile = null
+            binding.btnUpload.isEnabled = false
+            binding.tvSelectedFile.text = ""
+            Toast.makeText(this, R.string.error_video_unavailable, Toast.LENGTH_LONG).show()
+            return
+        }
+
         when {
             title.isEmpty() -> binding.etTitle.error = getString(R.string.error_title_required)
             selectedVideoFile == null -> Toast.makeText(this, R.string.video_select_required, Toast.LENGTH_SHORT).show()
             else -> {
+                selectedVideoFile = video
                 val body = MultipartBody.Part.createFormData(
                     "file",
                     selectedVideoFile!!.name,
@@ -161,6 +174,12 @@ class VideoUploadActivity : AppCompatActivity() {
                 viewModel.uploadVideo(title, description.takeIf { it.isNotEmpty() }, body, thumbnailPart)
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        selectedVideoFile?.delete()
+        File(filesDir, "video_draft").listFiles()?.forEach { it.delete() }
     }
 
     private fun observeViewModel() {

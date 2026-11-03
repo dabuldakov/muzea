@@ -263,4 +263,7 @@
     <string name="news_channel_id">news</string>
     <string name="news_channel_name">新闻</string>
     <string name="news_channel_description">新新闻通知</string>
+
+    <string name="error_image_unavailable">图片已不可用，请重新选择</string>
+    <string name="error_video_unavailable">视频已不可用，请重新选择</string>
 </resources>

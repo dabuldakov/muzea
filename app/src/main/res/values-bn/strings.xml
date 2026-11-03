@@ -263,4 +263,7 @@
     <string name="news_channel_id">news</string>
     <string name="news_channel_name">সংবাদ</string>
     <string name="news_channel_description">নতুন সংবাদের বিজ্ঞপ্তি</string>
+
+    <string name="error_image_unavailable">ছবিটি আর উপলব্ধ নেই। আবার নির্বাচন করুন</string>
+    <string name="error_video_unavailable">ভিডিওটি আর উপলব্ধ নেই। আবার নির্বাচন করুন</string>
 </resources>

@@ -263,4 +263,7 @@
     <string name="news_channel_id">news</string>
     <string name="news_channel_name">Новини</string>
     <string name="news_channel_description">Сповіщення про нові новини</string>
+
+    <string name="error_image_unavailable">Зображення більше недоступне. Виберіть його знову</string>
+    <string name="error_video_unavailable">Відео більше недоступне. Виберіть його знову</string>
 </resources>

@@ -263,4 +263,7 @@
     <string name="news_channel_id">news</string>
     <string name="news_channel_name">Мэдээ</string>
     <string name="news_channel_description">Шинэ мэдээний тухай мэдэгдэл</string>
+
+    <string name="error_image_unavailable">Зураг одоо боломжгүй байна. Дахин сонгоно уу</string>
+    <string name="error_video_unavailable">Видео одоо боломжгүй байна. Дахин сонгоно уу</string>
 </resources>

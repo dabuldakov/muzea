@@ -263,4 +263,7 @@
     <string name="news_channel_id">news</string>
     <string name="news_channel_name">الأخبار</string>
     <string name="news_channel_description">إشعارات حول الأخبار الجديدة</string>
+
+    <string name="error_image_unavailable">الصورة لم تعد متاحة. اخترها مرة أخرى</string>
+    <string name="error_video_unavailable">الفيديو لم يعد متاحًا. اختره مرة أخرى</string>
 </resources>

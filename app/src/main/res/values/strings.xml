@@ -267,4 +267,7 @@
     <string name="news_channel_id">news</string>
     <string name="news_channel_name">News</string>
     <string name="news_channel_description">Notifications about new news</string>
+
+    <string name="error_image_unavailable">Image is no longer available. Select it again</string>
+    <string name="error_video_unavailable">Video is no longer available. Select it again</string>
 </resources>

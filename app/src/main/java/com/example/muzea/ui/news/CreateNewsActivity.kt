@@ -44,6 +44,7 @@ class CreateNewsActivity : AppCompatActivity() {
     private companion object {
         private const val IMAGE_PREFIX = "news_image_"
         private const val IMAGE_EXTENSION = ".jpg"
+        private const val DRAFT_DIR = "news_draft"
     }
 
     // Регистрация для выбора изображения из галереи
@@ -105,16 +106,21 @@ class CreateNewsActivity : AppCompatActivity() {
     private fun copyImageToCache(uri: Uri) {
         try {
             val fileName = getFileNameFromUri(uri)
-            val cacheFile =
-                File(cacheDir, "$IMAGE_PREFIX${System.currentTimeMillis()}$IMAGE_EXTENSION")
+            // Черновик держим в filesDir, а не в cacheDir: система (в т.ч.
+            // Samsung Device Care) и «Очистить кэш» в профиле вычищают
+            // cacheDir, и выбранная картинка исчезала до отправки.
+            val draftDir = File(filesDir, DRAFT_DIR).apply { mkdirs() }
+            draftDir.listFiles()?.forEach { it.delete() }
+            val imageFile =
+                File(draftDir, "$IMAGE_PREFIX${System.currentTimeMillis()}$IMAGE_EXTENSION")
 
             contentResolver.openInputStream(uri)?.use { input ->
-                FileOutputStream(cacheFile).use { output ->
+                FileOutputStream(imageFile).use { output ->
                     input.copyTo(output)
                 }
             }
 
-            selectedImageFile = cacheFile
+            selectedImageFile = imageFile
             binding.tvImageFileName.text = fileName
             binding.tvImageFileName.setTextColor(ContextCompat.getColor(this, R.color.teal_200))
         } catch (e: Exception) {
@@ -198,10 +204,20 @@ class CreateNewsActivity : AppCompatActivity() {
         val title = binding.etTitle.text.toString().trim()
         val content = binding.etContent.text.toString().trim()
 
+        val image = selectedImageFile?.takeIf { it.exists() && it.length() > 0 }
+        if (selectedImageFile != null && image == null) {
+            // Файл пропал, пока заполняли форму: просим выбрать заново.
+            selectedImageFile = null
+            binding.cardImagePreview.visibility = android.view.View.GONE
+            binding.tvImageFileName.text = ""
+            Toast.makeText(this, R.string.error_image_unavailable, Toast.LENGTH_LONG).show()
+            return
+        }
+
         when {
             title.isEmpty() -> binding.etTitle.error = getString(R.string.error_title_required)
             content.isEmpty() -> binding.etContent.error = getString(R.string.error_content_required)
-            else -> newsViewModel.createNews(title, content, selectedVideoId, selectedImageFile)
+            else -> newsViewModel.createNews(title, content, selectedVideoId, image)
         }
     }
 
@@ -235,6 +251,12 @@ class CreateNewsActivity : AppCompatActivity() {
         finish()
     }
 
+    private fun deleteDraftImage() {
+        selectedImageFile?.delete()
+        selectedImageFile = null
+        File(filesDir, DRAFT_DIR).listFiles()?.forEach { it.delete() }
+    }
+
     private fun handleError(message: String) {
         setLoadingState(false)
         Toast.makeText(this, getString(R.string.news_create_failed_format, message), Toast.LENGTH_LONG).show()
@@ -247,7 +269,6 @@ class CreateNewsActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Очищаем временные файлы
-        selectedImageFile?.delete()
+        deleteDraftImage()
     }
 }

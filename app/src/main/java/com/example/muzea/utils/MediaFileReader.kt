@@ -15,7 +15,7 @@ import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Подготовленный к загрузке файл: копия в cacheDir + метаданные. */
+/** Подготовленный к загрузке файл: копия в filesDir + метаданные. */
 data class PreparedAttachment(
     val file: File,
     val thumbnail: File?,
@@ -32,9 +32,13 @@ data class PreparedAttachment(
 /**
  * Готовит выбранный в системном пикере файл к загрузке в чат.
  *
- * Копирует содержимое в cacheDir (URI живёт только пока открыт экран),
+ * Копирует содержимое в filesDir (URI живёт только пока открыт экран),
  * определяет MIME/размер/тип, достаёт размеры и длительность, а для видео —
  * кадр-превью. Ограничения те же, что на сервере, чтобы не гонять зря трафик.
+ *
+ * Черновик лежит в filesDir, а не в cacheDir: систему (в т.ч. Samsung Device
+ * Care) и кнопку «Очистить кэш» не должно ломать долгую загрузку видео.
+ * Старые черновики подчищаем при подготовке следующего файла.
  */
 @Singleton
 class MediaFileReader @Inject constructor(
@@ -53,7 +57,8 @@ class MediaFileReader @Inject constructor(
         val type = typeOf(mime, name)
         checkSize(type, size)
 
-        val dir = File(context.cacheDir, "chat_uploads").apply { mkdirs() }
+        val dir = uploadDir().apply { mkdirs() }
+        sweepStale(dir)
         val target = File(dir, "${System.nanoTime()}_$name")
         resolver.openInputStream(uri)?.use { input ->
             target.outputStream().use { output -> input.copyTo(output) }
@@ -105,6 +110,16 @@ class MediaFileReader @Inject constructor(
             height = height,
             duration = duration
         )
+    }
+
+    private fun uploadDir(): File = File(context.filesDir, UPLOAD_DIR)
+
+    /** Убирает черновики, забытые после падения процесса или отмены. */
+    private fun sweepStale(dir: File) {
+        val cutoff = System.currentTimeMillis() - STALE_MS
+        dir.listFiles()?.forEach { file ->
+            if (file.lastModified() < cutoff) runCatching { file.delete() }
+        }
     }
 
     fun cleanup(prepared: PreparedAttachment?) {
@@ -194,6 +209,9 @@ class MediaFileReader @Inject constructor(
     }
 
     private companion object {
+        const val UPLOAD_DIR = "chat_uploads"
+        const val STALE_MS = 24L * 60 * 60 * 1000
+
         val DOCUMENT_EXTENSIONS = setOf(
             "pdf", "txt", "csv", "doc", "docx", "xls", "xlsx", "ppt", "pptx"
         )

@@ -264,4 +264,7 @@
     <string name="news_channel_id">news</string>
     <string name="news_channel_name">Новости</string>
     <string name="news_channel_description">Уведомления о новых новостях</string>
+
+    <string name="error_image_unavailable">Изображение больше недоступно. Выберите его заново</string>
+    <string name="error_video_unavailable">Видео больше недоступно. Выберите его заново</string>
 </resources>
