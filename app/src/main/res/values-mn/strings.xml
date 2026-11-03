@@ -246,4 +246,15 @@
     <string name="attachment_type_not_allowed">Энэ төрлийн файлыг зөвшөөрөхгүй</string>
     <string name="attachment_cannot_read">Файлыг уншиж чадсангүй</string>
     <string name="attachment_unknown_type">Файлын төрөл тодорхойгүй</string>
+
+    <string name="send_mode_text">Текст илгээх</string>
+    <string name="send_mode_voice">Дуут мессежийн горим</string>
+    <string name="send_mode_video">Видео мессежийн горим</string>
+    <string name="recording_release_to_send">Илгээхийн тулд тавина уу</string>
+    <string name="recording_release_to_cancel">Цуцлахын тулд тавина уу</string>
+    <string name="recording_failed">Бичиж чадсангүй</string>
+    <string name="permission_mic_denied">Микрофоны зөвшөөрөл шаардлагатай</string>
+    <string name="permission_camera_denied">Камер, микрофоны зөвшөөрөл шаардлагатай</string>
+    <string name="voice_message">Дуут мессеж</string>
+    <string name="video_message">Видео мессеж</string>
 </resources>

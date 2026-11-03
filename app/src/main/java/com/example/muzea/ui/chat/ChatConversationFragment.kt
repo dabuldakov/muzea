@@ -4,14 +4,21 @@ import com.example.muzea.R
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.view.MotionEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions
+import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -21,6 +28,11 @@ import androidx.recyclerview.widget.SimpleItemAnimator
 import com.example.muzea.domain.model.Message
 import com.example.muzea.domain.model.MessageAttachment
 import com.example.muzea.domain.model.MessageDeliveryStatus
+import com.example.muzea.ui.chat.recording.RecordedAudio
+import com.example.muzea.ui.chat.recording.RecordedVideo
+import com.example.muzea.ui.chat.recording.VideoNoteRecorder
+import com.example.muzea.ui.chat.recording.VoiceRecorder
+import com.example.muzea.utils.PreparedAttachment
 import com.example.muzea.data.repository.LinkPreviewStore
 import com.example.muzea.databinding.FragmentChatConversationBinding
 import com.example.muzea.databinding.ItemPendingAttachmentBinding
@@ -29,6 +41,9 @@ import com.example.muzea.ui.navigation.navigator
 import com.example.muzea.utils.AvatarLoader
 import com.example.muzea.utils.LocalTimeFormatter
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -49,6 +64,31 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
     private var pendingScrollPosition: Int? = null
     private var lastStatuses: Map<String, MessageDeliveryStatus> = emptyMap()
     private var lastPending: List<PendingAttachment> = emptyList()
+
+    private enum class SendMode { TEXT, VOICE, VIDEO }
+
+    private var sendMode = SendMode.TEXT
+    private var activeRecorderMode: SendMode? = null
+    private var recordingStartJob: Job? = null
+    private var recordTimerJob: Job? = null
+    private var recordStartMs = 0L
+    private var pressStartY = 0f
+    private var cancelArmed = false
+    private var finishingRecording = false
+    private var voiceRecorder: VoiceRecorder? = null
+    private var videoRecorder: VideoNoteRecorder? = null
+
+    private val micPermission = registerForActivityResult(RequestPermission()) { granted ->
+        if (!granted) {
+            Toast.makeText(requireContext(), R.string.permission_mic_denied, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private val cameraPermissions = registerForActivityResult(RequestMultiplePermissions()) { result ->
+        if (result.values.any { !it }) {
+            Toast.makeText(requireContext(), R.string.permission_camera_denied, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     private val pickPhotos = registerForActivityResult(
         ActivityResultContracts.PickMultipleVisualMedia(10)
@@ -85,6 +125,10 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
         private const val ARG_CHAT_AVATAR = "chat_avatar"
         private const val ARG_UNREAD_COUNT = "chat_unread_count"
         private const val ARG_DRAFT_TEXT = "chat_draft_text"
+        private const val LONG_PRESS_MS = 250L
+        private const val RECORD_CANCEL_DP = 72
+        private const val MAX_VOICE_MS = 5 * 60 * 1000L
+        private const val MAX_VIDEO_MS = 60 * 1000L
 
         private val DOCUMENT_MIME_TYPES = arrayOf(
             "application/pdf", "text/plain", "text/csv", "application/msword",
@@ -408,24 +452,317 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
     }
 
     private fun setupInput() {
-        val sendClicked = {
-            val text = binding.etMessageInput.text?.toString().orEmpty()
-            if (text.isNotBlank() || viewModel.uiState.value.pendingAttachments.isNotEmpty()) {
-                viewModel.sendText(text)
-                binding.etMessageInput.setText("")
+        binding.btnSend.setOnClickListener {
+            if (canSendNow()) {
+                sendClicked()
+            } else {
+                cycleSendMode()
             }
         }
-
-        binding.btnSend.setOnClickListener { sendClicked() }
+        binding.btnSend.setOnTouchListener { _, event -> handleSendTouch(event) }
         binding.etMessageInput.setOnEditorActionListener { _, _, _ ->
-            sendClicked()
+            if (canSendNow()) sendClicked()
             false
+        }
+        binding.etMessageInput.doOnTextChanged { text, _, _, _ ->
+            if (!text.isNullOrBlank()) sendMode = SendMode.TEXT
+            updateSendButton()
         }
 
         binding.btnGif.setOnClickListener {
             GifPickerBottomSheet.newInstance(chatUuid)
                 .show(childFragmentManager, "gif_picker")
         }
+        updateSendButton()
+    }
+
+    private fun canSendNow(): Boolean =
+        binding.etMessageInput.text?.toString()?.isNotBlank() == true ||
+            viewModel.uiState.value.pendingAttachments.isNotEmpty()
+
+    private fun sendClicked() {
+        val text = binding.etMessageInput.text?.toString().orEmpty()
+        if (canSendNow()) {
+            viewModel.sendText(text)
+            binding.etMessageInput.setText("")
+        }
+    }
+
+    private fun cycleSendMode() {
+        sendMode = when (sendMode) {
+            SendMode.TEXT -> SendMode.VOICE
+            SendMode.VOICE -> SendMode.VIDEO
+            SendMode.VIDEO -> SendMode.TEXT
+        }
+        if (sendMode == SendMode.VOICE) requestMicPermission()
+        if (sendMode == SendMode.VIDEO) requestCameraPermissions()
+        updateSendButton()
+    }
+
+    private fun updateSendButton() {
+        val effective = if (canSendNow()) SendMode.TEXT else sendMode
+        val (icon, description) = when (effective) {
+            SendMode.TEXT -> R.drawable.ic_send_arrow to R.string.send_mode_text
+            SendMode.VOICE -> R.drawable.ic_mic to R.string.send_mode_voice
+            SendMode.VIDEO -> R.drawable.ic_videocam to R.string.send_mode_video
+        }
+        binding.btnSend.setImageResource(icon)
+        binding.btnSend.contentDescription = getString(description)
+    }
+
+    private fun handleSendTouch(event: MotionEvent): Boolean {
+        if (sendMode == SendMode.TEXT || canSendNow()) return false
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                if (!ensurePermisssionsFor(sendMode)) return true
+                pressStartY = event.rawY
+                cancelArmed = false
+                recordingStartJob?.cancel()
+                recordingStartJob = viewLifecycleOwner.lifecycleScope.launch {
+                    delay(LONG_PRESS_MS)
+                    startRecording(sendMode)
+                }
+                return true
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (activeRecorderMode != null) {
+                    val armed = event.rawY < pressStartY - dp(RECORD_CANCEL_DP)
+                    if (armed != cancelArmed) {
+                        cancelArmed = armed
+                        updateRecordingHint()
+                    }
+                }
+                return true
+            }
+            MotionEvent.ACTION_UP -> {
+                val wasRecording = activeRecorderMode != null
+                if (wasRecording) {
+                    finishRecording(cancelArmed)
+                } else {
+                    recordingStartJob?.cancel()
+                    cycleSendMode()
+                }
+                return true
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                if (activeRecorderMode != null) finishRecording(cancel = true)
+                else recordingStartJob?.cancel()
+                return true
+            }
+        }
+        return true
+    }
+
+    private fun ensurePermisssionsFor(mode: SendMode): Boolean {
+        return when (mode) {
+            SendMode.VOICE -> {
+                if (hasPermission(Manifest.permission.RECORD_AUDIO)) {
+                    true
+                } else {
+                    requestMicPermission()
+                    false
+                }
+            }
+            SendMode.VIDEO -> {
+                val mic = hasPermission(Manifest.permission.RECORD_AUDIO)
+                val camera = hasPermission(Manifest.permission.CAMERA)
+                if (mic && camera) {
+                    true
+                } else {
+                    requestCameraPermissions()
+                    // Разрешения спрашиваем до записи; пользователь нажмёт ещё раз.
+                    false
+                }
+            }
+            SendMode.TEXT -> true
+        }
+    }
+
+    private fun requestMicPermission() {
+        if (!hasPermission(Manifest.permission.RECORD_AUDIO)) {
+            micPermission.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    private fun requestCameraPermissions() {
+        val missing = mutableListOf<String>()
+        if (!hasPermission(Manifest.permission.RECORD_AUDIO)) missing += Manifest.permission.RECORD_AUDIO
+        if (!hasPermission(Manifest.permission.CAMERA)) missing += Manifest.permission.CAMERA
+        if (missing.isNotEmpty()) cameraPermissions.launch(missing.toTypedArray())
+    }
+
+    private fun hasPermission(permission: String): Boolean =
+        ContextCompat.checkSelfPermission(requireContext(), permission) ==
+            PackageManager.PERMISSION_GRANTED
+
+    private fun startRecording(mode: SendMode) {
+        if (activeRecorderMode != null) return
+        if (!ensurePermisssionsFor(mode)) return
+
+        activeRecorderMode = mode
+        cancelArmed = false
+        binding.recordingOverlay.visibility = View.VISIBLE
+        binding.tvRecordingTimer.text = "0:00"
+        binding.videoNotePreviewCard.visibility =
+            if (mode == SendMode.VIDEO) View.VISIBLE else View.GONE
+        updateRecordingHint()
+
+        when (mode) {
+            SendMode.VOICE -> startVoiceRecording()
+            SendMode.VIDEO -> startVideoRecording()
+            SendMode.TEXT -> Unit
+        }
+    }
+
+    private fun startVoiceRecording() {
+        val recorder = VoiceRecorder(requireContext())
+        if (!recorder.start()) {
+            abortRecording(R.string.recording_failed)
+            return
+        }
+        voiceRecorder = recorder
+        startRecordingTimer(MAX_VOICE_MS)
+    }
+
+    private fun startVideoRecording() {
+        val texture = binding.videoNotePreview
+        val start = {
+            val recorder = VideoNoteRecorder(requireContext())
+            if (recorder.start(texture)) {
+                videoRecorder = recorder
+                startRecordingTimer(MAX_VIDEO_MS)
+            } else {
+                abortRecording(R.string.recording_failed)
+            }
+        }
+        if (texture.isAvailable) {
+            texture.post(start)
+        } else {
+            texture.surfaceTextureListener = object : android.view.TextureView.SurfaceTextureListener {
+                override fun onSurfaceTextureAvailable(
+                    surface: android.graphics.SurfaceTexture,
+                    width: Int,
+                    height: Int
+                ) = start()
+
+                override fun onSurfaceTextureSizeChanged(
+                    surface: android.graphics.SurfaceTexture,
+                    width: Int,
+                    height: Int
+                ) = Unit
+
+                override fun onSurfaceTextureDestroyed(surface: android.graphics.SurfaceTexture) = true
+
+                override fun onSurfaceTextureUpdated(surface: android.graphics.SurfaceTexture) = Unit
+            }
+        }
+    }
+
+    private fun startRecordingTimer(maxMs: Long) {
+        recordStartMs = System.currentTimeMillis()
+        recordTimerJob?.cancel()
+        recordTimerJob = viewLifecycleOwner.lifecycleScope.launch {
+            while (isActive) {
+                val elapsed = System.currentTimeMillis() - recordStartMs
+                binding.tvRecordingTimer.text = formatRecordingTime(elapsed)
+                if (elapsed >= maxMs) {
+                    finishRecording(cancel = false)
+                    break
+                }
+                delay(200)
+            }
+        }
+    }
+
+    private fun updateRecordingHint() {
+        binding.tvRecordingHint.setText(
+            if (cancelArmed) R.string.recording_release_to_cancel
+            else R.string.recording_release_to_send
+        )
+    }
+
+    private fun finishRecording(cancel: Boolean) {
+        if (finishingRecording) return
+        finishingRecording = true
+        val mode = activeRecorderMode
+        activeRecorderMode = null
+        recordTimerJob?.cancel()
+        recordTimerJob = null
+
+        if (cancel) {
+            voiceRecorder?.cancel()
+            videoRecorder?.cancel()
+            voiceRecorder = null
+            videoRecorder = null
+            hideRecordingOverlay()
+            finishingRecording = false
+            return
+        }
+
+        val prepared = when (mode) {
+            SendMode.VOICE -> voiceRecorder?.stop()?.let { it.toPrepared() }
+            SendMode.VIDEO -> videoRecorder?.stop()?.let { it.toPrepared() }
+            else -> null
+        }
+        voiceRecorder = null
+        videoRecorder = null
+        hideRecordingOverlay()
+
+        if (prepared == null) {
+            Toast.makeText(requireContext(), R.string.recording_failed, Toast.LENGTH_SHORT).show()
+        } else {
+            val messageType = if (mode == SendMode.VOICE) "VOICE" else "VIDEO_NOTE"
+            viewModel.sendRecordedAttachment(prepared, messageType)
+        }
+        finishingRecording = false
+    }
+
+    private fun abortRecording(messageRes: Int) {
+        activeRecorderMode = null
+        recordTimerJob?.cancel()
+        voiceRecorder?.cancel()
+        videoRecorder?.cancel()
+        voiceRecorder = null
+        videoRecorder = null
+        hideRecordingOverlay()
+        Toast.makeText(requireContext(), messageRes, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun hideRecordingOverlay() {
+        binding.recordingOverlay.visibility = View.GONE
+        binding.videoNotePreviewCard.visibility = View.GONE
+        binding.videoNotePreview.surfaceTextureListener = null
+    }
+
+    private fun RecordedAudio.toPrepared() = PreparedAttachment(
+        file = file,
+        thumbnail = null,
+        name = file.name,
+        size = file.length(),
+        mimeType = "audio/mp4",
+        type = "AUDIO",
+        width = null,
+        height = null,
+        duration = durationSec
+    )
+
+    private fun RecordedVideo.toPrepared() = PreparedAttachment(
+        file = file,
+        thumbnail = thumbnail,
+        name = file.name,
+        size = file.length(),
+        mimeType = "video/mp4",
+        type = "VIDEO",
+        width = width,
+        height = height,
+        duration = durationSec
+    )
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    private fun formatRecordingTime(ms: Long): String {
+        val total = (ms / 1000).coerceAtLeast(0)
+        return "%d:%02d".format(total / 60, total % 60)
     }
 
     override fun onGifSelected(gif: com.example.muzea.domain.model.Gif) {
@@ -468,6 +805,7 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
                     renderPendingAttachments(state.pendingAttachments)
                 }
                 binding.btnSend.isEnabled = state.pendingAttachments.all { it.isUploaded }
+                updateSendButton()
                 // Статусы приходят отдельным полем состояния: список сообщений
                 // при этом не меняется, поэтому DiffUtil сам строки не обновит.
                 if (state.statuses != lastStatuses) {
@@ -515,6 +853,11 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
             binding.recyclerViewMessages.visibility = View.VISIBLE
             binding.tvError.visibility = View.GONE
         }
+    }
+
+    override fun onPause() {
+        if (activeRecorderMode != null) finishRecording(cancel = true)
+        super.onPause()
     }
 
     override fun onDestroyView() {

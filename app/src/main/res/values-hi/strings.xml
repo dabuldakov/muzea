@@ -246,4 +246,15 @@
     <string name="attachment_type_not_allowed">यह फ़ाइल प्रकार अनुमत नहीं है</string>
     <string name="attachment_cannot_read">फ़ाइल पढ़ी नहीं जा सकी</string>
     <string name="attachment_unknown_type">अज्ञात फ़ाइल प्रकार</string>
+
+    <string name="send_mode_text">टेक्स्ट भेजें</string>
+    <string name="send_mode_voice">वॉइस संदेश मोड</string>
+    <string name="send_mode_video">वीडियो संदेश मोड</string>
+    <string name="recording_release_to_send">भेजने के लिए छोड़ें</string>
+    <string name="recording_release_to_cancel">रद्द करने के लिए छोड़ें</string>
+    <string name="recording_failed">रिकॉर्ड नहीं हो सका</string>
+    <string name="permission_mic_denied">माइक्रोफ़ोन अनुमति आवश्यक है</string>
+    <string name="permission_camera_denied">कैमरा और माइक्रोफ़ोन अनुमति आवश्यक है</string>
+    <string name="voice_message">वॉइस संदेश</string>
+    <string name="video_message">वीडियो संदेश</string>
 </resources>

@@ -246,4 +246,15 @@
     <string name="attachment_type_not_allowed">هذا النوع من الملفات غير مسموح</string>
     <string name="attachment_cannot_read">تعذر قراءة الملف</string>
     <string name="attachment_unknown_type">نوع ملف غير معروف</string>
+
+    <string name="send_mode_text">إرسال النص</string>
+    <string name="send_mode_voice">وضع الرسالة الصوتية</string>
+    <string name="send_mode_video">وضع رسالة الفيديو</string>
+    <string name="recording_release_to_send">أفلت للإرسال</string>
+    <string name="recording_release_to_cancel">أفلت للإلغاء</string>
+    <string name="recording_failed">تعذر التسجيل</string>
+    <string name="permission_mic_denied">إذن الميكروفون مطلوب</string>
+    <string name="permission_camera_denied">أذونات الكاميرا والميكروفون مطلوبة</string>
+    <string name="voice_message">رسالة صوتية</string>
+    <string name="video_message">رسالة فيديو</string>
 </resources>

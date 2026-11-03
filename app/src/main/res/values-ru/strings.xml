@@ -247,4 +247,15 @@
     <string name="attachment_type_not_allowed">Этот тип файлов запрещён</string>
     <string name="attachment_cannot_read">Не удалось прочитать файл</string>
     <string name="attachment_unknown_type">Неизвестный тип файла</string>
+
+    <string name="send_mode_text">Отправить текст</string>
+    <string name="send_mode_voice">Режим голосового сообщения</string>
+    <string name="send_mode_video">Режим видеосообщения</string>
+    <string name="recording_release_to_send">Отпустите для отправки</string>
+    <string name="recording_release_to_cancel">Отпустите для отмены</string>
+    <string name="recording_failed">Не удалось записать</string>
+    <string name="permission_mic_denied">Нужен доступ к микрофону</string>
+    <string name="permission_camera_denied">Нужен доступ к камере и микрофону</string>
+    <string name="voice_message">Голосовое сообщение</string>
+    <string name="video_message">Видеосообщение</string>
 </resources>

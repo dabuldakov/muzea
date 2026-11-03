@@ -246,4 +246,15 @@
     <string name="attachment_type_not_allowed">এই ফাইল ধরন অনুমোদিত নয়</string>
     <string name="attachment_cannot_read">ফাইল পড়া যায়নি</string>
     <string name="attachment_unknown_type">অজানা ফাইল ধরন</string>
+
+    <string name="send_mode_text">টেক্সট পাঠান</string>
+    <string name="send_mode_voice">ভয়েস বার্তা মোড</string>
+    <string name="send_mode_video">ভিডিও বার্তা মোড</string>
+    <string name="recording_release_to_send">পাঠাতে ছেড়ে দিন</string>
+    <string name="recording_release_to_cancel">বাতিল করতে ছেড়ে দিন</string>
+    <string name="recording_failed">রেকর্ড করা যায়নি</string>
+    <string name="permission_mic_denied">মাইক্রোফোন অনুমতি প্রয়োজন</string>
+    <string name="permission_camera_denied">ক্যামেরা ও মাইক্রোফোন অনুমতি প্রয়োজন</string>
+    <string name="voice_message">ভয়েস বার্তা</string>
+    <string name="video_message">ভিডিও বার্তা</string>
 </resources>

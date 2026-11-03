@@ -246,4 +246,15 @@
     <string name="attachment_type_not_allowed">不允许此文件类型</string>
     <string name="attachment_cannot_read">无法读取文件</string>
     <string name="attachment_unknown_type">未知文件类型</string>
+
+    <string name="send_mode_text">发送文字</string>
+    <string name="send_mode_voice">语音消息模式</string>
+    <string name="send_mode_video">视频消息模式</string>
+    <string name="recording_release_to_send">松开发送</string>
+    <string name="recording_release_to_cancel">松开取消</string>
+    <string name="recording_failed">无法录制</string>
+    <string name="permission_mic_denied">需要麦克风权限</string>
+    <string name="permission_camera_denied">需要相机和麦克风权限</string>
+    <string name="voice_message">语音消息</string>
+    <string name="video_message">视频消息</string>
 </resources>

@@ -37,6 +37,8 @@ import com.example.muzea.databinding.ItemAttachmentAudioBinding
 import com.example.muzea.databinding.ItemAttachmentDocumentBinding
 import com.example.muzea.databinding.ItemAttachmentImageBinding
 import com.example.muzea.databinding.ItemAttachmentVideoBinding
+import com.example.muzea.databinding.ItemAttachmentVideoNoteBinding
+import com.example.muzea.databinding.ItemAttachmentVoiceBinding
 import com.example.muzea.databinding.ItemMessageIncomingBinding
 import com.example.muzea.databinding.ItemMessageOutgoingBinding
 import kotlinx.coroutines.CoroutineScope
@@ -384,6 +386,32 @@ private fun bindAttachments(
     }
 
     val inflater = LayoutInflater.from(container.context)
+
+    if (message.messageType == "VOICE") {
+        val audio = attachments.firstOrNull { it.type.equals("AUDIO", ignoreCase = true) }
+        if (audio != null) {
+            val item = ItemAttachmentVoiceBinding.inflate(inflater, container, false)
+            item.tvDuration.text = formatDuration(audio.duration)
+            item.root.setOnClickListener { onClick(audio) }
+            container.addView(item.root)
+        }
+        return
+    }
+
+    if (message.messageType == "VIDEO_NOTE") {
+        val video = attachments.firstOrNull { it.type.equals("VIDEO", ignoreCase = true) }
+        if (video != null) {
+            val item = ItemAttachmentVideoNoteBinding.inflate(inflater, container, false)
+            Glide.with(item.ivThumb)
+                .load(attachmentPreviewUrl(video))
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .into(item.ivThumb)
+            item.tvDuration.text = formatDuration(video.duration)
+            item.root.setOnClickListener { onClick(video) }
+            container.addView(item.root)
+        }
+        return
+    }
     attachments.forEach { attachment ->
         when (attachment.type?.uppercase()) {
             "IMAGE" -> {

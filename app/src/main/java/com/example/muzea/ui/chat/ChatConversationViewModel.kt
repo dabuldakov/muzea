@@ -454,6 +454,61 @@ class ChatConversationViewModel @Inject constructor(
             )
         )
 
+    /**
+     * Загружает только что записанное голосовое/видео-сообщение и отправляет его.
+     * Тип VOICE/VIDEO_NOTE передаётся явно — по нему UI рисует волну/кружок.
+     */
+    fun sendRecordedAttachment(prepared: PreparedAttachment, messageType: String) {
+        viewModelScope.launch {
+            when (val uploaded = messageRepository.uploadAttachment(chatUuid, prepared)) {
+                is Resource.Success -> {
+                    val attachment = uploaded.data ?: return@launch
+                    val optimistic = Message(
+                        messageUuid = LOCAL_PREFIX + System.currentTimeMillis(),
+                        chatUuid = chatUuid,
+                        senderId = null,
+                        senderUuid = myUserUuid,
+                        senderName = null,
+                        senderAvatar = null,
+                        text = "",
+                        messageType = messageType,
+                        replyToMessageUuid = null,
+                        isEdited = false,
+                        isDeleted = false,
+                        isPinned = false,
+                        createdAt = null,
+                        updatedAt = null,
+                        attachments = listOf(attachment)
+                    )
+                    mergeMessages(listOf(optimistic))
+                    mediaFileReader.cleanup(prepared)
+
+                    messageRepository.sendMessage(
+                        chatUuid = chatUuid,
+                        text = "",
+                        attachments = listOfNotNull(attachment.attachmentUuid),
+                        messageType = messageType
+                    ).collect { result ->
+                        when (result) {
+                            is Resource.Success ->
+                                applyServerEcho(optimistic.messageUuid, result.data!!)
+                            is Resource.Error -> {
+                                markFailed(optimistic.messageUuid)
+                                _sendError.emit(result.message ?: "Failed to send message")
+                            }
+                            is Resource.Loading -> Unit
+                        }
+                    }
+                }
+                is Resource.Error -> {
+                    mediaFileReader.cleanup(prepared)
+                    _sendError.emit(uploaded.message ?: "Upload failed")
+                }
+                is Resource.Loading -> Unit
+            }
+        }
+    }
+
     /** Скачивает документ во временный файл для открытия системным приложением. */
     suspend fun downloadAttachment(attachment: MessageAttachment): java.io.File? {
         val uuid = attachment.attachmentUuid ?: return null

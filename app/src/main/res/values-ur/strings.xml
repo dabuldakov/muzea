@@ -246,4 +246,15 @@
     <string name="attachment_type_not_allowed">اس فائل کی قسم کی اجازت نہیں</string>
     <string name="attachment_cannot_read">فائل پڑھی نہیں جا سکی</string>
     <string name="attachment_unknown_type">نامعلوم فائل قسم</string>
+
+    <string name="send_mode_text">متن بھیجیں</string>
+    <string name="send_mode_voice">وائس پیغام موڈ</string>
+    <string name="send_mode_video">ویڈیو پیغام موڈ</string>
+    <string name="recording_release_to_send">بھیجنے کے لیے چھوڑیں</string>
+    <string name="recording_release_to_cancel">منسوخ کرنے کے لیے چھوڑیں</string>
+    <string name="recording_failed">ریکارڈ نہیں ہو سکا</string>
+    <string name="permission_mic_denied">مائیکروفون اجازت درکار ہے</string>
+    <string name="permission_camera_denied">کیمرہ اور مائیکروفون اجازت درکار ہے</string>
+    <string name="voice_message">وائس پیغام</string>
+    <string name="video_message">ویڈیو پیغام</string>
 </resources>

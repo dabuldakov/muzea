@@ -246,4 +246,15 @@
     <string name="attachment_type_not_allowed">Ce type de fichier n’est pas autorisé</string>
     <string name="attachment_cannot_read">Impossible de lire le fichier</string>
     <string name="attachment_unknown_type">Type de fichier inconnu</string>
+
+    <string name="send_mode_text">Envoyer le texte</string>
+    <string name="send_mode_voice">Mode message vocal</string>
+    <string name="send_mode_video">Mode message vidéo</string>
+    <string name="recording_release_to_send">Relâchez pour envoyer</string>
+    <string name="recording_release_to_cancel">Relâchez pour annuler</string>
+    <string name="recording_failed">Impossible d’enregistrer</string>
+    <string name="permission_mic_denied">Autorisation du micro requise</string>
+    <string name="permission_camera_denied">Autorisations caméra et micro requises</string>
+    <string name="voice_message">Message vocal</string>
+    <string name="video_message">Message vidéo</string>
 </resources>

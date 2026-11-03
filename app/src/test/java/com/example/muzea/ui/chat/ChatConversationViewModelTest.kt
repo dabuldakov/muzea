@@ -465,4 +465,32 @@ class ChatConversationViewModelTest {
         assertTrue(viewModel.uiState.value.pendingAttachments.isEmpty())
         coVerify { mediaFileReader.cleanup(prepared) }
     }
+
+    @Test
+    fun `recorded voice is uploaded and sent with VOICE type`() = withViewModel { viewModel ->
+        val file = java.io.File.createTempFile("voice", ".m4a").apply { deleteOnExit() }
+        val prepared = PreparedAttachment(
+            file = file, thumbnail = null, name = "voice.m4a", size = 3,
+            mimeType = "audio/mp4", type = "AUDIO", width = null, height = null, duration = 2
+        )
+        coEvery { messageRepository.uploadAttachment(chatUuid, any()) } returns Resource.Success(
+            MessageAttachment(
+                fileUrl = "/api/attachments/a-voice", thumbnailUrl = null, type = "AUDIO",
+                width = null, height = null, attachmentUuid = "a-voice",
+                fileName = "voice.m4a", duration = 2
+            )
+        )
+        coEvery {
+            messageRepository.sendMessage(chatUuid, "", listOf("a-voice"), "VOICE")
+        } returns flowOf(
+            Resource.Success(
+                message("srv", "", "2026-01-01T00:00:00").copy(messageType = "VOICE")
+            )
+        )
+
+        viewModel.sendRecordedAttachment(prepared, "VOICE")
+
+        coVerify { messageRepository.sendMessage(chatUuid, "", listOf("a-voice"), "VOICE") }
+        coVerify { mediaFileReader.cleanup(prepared) }
+    }
 }

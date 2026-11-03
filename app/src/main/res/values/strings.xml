@@ -250,4 +250,15 @@
     <string name="attachment_type_not_allowed">This file type is not allowed</string>
     <string name="attachment_cannot_read">Could not read the file</string>
     <string name="attachment_unknown_type">Unknown file type</string>
+
+    <string name="send_mode_text">Send text</string>
+    <string name="send_mode_voice">Voice message mode</string>
+    <string name="send_mode_video">Video message mode</string>
+    <string name="recording_release_to_send">Release to send</string>
+    <string name="recording_release_to_cancel">Release to cancel</string>
+    <string name="recording_failed">Could not record</string>
+    <string name="permission_mic_denied">Microphone permission is required</string>
+    <string name="permission_camera_denied">Camera and microphone permissions are required</string>
+    <string name="voice_message">Voice message</string>
+    <string name="video_message">Video message</string>
 </resources>

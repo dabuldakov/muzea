@@ -91,7 +91,8 @@ class MessageRepositoryImpl @Inject constructor(
     override suspend fun sendMessage(
         chatUuid: String,
         text: String,
-        attachments: List<String>
+        attachments: List<String>,
+        messageType: String
     ): Flow<Resource<Message>> = flow {
         emit(Resource.Loading())
         try {
@@ -105,8 +106,9 @@ class MessageRepositoryImpl @Inject constructor(
                     chatUuid,
                     SendMessageRequest(
                         text = text,
-                        // Тип выводит сервер по вложениям: IMAGE/VIDEO/AUDIO/FILE.
-                        messageType = "TEXT",
+                        // TEXT — сервер выведет тип по вложениям; VOICE/VIDEO_NOTE
+                        // передаём явно, чтобы отрисовать голосовое/кружок.
+                        messageType = messageType,
                         attachments = attachments.takeIf { it.isNotEmpty() }
                     )
                 )

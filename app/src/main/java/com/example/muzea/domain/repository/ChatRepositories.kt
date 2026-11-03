@@ -41,7 +41,8 @@ interface MessageRepository {
     suspend fun sendMessage(
         chatUuid: String,
         text: String,
-        attachments: List<String> = emptyList()
+        attachments: List<String> = emptyList(),
+        messageType: String = "TEXT"
     ): Flow<Resource<Message>>
     suspend fun sendGif(chatUuid: String, gif: Gif): Flow<Resource<Message>>
 
