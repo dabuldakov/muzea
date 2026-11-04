@@ -65,9 +65,6 @@ interface ChatApiService {
         @Part file: MultipartBody.Part
     ): Response<okhttp3.ResponseBody>
 
-    @POST("/api/auth/logout")
-    suspend fun logout(): Response<Unit>
-
     /**
      * Heartbeat «я на переднем плане». Продлевает окно онлайна на сервере.
      *

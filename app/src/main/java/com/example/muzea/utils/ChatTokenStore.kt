@@ -7,7 +7,6 @@ package com.example.muzea.utils
  */
 interface ChatTokenStore {
     fun getUsername(): String?
-    fun getPassword(): String?
     fun getEmail(): String?
     fun getChatToken(): String?
     fun getChatTokenUser(): String?

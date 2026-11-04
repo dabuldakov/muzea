@@ -70,12 +70,12 @@ class TokenManagerTest {
     }
 
     @Test
-    fun `legacy plaintext password is moved into secure storage`() {
+    fun `legacy plaintext password is purged and never stored`() {
         prefs.edit().putString("password", "secret").commit()
 
         TokenManager(context)
 
-        verify(exactly = 1) { SecureStore.savePassword(context, "secret") }
+        verify(exactly = 1) { SecureStore.clearPassword(context) }
         assertFalse(prefs.contains("password"))
     }
 
@@ -99,14 +99,12 @@ class TokenManagerTest {
         every { SecureStore.loadAuthToken(any()) } returns "auth"
         every { SecureStore.loadAuthRefreshToken(any()) } returns "refresh"
         every { SecureStore.loadChatToken(any()) } returns "chat"
-        every { SecureStore.loadPassword(any()) } returns "pass"
 
         val manager = TokenManager(context)
 
         assertEquals("auth", manager.getToken())
         assertEquals("refresh", manager.getAuthRefreshToken())
         assertEquals("chat", manager.getChatToken())
-        assertEquals("pass", manager.getPassword())
     }
 
     @Test

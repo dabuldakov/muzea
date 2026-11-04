@@ -39,18 +39,6 @@ class ChatSessionRepositoryImpl @Inject constructor(
         false
     }
 
-    override suspend fun logout(): Boolean = try {
-        if (chatAuthManager.isAuthenticated()) {
-            apiService.logout().isSuccessful
-        } else {
-            true
-        }
-    } catch (e: CancellationException) {
-        throw e
-    } catch (e: Exception) {
-        true
-    }
-
     override suspend fun getTotalUnreadCount(): Flow<Resource<Long>> = flow {
         emit(Resource.Loading())
         try {

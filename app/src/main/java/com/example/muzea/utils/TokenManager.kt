@@ -13,20 +13,19 @@ class TokenManager(
         appContext.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
 
     init {
-        migrateLegacyPassword()
+        purgeLegacyPassword()
         migrateLegacyTokens()
     }
 
     /**
-     * Ранее пароль лежал в app_prefs открытым текстом. Переносим его в шифрованное
-     * хранилище и удаляем из обычных настроек.
+     * Парольная авторизация выпилена: стираем прежний пароль, если он остался
+     * (открытым текстом в app_prefs или в шифрованном хранилище).
      */
-    private fun migrateLegacyPassword() {
-        val legacy = prefs.getString("password", null) ?: return
-        if (!legacy.isNullOrEmpty()) {
-            SecureStore.savePassword(appContext, legacy)
+    private fun purgeLegacyPassword() {
+        if (prefs.contains("password")) {
+            prefs.edit().remove("password").apply()
         }
-        prefs.edit().remove("password").apply()
+        SecureStore.clearPassword(appContext)
     }
 
     /**
@@ -106,14 +105,6 @@ class TokenManager(
 
     override fun getEmail(): String? {
         return prefs.getString("email", null)
-    }
-
-    fun savePassword(password: String) {
-        SecureStore.savePassword(appContext, password)
-    }
-
-    override fun getPassword(): String? {
-        return SecureStore.loadPassword(appContext)
     }
 
     override fun saveChatToken(token: String) {

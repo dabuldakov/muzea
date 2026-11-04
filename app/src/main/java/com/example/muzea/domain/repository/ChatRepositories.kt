@@ -102,6 +102,5 @@ interface AvatarRepository {
 interface ChatSessionRepository {
     suspend fun deleteAccount(): Boolean
     suspend fun sendHeartbeat(): Boolean
-    suspend fun logout(): Boolean
     suspend fun getTotalUnreadCount(): Flow<Resource<Long>>
 }

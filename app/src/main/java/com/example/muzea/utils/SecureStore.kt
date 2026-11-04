@@ -7,12 +7,11 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 
 /**
- * Шифрованное хранилище учётных данных: пароль и токены (access/refresh чата).
+ * Шифрованное хранилище токенов (access/refresh единого IdP и чата).
  * Ключи создаются в Android Keystore и не покидают устройство.
  *
- * Раньше пароль лежал здесь, а токены — открытым текстом в обычных настройках
- * (app_prefs). Токен — это фактически ключ доступа к аккаунту, поэтому он должен
- * храниться так же защищённо, как пароль.
+ * Токен — это фактически ключ доступа к аккаунту, поэтому он хранится в
+ * защищённом виде. Пароль здесь больше не хранится: вход только по коду на email.
  *
  * Если хранилище недоступно (например, сломанный Keystore после сброса экрана),
  * ничего не сохраняется вовсе — чат просто потребует повторного входа.
@@ -20,6 +19,7 @@ import androidx.security.crypto.MasterKey
 object SecureStore {
 
     private const val FILE_NAME = "secure_prefs"
+    /** Legacy-ключ пароля: остаётся только для одноразовой очистки. */
     private const val KEY_PASSWORD = "account_password"
     private const val KEY_AUTH_TOKEN = "auth_token"
     private const val KEY_AUTH_REFRESH = "auth_refresh_token"
@@ -49,10 +49,9 @@ object SecureStore {
         }
     }
 
-    fun savePassword(context: Context, password: String) =
-        prefs(context)?.edit()?.putString(KEY_PASSWORD, password)?.apply()
-
-    fun loadPassword(context: Context): String? = prefs(context)?.getString(KEY_PASSWORD, null)
+    /** Стирает legacy-пароль, оставшийся от прежней парольной авторизации. */
+    fun clearPassword(context: Context) =
+        prefs(context)?.edit()?.remove(KEY_PASSWORD)?.apply()
 
     fun saveAuthToken(context: Context, token: String) =
         prefs(context)?.edit()?.putString(KEY_AUTH_TOKEN, token)?.apply()

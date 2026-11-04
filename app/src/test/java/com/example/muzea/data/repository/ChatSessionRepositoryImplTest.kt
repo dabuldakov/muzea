@@ -84,26 +84,6 @@ class ChatSessionRepositoryImplTest {
     }
 
     @Test
-    fun `logout is a no-op without a token and succeeds`() = runTest {
-        coEvery { auth.isAuthenticated() } returns false
-
-        assertTrue(repository.logout())
-        coVerify(exactly = 0) { api.logout() }
-    }
-
-    @Test
-    fun `logout reports the server status but never throws`() = runTest {
-        coEvery { auth.isAuthenticated() } returns true
-        coEvery { api.logout() } returnsMany listOf(httpOk(Unit), httpError(500))
-        coEvery { api.sendHeartbeat() } throws IOException("offline")
-
-        assertTrue(repository.logout())
-        assertFalse(repository.logout())
-        // Сеть может упасть и в heartbeat — наружу исключение не выходит.
-        assertFalse(repository.sendHeartbeat())
-    }
-
-    @Test
     fun `unread count is mapped from the response`() = runTest {
         coEvery { auth.isAuthenticated() } returns true
         coEvery { api.getTotalUnreadCount() } returns httpOk(UnreadCountResponse(7))
