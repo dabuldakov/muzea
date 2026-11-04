@@ -266,4 +266,10 @@
 
     <string name="error_image_unavailable">Сурет енді қолжетімсіз. Оны қайта таңдаңыз</string>
     <string name="error_video_unavailable">Бейне енді қолжетімсіз. Оны қайта таңдаңыз</string>
+
+    <string name="nav_news">Жаңалықтар</string>
+    <string name="nav_chat">Чат</string>
+    <string name="nav_contacts">Контактілер</string>
+    <string name="nav_videos">Бейне</string>
+    <string name="nav_profile">Профиль</string>
 </resources>

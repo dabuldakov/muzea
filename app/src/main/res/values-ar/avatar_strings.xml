@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="change_avatar">تغيير الصورة الرمزية</string>
+    <string name="delete_avatar">إزالة الصورة الرمزية</string>
+    <string name="retry_avatar">إعادة تحميل الصورة الرمزية</string>
+    <string name="avatar_description">صورة المستخدم الرمزية</string>
+</resources>

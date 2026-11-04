@@ -266,4 +266,10 @@
 
     <string name="error_image_unavailable">تصویر اب دستیاب نہیں ہے۔ اسے دوبارہ منتخب کریں</string>
     <string name="error_video_unavailable">ویڈیو اب دستیاب نہیں ہے۔ اسے دوبارہ منتخب کریں</string>
+
+    <string name="nav_news">خبریں</string>
+    <string name="nav_chat">چیٹ</string>
+    <string name="nav_contacts">روابط</string>
+    <string name="nav_videos">ویڈیو</string>
+    <string name="nav_profile">پروفائل</string>
 </resources>

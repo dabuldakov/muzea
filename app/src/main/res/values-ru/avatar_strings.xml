@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="change_avatar">Сменить аватар</string>
+    <string name="delete_avatar">Удалить аватар</string>
+    <string name="retry_avatar">Обновить аватар</string>
+    <string name="avatar_description">Аватар пользователя</string>
+</resources>

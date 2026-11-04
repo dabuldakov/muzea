@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="change_avatar">অবতার পরিবর্তন করুন</string>
+    <string name="delete_avatar">অবতার সরান</string>
+    <string name="retry_avatar">অবতার পুনরায় লোড করুন</string>
+    <string name="avatar_description">ব্যবহারকারীর অবতার</string>
+</resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="change_avatar">Змяніць аватар</string>
+    <string name="delete_avatar">Выдаліць аватар</string>
+    <string name="retry_avatar">Абнавіць аватар</string>
+    <string name="avatar_description">Аватар карыстальніка</string>
+</resources>

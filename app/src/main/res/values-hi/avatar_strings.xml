@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="change_avatar">अवतार बदलें</string>
+    <string name="delete_avatar">अवतार हटाएँ</string>
+    <string name="retry_avatar">अवतार फिर से लोड करें</string>
+    <string name="avatar_description">उपयोगकर्ता अवतार</string>
+</resources>

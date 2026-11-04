@@ -266,4 +266,10 @@
 
     <string name="error_image_unavailable">图片已不可用，请重新选择</string>
     <string name="error_video_unavailable">视频已不可用，请重新选择</string>
+
+    <string name="nav_news">新闻</string>
+    <string name="nav_chat">聊天</string>
+    <string name="nav_contacts">联系人</string>
+    <string name="nav_videos">视频</string>
+    <string name="nav_profile">我的</string>
 </resources>

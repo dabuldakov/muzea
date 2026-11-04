@@ -266,4 +266,10 @@
 
     <string name="error_image_unavailable">الصورة لم تعد متاحة. اخترها مرة أخرى</string>
     <string name="error_video_unavailable">الفيديو لم يعد متاحًا. اختره مرة أخرى</string>
+
+    <string name="nav_news">الأخبار</string>
+    <string name="nav_chat">الدردشة</string>
+    <string name="nav_contacts">جهات الاتصال</string>
+    <string name="nav_videos">الفيديو</string>
+    <string name="nav_profile">الملف</string>
 </resources>

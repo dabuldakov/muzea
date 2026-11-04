@@ -266,4 +266,10 @@
 
     <string name="error_image_unavailable">Зураг одоо боломжгүй байна. Дахин сонгоно уу</string>
     <string name="error_video_unavailable">Видео одоо боломжгүй байна. Дахин сонгоно уу</string>
+
+    <string name="nav_news">Мэдээ</string>
+    <string name="nav_chat">Чат</string>
+    <string name="nav_contacts">Харилцагчид</string>
+    <string name="nav_videos">Видео</string>
+    <string name="nav_profile">Профайл</string>
 </resources>

@@ -266,4 +266,10 @@
 
     <string name="error_image_unavailable">छवि अब उपलब्ध नहीं है। इसे फिर से चुनें</string>
     <string name="error_video_unavailable">वीडियो अब उपलब्ध नहीं है। इसे फिर से चुनें</string>
+
+    <string name="nav_news">समाचार</string>
+    <string name="nav_chat">चैट</string>
+    <string name="nav_contacts">संपर्क</string>
+    <string name="nav_videos">वीडियो</string>
+    <string name="nav_profile">प्रोफ़ाइल</string>
 </resources>

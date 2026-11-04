@@ -270,4 +270,10 @@
 
     <string name="error_image_unavailable">Image is no longer available. Select it again</string>
     <string name="error_video_unavailable">Video is no longer available. Select it again</string>
+
+    <string name="nav_news">News</string>
+    <string name="nav_chat">Chat</string>
+    <string name="nav_contacts">Contacts</string>
+    <string name="nav_videos">Videos</string>
+    <string name="nav_profile">Profile</string>
 </resources>

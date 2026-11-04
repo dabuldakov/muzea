@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="change_avatar">Cambiar avatar</string>
+    <string name="delete_avatar">Quitar avatar</string>
+    <string name="retry_avatar">Recargar avatar</string>
+    <string name="avatar_description">Avatar del usuario</string>
+</resources>

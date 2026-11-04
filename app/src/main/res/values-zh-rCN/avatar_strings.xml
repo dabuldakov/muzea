@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="change_avatar">更换头像</string>
+    <string name="delete_avatar">移除头像</string>
+    <string name="retry_avatar">重新加载头像</string>
+    <string name="avatar_description">用户头像</string>
+</resources>

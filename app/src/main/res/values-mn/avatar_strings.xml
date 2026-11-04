@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="change_avatar">Аватар солих</string>
+    <string name="delete_avatar">Аватар устгах</string>
+    <string name="retry_avatar">Аватарыг дахин ачаалах</string>
+    <string name="avatar_description">Хэрэглэгчийн аватар</string>
+</resources>

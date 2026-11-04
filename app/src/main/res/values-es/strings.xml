@@ -266,4 +266,10 @@
 
     <string name="error_image_unavailable">La imagen ya no está disponible. Selecciónala de nuevo</string>
     <string name="error_video_unavailable">El video ya no está disponible. Selecciónalo de nuevo</string>
+
+    <string name="nav_news">Noticias</string>
+    <string name="nav_chat">Chat</string>
+    <string name="nav_contacts">Contactos</string>
+    <string name="nav_videos">Vídeos</string>
+    <string name="nav_profile">Perfil</string>
 </resources>

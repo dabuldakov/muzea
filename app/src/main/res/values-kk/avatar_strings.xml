@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="change_avatar">Аватарды өзгерту</string>
+    <string name="delete_avatar">Аватарды жою</string>
+    <string name="retry_avatar">Аватарды жаңарту</string>
+    <string name="avatar_description">Пайдаланушы аватары</string>
+</resources>

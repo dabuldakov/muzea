@@ -266,4 +266,10 @@
 
     <string name="error_image_unavailable">Зображення більше недоступне. Виберіть його знову</string>
     <string name="error_video_unavailable">Відео більше недоступне. Виберіть його знову</string>
+
+    <string name="nav_news">Новини</string>
+    <string name="nav_chat">Чат</string>
+    <string name="nav_contacts">Контакти</string>
+    <string name="nav_videos">Відео</string>
+    <string name="nav_profile">Профіль</string>
 </resources>

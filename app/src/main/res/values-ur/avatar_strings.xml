@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="change_avatar">اوتار تبدیل کریں</string>
+    <string name="delete_avatar">اوتار ہٹائیں</string>
+    <string name="retry_avatar">اوتار دوبارہ لوڈ کریں</string>
+    <string name="avatar_description">صارف کا اوتار</string>
+</resources>
