@@ -2,86 +2,128 @@ package com.example.muzea.data.repository
 
 import com.example.muzea.domain.model.Gif
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
-import org.junit.Before
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
 class GifCacheTest {
 
-    private lateinit var file: File
-    private lateinit var cache: GifCache
+    private fun gif(url: String, key: String? = null) = Gif(
+        provider = "klipy",
+        providerGifId = key ?: url,
+        title = "g",
+        url = url,
+        previewUrl = null,
+        width = 1,
+        height = 1,
+        gifKey = key
+    )
 
-    private fun gif(id: String) = Gif("klipy", id, null, "u$id", "p$id", 1, 1)
-
-    @Before
-    fun setUp() {
-        file = File.createTempFile("gif-cache", ".json").apply { delete() }
-        cache = GifCache(file)
+    private fun cacheFile() = File.createTempFile("gif-cache", ".json").apply {
+        delete()
+        deleteOnExit()
     }
 
     @Test
-    fun `put and get`() {
-        cache.put(GifCache.recentKey(), listOf(gif("a")))
+    fun `fresh entries are returned and expired ones are not`() {
+        val cache = GifCache(cacheFile())
+        cache.put("chat:1", listOf(gif("https://c/1.gif")))
 
-        assertEquals(listOf("a"), cache.getStale(GifCache.recentKey())!!.map { it.providerGifId })
+        assertNotNull(cache.getFresh("chat:1", ttlMs = 60_000))
+        assertNull(cache.getFresh("chat:1", ttlMs = -1))
+        assertNull(cache.getFresh("missing", ttlMs = 60_000))
     }
 
     @Test
-    fun `missing key returns null`() {
-        assertNull(cache.getStale("nope"))
-        assertNull(cache.getFresh("nope", Long.MAX_VALUE))
+    fun `stale entries survive regardless of age`() {
+        val cache = GifCache(cacheFile())
+        cache.put("recent", listOf(gif("https://c/1.gif")))
+
+        assertNotNull(cache.getStale("recent"))
+        assertNull(cache.getStale("absent"))
     }
 
     @Test
-    fun `getFresh honors ttl`() {
-        cache.put(GifCache.recentKey(), listOf(gif("a")))
+    fun `prepend deduplicates by gif key and url`() {
+        val cache = GifCache(cacheFile())
+        cache.prepend("recent", gif("https://c/1.gif", key = "k1"))
+        // Тот же ключ — дубликат.
+        cache.prepend("recent", gif("https://c/other.gif", key = "k1"))
+        // Тот же url — тоже дубликат.
+        cache.prepend("recent", gif("https://c/1.gif", key = "k2"))
 
-        assertEquals(1, cache.getFresh(GifCache.recentKey(), 60_000)!!.size)
-        assertNull(cache.getFresh(GifCache.recentKey(), -1))
+        assertEquals(1, cache.getStale("recent")!!.size)
+
+        cache.prepend("recent", gif("https://c/2.gif", key = "k3"))
+        assertEquals(2, cache.getStale("recent")!!.size)
     }
 
     @Test
-    fun `different keys are isolated`() {
-        cache.put(GifCache.chatKey("chat-1"), listOf(gif("c1")))
-        cache.put(GifCache.chatKey("chat-2"), listOf(gif("c2")))
+    fun `prepend evicts the oldest entries past the limit`() {
+        val cache = GifCache(cacheFile())
+        repeat(105) { i ->
+            cache.prepend("key-$i", gif("https://c/$i.gif", key = "k$i"))
+        }
 
-        assertEquals("c1", cache.getStale(GifCache.chatKey("chat-1"))!!.single().providerGifId)
-        assertEquals("c2", cache.getStale(GifCache.chatKey("chat-2"))!!.single().providerGifId)
+        // Лимит — 100 записей: самые старые ключи вытеснены.
+        assertNull(cache.getStale("key-0"))
+        assertNotNull(cache.getStale("key-104"))
     }
 
     @Test
-    fun `search key is normalized`() {
-        assertEquals(GifCache.searchKey("Cat "), GifCache.searchKey("cat"))
-    }
+    fun `clear and remove drop entries`() {
+        val cache = GifCache(cacheFile())
+        cache.put("chat:1", listOf(gif("https://c/1.gif")))
+        cache.put("recent", listOf(gif("https://c/2.gif")))
 
-    @Test
-    fun `prepend adds to front and dedups`() {
-        cache.put(GifCache.chatKey("c"), listOf(gif("old")))
+        cache.remove("chat:1")
+        assertNull(cache.getStale("chat:1"))
+        assertNotNull(cache.getStale("recent"))
 
-        cache.prepend(GifCache.chatKey("c"), gif("new"))
-        cache.prepend(GifCache.chatKey("c"), gif("new")) // дубликат
-
-        assertEquals(
-            listOf("new", "old"),
-            cache.getStale(GifCache.chatKey("c"))!!.map { it.providerGifId }
-        )
-    }
-
-    @Test
-    fun `clear removes everything`() {
-        cache.put(GifCache.recentKey(), listOf(gif("a")))
+        cache.remove("absent")
         cache.clear()
-
-        assertNull(cache.getStale(GifCache.recentKey()))
+        assertTrue(cache.getStale("recent").isNullOrEmpty())
     }
 
     @Test
-    fun `persists across instances`() {
-        cache.put(GifCache.searchKey("cat"), listOf(gif("s1")))
+    fun `entries are persisted and reloaded from disk`() {
+        val file = cacheFile()
+        GifCache(file).put("recent", listOf(gif("https://c/1.gif")))
+        assertTrue(file.exists())
 
         val reloaded = GifCache(file)
 
-        assertEquals("s1", reloaded.getStale(GifCache.searchKey("cat"))!!.single().providerGifId)
+        assertEquals(1, reloaded.getStale("recent")!!.size)
+    }
+
+    @Test
+    fun `a corrupt cache file is ignored`() {
+        val file = cacheFile()
+        file.writeText("not-json")
+
+        val cache = GifCache(file)
+
+        assertNull(cache.getStale("recent"))
+        // Запись после ошибки не должна падать.
+        cache.put("recent", listOf(gif("https://c/2.gif")))
+        assertEquals(1, cache.getStale("recent")!!.size)
+    }
+
+    @Test
+    fun `search key trims and lowercases the query`() {
+        assertEquals("search:cat dog", GifCache.searchKey("  Cat Dog "))
+    }
+
+    @Test
+    fun `entries beyond the maximum are evicted`() {
+        val cache = GifCache(cacheFile())
+        repeat(101) { i ->
+            cache.put("key-$i", listOf(gif("https://c/$i.gif")))
+        }
+
+        assertNull(cache.getStale("key-0"))
+        assertNotNull(cache.getStale("key-100"))
     }
 }

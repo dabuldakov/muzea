@@ -30,7 +30,6 @@ class ChatAuthManagerTest {
         ChatUserResponse(
             userUuid = userUuid,
             username = "alice",
-            email = "alice@example.com",
             firstName = null,
             lastName = null,
             fullName = "Alice",

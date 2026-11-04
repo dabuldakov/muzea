@@ -329,24 +329,19 @@ class ProfileFragment : Fragment() {
         isEditing = true
         binding.btnEditProfile.text = getString(R.string.profile_save)
         binding.etFullName.isEnabled = true
-        binding.etEmail.isEnabled = true
+        // Email — идентичность IdP: его нельзя менять из профиля.
+        binding.etEmail.isEnabled = false
     }
 
     private fun saveChanges() {
         val fullName = binding.etFullName.text.toString().trim()
-        val email = binding.etEmail.text.toString().trim()
 
         if (fullName.isEmpty()) {
             binding.etFullName.error = getString(R.string.error_full_name_required)
             return
         }
 
-        if (email.isEmpty() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            binding.etEmail.error = getString(R.string.error_invalid_email)
-            return
-        }
-
-        viewModel.updateUserProfile(fullName, email)
+        viewModel.updateUserProfile(fullName)
     }
 
     private fun observeViewModel() {
@@ -402,7 +397,7 @@ class ProfileFragment : Fragment() {
 
     private fun renderProfile(state: ProfileUiState) {
         binding.progressBar.visibility = if (state.isLoading) View.VISIBLE else View.GONE
-        state.user?.let { displayUserProfile(it) }
+        state.user?.let { displayUserProfile(it, state.email) }
         if (state.error != null) {
             binding.tvError.text = state.error
             binding.tvError.visibility = View.VISIBLE
@@ -411,10 +406,11 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    private fun displayUserProfile(user: com.example.muzea.domain.model.User) {
+    private fun displayUserProfile(user: com.example.muzea.domain.model.User, email: String?) {
         binding.tvUsername.text = "@${user.userName}"
-        binding.etFullName.setText(user.userName)
-        binding.etEmail.setText(user.email)
+        binding.etFullName.setText(user.fullName ?: user.userName)
+        // Email приходит из IdP (auth-service) и доступен только для чтения.
+        binding.etEmail.setText(email.orEmpty())
         binding.tvRole.text = getString(R.string.profile_role_format, user.role)
 
         disableEditing()

@@ -272,4 +272,37 @@
     <string name="nav_contacts">পরিচিতি</string>
     <string name="nav_videos">ভিডিও</string>
     <string name="nav_profile">প্রোফাইল</string>
+    <string name="action_reply">উত্তর দিন</string>
+    <string name="action_cancel_reply">উত্তর বাতিল করুন</string>
+    <string name="reply_to_format">%1$s-কে উত্তর</string>
+    <string name="reply_you">আপনি</string>
+    <string name="reply_unknown_sender">ব্যবহারকারী</string>
+    <string name="reply_quote_placeholder">বার্তা</string>
+    <string name="reply_quote_deleted">বার্তা মুছে ফেলা হয়েছে</string>
+    <string name="reply_quote_attachment">সংযুক্তি</string>
+    <string name="reply_quote_gif">GIF</string>
+
+    <string name="action_edit">সম্পাদনা</string>
+    <string name="action_cancel_edit">সম্পাদনা বাতিল করুন</string>
+    <string name="edit_message_title">বার্তা সম্পাদনা</string>
+    <string name="message_edited">সম্পাদিত</string>
+    <string name="error_message_required">বার্তার টেক্সট আবশ্যক</string>
+
+    <string name="delete_message_confirm_title">বার্তা মুছবেন?</string>
+    <string name="delete_message_confirm_message">বার্তাটি সবার জন্য মুছে ফেলা হবে।</string>
+    <string name="delete_message_failed">বার্তা মুছতে ব্যর্থ</string>
+    <string name="message_deleted">বার্তা মুছে ফেলা হয়েছে</string>
+
+    <string name="action_pin">পিন করুন</string>
+    <string name="action_unpin">পিন সরান</string>
+    <string name="action_forward">ফরোয়ার্ড</string>
+    <string name="forward_picker_title">এতে ফরোয়ার্ড করুন…</string>
+    <string name="forward_picker_empty">কোনো চ্যাট নেই</string>
+    <string name="message_forwarded">বার্তা ফরোয়ার্ড করা হয়েছে</string>
+    <string name="forward_message_failed">বার্তা ফরোয়ার্ড করতে ব্যর্থ</string>
+    <string name="pin_message_failed">বার্তা পিন করতে ব্যর্থ</string>
+    <string name="unpin_message_failed">বার্তা আনপিন করতে ব্যর্থ</string>
+    <string name="pinned_message_title">পিন করা বার্তা</string>
+    <string name="pinned_messages_count">পিন করা: %1$d</string>
+    <string name="action_open_pinned">পিন করা বার্তা খুলুন</string>
 </resources>

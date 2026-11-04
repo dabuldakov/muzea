@@ -276,4 +276,38 @@
     <string name="nav_contacts">Contacts</string>
     <string name="nav_videos">Videos</string>
     <string name="nav_profile">Profile</string>
+
+    <string name="action_reply">Reply</string>
+    <string name="action_cancel_reply">Cancel reply</string>
+    <string name="reply_to_format">Reply to %1$s</string>
+    <string name="reply_you">You</string>
+    <string name="reply_unknown_sender">User</string>
+    <string name="reply_quote_placeholder">Message</string>
+    <string name="reply_quote_deleted">Message deleted</string>
+    <string name="reply_quote_attachment">Attachment</string>
+    <string name="reply_quote_gif">GIF</string>
+
+    <string name="action_edit">Edit</string>
+    <string name="action_cancel_edit">Cancel editing</string>
+    <string name="edit_message_title">Editing message</string>
+    <string name="message_edited">edited</string>
+    <string name="error_message_required">Message text required</string>
+
+    <string name="delete_message_confirm_title">Delete message?</string>
+    <string name="delete_message_confirm_message">The message will be deleted for everyone.</string>
+    <string name="delete_message_failed">Failed to delete message</string>
+    <string name="message_deleted">Message deleted</string>
+
+    <string name="action_pin">Pin</string>
+    <string name="action_unpin">Unpin</string>
+    <string name="action_forward">Forward</string>
+    <string name="forward_picker_title">Forward to…</string>
+    <string name="forward_picker_empty">No chats available</string>
+    <string name="message_forwarded">Message forwarded</string>
+    <string name="forward_message_failed">Failed to forward message</string>
+    <string name="pin_message_failed">Failed to pin message</string>
+    <string name="unpin_message_failed">Failed to unpin message</string>
+    <string name="pinned_message_title">Pinned message</string>
+    <string name="pinned_messages_count">Pinned: %1$d</string>
+    <string name="action_open_pinned">Open pinned message</string>
 </resources>

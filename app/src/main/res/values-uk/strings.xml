@@ -272,4 +272,37 @@
     <string name="nav_contacts">Контакти</string>
     <string name="nav_videos">Відео</string>
     <string name="nav_profile">Профіль</string>
+    <string name="action_reply">Відповісти</string>
+    <string name="action_cancel_reply">Скасувати відповідь</string>
+    <string name="reply_to_format">Відповідь %1$s</string>
+    <string name="reply_you">Ви</string>
+    <string name="reply_unknown_sender">Користувач</string>
+    <string name="reply_quote_placeholder">Повідомлення</string>
+    <string name="reply_quote_deleted">Повідомлення видалено</string>
+    <string name="reply_quote_attachment">Вкладення</string>
+    <string name="reply_quote_gif">GIF</string>
+
+    <string name="action_edit">Змінити</string>
+    <string name="action_cancel_edit">Скасувати зміну</string>
+    <string name="edit_message_title">Зміна повідомлення</string>
+    <string name="message_edited">змінено</string>
+    <string name="error_message_required">Введіть текст повідомлення</string>
+
+    <string name="delete_message_confirm_title">Видалити повідомлення?</string>
+    <string name="delete_message_confirm_message">Повідомлення буде видалено в усіх.</string>
+    <string name="delete_message_failed">Не вдалося видалити повідомлення</string>
+    <string name="message_deleted">Повідомлення видалено</string>
+
+    <string name="action_pin">Закріпити</string>
+    <string name="action_unpin">Відкріпити</string>
+    <string name="action_forward">Переслати</string>
+    <string name="forward_picker_title">Переслати…</string>
+    <string name="forward_picker_empty">Немає доступних чатів</string>
+    <string name="message_forwarded">Повідомлення переслано</string>
+    <string name="forward_message_failed">Не вдалося переслати повідомлення</string>
+    <string name="pin_message_failed">Не вдалося закріпити повідомлення</string>
+    <string name="unpin_message_failed">Не вдалося відкріпити повідомлення</string>
+    <string name="pinned_message_title">Закріплене повідомлення</string>
+    <string name="pinned_messages_count">Закріплених: %1$d</string>
+    <string name="action_open_pinned">Відкрити закріплене повідомлення</string>
 </resources>

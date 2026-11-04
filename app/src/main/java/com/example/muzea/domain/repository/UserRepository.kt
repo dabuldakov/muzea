@@ -10,7 +10,6 @@ interface UserRepository {
     suspend fun updateUser(
         userId: Long,
         fullName: String?,
-        email: String?,
         enabled: Boolean = true
     ): Flow<Resource<User>>
     suspend fun deleteAccount(userId: Long): Flow<Resource<Unit>>

@@ -272,4 +272,37 @@
     <string name="nav_contacts">Кантакты</string>
     <string name="nav_videos">Відэа</string>
     <string name="nav_profile">Профіль</string>
+    <string name="action_reply">Адказаць</string>
+    <string name="action_cancel_reply">Скасаваць адказ</string>
+    <string name="reply_to_format">Адказ %1$s</string>
+    <string name="reply_you">Вы</string>
+    <string name="reply_unknown_sender">Карыстальнік</string>
+    <string name="reply_quote_placeholder">Паведамленне</string>
+    <string name="reply_quote_deleted">Паведамленне выдалена</string>
+    <string name="reply_quote_attachment">Укладанне</string>
+    <string name="reply_quote_gif">GIF</string>
+
+    <string name="action_edit">Змяніць</string>
+    <string name="action_cancel_edit">Скасаваць змяненне</string>
+    <string name="edit_message_title">Змяненне паведамлення</string>
+    <string name="message_edited">зменена</string>
+    <string name="error_message_required">Увядзіце тэкст паведамлення</string>
+
+    <string name="delete_message_confirm_title">Выдаліць паведамленне?</string>
+    <string name="delete_message_confirm_message">Паведамленне будзе выдалена ва ўсіх.</string>
+    <string name="delete_message_failed">Не ўдалося выдаліць паведамленне</string>
+    <string name="message_deleted">Паведамленне выдалена</string>
+
+    <string name="action_pin">Замацаваць</string>
+    <string name="action_unpin">Адмацаваць</string>
+    <string name="action_forward">Пераслаць</string>
+    <string name="forward_picker_title">Пераслаць…</string>
+    <string name="forward_picker_empty">Няма даступных чатаў</string>
+    <string name="message_forwarded">Паведамленне пераслана</string>
+    <string name="forward_message_failed">Не ўдалося пераслаць паведамленне</string>
+    <string name="pin_message_failed">Не ўдалося замацаваць паведамленне</string>
+    <string name="unpin_message_failed">Не ўдалося адмацаваць паведамленне</string>
+    <string name="pinned_message_title">Замацаванае паведамленне</string>
+    <string name="pinned_messages_count">Замацаваных: %1$d</string>
+    <string name="action_open_pinned">Адкрыць замацаванае паведамленне</string>
 </resources>

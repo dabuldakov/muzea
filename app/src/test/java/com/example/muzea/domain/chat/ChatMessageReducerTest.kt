@@ -76,4 +76,40 @@ class ChatMessageReducerTest {
         assertEquals(1, result.size)
         assertEquals("local-1", result.single().messageUuid)
     }
+
+    @Test
+    fun `updateMessage replaces the matching message keeping order`() {
+        val reducer = ChatMessageReducer()
+        val current = listOf(
+            message("m1", "2026-01-01T00:00:00"),
+            message("m2", "2026-01-02T00:00:00"),
+            message("m3", "2026-01-03T00:00:00")
+        )
+
+        val result = reducer.updateMessage(current, current[1].copy(text = "edited"))
+
+        assertEquals(listOf("m1", "m2", "m3"), result.map { it.messageUuid })
+        assertEquals("edited", result[1].text)
+        assertEquals("m1", result[0].text)
+    }
+
+    @Test
+    fun `updateMessage leaves unrelated messages untouched`() {
+        val reducer = ChatMessageReducer()
+        val current = listOf(message("m1", "2026-01-01T00:00:00"))
+
+        val result = reducer.updateMessage(current, message("other", "2026-01-02T00:00:00"))
+
+        assertEquals(listOf("m1"), result.map { it.messageUuid })
+    }
+
+    @Test
+    fun `seed keeps undated messages after dated ones`() {
+        val reducer = ChatMessageReducer()
+        val result = reducer.seed(
+            listOf(message("undated", null), message("dated", "2026-01-01T00:00:00"))
+        )
+
+        assertEquals(listOf("dated", "undated"), result.map { it.messageUuid })
+    }
 }

@@ -6,7 +6,6 @@ import com.example.muzea.domain.model.User
 fun com.example.muzea.data.model.UserResponse.toDomain(): User = User(
     id = id,
     userName = userName,
-    email = email,
     fullName = fullName,
     avatarUrl = avatarUrl,
     role = role,

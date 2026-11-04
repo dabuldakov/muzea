@@ -7,6 +7,8 @@ data class SendMessageRequest(
     val text: String = "",
     @SerializedName("messageType")
     val messageType: String = "TEXT",
+    @SerializedName("replyToMessageUuid")
+    val replyToMessageUuid: String? = null,
     @SerializedName("gif")
     val gif: GifRequest? = null,
     @SerializedName("attachments")

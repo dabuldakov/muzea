@@ -2,9 +2,15 @@ package com.example.muzea.utils
 
 import com.example.muzea.core.DispatcherProvider
 import com.example.muzea.data.repository.ChatAuthManager
+import com.google.android.gms.tasks.OnSuccessListener
+import com.google.android.gms.tasks.Task
+import com.google.firebase.messaging.FirebaseMessaging
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
 import io.mockk.verify
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -35,4 +41,22 @@ class PushTokenRegistrarTest {
         coVerify(exactly = 1) { chatAuthManager.isAuthenticated() }
     }
 
+    @Test
+    fun `sync registers the token delivered by Firebase`() {
+        mockkStatic(FirebaseMessaging::class)
+        try {
+            val task = mockk<Task<String>>()
+            every { FirebaseMessaging.getInstance().token } returns task
+            every { task.addOnSuccessListener(any()) } answers {
+                firstArg<OnSuccessListener<String>>().onSuccess("fcm-1")
+                task
+            }
+
+            registrar.sync()
+
+            verify(exactly = 1) { tokenManager.saveFcmToken("fcm-1") }
+        } finally {
+            unmockkStatic(FirebaseMessaging::class)
+        }
+    }
 }

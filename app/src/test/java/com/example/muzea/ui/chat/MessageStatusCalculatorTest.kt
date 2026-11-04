@@ -164,6 +164,26 @@ class MessageStatusCalculatorTest {
         assertEquals(MessageDeliveryStatus.SENT, rows[1].status)
     }
 
+    @Test
+    fun `participant details report delivered for a reached but unread recipient`() {
+        val message = message(10, sender = me)
+        val delivered = receipt("delivered", delivered = 10, read = null)
+
+        val rows = MessageStatusCalculator.participantStatuses(message, listOf(delivered), me)
+
+        assertEquals(MessageDeliveryStatus.DELIVERED, rows.single().status)
+    }
+
+    @Test
+    fun `malformed timestamps do not exclude a recipient`() {
+        val message = message(10, sender = me, createdAt = "bad")
+        val rows = MessageStatusCalculator.participantStatuses(
+            message, listOf(receipt(other, joinedAt = "bad")), me
+        )
+
+        assertEquals(1, rows.size)
+    }
+
     private fun message(
         messageId: Long?,
         sender: String,

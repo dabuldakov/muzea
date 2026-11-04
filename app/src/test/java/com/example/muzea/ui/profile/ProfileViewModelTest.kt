@@ -76,10 +76,10 @@ class ProfileViewModelTest {
         assertFalse(viewModel.profileState.value.isLoading)
 
         // id из профиля используется при сохранении изменений.
-        coEvery { userRepository.updateUser(7L, any(), any(), any()) } returns
+        coEvery { userRepository.updateUser(7L, any(), any()) } returns
             flowOf(Resource.Success(user(7)))
-        viewModel.updateUserProfile("Вован", "vovan@mail.ru")
-        coVerify { userRepository.updateUser(7L, "Вован", "vovan@mail.ru", true) }
+        viewModel.updateUserProfile("Вован")
+        coVerify { userRepository.updateUser(7L, "Вован", true) }
     }
 
     @Test
@@ -98,7 +98,7 @@ class ProfileViewModelTest {
     @Test
     fun `updateUserProfile forwards the result`() = runTest {
         coEvery { userRepository.getCurrentUser() } returns flowOf(Resource.Success(user(7)))
-        coEvery { userRepository.updateUser(7L, any(), any(), any()) } returns
+        coEvery { userRepository.updateUser(7L, any(), any()) } returns
             flowOf(Resource.Success(user(7, fullName = "Вован")))
         val viewModel = viewModel()
         viewModel.loadUserProfile()
@@ -107,7 +107,7 @@ class ProfileViewModelTest {
         val collector = launch(Dispatchers.Unconfined) {
             viewModel.updateProfileResult.collect { results += it }
         }
-        viewModel.updateUserProfile("Вован", "vovan@mail.ru")
+        viewModel.updateUserProfile("Вован")
 
         assertEquals("Вован", (results.last() as Resource.Success).data!!.fullName)
         collector.cancel()
@@ -189,7 +189,6 @@ class ProfileViewModelTest {
     private fun user(id: Long, fullName: String? = null) = User(
         id = id,
         userName = "vovan",
-        email = "vovan@mail.ru",
         fullName = fullName,
         avatarUrl = null,
         role = "USER",

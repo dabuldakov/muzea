@@ -272,4 +272,37 @@
     <string name="nav_contacts">Контактілер</string>
     <string name="nav_videos">Бейне</string>
     <string name="nav_profile">Профиль</string>
+    <string name="action_reply">Жауап беру</string>
+    <string name="action_cancel_reply">Жауаптан бас тарту</string>
+    <string name="reply_to_format">%1$s-ке жауап</string>
+    <string name="reply_you">Сіз</string>
+    <string name="reply_unknown_sender">Пайдаланушы</string>
+    <string name="reply_quote_placeholder">Хабарлама</string>
+    <string name="reply_quote_deleted">Хабарлама жойылды</string>
+    <string name="reply_quote_attachment">Тіркеме</string>
+    <string name="reply_quote_gif">GIF</string>
+
+    <string name="action_edit">Өзгерту</string>
+    <string name="action_cancel_edit">Өзгертуден бас тарту</string>
+    <string name="edit_message_title">Хабарламаны өзгерту</string>
+    <string name="message_edited">өзгертілді</string>
+    <string name="error_message_required">Хабарлама мәтіні қажет</string>
+
+    <string name="delete_message_confirm_title">Хабарламаны жою керек пе?</string>
+    <string name="delete_message_confirm_message">Хабарлама барлығынан жойылады.</string>
+    <string name="delete_message_failed">Хабарламаны жою сәтсіз</string>
+    <string name="message_deleted">Хабарлама жойылды</string>
+
+    <string name="action_pin">Бекіту</string>
+    <string name="action_unpin">Бекітуді алу</string>
+    <string name="action_forward">Қайта жіберу</string>
+    <string name="forward_picker_title">Мынаған жіберу…</string>
+    <string name="forward_picker_empty">Қолжетімді чат жоқ</string>
+    <string name="message_forwarded">Хабарлама жіберілді</string>
+    <string name="forward_message_failed">Хабарламаны жіберу сәтсіз</string>
+    <string name="pin_message_failed">Хабарламаны бекіту сәтсіз</string>
+    <string name="unpin_message_failed">Хабарламаны бекітуден алу сәтсіз</string>
+    <string name="pinned_message_title">Бекітілген хабарлама</string>
+    <string name="pinned_messages_count">Бекітілгендер: %1$d</string>
+    <string name="action_open_pinned">Бекітілген хабарламаны ашу</string>
 </resources>

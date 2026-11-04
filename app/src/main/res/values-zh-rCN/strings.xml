@@ -272,4 +272,37 @@
     <string name="nav_contacts">联系人</string>
     <string name="nav_videos">视频</string>
     <string name="nav_profile">我的</string>
+    <string name="action_reply">回复</string>
+    <string name="action_cancel_reply">取消回复</string>
+    <string name="reply_to_format">回复 %1$s</string>
+    <string name="reply_you">你</string>
+    <string name="reply_unknown_sender">用户</string>
+    <string name="reply_quote_placeholder">消息</string>
+    <string name="reply_quote_deleted">消息已删除</string>
+    <string name="reply_quote_attachment">附件</string>
+    <string name="reply_quote_gif">GIF</string>
+
+    <string name="action_edit">编辑</string>
+    <string name="action_cancel_edit">取消编辑</string>
+    <string name="edit_message_title">正在编辑消息</string>
+    <string name="message_edited">已编辑</string>
+    <string name="error_message_required">需要消息文本</string>
+
+    <string name="delete_message_confirm_title">删除消息？</string>
+    <string name="delete_message_confirm_message">该消息将对所有人删除。</string>
+    <string name="delete_message_failed">删除消息失败</string>
+    <string name="message_deleted">消息已删除</string>
+
+    <string name="action_pin">置顶</string>
+    <string name="action_unpin">取消置顶</string>
+    <string name="action_forward">转发</string>
+    <string name="forward_picker_title">转发到…</string>
+    <string name="forward_picker_empty">没有可用的聊天</string>
+    <string name="message_forwarded">消息已转发</string>
+    <string name="forward_message_failed">转发消息失败</string>
+    <string name="pin_message_failed">置顶消息失败</string>
+    <string name="unpin_message_failed">取消置顶失败</string>
+    <string name="pinned_message_title">置顶消息</string>
+    <string name="pinned_messages_count">已置顶：%1$d</string>
+    <string name="action_open_pinned">打开置顶消息</string>
 </resources>

@@ -7,8 +7,6 @@ data class UserResponse(
     val id: Long,
     @SerializedName("userName")
     val userName: String,
-    @SerializedName("email")
-    val email: String,
     @SerializedName("fullName")
     val fullName: String?,
     @SerializedName("avatarUrl")

@@ -147,6 +147,45 @@ interface ChatApiService {
         @Body request: SendMessageRequest
     ): Response<MessageResponse>
 
+    /** Редактирование своего текстового сообщения. */
+    @retrofit2.http.PUT("/api/messages/{messageUuid}")
+    suspend fun editMessage(
+        @Path("messageUuid") messageUuid: String,
+        @Body request: com.example.muzea.data.model.EditMessageRequest
+    ): Response<MessageResponse>
+
+    /** Удаление своего сообщения (soft delete у всех). */
+    @DELETE("/api/messages/{messageUuid}")
+    suspend fun deleteMessage(
+        @Path("messageUuid") messageUuid: String
+    ): Response<Unit>
+
+    /** Пересылка сообщения в другой чат. */
+    @POST("/api/messages/forward")
+    suspend fun forwardMessage(
+        @Body request: com.example.muzea.data.model.ForwardMessageRequest
+    ): Response<MessageResponse>
+
+    /** Закрепление сообщения в чате. */
+    @GET("/api/messages/{chatUuid}/pin/{messageUuid}")
+    suspend fun pinMessage(
+        @Path("chatUuid") chatUuid: String,
+        @Path("messageUuid") messageUuid: String
+    ): Response<Unit>
+
+    /** Открепление сообщения. */
+    @DELETE("/api/messages/{chatUuid}/pin/{messageUuid}")
+    suspend fun unpinMessage(
+        @Path("chatUuid") chatUuid: String,
+        @Path("messageUuid") messageUuid: String
+    ): Response<Unit>
+
+    /** Закреплённые сообщения чата. */
+    @GET("/api/messages/{chatUuid}/pinned")
+    suspend fun getPinnedMessages(
+        @Path("chatUuid") chatUuid: String
+    ): Response<List<MessageResponse>>
+
     @POST("/api/messages/{chatUuid}/read")
     suspend fun markMessagesAsRead(
         @Path("chatUuid") chatUuid: String,

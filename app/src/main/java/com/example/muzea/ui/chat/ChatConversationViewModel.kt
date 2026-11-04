@@ -62,7 +62,13 @@ data class ChatConversationUiState(
     val failedMessages: Set<String> = emptySet(),
     /** Выбранные, но ещё не отправленные вложения. */
     val pendingAttachments: List<PendingAttachment> = emptyList(),
-    val isUploadingAttachments: Boolean = false
+    val isUploadingAttachments: Boolean = false,
+    /** Сообщение, на которое сейчас отвечаем (null — обычная отправка). */
+    val replyTo: Message? = null,
+    /** Сообщение, которое сейчас редактируем (null — обычная отправка). */
+    val editing: Message? = null,
+    /** Закреплённые сообщения чата (для панели сверху). */
+    val pinnedMessages: List<Message> = emptyList()
 )
 
 @HiltViewModel
@@ -91,6 +97,10 @@ class ChatConversationViewModel @Inject constructor(
     private val _sendError = MutableSharedFlow<String>()
     val sendError: SharedFlow<String> = _sendError.asSharedFlow()
 
+    /** Нейтральные уведомления (без префикса ошибки): например, «переслано». */
+    private val _events = MutableSharedFlow<String>()
+    val events: SharedFlow<String> = _events.asSharedFlow()
+
     private var pollingJob: Job? = null
     @Volatile
     private var pollingPaused = false
@@ -101,11 +111,15 @@ class ChatConversationViewModel @Inject constructor(
         // Опрос сам выполняет первый запрос, поэтому отдельный refresh() в init
         // был бы вторым обращением к серверу подряд при каждом входе в чат.
         startPolling()
+        viewModelScope.launch { refreshPinned() }
     }
 
     /** Разовая загрузка вне цикла опроса: pull-to-refresh и ручное обновление. */
     fun refresh() {
-        viewModelScope.launch { loadOnce() }
+        viewModelScope.launch {
+            loadOnce()
+            refreshPinned()
+        }
     }
 
     /**
@@ -183,6 +197,12 @@ class ChatConversationViewModel @Inject constructor(
     }
 
     fun sendText(text: String) {
+        val editing = _uiState.value.editing
+        if (editing != null) {
+            submitEdit(editing, text)
+            return
+        }
+
         val trimmed = text.trim()
         val state = _uiState.value
         val attachments = state.pendingAttachments
@@ -194,6 +214,7 @@ class ChatConversationViewModel @Inject constructor(
 
         val uploaded = attachments.mapNotNull { it.uploaded }
         val type = messageTypeFor(uploaded)
+        val replyToUuid = state.replyTo?.messageUuid
         val optimistic = Message(
             messageUuid = LOCAL_PREFIX + System.currentTimeMillis(),
             chatUuid = chatUuid,
@@ -203,7 +224,7 @@ class ChatConversationViewModel @Inject constructor(
             senderAvatar = null,
             text = trimmed,
             messageType = type,
-            replyToMessageUuid = null,
+            replyToMessageUuid = replyToUuid,
             isEdited = false,
             isDeleted = false,
             isPinned = false,
@@ -213,12 +234,14 @@ class ChatConversationViewModel @Inject constructor(
         )
         mergeMessages(listOf(optimistic))
         clearPendingAttachments()
+        clearReply()
 
         viewModelScope.launch {
             messageRepository.sendMessage(
                 chatUuid = chatUuid,
                 text = trimmed,
-                attachments = uploaded.mapNotNull { it.attachmentUuid }
+                attachments = uploaded.mapNotNull { it.attachmentUuid },
+                replyToMessageUuid = replyToUuid
             ).collect { result ->
                 when (result) {
                     is Resource.Success -> {
@@ -323,6 +346,135 @@ class ChatConversationViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(pendingAttachments = emptyList())
     }
 
+    /** Ставит или снимает режим ответа на сообщение. */
+    fun setReplyTo(message: Message?) {
+        _uiState.value = _uiState.value.copy(replyTo = message)
+    }
+
+    private fun clearReply() {
+        if (_uiState.value.replyTo != null) {
+            _uiState.value = _uiState.value.copy(replyTo = null)
+        }
+    }
+
+    /** Включает режим редактирования; режим ответа при этом сбрасывается. */
+    fun startEditing(message: Message) {
+        _uiState.value = _uiState.value.copy(editing = message, replyTo = null)
+    }
+
+    fun cancelEditing() {
+        clearEditing()
+    }
+
+    private fun submitEdit(target: Message, text: String) {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) {
+            viewModelScope.launch {
+                _sendError.emit(appContext.getString(R.string.error_message_required))
+            }
+            return
+        }
+        clearEditing()
+        if (trimmed == target.text) return
+
+        viewModelScope.launch {
+            messageRepository.editMessage(target.messageUuid, trimmed).collect { result ->
+                when (result) {
+                    is Resource.Success -> updateMessage(result.data!!)
+                    is Resource.Error ->
+                        _sendError.emit(result.message ?: "Failed to edit message")
+                    is Resource.Loading -> Unit
+                }
+            }
+        }
+    }
+
+    private fun clearEditing() {
+        if (_uiState.value.editing != null) {
+            _uiState.value = _uiState.value.copy(editing = null)
+        }
+    }
+
+    private fun updateMessage(updated: Message) {
+        _uiState.value = withStatuses(
+            _uiState.value.copy(messages = reducer.updateMessage(_uiState.value.messages, updated))
+        )
+    }
+
+    /** Мягко удаляет своё сообщение «для всех». */
+    fun deleteMessage(message: Message) {
+        viewModelScope.launch {
+            val ok = messageRepository.deleteMessage(message.messageUuid)
+            if (ok) {
+                updateMessage(message.copy(isDeleted = true, text = ""))
+                clearComposerFor(message.messageUuid)
+            } else {
+                _sendError.emit(appContext.getString(R.string.delete_message_failed))
+            }
+        }
+    }
+
+    /** Сбрасывает «ответ»/«редактирование», если они ссылаются на это сообщение. */
+    private fun clearComposerFor(messageUuid: String) {
+        val state = _uiState.value
+        val editingThis = state.editing?.messageUuid == messageUuid
+        val replyThis = state.replyTo?.messageUuid == messageUuid
+        if (editingThis || replyThis) {
+            _uiState.value = state.copy(
+                editing = if (editingThis) null else state.editing,
+                replyTo = if (replyThis) null else state.replyTo
+            )
+        }
+    }
+
+    /** Пересылает сообщение в выбранный чат. */
+    fun forwardMessage(message: Message, targetChatUuid: String) {
+        viewModelScope.launch {
+            messageRepository.forwardMessage(message.messageUuid, targetChatUuid)
+                .collect { result ->
+                    when (result) {
+                        is Resource.Success ->
+                            _events.emit(appContext.getString(R.string.message_forwarded))
+                        is Resource.Error ->
+                            _sendError.emit(appContext.getString(R.string.forward_message_failed))
+                        is Resource.Loading -> Unit
+                    }
+                }
+        }
+    }
+
+    /** Закрепляет сообщение в текущем чате. */
+    fun pinMessage(message: Message) {
+        viewModelScope.launch {
+            val ok = messageRepository.pinMessage(chatUuid, message.messageUuid)
+            if (ok) {
+                updateMessage(message.copy(isPinned = true))
+                refreshPinned()
+            } else {
+                _sendError.emit(appContext.getString(R.string.pin_message_failed))
+            }
+        }
+    }
+
+    /** Открепляет сообщение. */
+    fun unpinMessage(message: Message) {
+        viewModelScope.launch {
+            val ok = messageRepository.unpinMessage(chatUuid, message.messageUuid)
+            if (ok) {
+                updateMessage(message.copy(isPinned = false))
+                refreshPinned()
+            } else {
+                _sendError.emit(appContext.getString(R.string.unpin_message_failed))
+            }
+        }
+    }
+
+    /** Обновляет список закреплённых для панели сверху. */
+    private suspend fun refreshPinned() {
+        val pinned = messageRepository.loadPinned(chatUuid)
+        _uiState.value = _uiState.value.copy(pinnedMessages = pinned)
+    }
+
     private fun messageTypeFor(attachments: List<MessageAttachment>): String {
         if (attachments.isEmpty()) return "TEXT"
         if (attachments.all { it.type == "IMAGE" }) return "IMAGE"
@@ -332,6 +484,7 @@ class ChatConversationViewModel @Inject constructor(
     }
 
     fun sendGif(gif: Gif) {
+        val replyToUuid = _uiState.value.replyTo?.messageUuid
         val optimistic = Message(
             messageUuid = LOCAL_PREFIX + System.currentTimeMillis(),
             chatUuid = chatUuid,
@@ -341,7 +494,7 @@ class ChatConversationViewModel @Inject constructor(
             senderAvatar = null,
             text = "",
             messageType = "GIF",
-            replyToMessageUuid = null,
+            replyToMessageUuid = replyToUuid,
             isEdited = false,
             isDeleted = false,
             isPinned = false,
@@ -359,12 +512,13 @@ class ChatConversationViewModel @Inject constructor(
             )
         )
         mergeMessages(listOf(optimistic))
+        clearReply()
 
         // Сразу добавляем в кэш «Мои»/«Этот чат» (текущий пользователь — автор).
         messageRepository.cacheSentGif(chatUuid, gif, mine = true)
 
         viewModelScope.launch {
-            messageRepository.sendGif(chatUuid, gif).collect { result ->
+            messageRepository.sendGif(chatUuid, gif, replyToMessageUuid = replyToUuid).collect { result ->
                 when (result) {
                     is Resource.Success -> applyServerEcho(optimistic.messageUuid, result.data!!)
                     is Resource.Error -> {
@@ -486,6 +640,7 @@ class ChatConversationViewModel @Inject constructor(
      */
     fun sendRecordedAttachment(prepared: PreparedAttachment, messageType: String) {
         val localUuid = LOCAL_PREFIX + System.currentTimeMillis()
+        val replyToUuid = _uiState.value.replyTo?.messageUuid
         val localAttachment = MessageAttachment(
             fileUrl = prepared.file.absolutePath,
             thumbnailUrl = prepared.thumbnail?.absolutePath,
@@ -507,7 +662,7 @@ class ChatConversationViewModel @Inject constructor(
             senderAvatar = null,
             text = "",
             messageType = messageType,
-            replyToMessageUuid = null,
+            replyToMessageUuid = replyToUuid,
             isEdited = false,
             isDeleted = false,
             isPinned = false,
@@ -518,6 +673,7 @@ class ChatConversationViewModel @Inject constructor(
         // Пузырь появляется сразу, ещё до загрузки: на слабой сети иначе
         // пользователь несколько секунд не видит, что запись вообще есть.
         mergeMessages(listOf(optimistic))
+        clearReply()
 
         viewModelScope.launch {
             when (val uploaded = messageRepository.uploadAttachment(chatUuid, prepared)) {
@@ -530,7 +686,8 @@ class ChatConversationViewModel @Inject constructor(
                         chatUuid = chatUuid,
                         text = "",
                         attachments = listOfNotNull(attachment.attachmentUuid),
-                        messageType = messageType
+                        messageType = messageType,
+                        replyToMessageUuid = replyToUuid
                     ).collect { result ->
                         when (result) {
                             is Resource.Success ->
@@ -628,7 +785,8 @@ class ChatConversationViewModel @Inject constructor(
                 chatUuid = chatUuid,
                 text = message.text.orEmpty(),
                 attachments = uploaded.mapNotNull { it.attachmentUuid },
-                messageType = message.messageType ?: "TEXT"
+                messageType = message.messageType ?: "TEXT",
+                replyToMessageUuid = message.replyToMessageUuid
             ).collect { result ->
                 when (result) {
                     is Resource.Success -> applyServerEcho(localUuid, result.data!!)

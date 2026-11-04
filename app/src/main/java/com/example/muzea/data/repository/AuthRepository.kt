@@ -10,6 +10,7 @@ import com.example.muzea.data.model.AuthServiceOtpRequest
 import com.example.muzea.data.model.AuthServiceOtpVerifyRequest
 import com.example.muzea.data.model.AuthServiceRegisterRequest
 import com.example.muzea.data.model.AuthServiceTokenResponse
+import com.example.muzea.data.model.AuthServiceUser
 import com.example.muzea.data.model.AuthServiceVerifyEmailRequest
 import com.example.muzea.utils.TokenManager
 import com.google.gson.Gson
@@ -71,6 +72,20 @@ class AuthRepository @Inject constructor(
     }
 
     fun isLoggedIn(): Boolean = !tokenManager.getToken().isNullOrEmpty()
+
+    /**
+     * Текущий пользователь IdP (auth-service). Email — идентичность IdP, поэтому
+     * профиль берёт его отсюда, а не из локальной копии chat/makeup.
+     * Возвращает null, если auth-service недоступен: профиль покажется без email.
+     */
+    suspend fun getCurrentAuthUser(): AuthServiceUser? = try {
+        val response = authServiceApi.me()
+        if (response.isSuccessful) response.body() else null
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        null
+    }
 
     /** Удаляет аккаунт в IdP (auth-service). Возвращает успех. */
     suspend fun deleteAccount(): Boolean = try {

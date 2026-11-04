@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -199,6 +200,67 @@ class AuthRepositoryTest {
         coEvery { api.deleteMe() } throws IOException("offline")
 
         assertFalse(repository.deleteAccount())
+    }
+
+    @Test
+    fun `current auth user is returned on success`() = runTest {
+        coEvery { api.me() } returns httpOk(
+            AuthServiceUser(
+                id = "1", email = "a@b.c", username = "vovan",
+                displayName = null, emailVerified = true
+            )
+        )
+
+        val user = repository.getCurrentAuthUser()
+
+        assertEquals("a@b.c", user?.email)
+    }
+
+    @Test
+    fun `current auth user is null on error and exception`() = runTest {
+        coEvery { api.me() } returns httpError(401)
+        assertNull(repository.getCurrentAuthUser())
+
+        coEvery { api.me() } throws IOException("offline")
+        assertNull(repository.getCurrentAuthUser())
+    }
+
+    @Test
+    fun `registration localizes an already registered email`() = runTest {
+        coEvery { api.register(any()) } returns
+            httpError(409, """{"message":"Email already registered"}""")
+
+        val error = repository.register("a@b.c", "vovan", null).toList().last() as Resource.Error
+
+        assertEquals("registered", error.message)
+    }
+
+    @Test
+    fun `resend localizes a wait-before-resend error`() = runTest {
+        coEvery { api.resendVerification(any()) } returns
+            httpError(429, """{"message":"Please wait before requesting"}""")
+
+        val error = repository.resendVerification("a@b.c").toList().last() as Resource.Error
+
+        assertEquals("wait", error.message)
+    }
+
+    @Test
+    fun `an unparsable error body falls back to the generic message`() = runTest {
+        coEvery { api.register(any()) } returns httpError(500, "not-json")
+
+        val error = repository.register("a@b.c", "vovan", null).toList().last() as Resource.Error
+
+        assertEquals("generic", error.message)
+    }
+
+    @Test
+    fun `an unknown server message is passed through`() = runTest {
+        coEvery { api.register(any()) } returns httpError(400, """{"message":"Something else"}""")
+
+        val error = repository.register("a@b.c", "vovan", null).toList().last() as Resource.Error
+
+        assertEquals("Something else", error.message)
     }
 
     private fun tokens() = AuthServiceTokenResponse(

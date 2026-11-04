@@ -80,6 +80,8 @@ class ChatConversationViewModelTest {
         coEvery { messageRepository.markMessagesAsRead(any(), any()) } returns true
         coEvery { messageRepository.markMessagesAsDelivered(any(), any()) } returns true
         coEvery { messageRepository.loadChatReceipts(any()) } returns emptyList()
+        // init подтягивает закреплённые; строгий mockk требует заглушку.
+        coEvery { messageRepository.loadPinned(any()) } returns emptyList()
         every { appContext.getString(any()) } returns "error"
         every { messageRepository.cacheSentGif(any(), any(), any()) } returns Unit
     }
@@ -547,5 +549,401 @@ class ChatConversationViewModelTest {
 
         coVerify { messageRepository.sendMessage(chatUuid, "", listOf("a-voice"), "VOICE") }
         assertEquals(failed.messageUuid, viewModel.uiState.value.messages.single().messageUuid)
+    }
+
+    @Test
+    fun `pinning a message marks it pinned and shows it in the bar`() = withViewModel(
+        network = flowOf(
+            Resource.Success(listOf(message("m1", "hi", "2026-01-01T00:00:00", messageId = 10)))
+        )
+    ) { viewModel ->
+        val target = viewModel.uiState.value.messages.single()
+        coEvery { messageRepository.pinMessage(chatUuid, "m1") } returns true
+        coEvery { messageRepository.loadPinned(chatUuid) } returns
+            listOf(target.copy(isPinned = true))
+
+        viewModel.pinMessage(target)
+
+        assertTrue(viewModel.uiState.value.messages.single().isPinned)
+        assertEquals("m1", viewModel.uiState.value.pinnedMessages.single().messageUuid)
+        coVerify { messageRepository.pinMessage(chatUuid, "m1") }
+    }
+
+    @Test
+    fun `unpinning a message clears its pinned flag and the bar`() = withViewModel(
+        network = flowOf(
+            Resource.Success(
+                listOf(message("m1", "hi", "2026-01-01T00:00:00", messageId = 10).copy(isPinned = true))
+            )
+        )
+    ) { viewModel ->
+        val target = viewModel.uiState.value.messages.single()
+        coEvery { messageRepository.unpinMessage(chatUuid, "m1") } returns true
+        coEvery { messageRepository.loadPinned(chatUuid) } returns emptyList()
+
+        viewModel.unpinMessage(target)
+
+        assertFalse(viewModel.uiState.value.messages.single().isPinned)
+        assertTrue(viewModel.uiState.value.pinnedMessages.isEmpty())
+    }
+
+    @Test
+    fun `deleting a message marks it deleted and clears the composer`() = withViewModel(
+        network = flowOf(
+            Resource.Success(listOf(message("m1", "hi", "2026-01-01T00:00:00", messageId = 10)))
+        )
+    ) { viewModel ->
+        val target = viewModel.uiState.value.messages.single()
+        viewModel.setReplyTo(target)
+        coEvery { messageRepository.deleteMessage("m1") } returns true
+
+        viewModel.deleteMessage(target)
+
+        assertTrue(viewModel.uiState.value.messages.single().isDeleted)
+        assertNull(viewModel.uiState.value.replyTo)
+        coVerify { messageRepository.deleteMessage("m1") }
+    }
+
+    @Test
+    fun `forwarding a message reports a success event`() = withViewModel { viewModel ->
+        val target = message("m1", "hi", "2026-01-01T00:00:00", messageId = 10)
+        coEvery { messageRepository.forwardMessage("m1", "chat-2") } returns flowOf(
+            Resource.Success(message("m2", "hi", "2026-01-02T00:00:00", messageId = 11))
+        )
+        val events = mutableListOf<String>()
+        val collector = launch(Dispatchers.Unconfined, start = CoroutineStart.UNDISPATCHED) {
+            viewModel.events.collect { events += it }
+        }
+
+        viewModel.forwardMessage(target, "chat-2")
+        collector.cancel()
+
+        coVerify { messageRepository.forwardMessage("m1", "chat-2") }
+        assertEquals(1, events.size)
+    }
+
+    // --- Редактирование ---
+
+    @Test
+    fun `editing a message updates it in place and leaves edit mode`() = withViewModel(
+        network = flowOf(
+            Resource.Success(listOf(message("m1", "old", "2026-01-01T00:00:00", messageId = 10)))
+        )
+    ) { viewModel ->
+        val target = viewModel.uiState.value.messages.single()
+        coEvery { messageRepository.editMessage("m1", "new") } returns flowOf(
+            Resource.Success(target.copy(text = "new", isEdited = true))
+        )
+
+        viewModel.startEditing(target)
+        assertEquals("m1", viewModel.uiState.value.editing?.messageUuid)
+
+        viewModel.sendText("new")
+
+        assertEquals("new", viewModel.uiState.value.messages.single().text)
+        assertTrue(viewModel.uiState.value.messages.single().isEdited)
+        assertNull(viewModel.uiState.value.editing)
+        coVerify { messageRepository.editMessage("m1", "new") }
+    }
+
+    @Test
+    fun `editing to blank reports an error and keeps edit mode`() = withViewModel(
+        network = flowOf(
+            Resource.Success(listOf(message("m1", "old", "2026-01-01T00:00:00", messageId = 10)))
+        )
+    ) { viewModel ->
+        val target = viewModel.uiState.value.messages.single()
+        viewModel.startEditing(target)
+
+        val errors = mutableListOf<String>()
+        val collector = launch(Dispatchers.Unconfined, start = CoroutineStart.UNDISPATCHED) {
+            viewModel.sendError.collect { errors += it }
+        }
+        viewModel.sendText("   ")
+        collector.cancel()
+
+        assertEquals(listOf("error"), errors)
+        assertEquals("m1", viewModel.uiState.value.editing?.messageUuid)
+        coVerify(exactly = 0) { messageRepository.editMessage(any(), any()) }
+    }
+
+    @Test
+    fun `editing without changes only closes edit mode`() = withViewModel(
+        network = flowOf(
+            Resource.Success(listOf(message("m1", "old", "2026-01-01T00:00:00", messageId = 10)))
+        )
+    ) { viewModel ->
+        val target = viewModel.uiState.value.messages.single()
+        viewModel.startEditing(target)
+
+        viewModel.sendText("old")
+
+        assertNull(viewModel.uiState.value.editing)
+        coVerify(exactly = 0) { messageRepository.editMessage(any(), any()) }
+    }
+
+    @Test
+    fun `edit failure is reported and does not change the message`() = withViewModel(
+        network = flowOf(
+            Resource.Success(listOf(message("m1", "old", "2026-01-01T00:00:00", messageId = 10)))
+        )
+    ) { viewModel ->
+        val target = viewModel.uiState.value.messages.single()
+        coEvery { messageRepository.editMessage("m1", "new") } returns
+            flowOf(Resource.Error("edit failed"))
+        viewModel.startEditing(target)
+
+        val errors = mutableListOf<String>()
+        val collector = launch(Dispatchers.Unconfined, start = CoroutineStart.UNDISPATCHED) {
+            viewModel.sendError.collect { errors += it }
+        }
+        viewModel.sendText("new")
+        collector.cancel()
+
+        assertEquals(listOf("edit failed"), errors)
+        assertEquals("old", viewModel.uiState.value.messages.single().text)
+    }
+
+    // --- Вложения: повторная загрузка и прогресс ---
+
+    @Test
+    fun `retryPendingAttachment re-uploads and can succeed`() = withViewModel { viewModel ->
+        val file = java.io.File.createTempFile("photo", ".jpg").apply { deleteOnExit() }
+        val prepared = PreparedAttachment(
+            file = file, thumbnail = null, name = "photo.jpg", size = 3,
+            mimeType = "image/jpeg", type = "IMAGE", width = 10, height = 10, duration = null
+        )
+        coEvery { mediaFileReader.prepare(any()) } returns prepared
+        coEvery { messageRepository.uploadAttachment(chatUuid, any(), any()) } returnsMany listOf(
+            Resource.Error("boom"),
+            Resource.Success(
+                MessageAttachment(
+                    fileUrl = "/api/attachments/a-1", thumbnailUrl = null, type = "IMAGE",
+                    width = 10, height = 10, attachmentUuid = "a-1", fileName = "photo.jpg"
+                )
+            )
+        )
+
+        viewModel.addAttachments(listOf(android.net.Uri.parse("content://photo/1")))
+        val id = viewModel.uiState.value.pendingAttachments.single().id
+        assertEquals("boom", viewModel.uiState.value.pendingAttachments.single().error)
+
+        viewModel.retryPendingAttachment(id)
+
+        assertTrue(viewModel.uiState.value.pendingAttachments.single().isUploaded)
+        coVerify(exactly = 2) { messageRepository.uploadAttachment(chatUuid, any(), any()) }
+    }
+
+    @Test
+    fun `upload progress is reflected on the pending attachment`() = withViewModel { viewModel ->
+        val file = java.io.File.createTempFile("photo", ".jpg").apply { deleteOnExit() }
+        val prepared = PreparedAttachment(
+            file = file, thumbnail = null, name = "photo.jpg", size = 3,
+            mimeType = "image/jpeg", type = "IMAGE", width = 10, height = 10, duration = null
+        )
+        coEvery { mediaFileReader.prepare(any()) } returns prepared
+        coEvery { messageRepository.uploadAttachment(chatUuid, any(), any()) } answers {
+            thirdArg<(Int) -> Unit>().invoke(75)
+            Resource.Success(
+                MessageAttachment(
+                    fileUrl = "/api/attachments/a-1", thumbnailUrl = null, type = "IMAGE",
+                    width = 10, height = 10, attachmentUuid = "a-1", fileName = "photo.jpg"
+                )
+            )
+        }
+
+        viewModel.addAttachments(listOf(android.net.Uri.parse("content://photo/1")))
+
+        assertEquals(75, viewModel.uiState.value.pendingAttachments.single().progress)
+    }
+
+    @Test
+    fun `attachment that cannot be read is skipped with an error`() = withViewModel { viewModel ->
+        coEvery { mediaFileReader.prepare(any()) } throws IllegalStateException("nope")
+
+        viewModel.addAttachments(listOf(android.net.Uri.parse("content://x/1")))
+
+        assertTrue(viewModel.uiState.value.pendingAttachments.isEmpty())
+        assertFalse(viewModel.uiState.value.isUploadingAttachments)
+    }
+
+    @Test
+    fun `adding no attachments does nothing`() = withViewModel { viewModel ->
+        viewModel.addAttachments(emptyList())
+
+        assertTrue(viewModel.uiState.value.pendingAttachments.isEmpty())
+        coVerify(exactly = 0) { mediaFileReader.prepare(any()) }
+    }
+
+    // --- Удаление / закрепление: ошибки ---
+
+    @Test
+    fun `delete failure keeps the message and reports an error`() = withViewModel(
+        network = flowOf(
+            Resource.Success(listOf(message("m1", "hi", "2026-01-01T00:00:00", messageId = 10)))
+        )
+    ) { viewModel ->
+        val target = viewModel.uiState.value.messages.single()
+        coEvery { messageRepository.deleteMessage("m1") } returns false
+
+        val errors = mutableListOf<String>()
+        val collector = launch(Dispatchers.Unconfined, start = CoroutineStart.UNDISPATCHED) {
+            viewModel.sendError.collect { errors += it }
+        }
+        viewModel.deleteMessage(target)
+        collector.cancel()
+
+        assertFalse(viewModel.uiState.value.messages.single().isDeleted)
+        assertEquals(1, errors.size)
+    }
+
+    @Test
+    fun `pin failure keeps the message unpinned and reports an error`() = withViewModel(
+        network = flowOf(
+            Resource.Success(listOf(message("m1", "hi", "2026-01-01T00:00:00", messageId = 10)))
+        )
+    ) { viewModel ->
+        val target = viewModel.uiState.value.messages.single()
+        coEvery { messageRepository.pinMessage(chatUuid, "m1") } returns false
+
+        viewModel.pinMessage(target)
+
+        assertFalse(viewModel.uiState.value.messages.single().isPinned)
+    }
+
+    @Test
+    fun `unpin failure keeps the message pinned and reports an error`() = withViewModel(
+        network = flowOf(
+            Resource.Success(
+                listOf(message("m1", "hi", "2026-01-01T00:00:00", messageId = 10).copy(isPinned = true))
+            )
+        )
+    ) { viewModel ->
+        val target = viewModel.uiState.value.messages.single()
+        coEvery { messageRepository.unpinMessage(chatUuid, "m1") } returns false
+
+        viewModel.unpinMessage(target)
+
+        assertTrue(viewModel.uiState.value.messages.single().isPinned)
+    }
+
+    @Test
+    fun `forward failure reports an error event`() = withViewModel { viewModel ->
+        val target = message("m1", "hi", "2026-01-01T00:00:00", messageId = 10)
+        coEvery { messageRepository.forwardMessage("m1", "chat-2") } returns
+            flowOf(Resource.Error("offline"))
+
+        viewModel.forwardMessage(target, "chat-2")
+
+        coVerify { messageRepository.forwardMessage("m1", "chat-2") }
+    }
+
+    // --- Повтор отправки: ветки-исключения ---
+
+    @Test
+    fun `retryMessage ignores server and not-failed messages`() = withViewModel { viewModel ->
+        val server = message("m1", "hi", "2026-01-01T00:00:00", messageId = 10)
+        viewModel.retryMessage(server)
+
+        val local = server.copy(messageUuid = "local-1")
+        viewModel.retryMessage(local)
+
+        coVerify(exactly = 0) { messageRepository.sendMessage(any(), any(), any()) }
+    }
+
+    @Test
+    fun `retryMessage fails when the recorded file is gone`() = withViewModel { viewModel ->
+        val file = java.io.File.createTempFile("voice", ".m4a").apply { deleteOnExit() }
+        val prepared = PreparedAttachment(
+            file = file, thumbnail = null, name = "voice.m4a", size = 3,
+            mimeType = "audio/mp4", type = "AUDIO", width = null, height = null, duration = 2
+        )
+        coEvery { messageRepository.uploadAttachment(chatUuid, any(), any()) } returns
+            Resource.Error("offline")
+
+        viewModel.sendRecordedAttachment(prepared, "VOICE")
+        val failed = viewModel.uiState.value.messages.single()
+        file.delete()
+
+        val errors = mutableListOf<String>()
+        val collector = launch(Dispatchers.Unconfined, start = CoroutineStart.UNDISPATCHED) {
+            viewModel.sendError.collect { errors += it }
+        }
+        viewModel.retryMessage(failed)
+        collector.cancel()
+
+        assertTrue(errors.isNotEmpty())
+        coVerify(exactly = 1) { messageRepository.uploadAttachment(chatUuid, any(), any()) }
+    }
+
+    @Test
+    fun `failed gif send marks the bubble failed`() = withViewModel { viewModel ->
+        val gif = Gif("klipy", "s1", "cat", "https://c/gif.gif", "https://c/tiny.gif", 100, 50)
+        coEvery { messageRepository.sendGif(chatUuid, gif) } returns
+            flowOf(Resource.Error("gif down"))
+
+        viewModel.sendGif(gif)
+
+        val local = viewModel.uiState.value.messages.single()
+        assertEquals(MessageDeliveryStatus.FAILED, viewModel.deliveryStatus(local.messageUuid))
+    }
+
+    // --- Прочее: загрузка вниз, пустая отправка, отчёт, скачивание ---
+
+    @Test
+    fun `loadOlder failure stops the loading-more spinner`() = withViewModel(
+        network = flowOf(Resource.Success(listOf(message("m2", "new", "2026-01-02T00:00:00"))))
+    ) { viewModel ->
+        coEvery { messageRepository.loadMessagesBefore(chatUuid, "m2", 50) } returns
+            flowOf(Resource.Error("offline"))
+
+        viewModel.loadOlder()
+
+        assertFalse(viewModel.uiState.value.isLoadingMore)
+    }
+
+    @Test
+    fun `loadOlder does nothing when there is no server message`() = withViewModel { viewModel ->
+        viewModel.loadOlder()
+
+        coVerify(exactly = 0) { messageRepository.loadMessagesBefore(any(), any(), any()) }
+    }
+
+    @Test
+    fun `empty send is ignored`() = withViewModel { viewModel ->
+        viewModel.sendText("   ")
+
+        assertTrue(viewModel.uiState.value.messages.isEmpty())
+        coVerify(exactly = 0) { messageRepository.sendMessage(any(), any(), any()) }
+    }
+
+    @Test
+    fun `pause and resume polling do not crash`() = withViewModel { viewModel ->
+        viewModel.pausePolling()
+        viewModel.resumePolling()
+
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `downloadAttachment delegates and rejects a missing uuid`() = withViewModel { viewModel ->
+        val attachment = MessageAttachment(
+            fileUrl = "/f", thumbnailUrl = null, type = "DOCUMENT", width = null, height = null,
+            attachmentUuid = "a-1", fileName = "f.pdf"
+        )
+        val expected = java.io.File("/tmp/f.pdf")
+        coEvery { messageRepository.downloadAttachment("a-1", "f.pdf") } returns expected
+
+        assertEquals(expected, viewModel.downloadAttachment(attachment))
+        assertNull(viewModel.downloadAttachment(attachment.copy(attachmentUuid = null)))
+    }
+
+    @Test
+    fun `report and block delegate to the repository`() = withViewModel { viewModel ->
+        coEvery { messageRepository.reportMessage("m1", "SPAM") } returns true
+        coEvery { messageRepository.blockUser("u1") } returns false
+
+        assertTrue(viewModel.reportMessage("m1", "SPAM"))
+        assertFalse(viewModel.blockUser("u1"))
     }
 }

@@ -7,8 +7,6 @@ data class ChatUserResponse(
     val userUuid: String,
     @SerializedName("username")
     val username: String?,
-    @SerializedName("email")
-    val email: String?,
     @SerializedName("firstName")
     val firstName: String?,
     @SerializedName("lastName")

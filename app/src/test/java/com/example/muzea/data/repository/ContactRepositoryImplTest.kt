@@ -186,7 +186,6 @@ class ContactRepositoryImplTest {
     private fun user(uuid: String, username: String) = ChatUserResponse(
         userUuid = uuid,
         username = username,
-        email = null,
         firstName = null,
         lastName = null,
         fullName = null,

@@ -272,4 +272,37 @@
     <string name="nav_contacts">Contacts</string>
     <string name="nav_videos">Vidéos</string>
     <string name="nav_profile">Profil</string>
+    <string name="action_reply">Répondre</string>
+    <string name="action_cancel_reply">Annuler la réponse</string>
+    <string name="reply_to_format">Répondre à %1$s</string>
+    <string name="reply_you">Vous</string>
+    <string name="reply_unknown_sender">Utilisateur</string>
+    <string name="reply_quote_placeholder">Message</string>
+    <string name="reply_quote_deleted">Message supprimé</string>
+    <string name="reply_quote_attachment">Pièce jointe</string>
+    <string name="reply_quote_gif">GIF</string>
+
+    <string name="action_edit">Modifier</string>
+    <string name="action_cancel_edit">Annuler la modification</string>
+    <string name="edit_message_title">Modification du message</string>
+    <string name="message_edited">modifié</string>
+    <string name="error_message_required">Texte du message requis</string>
+
+    <string name="delete_message_confirm_title">Supprimer le message ?</string>
+    <string name="delete_message_confirm_message">Le message sera supprimé pour tout le monde.</string>
+    <string name="delete_message_failed">Échec de la suppression du message</string>
+    <string name="message_deleted">Message supprimé</string>
+
+    <string name="action_pin">Épingler</string>
+    <string name="action_unpin">Désépingler</string>
+    <string name="action_forward">Transférer</string>
+    <string name="forward_picker_title">Transférer vers…</string>
+    <string name="forward_picker_empty">Aucune discussion disponible</string>
+    <string name="message_forwarded">Message transféré</string>
+    <string name="forward_message_failed">Échec du transfert du message</string>
+    <string name="pin_message_failed">Échec de l\'épinglage du message</string>
+    <string name="unpin_message_failed">Échec du désépinglage du message</string>
+    <string name="pinned_message_title">Message épinglé</string>
+    <string name="pinned_messages_count">Épinglés : %1$d</string>
+    <string name="action_open_pinned">Ouvrir le message épinglé</string>
 </resources>

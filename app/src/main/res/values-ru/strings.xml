@@ -273,4 +273,38 @@
     <string name="nav_contacts">Контакты</string>
     <string name="nav_videos">Видео</string>
     <string name="nav_profile">Профиль</string>
+
+    <string name="action_reply">Ответить</string>
+    <string name="action_cancel_reply">Отменить ответ</string>
+    <string name="reply_to_format">Ответ %1$s</string>
+    <string name="reply_you">Вы</string>
+    <string name="reply_unknown_sender">Пользователь</string>
+    <string name="reply_quote_placeholder">Сообщение</string>
+    <string name="reply_quote_deleted">Сообщение удалено</string>
+    <string name="reply_quote_attachment">Вложение</string>
+    <string name="reply_quote_gif">GIF</string>
+
+    <string name="action_edit">Изменить</string>
+    <string name="action_cancel_edit">Отменить изменение</string>
+    <string name="edit_message_title">Изменение сообщения</string>
+    <string name="message_edited">изменено</string>
+    <string name="error_message_required">Введите текст сообщения</string>
+
+    <string name="delete_message_confirm_title">Удалить сообщение?</string>
+    <string name="delete_message_confirm_message">Сообщение будет удалено у всех.</string>
+    <string name="delete_message_failed">Не удалось удалить сообщение</string>
+    <string name="message_deleted">Сообщение удалено</string>
+
+    <string name="action_pin">Закрепить</string>
+    <string name="action_unpin">Открепить</string>
+    <string name="action_forward">Переслать</string>
+    <string name="forward_picker_title">Переслать…</string>
+    <string name="forward_picker_empty">Нет доступных чатов</string>
+    <string name="message_forwarded">Сообщение переслано</string>
+    <string name="forward_message_failed">Не удалось переслать сообщение</string>
+    <string name="pin_message_failed">Не удалось закрепить сообщение</string>
+    <string name="unpin_message_failed">Не удалось открепить сообщение</string>
+    <string name="pinned_message_title">Закреплённое сообщение</string>
+    <string name="pinned_messages_count">Закреплённых: %1$d</string>
+    <string name="action_open_pinned">Открыть закреплённое сообщение</string>
 </resources>

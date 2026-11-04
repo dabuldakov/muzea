@@ -26,6 +26,8 @@ import javax.inject.Inject
 /** Состояние экрана профиля. */
 data class ProfileUiState(
     val user: User? = null,
+    /** Email из IdP (auth-service): chat/makeup его не хранят. */
+    val email: String? = null,
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -60,7 +62,14 @@ class ProfileViewModel @Inject constructor(
                     is Resource.Success -> {
                         val user = result.data
                         if (user != null) currentUserId = user.id
-                        _profileState.value = ProfileUiState(user = user, isLoading = false)
+                        // Email — идентичность IdP: читаем из auth-service, а не из
+                        // локального профиля chat/makeup (там его больше нет).
+                        val email = authRepository.getCurrentAuthUser()?.email
+                        _profileState.value = ProfileUiState(
+                            user = user,
+                            email = email,
+                            isLoading = false
+                        )
                     }
 
                     is Resource.Error ->
@@ -73,9 +82,9 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
-    fun updateUserProfile(fullName: String, email: String) {
+    fun updateUserProfile(fullName: String) {
         viewModelScope.launch {
-            userRepository.updateUser(currentUserId, fullName, email).collect { result ->
+            userRepository.updateUser(currentUserId, fullName).collect { result ->
                 _updateProfileResult.emit(result)
             }
         }

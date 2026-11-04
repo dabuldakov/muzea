@@ -4,6 +4,8 @@ import com.example.muzea.data.api.ChatApiService
 import com.example.muzea.data.mapper.toDomain
 import com.example.muzea.data.mapper.toDomainAttachment
 import com.example.muzea.data.model.GifRequest
+import com.example.muzea.data.model.EditMessageRequest
+import com.example.muzea.data.model.ForwardMessageRequest
 import com.example.muzea.data.model.SendMessageRequest
 import com.example.muzea.domain.model.Gif
 import com.example.muzea.domain.model.Message
@@ -92,7 +94,8 @@ class MessageRepositoryImpl @Inject constructor(
         chatUuid: String,
         text: String,
         attachments: List<String>,
-        messageType: String
+        messageType: String,
+        replyToMessageUuid: String?
     ): Flow<Resource<Message>> = flow {
         emit(Resource.Loading())
         try {
@@ -109,6 +112,7 @@ class MessageRepositoryImpl @Inject constructor(
                         // TEXT — сервер выведет тип по вложениям; VOICE/VIDEO_NOTE
                         // передаём явно, чтобы отрисовать голосовое/кружок.
                         messageType = messageType,
+                        replyToMessageUuid = replyToMessageUuid,
                         attachments = attachments.takeIf { it.isNotEmpty() }
                     )
                 )
@@ -126,7 +130,11 @@ class MessageRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun sendGif(chatUuid: String, gif: Gif): Flow<Resource<Message>> = flow {
+    override suspend fun sendGif(
+        chatUuid: String,
+        gif: Gif,
+        replyToMessageUuid: String?
+    ): Flow<Resource<Message>> = flow {
         emit(Resource.Loading())
         try {
             if (!chatAuthManager.isAuthenticated()) {
@@ -137,6 +145,7 @@ class MessageRepositoryImpl @Inject constructor(
             val request = SendMessageRequest(
                 text = "",
                 messageType = "GIF",
+                replyToMessageUuid = replyToMessageUuid,
                 gif = GifRequest(
                     provider = gif.provider,
                     providerGifId = gif.providerGifId,
@@ -162,6 +171,113 @@ class MessageRepositoryImpl @Inject constructor(
             throw e
         } catch (e: Exception) {
             emit(Resource.Error("Network error: ${e.message}"))
+        }
+    }
+
+    override suspend fun editMessage(
+        messageUuid: String,
+        text: String
+    ): Flow<Resource<Message>> = flow {
+        emit(Resource.Loading())
+        try {
+            if (!chatAuthManager.isAuthenticated()) {
+                emit(Resource.Error(chatAuthManager.authFailureMessage()))
+                return@flow
+            }
+
+            val response = chatAuthManager.retryOnceAfterUnauthorized {
+                apiService.editMessage(messageUuid, EditMessageRequest(text))
+            }
+
+            if (response.isSuccessful && response.body() != null) {
+                emit(Resource.Success(response.body()!!.toDomain()))
+            } else {
+                emit(Resource.Error("Failed to edit message: ${response.message()}"))
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            emit(Resource.Error("Network error: ${e.message}"))
+        }
+    }
+
+    override suspend fun deleteMessage(messageUuid: String): Boolean {
+        return try {
+            chatAuthManager.authenticatedRequest {
+                apiService.deleteMessage(messageUuid)
+            }.isSuccessful
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    override suspend fun forwardMessage(
+        messageUuid: String,
+        targetChatUuid: String
+    ): Flow<Resource<Message>> = flow {
+        emit(Resource.Loading())
+        try {
+            if (!chatAuthManager.isAuthenticated()) {
+                emit(Resource.Error(chatAuthManager.authFailureMessage()))
+                return@flow
+            }
+
+            val response = chatAuthManager.retryOnceAfterUnauthorized {
+                apiService.forwardMessage(ForwardMessageRequest(messageUuid, targetChatUuid))
+            }
+
+            if (response.isSuccessful && response.body() != null) {
+                emit(Resource.Success(response.body()!!.toDomain()))
+            } else {
+                emit(Resource.Error("Failed to forward message: ${response.message()}"))
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            emit(Resource.Error("Network error: ${e.message}"))
+        }
+    }
+
+    override suspend fun pinMessage(chatUuid: String, messageUuid: String): Boolean {
+        return try {
+            chatAuthManager.authenticatedRequest {
+                apiService.pinMessage(chatUuid, messageUuid)
+            }.isSuccessful
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    override suspend fun unpinMessage(chatUuid: String, messageUuid: String): Boolean {
+        return try {
+            chatAuthManager.authenticatedRequest {
+                apiService.unpinMessage(chatUuid, messageUuid)
+            }.isSuccessful
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    override suspend fun loadPinned(chatUuid: String): List<Message> {
+        return try {
+            val response = chatAuthManager.authenticatedRequest {
+                apiService.getPinnedMessages(chatUuid)
+            }
+            if (response.isSuccessful) {
+                response.body()?.map { it.toDomain() }.orEmpty()
+            } else {
+                emptyList()
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 

@@ -272,4 +272,37 @@
     <string name="nav_contacts">Contactos</string>
     <string name="nav_videos">Vídeos</string>
     <string name="nav_profile">Perfil</string>
+    <string name="action_reply">Responder</string>
+    <string name="action_cancel_reply">Cancelar respuesta</string>
+    <string name="reply_to_format">Responder a %1$s</string>
+    <string name="reply_you">Tú</string>
+    <string name="reply_unknown_sender">Usuario</string>
+    <string name="reply_quote_placeholder">Mensaje</string>
+    <string name="reply_quote_deleted">Mensaje eliminado</string>
+    <string name="reply_quote_attachment">Adjunto</string>
+    <string name="reply_quote_gif">GIF</string>
+
+    <string name="action_edit">Editar</string>
+    <string name="action_cancel_edit">Cancelar edición</string>
+    <string name="edit_message_title">Editando mensaje</string>
+    <string name="message_edited">editado</string>
+    <string name="error_message_required">Se requiere el texto del mensaje</string>
+
+    <string name="delete_message_confirm_title">¿Eliminar mensaje?</string>
+    <string name="delete_message_confirm_message">El mensaje se eliminará para todos.</string>
+    <string name="delete_message_failed">No se pudo eliminar el mensaje</string>
+    <string name="message_deleted">Mensaje eliminado</string>
+
+    <string name="action_pin">Fijar</string>
+    <string name="action_unpin">Desfijar</string>
+    <string name="action_forward">Reenviar</string>
+    <string name="forward_picker_title">Reenviar a…</string>
+    <string name="forward_picker_empty">No hay chats disponibles</string>
+    <string name="message_forwarded">Mensaje reenviado</string>
+    <string name="forward_message_failed">No se pudo reenviar el mensaje</string>
+    <string name="pin_message_failed">No se pudo fijar el mensaje</string>
+    <string name="unpin_message_failed">No se pudo desfijar el mensaje</string>
+    <string name="pinned_message_title">Mensaje fijado</string>
+    <string name="pinned_messages_count">Fijados: %1$d</string>
+    <string name="action_open_pinned">Abrir mensaje fijado</string>
 </resources>

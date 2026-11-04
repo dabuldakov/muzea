@@ -55,10 +55,9 @@ class UserRepositoryImplTest {
         val request = slot<UpdateUserRequest>()
         coEvery { api.updateUser(7L, capture(request)) } returns httpOk(user(7, "vovan", "Вован"))
 
-        val last = repository.updateUser(7L, "Вован", "vovan@mail.ru").toList().last()
+        val last = repository.updateUser(7L, "Вован").toList().last()
 
         assertEquals("Вован", request.captured.fullName)
-        assertEquals("vovan@mail.ru", request.captured.email)
         assertTrue(request.captured.enabled)
         assertEquals("Вован", (last as Resource.Success).data!!.fullName)
     }
@@ -67,7 +66,7 @@ class UserRepositoryImplTest {
     fun `updateUser reports a failure`() = runTest {
         coEvery { api.updateUser(7L, any()) } returns httpError(409)
 
-        val last = repository.updateUser(7L, null, null).toList().last()
+        val last = repository.updateUser(7L, null).toList().last()
 
         assertTrue((last as Resource.Error).message!!.startsWith("Update failed"))
     }
@@ -100,7 +99,6 @@ class UserRepositoryImplTest {
     private fun user(id: Long, username: String, fullName: String? = null) = UserResponse(
         id = id,
         userName = username,
-        email = "$username@mail.ru",
         fullName = fullName,
         avatarUrl = null,
         role = "USER",

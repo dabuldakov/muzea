@@ -42,9 +42,35 @@ interface MessageRepository {
         chatUuid: String,
         text: String,
         attachments: List<String> = emptyList(),
-        messageType: String = "TEXT"
+        messageType: String = "TEXT",
+        replyToMessageUuid: String? = null
     ): Flow<Resource<Message>>
-    suspend fun sendGif(chatUuid: String, gif: Gif): Flow<Resource<Message>>
+    suspend fun sendGif(
+        chatUuid: String,
+        gif: Gif,
+        replyToMessageUuid: String? = null
+    ): Flow<Resource<Message>>
+
+    /** Редактирует своё текстовое сообщение; возвращает обновлённое сообщение. */
+    suspend fun editMessage(messageUuid: String, text: String): Flow<Resource<Message>>
+
+    /** Мягко удаляет своё сообщение «для всех». true — сервер принял удаление. */
+    suspend fun deleteMessage(messageUuid: String): Boolean
+
+    /** Пересылает сообщение в другой чат; возвращает созданное сообщение. */
+    suspend fun forwardMessage(
+        messageUuid: String,
+        targetChatUuid: String
+    ): Flow<Resource<Message>>
+
+    /** Закрепляет сообщение в чате. true — сервер принял. */
+    suspend fun pinMessage(chatUuid: String, messageUuid: String): Boolean
+
+    /** Открепляет сообщение. true — сервер принял. */
+    suspend fun unpinMessage(chatUuid: String, messageUuid: String): Boolean
+
+    /** Закреплённые сообщения чата. */
+    suspend fun loadPinned(chatUuid: String): List<Message>
 
     /** Загружает файл в чат; [attachmentUuid] потом передаётся в сообщение. */
     suspend fun uploadAttachment(

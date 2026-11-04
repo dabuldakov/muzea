@@ -6,6 +6,7 @@ import com.example.muzea.core.Resource
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -75,5 +76,21 @@ class OpenPrivateChatUseCaseTest {
 
         assertTrue(result is Resource.Success)
         assertEquals("chat-new", (result as Resource.Success).data?.chatUuid)
+    }
+
+    @Test
+    fun `propagates cancellation from the lookup`() = runTest {
+        coEvery { chatRepository.findPrivateChatWith("user-1") } throws
+            CancellationException("stop")
+
+        var cancelled = false
+        try {
+            useCase("user-1")
+        } catch (e: CancellationException) {
+            cancelled = true
+        }
+
+        assertTrue(cancelled)
+        coVerify(exactly = 0) { chatRepository.createPrivateChat(any()) }
     }
 }

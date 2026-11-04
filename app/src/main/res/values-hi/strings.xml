@@ -272,4 +272,37 @@
     <string name="nav_contacts">संपर्क</string>
     <string name="nav_videos">वीडियो</string>
     <string name="nav_profile">प्रोफ़ाइल</string>
+    <string name="action_reply">जवाब दें</string>
+    <string name="action_cancel_reply">जवाब रद्द करें</string>
+    <string name="reply_to_format">%1$s को जवाब</string>
+    <string name="reply_you">आप</string>
+    <string name="reply_unknown_sender">उपयोगकर्ता</string>
+    <string name="reply_quote_placeholder">संदेश</string>
+    <string name="reply_quote_deleted">संदेश हटा दिया गया</string>
+    <string name="reply_quote_attachment">अटैचमेंट</string>
+    <string name="reply_quote_gif">GIF</string>
+
+    <string name="action_edit">संपादित करें</string>
+    <string name="action_cancel_edit">संपादन रद्द करें</string>
+    <string name="edit_message_title">संदेश संपादित कर रहे हैं</string>
+    <string name="message_edited">संपादित</string>
+    <string name="error_message_required">संदेश टेक्स्ट आवश्यक है</string>
+
+    <string name="delete_message_confirm_title">संदेश हटाएं?</string>
+    <string name="delete_message_confirm_message">संदेश सभी के लिए हटा दिया जाएगा।</string>
+    <string name="delete_message_failed">संदेश हटाने में विफल</string>
+    <string name="message_deleted">संदेश हटा दिया गया</string>
+
+    <string name="action_pin">पिन करें</string>
+    <string name="action_unpin">पिन हटाएं</string>
+    <string name="action_forward">फॉरवर्ड करें</string>
+    <string name="forward_picker_title">इन्हें फॉरवर्ड करें…</string>
+    <string name="forward_picker_empty">कोई चैट उपलब्ध नहीं</string>
+    <string name="message_forwarded">संदेश फॉरवर्ड किया गया</string>
+    <string name="forward_message_failed">संदेश फॉरवर्ड करने में विफल</string>
+    <string name="pin_message_failed">संदेश पिन करने में विफल</string>
+    <string name="unpin_message_failed">संदेश अनपिन करने में विफल</string>
+    <string name="pinned_message_title">पिन किया गया संदेश</string>
+    <string name="pinned_messages_count">पिन किए गए: %1$d</string>
+    <string name="action_open_pinned">पिन किया गया संदेश खोलें</string>
 </resources>

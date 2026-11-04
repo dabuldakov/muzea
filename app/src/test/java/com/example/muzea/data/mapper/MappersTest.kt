@@ -145,7 +145,6 @@ class MappersTest {
         val user = UserResponse(
             id = 3,
             userName = "vovan",
-            email = "vovan@mail.ru",
             fullName = "Вован",
             avatarUrl = null,
             role = "USER",

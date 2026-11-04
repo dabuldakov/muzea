@@ -272,4 +272,37 @@
     <string name="nav_contacts">روابط</string>
     <string name="nav_videos">ویڈیو</string>
     <string name="nav_profile">پروفائل</string>
+    <string name="action_reply">جواب دیں</string>
+    <string name="action_cancel_reply">جواب منسوخ کریں</string>
+    <string name="reply_to_format">%1$s کو جواب</string>
+    <string name="reply_you">آپ</string>
+    <string name="reply_unknown_sender">صارف</string>
+    <string name="reply_quote_placeholder">پیغام</string>
+    <string name="reply_quote_deleted">پیغام حذف ہو گیا</string>
+    <string name="reply_quote_attachment">منسلکہ</string>
+    <string name="reply_quote_gif">GIF</string>
+
+    <string name="action_edit">ترمیم کریں</string>
+    <string name="action_cancel_edit">ترمیم منسوخ کریں</string>
+    <string name="edit_message_title">پیغام میں ترمیم</string>
+    <string name="message_edited">ترمیم شدہ</string>
+    <string name="error_message_required">پیغام کا متن درکار ہے</string>
+
+    <string name="delete_message_confirm_title">پیغام حذف کریں؟</string>
+    <string name="delete_message_confirm_message">پیغام سب کے لیے حذف ہو جائے گا۔</string>
+    <string name="delete_message_failed">پیغام حذف نہیں ہو سکا</string>
+    <string name="message_deleted">پیغام حذف ہو گیا</string>
+
+    <string name="action_pin">پن کریں</string>
+    <string name="action_unpin">پن ہٹائیں</string>
+    <string name="action_forward">آگے بھیجیں</string>
+    <string name="forward_picker_title">یہاں آگے بھیجیں…</string>
+    <string name="forward_picker_empty">کوئی چیٹ دستیاب نہیں</string>
+    <string name="message_forwarded">پیغام آگے بھیج دیا گیا</string>
+    <string name="forward_message_failed">پیغام آگے نہیں بھیجا جا سکا</string>
+    <string name="pin_message_failed">پیغام پن نہیں ہو سکا</string>
+    <string name="unpin_message_failed">پیغام ان پن نہیں ہو سکا</string>
+    <string name="pinned_message_title">پن شدہ پیغام</string>
+    <string name="pinned_messages_count">پن شدہ: %1$d</string>
+    <string name="action_open_pinned">پن شدہ پیغام کھولیں</string>
 </resources>

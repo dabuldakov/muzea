@@ -2,6 +2,7 @@ package com.example.muzea.ui.chat
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Typeface
 import android.net.Uri
 import android.text.SpannableString
 import android.text.Spanned
@@ -105,14 +106,19 @@ class MessageAdapter(
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val message = getItem(position)
+        // Цитату ответа сервер отдаёт только uuid'ом — оригинал ищем в уже
+        // загруженном списке. Если его нет (история не догружена), покажем заглушку.
+        val replyTo = message.replyToMessageUuid?.let { uuid ->
+            currentList.firstOrNull { it.messageUuid == uuid }
+        }
         when (holder) {
             is OutgoingViewHolder -> holder.bind(
-                message, linkPreviews, scope, onMessageLongPress, statusFor(message), onStatusClick,
-                onAttachmentClick, playingAudioUuid, audioIsPlaying
+                message, replyTo, myUserUuid, linkPreviews, scope, onMessageLongPress,
+                statusFor(message), onStatusClick, onAttachmentClick, playingAudioUuid, audioIsPlaying
             )
             is IncomingViewHolder -> holder.bind(
-                message, linkPreviews, scope, onMessageLongPress, onAttachmentClick,
-                playingAudioUuid, audioIsPlaying
+                message, replyTo, myUserUuid, linkPreviews, scope, onMessageLongPress,
+                onAttachmentClick, playingAudioUuid, audioIsPlaying
             )
         }
     }
@@ -128,6 +134,8 @@ class MessageAdapter(
 
         fun bind(
             message: Message,
+            replyTo: Message?,
+            myUserUuid: String?,
             linkPreviews: LinkPreviewStore,
             scope: CoroutineScope,
             onLongPress: (Message) -> Unit,
@@ -136,6 +144,10 @@ class MessageAdapter(
             audioIsPlaying: Boolean
         ) {
             AvatarLoader.load(binding.ivAvatar, message.senderAvatar)
+            bindReplyQuote(
+                binding.replyQuote, binding.tvReplyName, binding.tvReplyText,
+                message, replyTo, myUserUuid
+            )
             bindMedia(message)
             bindAttachments(
                 binding.attachmentsContainer, binding.tvMessage, binding.linkPreview,
@@ -171,11 +183,20 @@ class MessageAdapter(
             }
 
             binding.tvTime.text = formatTime(message.createdAt)
+            binding.tvEdited.visibility =
+                if (message.isEdited && !message.isDeleted) View.VISIBLE else View.GONE
         }
 
         private var player: ExoPlayer? = null
 
         private fun bindMedia(message: Message) {
+            if (message.isDeleted) {
+                releasePlayer()
+                binding.playerGif.visibility = View.GONE
+                binding.ivGif.visibility = View.GONE
+                binding.tvMessage.visibility = View.VISIBLE
+                return
+            }
             val mp4 = gifMp4Url(message)?.let { MediaUrl.chat(it) }
             if (mp4.isNullOrBlank()) {
                 releasePlayer()
@@ -210,6 +231,8 @@ class MessageAdapter(
 
         fun bind(
             message: Message,
+            replyTo: Message?,
+            myUserUuid: String?,
             linkPreviews: LinkPreviewStore,
             scope: CoroutineScope,
             onLongPress: (Message) -> Unit,
@@ -219,6 +242,10 @@ class MessageAdapter(
             playingAudioUuid: String?,
             audioIsPlaying: Boolean
         ) {
+            bindReplyQuote(
+                binding.replyQuote, binding.tvReplyName, binding.tvReplyText,
+                message, replyTo, myUserUuid
+            )
             bindMedia(message)
             bindAttachments(
                 binding.attachmentsContainer, binding.tvMessage, binding.linkPreview,
@@ -246,6 +273,8 @@ class MessageAdapter(
                 true
             }
             binding.tvTime.text = formatTime(message.createdAt)
+            binding.tvEdited.visibility =
+                if (message.isEdited && !message.isDeleted) View.VISIBLE else View.GONE
             bindStatus(message, status, onStatusClick)
         }
 
@@ -254,6 +283,12 @@ class MessageAdapter(
             status: MessageDeliveryStatus?,
             onStatusClick: (Message) -> Unit
         ) {
+            // У удалённого сообщения статус не показываем: действий по нему нет.
+            if (message.isDeleted) {
+                binding.ivStatus.visibility = View.GONE
+                binding.tvTime.setOnClickListener(null)
+                return
+            }
             if (status == null) {
                 binding.ivStatus.visibility = View.GONE
                 binding.tvTime.setOnClickListener(null)
@@ -294,6 +329,13 @@ class MessageAdapter(
         private var player: ExoPlayer? = null
 
         private fun bindMedia(message: Message) {
+            if (message.isDeleted) {
+                releasePlayer()
+                binding.playerGif.visibility = View.GONE
+                binding.ivGif.visibility = View.GONE
+                binding.tvMessage.visibility = View.VISIBLE
+                return
+            }
             val mp4 = gifMp4Url(message)?.let { MediaUrl.chat(it) }
             if (mp4.isNullOrBlank()) {
                 releasePlayer()
@@ -354,6 +396,28 @@ class MessageAdapter(
     }
 }
 
+/**
+ * Цитата ответа над пузырём. Оригинал может быть не загружен — тогда
+ * показываем нейтральные «Пользователь»/«Сообщение».
+ */
+private fun bindReplyQuote(
+    container: View,
+    nameView: TextView,
+    textView: TextView,
+    message: Message,
+    replyTo: Message?,
+    myUserUuid: String?
+) {
+    if (message.replyToMessageUuid.isNullOrBlank() || message.isDeleted) {
+        container.visibility = View.GONE
+        return
+    }
+    container.visibility = View.VISIBLE
+    val context = container.context
+    nameView.text = replySenderName(context, replyTo, myUserUuid)
+    textView.text = replyPreviewText(context, replyTo)
+}
+
 private fun gifUrl(message: Message): String? =
     message.attachments
         .firstOrNull { it.type?.equals("GIF", ignoreCase = true) == true }
@@ -403,6 +467,11 @@ private fun bindAttachments(
     onClick: (Message, MessageAttachment) -> Unit
 ) {
     container.removeAllViews()
+    // У удалённого сообщения вложений не показываем — только заглушку текста.
+    if (message.isDeleted) {
+        container.visibility = View.GONE
+        return
+    }
     val attachments = message.attachments.filterNot {
         it.type.equals("GIF", ignoreCase = true)
     }
@@ -571,6 +640,12 @@ private fun bindTextOrPreview(
     linkPreviews: LinkPreviewStore,
     scope: CoroutineScope
 ) {
+    // Удалённое сообщение показываем курсивной заглушкой, без ссылок.
+    if (message.isDeleted) {
+        showMessageText(tvMessage, card, tvMessage.context.getString(R.string.message_deleted))
+        tvMessage.setTypeface(null, Typeface.ITALIC)
+        return
+    }
     val url = MessageLinks.singleUrl(message.text)
     if (url == null) {
         showMessageText(tvMessage, card, message.text ?: "")
@@ -613,6 +688,8 @@ private fun showMessageText(tvMessage: TextView, card: View, text: String) {
     card.visibility = View.GONE
     card.setOnClickListener(null)
     card.tag = null
+    // Сбрасываем курсив: холдер переиспользуется и мог показать «удалено».
+    tvMessage.setTypeface(null, Typeface.NORMAL)
     bindMessageText(tvMessage, text)
 }
 

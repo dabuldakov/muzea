@@ -11,6 +11,7 @@ import android.view.MotionEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.activity.result.PickVisualMediaRequest
@@ -26,6 +27,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
+import com.example.muzea.domain.model.Chat
 import com.example.muzea.domain.model.Message
 import com.example.muzea.domain.model.MessageAttachment
 import com.example.muzea.domain.model.MessageDeliveryStatus
@@ -52,7 +54,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected {
+class ChatConversationFragment : Fragment(),
+    GifPickerBottomSheet.OnGifSelected,
+    MessageActionsBottomSheet.Listener,
+    ForwardChatPickerBottomSheet.OnChatForwardTargetSelected {
 
     private var _binding: FragmentChatConversationBinding? = null
     private val binding get() = _binding!!
@@ -74,6 +79,12 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
     private var pendingHighlightUuid: String? = null
     private var highlightAttempts = 0
     private var lastPending: List<PendingAttachment> = emptyList()
+    private var lastReplyUuid: String? = null
+    private var lastEditingUuid: String? = null
+    /** Сообщение, ожидающее выбора чата для пересылки. */
+    private var pendingForwardMessage: Message? = null
+    /** Текущий список закреплённых (для клика по панели и открепления). */
+    private var pinnedMessages: List<Message> = emptyList()
 
     private enum class SendMode { TEXT, VOICE, VIDEO }
 
@@ -207,6 +218,8 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
         setupRecyclerView()
         setupInput()
         setupAttachments()
+        setupReplyBanner()
+        setupPinnedBar()
         prefillDraft()
         observeViewModel()
     }
@@ -222,56 +235,120 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
     }
 
     /**
-     * Действия по долгому нажатию на сообщение: копирование, жалоба (UGC)
-     * и блокировка автора. Чужие сообщения можно только копировать/жаловаться,
-     * свои — копировать.
+     * Действия по долгому нажатию на сообщение. Открываем bottom sheet поверх
+     * чата: сверху ряд иконок, снизу — статус прочтения (для своих сообщений).
+     * Чужие сообщения можно копировать/жаловаться/блокировать, свои — копировать.
      */
     private fun showMessageActions(message: Message) {
+        // У удалённого сообщения действий нет.
+        if (message.isDeleted) return
         val isMine = message.senderUuid != null && message.senderUuid == viewModel.myUserUuid
-        val labels = mutableListOf<String>()
-        val actions = mutableListOf<() -> Unit>()
+        val isServerMessage = message.messageUuid.isNotBlank() &&
+            !message.messageUuid.startsWith("local-")
+        val actions = mutableListOf<MessageActionSpec>()
 
         val failedLocal = message.messageUuid.startsWith("local-") &&
             viewModel.deliveryStatus(message.messageUuid) == MessageDeliveryStatus.FAILED
         if (failedLocal) {
-            labels += getString(R.string.action_retry)
-            actions += { viewModel.retryMessage(message) }
+            actions += MessageActionSpec(
+                MessageActionsBottomSheet.ACTION_RETRY,
+                R.drawable.ic_action_retry,
+                R.string.action_retry
+            )
         }
 
         if (!message.text.isNullOrBlank()) {
-            labels += getString(R.string.action_copy)
-            actions += { copyMessage(message.text) }
+            actions += MessageActionSpec(
+                MessageActionsBottomSheet.ACTION_COPY,
+                R.drawable.ic_action_copy,
+                R.string.action_copy
+            )
         }
 
-        val isServerMessage = message.messageUuid.isNotBlank() &&
-            !message.messageUuid.startsWith("local-")
-        if (!isMine && isServerMessage) {
-            labels += getString(R.string.action_report)
-            actions += {
-                ReportDialog.show(requireContext()) { reason ->
-                    reportMessage(message.messageUuid, reason)
-                }
+        // Ответить можно на любое серверное сообщение, в том числе на своё.
+        if (isServerMessage) {
+            actions += MessageActionSpec(
+                MessageActionsBottomSheet.ACTION_REPLY,
+                R.drawable.ic_action_reply,
+                R.string.action_reply
+            )
+        }
+
+        // Редактировать можно только свои серверные текстовые сообщения.
+        val canEdit = isMine && isServerMessage && !message.isDeleted &&
+            message.messageType.equals("TEXT", ignoreCase = true) &&
+            !message.text.isNullOrBlank()
+        if (canEdit) {
+            actions += MessageActionSpec(
+                MessageActionsBottomSheet.ACTION_EDIT,
+                R.drawable.ic_action_edit,
+                R.string.action_edit
+            )
+        }
+
+        // Удалить можно только своё серверное сообщение.
+        if (isMine && isServerMessage) {
+            actions += MessageActionSpec(
+                MessageActionsBottomSheet.ACTION_DELETE,
+                R.drawable.ic_action_delete,
+                R.string.action_delete
+            )
+        }
+
+        // Пересылать и закреплять можно любое серверное не удалённое сообщение.
+        if (isServerMessage) {
+            actions += MessageActionSpec(
+                MessageActionsBottomSheet.ACTION_FORWARD,
+                R.drawable.ic_action_forward,
+                R.string.action_forward
+            )
+            if (message.isPinned) {
+                actions += MessageActionSpec(
+                    MessageActionsBottomSheet.ACTION_UNPIN,
+                    R.drawable.ic_action_pin,
+                    R.string.action_unpin
+                )
+            } else {
+                actions += MessageActionSpec(
+                    MessageActionsBottomSheet.ACTION_PIN,
+                    R.drawable.ic_action_pin,
+                    R.string.action_pin
+                )
             }
+        }
+
+        if (!isMine && isServerMessage) {
+            actions += MessageActionSpec(
+                MessageActionsBottomSheet.ACTION_REPORT,
+                R.drawable.ic_action_report,
+                R.string.action_report
+            )
         }
 
         val senderUuid = message.senderUuid
         if (!isMine && senderUuid != null) {
-            labels += getString(R.string.action_block)
-            actions += { confirmBlock(senderUuid) }
+            actions += MessageActionSpec(
+                MessageActionsBottomSheet.ACTION_BLOCK,
+                R.drawable.ic_action_block,
+                R.string.action_block
+            )
         }
 
-        if (labels.isEmpty()) return
+        // Статус показываем только для своих сообщений, уже принятых сервером.
+        val showStatus = isMine && message.messageId != null
+        if (actions.isEmpty() && !showStatus) return
 
-        AlertDialog.Builder(requireContext())
-            .setItems(labels.toTypedArray()) { _, which -> actions[which]() }
-            .setNegativeButton(R.string.action_cancel, null)
-            .show()
+        MessageActionsBottomSheet.newInstance(
+            messageUuid = message.messageUuid,
+            actions = actions,
+            rows = if (showStatus) buildStatusRows(message) else emptyList(),
+            showStatus = showStatus
+        ).show(childFragmentManager, "message_actions")
     }
 
-    /** Шторка «кто прочитал / кому доставлено» для своего сообщения. */
-    private fun showMessageInfo(message: Message) {
-        if (message.messageId == null) return
-        val rows = viewModel.participantStatuses(message).map { row ->
+    /** Строки «кто прочитал / кому доставлено» для шторки статуса. */
+    private fun buildStatusRows(message: Message): List<MessageStatusRow> =
+        viewModel.participantStatuses(message).map { row ->
             val at = if (row.status == MessageDeliveryStatus.READ) {
                 row.receipt.lastReadAt
             } else {
@@ -284,8 +361,55 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
                 at = LocalTimeFormatter.format(at).takeIf { it.isNotBlank() }
             )
         }
-        MessageInfoBottomSheet.newInstance(rows)
-            .show(childFragmentManager, "message_info")
+
+    override fun onMessageAction(messageUuid: String, actionId: String) {
+        val message = viewModel.uiState.value.messages
+            .firstOrNull { it.messageUuid == messageUuid } ?: return
+        when (actionId) {
+            MessageActionsBottomSheet.ACTION_COPY ->
+                message.text?.takeIf { it.isNotBlank() }?.let { copyMessage(it) }
+            MessageActionsBottomSheet.ACTION_REPORT ->
+                ReportDialog.show(requireContext()) { reason ->
+                    reportMessage(message.messageUuid, reason)
+                }
+            MessageActionsBottomSheet.ACTION_BLOCK ->
+                message.senderUuid?.let { confirmBlock(it) }
+            MessageActionsBottomSheet.ACTION_REPLY ->
+                viewModel.setReplyTo(message)
+            MessageActionsBottomSheet.ACTION_EDIT ->
+                viewModel.startEditing(message)
+            MessageActionsBottomSheet.ACTION_DELETE ->
+                confirmDeleteMessage(message)
+            MessageActionsBottomSheet.ACTION_FORWARD -> {
+                pendingForwardMessage = message
+                ForwardChatPickerBottomSheet.newInstance(chatUuid)
+                    .show(childFragmentManager, "forward_picker")
+            }
+            MessageActionsBottomSheet.ACTION_PIN ->
+                viewModel.pinMessage(message)
+            MessageActionsBottomSheet.ACTION_UNPIN ->
+                viewModel.unpinMessage(message)
+            MessageActionsBottomSheet.ACTION_RETRY ->
+                viewModel.retryMessage(message)
+        }
+    }
+
+    /** Выбран чат для пересылки: отправляем и сбрасываем ожидание. */
+    override fun onForwardTargetSelected(chat: Chat) {
+        pendingForwardMessage?.let { viewModel.forwardMessage(it, chat.chatUuid) }
+        pendingForwardMessage = null
+    }
+
+    /** Подтверждение удаления сообщения «для всех». */
+    private fun confirmDeleteMessage(message: Message) {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.delete_message_confirm_title)
+            .setMessage(R.string.delete_message_confirm_message)
+            .setPositiveButton(R.string.action_delete) { _, _ ->
+                viewModel.deleteMessage(message)
+            }
+            .setNegativeButton(R.string.action_cancel, null)
+            .show()
     }
 
     private fun copyMessage(text: String) {
@@ -334,7 +458,7 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
             linkPreviews = linkPreviewStore,
             onMessageLongPress = { message -> showMessageActions(message) },
             statusFor = { message -> viewModel.deliveryStatus(message.messageUuid) },
-            onStatusClick = { message -> showMessageInfo(message) },
+            onStatusClick = { message -> showMessageActions(message) },
             onAttachmentClick = { message, attachment ->
                 openAttachment(message, attachment)
             }
@@ -402,6 +526,103 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
 
     private fun setupAttachments() {
         binding.btnAdd.setOnClickListener { showAttachmentPicker() }
+    }
+
+    private fun setupReplyBanner() {
+        binding.btnCancelReply.setOnClickListener {
+            if (viewModel.uiState.value.editing != null) {
+                viewModel.cancelEditing()
+                binding.etMessageInput.setText("")
+            } else {
+                viewModel.setReplyTo(null)
+            }
+        }
+    }
+
+    /**
+     * Баннер над полем ввода: либо «ответ», либо «редактирование». Оригинал
+     * подставляем как цитату; при редактировании ещё и заполняем поле ввода.
+     */
+    private fun renderComposerBanner(state: ChatConversationUiState) {
+        val editing = state.editing
+        if (editing != null) {
+            binding.replyBanner.visibility = View.VISIBLE
+            binding.btnCancelReply.contentDescription = getString(R.string.action_cancel_edit)
+            binding.tvReplyBannerTitle.text = getString(R.string.edit_message_title)
+            binding.tvReplyBannerText.text = replyPreviewText(requireContext(), editing)
+            if (editing.messageUuid != lastEditingUuid) {
+                lastEditingUuid = editing.messageUuid
+                val text = editing.text.orEmpty()
+                binding.etMessageInput.setText(text)
+                binding.etMessageInput.setSelection(text.length)
+                binding.etMessageInput.requestFocus()
+                showKeyboard()
+            }
+            return
+        }
+        lastEditingUuid = null
+
+        binding.btnCancelReply.contentDescription = getString(R.string.action_cancel_reply)
+        val replyTo = state.replyTo
+        if (replyTo == null) {
+            binding.replyBanner.visibility = View.GONE
+            lastReplyUuid = null
+            return
+        }
+        binding.replyBanner.visibility = View.VISIBLE
+        binding.tvReplyBannerTitle.text = getString(
+            R.string.reply_to_format,
+            replySenderName(requireContext(), replyTo, viewModel.myUserUuid)
+        )
+        binding.tvReplyBannerText.text = replyPreviewText(requireContext(), replyTo)
+        if (replyTo.messageUuid != lastReplyUuid) {
+            lastReplyUuid = replyTo.messageUuid
+            binding.etMessageInput.requestFocus()
+            showKeyboard()
+        }
+    }
+
+    private fun showKeyboard() {
+        val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE)
+            as InputMethodManager
+        imm.showSoftInput(binding.etMessageInput, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    private fun setupPinnedBar() {
+        // Крестик открепляет верхнее закреплённое сообщение.
+        binding.btnUnpin.setOnClickListener {
+            pinnedMessages.firstOrNull()?.let { viewModel.unpinMessage(it) }
+        }
+        // Тап по панели ведёт к закреплённому сообщению (подсвечиваем).
+        binding.pinnedBarContent.setOnClickListener {
+            val target = pinnedMessages.firstOrNull() ?: return@setOnClickListener
+            val position = viewModel.uiState.value.messages
+                .indexOfFirst { it.messageUuid == target.messageUuid }
+            if (position >= 0) {
+                scrollToAndHighlight(position, target.messageUuid)
+            } else {
+                pendingHighlightUuid = target.messageUuid
+                highlightAttempts = 0
+                viewModel.loadOlder()
+            }
+        }
+    }
+
+    /** Панель закреплённого сообщения сверху чата. */
+    private fun renderPinnedBar(state: ChatConversationUiState) {
+        val pinned = state.pinnedMessages
+        pinnedMessages = pinned
+        if (pinned.isEmpty()) {
+            binding.pinnedBar.visibility = View.GONE
+            return
+        }
+        binding.pinnedBar.visibility = View.VISIBLE
+        binding.tvPinnedTitle.text = if (pinned.size > 1) {
+            getString(R.string.pinned_messages_count, pinned.size)
+        } else {
+            getString(R.string.pinned_message_title)
+        }
+        binding.tvPinnedText.text = replyPreviewText(requireContext(), pinned.first())
     }
 
     private fun showAttachmentPicker() {
@@ -927,6 +1148,8 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
                 updateSendButton()
                 updateEmptyState(messages)
                 renderConversationState(state)
+                renderComposerBanner(state)
+                renderPinnedBar(state)
 
                 if (messages.isNotEmpty() && !initialScrollDone) {
                     initialScrollDone = true
@@ -965,6 +1188,12 @@ class ChatConversationFragment : Fragment(), GifPickerBottomSheet.OnGifSelected 
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.sendError.collect { message ->
                 Toast.makeText(requireContext(), getString(R.string.error_prefix, message), Toast.LENGTH_LONG).show()
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.events.collect { message ->
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
             }
         }
     }

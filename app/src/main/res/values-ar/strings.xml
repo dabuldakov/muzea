@@ -272,4 +272,37 @@
     <string name="nav_contacts">جهات الاتصال</string>
     <string name="nav_videos">الفيديو</string>
     <string name="nav_profile">الملف</string>
+    <string name="action_reply">رد</string>
+    <string name="action_cancel_reply">إلغاء الرد</string>
+    <string name="reply_to_format">رد على %1$s</string>
+    <string name="reply_you">أنت</string>
+    <string name="reply_unknown_sender">مستخدم</string>
+    <string name="reply_quote_placeholder">رسالة</string>
+    <string name="reply_quote_deleted">تم حذف الرسالة</string>
+    <string name="reply_quote_attachment">مرفق</string>
+    <string name="reply_quote_gif">GIF</string>
+
+    <string name="action_edit">تعديل</string>
+    <string name="action_cancel_edit">إلغاء التعديل</string>
+    <string name="edit_message_title">تعديل الرسالة</string>
+    <string name="message_edited">تم التعديل</string>
+    <string name="error_message_required">مطلوب نص الرسالة</string>
+
+    <string name="delete_message_confirm_title">حذف الرسالة؟</string>
+    <string name="delete_message_confirm_message">سيتم حذف الرسالة للجميع.</string>
+    <string name="delete_message_failed">فشل حذف الرسالة</string>
+    <string name="message_deleted">تم حذف الرسالة</string>
+
+    <string name="action_pin">تثبيت</string>
+    <string name="action_unpin">إلغاء التثبيت</string>
+    <string name="action_forward">إعادة توجيه</string>
+    <string name="forward_picker_title">إعادة التوجيه إلى…</string>
+    <string name="forward_picker_empty">لا توجد دردشات متاحة</string>
+    <string name="message_forwarded">تم إعادة توجيه الرسالة</string>
+    <string name="forward_message_failed">فشل إعادة توجيه الرسالة</string>
+    <string name="pin_message_failed">فشل تثبيت الرسالة</string>
+    <string name="unpin_message_failed">فشل إلغاء تثبيت الرسالة</string>
+    <string name="pinned_message_title">رسالة مثبّتة</string>
+    <string name="pinned_messages_count">مثبّتة: %1$d</string>
+    <string name="action_open_pinned">فتح الرسالة المثبّتة</string>
 </resources>

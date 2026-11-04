@@ -7,6 +7,8 @@ import com.example.muzea.data.httpOk
 import com.example.muzea.data.model.ContactResponse
 import com.example.muzea.data.model.AttachmentResponse
 import com.example.muzea.data.model.ChatReceiptResponse
+import com.example.muzea.data.model.EditMessageRequest
+import com.example.muzea.data.model.ForwardMessageRequest
 import com.example.muzea.data.model.PageResponse
 import com.example.muzea.data.model.SendMessageRequest
 import com.example.muzea.data.mapper.toDomain
@@ -20,8 +22,11 @@ import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -327,5 +332,225 @@ class MessageRepositoryImplTest {
         val result = repository.uploadAttachment("chat-1", prepared)
 
         assertTrue(result is Resource.Error)
+    }
+
+    @Test
+    fun `editMessage sends the new text and returns the updated message`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        val request = slot<EditMessageRequest>()
+        coEvery { api.editMessage("m1", capture(request)) } returns
+            httpOk(message("m1", text = "edited"))
+
+        val result = repository.editMessage("m1", "edited").toList().last()
+
+        assertEquals("edited", (result as Resource.Success).data!!.text)
+        assertEquals("edited", request.captured.text)
+    }
+
+    @Test
+    fun `editMessage requires auth and turns failures into Resource Error`() = runTest {
+        coEvery { auth.isAuthenticated() } returns false
+        assertTrue(repository.editMessage("m1", "x").toList().last() is Resource.Error)
+
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.editMessage("m1", any()) } returns httpError(500)
+        assertTrue(repository.editMessage("m1", "x").toList().last() is Resource.Error)
+
+        coEvery { api.editMessage("m1", any()) } throws IOException("offline")
+        assertEquals(
+            "Network error: offline",
+            (repository.editMessage("m1", "x").toList().last() as Resource.Error).message
+        )
+    }
+
+    @Test
+    fun `deleteMessage returns true on success and false on error`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.deleteMessage("m1") } returns httpOk(Unit)
+        assertTrue(repository.deleteMessage("m1"))
+
+        coEvery { api.deleteMessage("m2") } returns httpError(404)
+        assertFalse(repository.deleteMessage("m2"))
+
+        coEvery { auth.isAuthenticated() } returns false
+        assertFalse(repository.deleteMessage("m3"))
+    }
+
+    @Test
+    fun `forwardMessage posts the uuid and target chat`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        val request = slot<ForwardMessageRequest>()
+        coEvery { api.forwardMessage(capture(request)) } returns httpOk(message("m5"))
+
+        val result = repository.forwardMessage("m1", "chat-2").toList().last()
+
+        assertTrue(result is Resource.Success)
+        assertEquals("m1", request.captured.messageUuid)
+        assertEquals("chat-2", request.captured.targetChatUuid)
+    }
+
+    @Test
+    fun `forwardMessage handles failure and network errors`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.forwardMessage(any()) } returns httpError(500)
+        assertTrue(repository.forwardMessage("m1", "chat-2").toList().last() is Resource.Error)
+
+        coEvery { api.forwardMessage(any()) } throws IOException("offline")
+        assertEquals(
+            "Network error: offline",
+            (repository.forwardMessage("m1", "chat-2").toList().last() as Resource.Error).message
+        )
+
+        coEvery { auth.isAuthenticated() } returns false
+        assertTrue(repository.forwardMessage("m1", "chat-2").toList().last() is Resource.Error)
+    }
+
+    @Test
+    fun `pinMessage returns true on success and false otherwise`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.pinMessage("chat-1", "m1") } returns httpOk(Unit)
+        coEvery { api.pinMessage("chat-1", "m2") } returns httpError(500)
+
+        assertTrue(repository.pinMessage("chat-1", "m1"))
+        assertFalse(repository.pinMessage("chat-1", "m2"))
+
+        coEvery { auth.isAuthenticated() } returns false
+        assertFalse(repository.pinMessage("chat-1", "m3"))
+    }
+
+    @Test
+    fun `unpinMessage returns true on success and false otherwise`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.unpinMessage("chat-1", "m1") } returns httpOk(Unit)
+        coEvery { api.unpinMessage("chat-1", "m2") } returns httpError(500)
+
+        assertTrue(repository.unpinMessage("chat-1", "m1"))
+        assertFalse(repository.unpinMessage("chat-1", "m2"))
+
+        coEvery { auth.isAuthenticated() } returns false
+        assertFalse(repository.unpinMessage("chat-1", "m3"))
+    }
+
+    @Test
+    fun `loadPinned returns mapped pinned messages`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.getPinnedMessages("chat-1") } returns
+            httpOk(listOf(message("m1"), message("m2")))
+
+        val pinned = repository.loadPinned("chat-1")
+
+        assertEquals(listOf("m1", "m2"), pinned.map { it.messageUuid })
+    }
+
+    @Test
+    fun `loadPinned returns empty on error and exception`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.getPinnedMessages("chat-1") } returns httpError(500)
+        assertTrue(repository.loadPinned("chat-1").isEmpty())
+
+        coEvery { api.getPinnedMessages("chat-1") } throws IOException("offline")
+        assertTrue(repository.loadPinned("chat-1").isEmpty())
+    }
+
+    @Test
+    fun `sendMessage requires auth and reports failures`() = runTest {
+        coEvery { auth.isAuthenticated() } returns false
+        assertTrue(repository.sendMessage("chat-1", "hi").toList().last() is Resource.Error)
+
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.sendMessage("chat-1", any()) } returns httpError(500)
+        assertTrue(repository.sendMessage("chat-1", "hi").toList().last() is Resource.Error)
+
+        coEvery { api.sendMessage("chat-1", any()) } throws IOException("offline")
+        assertEquals(
+            "Network error: offline",
+            (repository.sendMessage("chat-1", "hi").toList().last() as Resource.Error).message
+        )
+    }
+
+    @Test
+    fun `sendGif requires auth and reports failures`() = runTest {
+        coEvery { auth.isAuthenticated() } returns false
+        assertTrue(repository.sendGif("chat-1", gif()).toList().last() is Resource.Error)
+
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.sendMessage("chat-1", any()) } returns httpError(500)
+        assertTrue(repository.sendGif("chat-1", gif()).toList().last() is Resource.Error)
+
+        coEvery { api.sendMessage("chat-1", any()) } throws IOException("offline")
+        assertEquals(
+            "Network error: offline",
+            (repository.sendGif("chat-1", gif()).toList().last() as Resource.Error).message
+        )
+    }
+
+    @Test
+    fun `loadMessagesBefore requires auth and reports failures`() = runTest {
+        coEvery { auth.isAuthenticated() } returns false
+        assertTrue(repository.loadMessagesBefore("chat-1", "m1", 50).toList().last() is Resource.Error)
+
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.getMessagesBefore("chat-1", "m1", 50) } returns httpError(500)
+        assertTrue(repository.loadMessagesBefore("chat-1", "m1", 50).toList().last() is Resource.Error)
+
+        coEvery { api.getMessagesBefore("chat-1", "m1", 50) } throws IOException("offline")
+        assertEquals(
+            "Network error: offline",
+            (repository.loadMessagesBefore("chat-1", "m1", 50).toList().last() as Resource.Error).message
+        )
+    }
+
+    @Test
+    fun `uploadAttachment reports a network failure`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.uploadAttachment(any(), any(), any(), any(), any(), any()) } throws
+            IOException("offline")
+        val prepared = PreparedAttachment(
+            file = File.createTempFile("bad", ".bin"),
+            thumbnail = null, name = "bad.bin", size = 1,
+            mimeType = "application/octet-stream", type = "DOCUMENT",
+            width = null, height = null, duration = null
+        )
+
+        val result = repository.uploadAttachment("chat-1", prepared)
+
+        assertTrue(result is Resource.Error)
+        assertTrue((result as Resource.Error).message!!.startsWith("Network error"))
+    }
+
+    @Test
+    fun `downloadAttachment writes a sanitized file into filesDir`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        val dir = File.createTempFile("files", "").apply { delete(); mkdirs() }
+        io.mockk.every { context.filesDir } returns dir
+        coEvery { api.downloadAttachment("a-1") } returns httpOk(
+            "hello".toResponseBody("text/plain".toMediaTypeOrNull())
+        )
+
+        val file = repository.downloadAttachment("a-1", "in:valid*.txt")
+
+        assertNotNull(file)
+        assertEquals("hello", file!!.readText())
+        assertTrue(file.name.none { it in "\\/:*?\"<>|" })
+        dir.deleteRecursively()
+    }
+
+    @Test
+    fun `downloadAttachment returns null on error and exception`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.downloadAttachment("a-1") } returns httpError(500)
+        assertNull(repository.downloadAttachment("a-1", null))
+
+        coEvery { api.downloadAttachment("a-2") } throws IOException("offline")
+        assertNull(repository.downloadAttachment("a-2", null))
+    }
+
+    @Test
+    fun `cacheSentGif stores it for the chat and recents when mine`() {
+        repository.cacheSentGif("chat-1", gif(), mine = true)
+        repository.cacheSentGif("chat-1", gif(), mine = false)
+
+        assertTrue(gifCache.getStale(GifCache.recentKey()).orEmpty().isNotEmpty())
+        assertTrue(gifCache.getStale(GifCache.chatKey("chat-1")).orEmpty().isNotEmpty())
     }
 }

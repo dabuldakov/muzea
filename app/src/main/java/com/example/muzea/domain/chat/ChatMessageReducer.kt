@@ -53,6 +53,15 @@ class ChatMessageReducer {
             .sortedWith(MessageComparator())
     }
 
+    /**
+     * Заменяет сообщение с тем же uuid (например, после редактирования),
+     * не меняя порядок списка.
+     */
+    fun updateMessage(current: List<Message>, updated: Message): List<Message> =
+        current.map { existing ->
+            if (existing.messageUuid == updated.messageUuid) updated else existing
+        }
+
     private class MessageComparator : Comparator<Message> {
         override fun compare(a: Message, b: Message): Int {
             val ta = a.createdAt ?: ""

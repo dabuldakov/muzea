@@ -272,4 +272,37 @@
     <string name="nav_contacts">Contatos</string>
     <string name="nav_videos">Vídeos</string>
     <string name="nav_profile">Perfil</string>
+    <string name="action_reply">Responder</string>
+    <string name="action_cancel_reply">Cancelar resposta</string>
+    <string name="reply_to_format">Responder a %1$s</string>
+    <string name="reply_you">Você</string>
+    <string name="reply_unknown_sender">Usuário</string>
+    <string name="reply_quote_placeholder">Mensagem</string>
+    <string name="reply_quote_deleted">Mensagem excluída</string>
+    <string name="reply_quote_attachment">Anexo</string>
+    <string name="reply_quote_gif">GIF</string>
+
+    <string name="action_edit">Editar</string>
+    <string name="action_cancel_edit">Cancelar edição</string>
+    <string name="edit_message_title">Editando mensagem</string>
+    <string name="message_edited">editada</string>
+    <string name="error_message_required">Texto da mensagem obrigatório</string>
+
+    <string name="delete_message_confirm_title">Excluir mensagem?</string>
+    <string name="delete_message_confirm_message">A mensagem será excluída para todos.</string>
+    <string name="delete_message_failed">Falha ao excluir a mensagem</string>
+    <string name="message_deleted">Mensagem excluída</string>
+
+    <string name="action_pin">Fixar</string>
+    <string name="action_unpin">Desafixar</string>
+    <string name="action_forward">Encaminhar</string>
+    <string name="forward_picker_title">Encaminhar para…</string>
+    <string name="forward_picker_empty">Nenhuma conversa disponível</string>
+    <string name="message_forwarded">Mensagem encaminhada</string>
+    <string name="forward_message_failed">Falha ao encaminhar a mensagem</string>
+    <string name="pin_message_failed">Falha ao fixar a mensagem</string>
+    <string name="unpin_message_failed">Falha ao desafixar a mensagem</string>
+    <string name="pinned_message_title">Mensagem fixada</string>
+    <string name="pinned_messages_count">Fixadas: %1$d</string>
+    <string name="action_open_pinned">Abrir mensagem fixada</string>
 </resources>

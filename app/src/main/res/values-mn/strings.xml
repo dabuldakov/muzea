@@ -272,4 +272,37 @@
     <string name="nav_contacts">Харилцагчид</string>
     <string name="nav_videos">Видео</string>
     <string name="nav_profile">Профайл</string>
+    <string name="action_reply">Хариулах</string>
+    <string name="action_cancel_reply">Хариултыг цуцлах</string>
+    <string name="reply_to_format">%1$s-д хариулах</string>
+    <string name="reply_you">Та</string>
+    <string name="reply_unknown_sender">Хэрэглэгч</string>
+    <string name="reply_quote_placeholder">Мессеж</string>
+    <string name="reply_quote_deleted">Мессежийг устгасан</string>
+    <string name="reply_quote_attachment">Хавсралт</string>
+    <string name="reply_quote_gif">GIF</string>
+
+    <string name="action_edit">Засах</string>
+    <string name="action_cancel_edit">Засварыг цуцлах</string>
+    <string name="edit_message_title">Мессеж засах</string>
+    <string name="message_edited">зассан</string>
+    <string name="error_message_required">Мессежийн текст шаардлагатай</string>
+
+    <string name="delete_message_confirm_title">Мессежийг устгах уу?</string>
+    <string name="delete_message_confirm_message">Мессеж бүх хүнд устгагдана.</string>
+    <string name="delete_message_failed">Мессеж устгаж чадсангүй</string>
+    <string name="message_deleted">Мессежийг устгасан</string>
+
+    <string name="action_pin">Бэхлэх</string>
+    <string name="action_unpin">Бэхлэлтийг авах</string>
+    <string name="action_forward">Дамжуулах</string>
+    <string name="forward_picker_title">Дамжуулах…</string>
+    <string name="forward_picker_empty">Чат байхгүй</string>
+    <string name="message_forwarded">Мессеж дамжуулсан</string>
+    <string name="forward_message_failed">Мессеж дамжуулж чадсангүй</string>
+    <string name="pin_message_failed">Мессеж бэхэлж чадсангүй</string>
+    <string name="unpin_message_failed">Мессежийн бэхлэлтийг авч чадсангүй</string>
+    <string name="pinned_message_title">Бэхэлсэн мессеж</string>
+    <string name="pinned_messages_count">Бэхэлсэн: %1$d</string>
+    <string name="action_open_pinned">Бэхэлсэн мессежийг нээх</string>
 </resources>

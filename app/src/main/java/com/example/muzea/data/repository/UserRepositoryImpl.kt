@@ -36,14 +36,12 @@ class UserRepositoryImpl @Inject constructor(
     override suspend fun updateUser(
         userId: Long,
         fullName: String?,
-        email: String?,
         enabled: Boolean
     ): Flow<Resource<User>> = flow {
         emit(Resource.Loading())
         try {
             val request = UpdateUserRequest(
                 fullName = fullName,
-                email = email,
                 enabled = enabled
             )
             val response = apiService.updateUser(userId, request)
