@@ -66,6 +66,29 @@ class ChatMessageReducerTest {
     }
 
     @Test
+    fun `server echo keeps the local reply reference when the server omits it`() {
+        val reducer = ChatMessageReducer()
+        val current = listOf(message("local-1", null).copy(replyToMessageUuid = "orig"))
+        val server = message("server-1", "2026-01-01T00:00:00")
+
+        val result = reducer.applyServerEcho(current, "local-1", server)
+
+        assertEquals("orig", result.single().replyToMessageUuid)
+    }
+
+    @Test
+    fun `server echo keeps its own reply reference when present`() {
+        val reducer = ChatMessageReducer()
+        val current = listOf(message("local-1", null).copy(replyToMessageUuid = "local-orig"))
+        val server = message("server-1", "2026-01-01T00:00:00")
+            .copy(replyToMessageUuid = "server-orig")
+
+        val result = reducer.applyServerEcho(current, "local-1", server)
+
+        assertEquals("server-orig", result.single().replyToMessageUuid)
+    }
+
+    @Test
     fun `merged server echo is not duplicated`() {
         val reducer = ChatMessageReducer()
         val server = message("server-1", "2026-01-01T00:00:00")

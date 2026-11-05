@@ -180,6 +180,12 @@ class ChatConversationViewModelBranchesTest {
         viewModel.sendText("hi")
 
         assertNull(viewModel.uiState.value.replyTo)
+        // Серверное эхо не содержит replyToMessageUuid — ссылка на оригинал
+        // должна сохраниться, иначе цитата исчезает после публикации.
+        assertEquals(
+            "m1",
+            viewModel.uiState.value.messages.single { it.text == "hi" }.replyToMessageUuid
+        )
     }
 
     @Test

@@ -45,7 +45,14 @@ class ChatMessageReducer {
         return current
             .map { existing ->
                 if (existing.messageUuid == localUuid) {
-                    serverMessage.copy(messageUuid = localUuid)
+                    serverMessage.copy(
+                        messageUuid = localUuid,
+                        // Ответ сервера на отправку может не содержать ссылку на
+                        // оригинал. Не теряем её: uuid уже известен из локального
+                        // пузыря, иначе цитата ответа пропадала после публикации.
+                        replyToMessageUuid = serverMessage.replyToMessageUuid
+                            ?: existing.replyToMessageUuid
+                    )
                 } else {
                     existing
                 }
