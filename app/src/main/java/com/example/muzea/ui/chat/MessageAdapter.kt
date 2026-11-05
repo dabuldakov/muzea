@@ -52,7 +52,7 @@ import kotlinx.coroutines.withContext
 class MessageAdapter(
     private val myUserUuid: String?,
     private val linkPreviews: LinkPreviewStore,
-    private val onMessageLongPress: (Message) -> Unit,
+    private val onMessageClick: (Message) -> Unit,
     private val statusFor: (Message) -> MessageDeliveryStatus?,
     private val onStatusClick: (Message) -> Unit,
     private val onAttachmentClick: (Message, MessageAttachment) -> Unit
@@ -113,11 +113,11 @@ class MessageAdapter(
         }
         when (holder) {
             is OutgoingViewHolder -> holder.bind(
-                message, replyTo, myUserUuid, linkPreviews, scope, onMessageLongPress,
+                message, replyTo, myUserUuid, linkPreviews, scope, onMessageClick,
                 statusFor(message), onStatusClick, onAttachmentClick, playingAudioUuid, audioIsPlaying
             )
             is IncomingViewHolder -> holder.bind(
-                message, replyTo, myUserUuid, linkPreviews, scope, onMessageLongPress,
+                message, replyTo, myUserUuid, linkPreviews, scope, onMessageClick,
                 onAttachmentClick, playingAudioUuid, audioIsPlaying
             )
         }
@@ -138,7 +138,7 @@ class MessageAdapter(
             myUserUuid: String?,
             linkPreviews: LinkPreviewStore,
             scope: CoroutineScope,
-            onLongPress: (Message) -> Unit,
+            onClick: (Message) -> Unit,
             onAttachmentClick: (Message, MessageAttachment) -> Unit,
             playingAudioUuid: String?,
             audioIsPlaying: Boolean
@@ -158,22 +158,10 @@ class MessageAdapter(
                 binding.ivLinkImage, binding.tvLinkTitle, binding.tvLinkDomain,
                 message, linkPreviews, scope
             )
-            binding.root.setOnLongClickListener {
-                onLongPress(message)
-                true
-            }
-            binding.tvMessage.setOnLongClickListener {
-                onLongPress(message)
-                true
-            }
-            binding.ivGif.setOnLongClickListener {
-                onLongPress(message)
-                true
-            }
-            binding.linkPreview.setOnLongClickListener {
-                onLongPress(message)
-                true
-            }
+            binding.root.setOnClickListener { onClick(message) }
+            binding.tvMessage.setOnClickListener { onClick(message) }
+            binding.ivGif.setOnClickListener { onClick(message) }
+            // linkPreview сам открывает ссылку — не перекрываем его обработчик.
 
             if (!message.senderName.isNullOrEmpty()) {
                 binding.tvSenderName.text = message.senderName
@@ -235,7 +223,7 @@ class MessageAdapter(
             myUserUuid: String?,
             linkPreviews: LinkPreviewStore,
             scope: CoroutineScope,
-            onLongPress: (Message) -> Unit,
+            onClick: (Message) -> Unit,
             status: MessageDeliveryStatus?,
             onStatusClick: (Message) -> Unit,
             onAttachmentClick: (Message, MessageAttachment) -> Unit,
@@ -256,22 +244,10 @@ class MessageAdapter(
                 binding.ivLinkImage, binding.tvLinkTitle, binding.tvLinkDomain,
                 message, linkPreviews, scope
             )
-            binding.root.setOnLongClickListener {
-                onLongPress(message)
-                true
-            }
-            binding.tvMessage.setOnLongClickListener {
-                onLongPress(message)
-                true
-            }
-            binding.ivGif.setOnLongClickListener {
-                onLongPress(message)
-                true
-            }
-            binding.linkPreview.setOnLongClickListener {
-                onLongPress(message)
-                true
-            }
+            binding.root.setOnClickListener { onClick(message) }
+            binding.tvMessage.setOnClickListener { onClick(message) }
+            binding.ivGif.setOnClickListener { onClick(message) }
+            // linkPreview сам открывает ссылку — не перекрываем его обработчик.
             binding.tvTime.text = formatTime(message.createdAt)
             binding.tvEdited.visibility =
                 if (message.isEdited && !message.isDeleted) View.VISIBLE else View.GONE
@@ -723,7 +699,7 @@ private fun hostOf(url: String): String = Uri.parse(url).host.orEmpty()
 /**
  * Делает ссылки в тексте кликабельными (открываются внешним приложением).
  * Если ссылок нет — просто ставит текст без MovementMethod, чтобы не мешать
- * прокрутке и long-press-копированию.
+ * прокрутке и обычному нажатию (открывает меню действий).
  */
 private fun bindMessageText(textView: TextView, text: String) {
     val links = MessageLinks.matches(text)

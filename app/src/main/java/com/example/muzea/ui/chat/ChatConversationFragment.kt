@@ -235,7 +235,7 @@ class ChatConversationFragment : Fragment(),
     }
 
     /**
-     * Действия по долгому нажатию на сообщение. Открываем bottom sheet поверх
+     * Действия по нажатию на сообщение. Открываем bottom sheet поверх
      * чата: сверху ряд иконок, снизу — статус прочтения (для своих сообщений).
      * Чужие сообщения можно копировать/жаловаться/блокировать, свои — копировать.
      */
@@ -456,7 +456,7 @@ class ChatConversationFragment : Fragment(),
         adapter = MessageAdapter(
             myUserUuid = viewModel.myUserUuid,
             linkPreviews = linkPreviewStore,
-            onMessageLongPress = { message -> showMessageActions(message) },
+            onMessageClick = { message -> showMessageActions(message) },
             statusFor = { message -> viewModel.deliveryStatus(message.messageUuid) },
             onStatusClick = { message -> showMessageActions(message) },
             onAttachmentClick = { message, attachment ->

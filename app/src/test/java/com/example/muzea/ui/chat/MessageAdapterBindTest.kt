@@ -149,13 +149,13 @@ class MessageAdapterBindTest {
         message: Message,
         replyTo: Message? = null,
         myUserUuid: String? = "me",
-        onLongPress: (Message) -> Unit = {},
+        onClick: (Message) -> Unit = {},
         onAttachmentClick: (Message, MessageAttachment) -> Unit = { _, _ -> },
         playingAudioUuid: String? = null,
         audioIsPlaying: Boolean = false
     ) {
         fx.incomingHolder().bind(
-            message, replyTo, myUserUuid, linkPreviews, scope, onLongPress,
+            message, replyTo, myUserUuid, linkPreviews, scope, onClick,
             onAttachmentClick, playingAudioUuid, audioIsPlaying
         )
     }
@@ -165,10 +165,10 @@ class MessageAdapterBindTest {
         replyTo: Message? = null,
         status: MessageDeliveryStatus? = null,
         onStatusClick: (Message) -> Unit = {},
-        onLongPress: (Message) -> Unit = {}
+        onClick: (Message) -> Unit = {}
     ) {
         fx.outgoingHolder().bind(
-            message, replyTo, "me", linkPreviews, scope, onLongPress, status,
+            message, replyTo, "me", linkPreviews, scope, onClick, status,
             onStatusClick, { _, _ -> }, null, false
         )
     }
@@ -206,24 +206,23 @@ class MessageAdapterBindTest {
     }
 
     @Test
-    fun `incoming long press reports the message`() {
+    fun `incoming click reports the message`() {
         var pressed: Message? = null
-        bindIncoming(message(), onLongPress = { pressed = it })
+        bindIncoming(message(), onClick = { pressed = it })
 
-        val listener = slot<View.OnLongClickListener>()
-        verify { fx.root.setOnLongClickListener(capture(listener)) }
-        assertTrue(listener.captured.onLongClick(fx.root))
+        val listener = slot<View.OnClickListener>()
+        verify { fx.root.setOnClickListener(capture(listener)) }
+        listener.captured.onClick(fx.root)
 
         assertEquals("m1", pressed?.messageUuid)
     }
 
     @Test
-    fun `incoming long press is attached to bubble gif and link card`() {
+    fun `incoming click is attached to bubble and gif`() {
         bindIncoming(message())
 
-        verify { fx.tvMessage.setOnLongClickListener(any()) }
-        verify { fx.ivGif.setOnLongClickListener(any()) }
-        verify { fx.linkPreview.setOnLongClickListener(any()) }
+        verify { fx.tvMessage.setOnClickListener(any()) }
+        verify { fx.ivGif.setOnClickListener(any()) }
     }
 
     // --- Входящие: удалённое сообщение ---
@@ -679,13 +678,13 @@ class MessageAdapterBindTest {
     }
 
     @Test
-    fun `outgoing long press reports the message`() {
+    fun `outgoing click reports the message`() {
         var pressed: Message? = null
-        bindOutgoing(message(senderUuid = "me"), onLongPress = { pressed = it })
+        bindOutgoing(message(senderUuid = "me"), onClick = { pressed = it })
 
-        val listener = slot<View.OnLongClickListener>()
-        verify { fx.root.setOnLongClickListener(capture(listener)) }
-        assertTrue(listener.captured.onLongClick(fx.root))
+        val listener = slot<View.OnClickListener>()
+        verify { fx.root.setOnClickListener(capture(listener)) }
+        listener.captured.onClick(fx.root)
 
         assertEquals("m1", pressed?.messageUuid)
     }
