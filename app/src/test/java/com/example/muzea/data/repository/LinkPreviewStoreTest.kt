@@ -19,7 +19,8 @@ class LinkPreviewStoreTest {
     @Before
     fun setUp() {
         server = MockWebServer().apply { start() }
-        store = LinkPreviewStore()
+        // MockWebServer живёт на localhost — для этого теста снимаем SSRF-защиту.
+        store = LinkPreviewStore().apply { allowPrivateHostsForTests = true }
     }
 
     @After

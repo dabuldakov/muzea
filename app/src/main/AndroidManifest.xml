@@ -16,7 +16,7 @@
 
     <application
         android:name=".MuzeaApplication"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -110,7 +110,8 @@
             android:exported="false" />
 
         <activity
-            android:name=".ui.news.CreateNewsActivity" />
+            android:name=".ui.news.CreateNewsActivity"
+            android:exported="false" />
 
         <service
             android:name=".utils.MuzeaMessagingService"
