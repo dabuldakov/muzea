@@ -37,8 +37,8 @@ android {
         applicationId = "com.cyber.muzea"
         minSdk = 24
         targetSdk = 36
-        versionCode = 47
-        versionName = "1.7.19"
+        versionCode = 48
+        versionName = "1.7.20"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -93,8 +93,11 @@ android {
                 )
                 signingConfigs.getByName("debug")
             }
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // R8 временно выключен: в 1.7.19 он сломал generic-тип ответа
+            // GitHubApi (ClassCastException в AppUpdateRepository на старте).
+            // Включать только после проверки release-сборки на устройстве.
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
