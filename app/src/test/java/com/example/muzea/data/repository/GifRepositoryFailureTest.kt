@@ -1,5 +1,6 @@
 package com.example.muzea.data.repository
 
+import com.example.muzea.BuildConfig
 import com.example.muzea.data.api.ChatApiService
 import com.example.muzea.data.api.KlipyApi
 import com.example.muzea.data.model.KlipyGifsResponse
@@ -9,6 +10,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertTrue
+import org.junit.Assume
 import org.junit.Before
 import org.junit.Test
 import retrofit2.Response
@@ -33,6 +35,18 @@ class GifRepositoryFailureTest {
         KlipyGifsResponse(result = true, data = KlipyPage(items = emptyList()))
     )
 
+    /**
+     * Klipy-ветка активна только при непустом `BuildConfig.KLIPY_APP_KEY`.
+     * В CI (и на форках) ключ не пробрасывается, поэтому вместо ложного
+     * падения помечаем такие тесты пропущенными.
+     */
+    private fun assumeKlipyConfigured() {
+        Assume.assumeTrue(
+            "KLIPY_APP_KEY не задан — Klipy-ветка недоступна",
+            BuildConfig.KLIPY_APP_KEY.isNotBlank()
+        )
+    }
+
     @Before
     fun setUp() {
         gifCache.clear()
@@ -41,6 +55,7 @@ class GifRepositoryFailureTest {
 
     @Test
     fun searchWithAQueryUsesTheSearchEndpoint() = runTest {
+        assumeKlipyConfigured()
         coEvery { klipyApi.search(any(), "cat", 1, 30, "high") } returns emptyKlipyPage()
 
         assertTrue(repository.search("cat", 0, 30).isEmpty())
@@ -48,6 +63,7 @@ class GifRepositoryFailureTest {
 
     @Test
     fun blankQueryUsesTheTrendingEndpoint() = runTest {
+        assumeKlipyConfigured()
         coEvery { klipyApi.trending(any(), 1, 30, "high") } returns emptyKlipyPage()
 
         assertTrue(repository.search("", 0, 30).isEmpty())
@@ -55,6 +71,7 @@ class GifRepositoryFailureTest {
 
     @Test
     fun searchNetworkErrorDegradesToEmpty() = runTest {
+        assumeKlipyConfigured()
         coEvery { klipyApi.search(any(), "cat", 1, 30, "high") } throws IOException("offline")
 
         assertTrue(repository.search("cat", 0, 30).isEmpty())
@@ -62,6 +79,7 @@ class GifRepositoryFailureTest {
 
     @Test
     fun searchPropagatesCancellation() = runTest {
+        assumeKlipyConfigured()
         coEvery { klipyApi.search(any(), "cat", 1, 30, "high") } throws
             CancellationException("stop")
 
