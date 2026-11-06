@@ -12,8 +12,14 @@ import retrofit2.http.GET
  */
 interface GitHubApi {
 
-    @GET("repos/dabuldakov/muzea/releases")
+    // per_page обязателен: без него GitHub периодически отдаёт 504 на список
+    // релизов, и проверка обновлений в приложении падала.
+    @GET("repos/dabuldakov/muzea/releases?per_page=30")
     suspend fun getReleases(): Response<List<GitHubRelease>>
+
+    /** Запасной путь: если список недоступен, узнаём хотя бы последний релиз. */
+    @GET("repos/dabuldakov/muzea/releases/latest")
+    suspend fun getLatestRelease(): Response<GitHubRelease>
 }
 
 data class GitHubRelease(

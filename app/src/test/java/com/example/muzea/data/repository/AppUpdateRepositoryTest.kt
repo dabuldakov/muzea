@@ -60,6 +60,16 @@ class AppUpdateRepositoryTest {
     }
 
     @Test
+    fun `falls back to latest release when the list request fails`() = runTest {
+        coEvery { gitHubApi.getReleases() } returns httpError(504)
+        coEvery { gitHubApi.getLatestRelease() } returns httpOk(release("v1.7.1"))
+
+        val result = repository().checkForUpdate()
+
+        assertEquals("1.7.1", (result as UpdateCheckResult.Available).update.versionName)
+    }
+
+    @Test
     fun `drafts and prereleases are ignored`() = runTest {
         coEvery { gitHubApi.getReleases() } returns httpOk(
             listOf(

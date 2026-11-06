@@ -60,10 +60,18 @@ class AppUpdateRepository @Inject constructor(
      * версий, в список «что нового» соберём изменения всех пропущенных релизов.
      */
     suspend fun checkForUpdate(): UpdateCheckResult {
+        // GitHub иногда отдаёт 504 на список релизов. Тогда пробуем
+        // /releases/latest — обновление всё равно найдём, просто без полного
+        // списка «что нового» за пропущенные версии.
         val releases = runCatching { gitHubApi.getReleases() }
             .getOrNull()
             ?.takeIf { it.isSuccessful }
             ?.body()
+            ?: runCatching { gitHubApi.getLatestRelease() }
+                .getOrNull()
+                ?.takeIf { it.isSuccessful }
+                ?.body()
+                ?.let { listOf(it) }
             ?: return UpdateCheckResult.Failed
 
         val skipped = releases
