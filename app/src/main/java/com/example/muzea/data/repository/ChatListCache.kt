@@ -1,6 +1,7 @@
 package com.example.muzea.data.repository
 
 import com.example.muzea.domain.model.Chat
+import com.example.muzea.domain.model.MessagePreview
 
 /**
  * Кэш списка чатов в памяти процесса.
@@ -37,6 +38,19 @@ object ChatListCache {
             val oldest = chats.keys.firstOrNull() ?: break
             chats.remove(oldest)
         }
+    }
+
+    /** Локально обновляет превью после edit/delete, не дожидаясь опроса сети. */
+    @Synchronized
+    fun updateLastMessage(chatUuid: String, preview: MessagePreview) {
+        val chat = chats[chatUuid] ?: return
+        chats[chatUuid] = chat.copy(lastMessage = preview)
+    }
+
+    @Synchronized
+    fun clearLastMessage(chatUuid: String) {
+        val chat = chats[chatUuid] ?: return
+        chats[chatUuid] = chat.copy(lastMessage = null)
     }
 
     @Synchronized

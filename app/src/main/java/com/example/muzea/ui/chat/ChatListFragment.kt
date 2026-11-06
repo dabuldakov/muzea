@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -30,6 +29,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import androidx.appcompat.app.AlertDialog
 
 @AndroidEntryPoint
 class ChatListFragment : Fragment() {
@@ -194,7 +195,7 @@ class ChatListFragment : Fragment() {
             setPadding(dp(16), dp(16), dp(16), dp(16))
         }
 
-        val dialog = AlertDialog.Builder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.group_create_title)
             .setView(input)
             .setPositiveButton(R.string.action_create, null)
@@ -233,7 +234,7 @@ class ChatListFragment : Fragment() {
         membersAdapter = adapter
         recyclerView.adapter = adapter
 
-        val dialog = AlertDialog.Builder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(chat.title ?: getString(R.string.group_chat_default))
             .setView(recyclerView)
             .setPositiveButton(R.string.group_add_members) { _, _ ->

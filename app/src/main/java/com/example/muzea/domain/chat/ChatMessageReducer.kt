@@ -14,8 +14,13 @@ class ChatMessageReducer {
     // serverUuid -> localUuid для наших отправленных сообщений.
     private val serverToLocal = HashMap<String, String>()
 
-    /** Стартовый список из кэша: сервер отдаёт «сначала новые», показываем по возрастанию. */
-    fun seed(cached: List<Message>): List<Message> = cached.sortedWith(MessageComparator())
+    /**
+     * Стартовый список из кэша: сервер отдаёт «сначала новые», показываем по
+     * возрастанию. Удалённые сообщения не показываем вовсе — вместо заглушки
+     * «сообщение удалено» они просто исчезают из переписки.
+     */
+    fun seed(cached: List<Message>): List<Message> =
+        cached.filterNot { it.isDeleted }.sortedWith(MessageComparator())
 
     /**
      * Сливает серверную пачку с текущим списком. Существующие элементы имеют
@@ -24,11 +29,19 @@ class ChatMessageReducer {
      */
     fun merge(current: List<Message>, incoming: List<Message>): List<Message> {
         val merged = LinkedHashMap<String, Message>()
+        // Если сообщение удалили (в том числе с другого устройства), сервер
+        // присылает его с isDeleted — убираем и локальную копию.
+        val deleted = incoming.filter { it.isDeleted }
+            .mapTo(HashSet()) { it.messageUuid }
         for (message in incoming) {
+            if (message.isDeleted) continue
             if (serverToLocal.containsKey(message.messageUuid)) continue
             merged[message.messageUuid] = message
         }
-        for (message in current) merged[message.messageUuid] = message
+        for (message in current) {
+            if (message.isDeleted || message.messageUuid in deleted) continue
+            merged[message.messageUuid] = message
+        }
         return merged.values.sortedWith(MessageComparator())
     }
 

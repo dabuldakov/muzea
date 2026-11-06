@@ -10,6 +10,9 @@ import com.example.muzea.domain.model.Gif
 import com.example.muzea.domain.model.Message
 import com.example.muzea.domain.model.MessageAttachment
 import com.example.muzea.domain.model.MessageDeliveryStatus
+import com.example.muzea.domain.model.MessagePreview
+import com.example.muzea.data.repository.ChatListCache
+import com.example.muzea.data.repository.ChatMessagesCache
 import com.example.muzea.utils.MediaFileReader
 import com.example.muzea.utils.PreparedAttachment
 import com.example.muzea.domain.repository.MessageRepository
@@ -396,9 +399,25 @@ class ChatConversationViewModel @Inject constructor(
     }
 
     private fun updateMessage(updated: Message) {
-        _uiState.value = withStatuses(
-            _uiState.value.copy(messages = reducer.updateMessage(_uiState.value.messages, updated))
-        )
+        // Сервер может вернуть сообщение без вложений (например, при правке
+        // подписи к фото). Не теряем уже показанную картинку.
+        val existing = _uiState.value.messages.firstOrNull {
+            it.messageUuid == updated.messageUuid
+        }
+        val merged = if (updated.attachments.isEmpty() &&
+            existing != null && existing.attachments.isNotEmpty()
+        ) {
+            updated.copy(attachments = existing.attachments)
+        } else {
+            updated
+        }
+        val messages = reducer.updateMessage(_uiState.value.messages, merged)
+        _uiState.value = withStatuses(_uiState.value.copy(messages = messages))
+        ChatMessagesCache.put(chatUuid, messages)
+        // Если правили последнее сообщение — сразу обновляем превью в списке чатов.
+        if (messages.lastOrNull()?.messageUuid == merged.messageUuid) {
+            ChatListCache.updateLastMessage(chatUuid, previewOf(merged))
+        }
     }
 
     /** Мягко удаляет своё сообщение «для всех». */
@@ -406,13 +425,38 @@ class ChatConversationViewModel @Inject constructor(
         viewModelScope.launch {
             val ok = messageRepository.deleteMessage(message.messageUuid)
             if (ok) {
-                updateMessage(message.copy(isDeleted = true, text = ""))
+                removeMessageLocally(message.messageUuid)
                 clearComposerFor(message.messageUuid)
             } else {
                 _sendError.emit(appContext.getString(R.string.delete_message_failed))
             }
         }
     }
+
+    /**
+     * Удалённое сообщение не показываем пузырём-заглушкой: убираем его из
+     * списка, а RecyclerView анимирует исчезновение (scale-to-point). Превью
+     * чата откатывается на предыдущее сообщение.
+     */
+    private fun removeMessageLocally(messageUuid: String) {
+        val remaining = _uiState.value.messages.filterNot { it.messageUuid == messageUuid }
+        _uiState.value = withStatuses(_uiState.value.copy(messages = remaining))
+        ChatMessagesCache.put(chatUuid, remaining)
+        val last = remaining.lastOrNull()
+        if (last == null) {
+            ChatListCache.clearLastMessage(chatUuid)
+        } else {
+            ChatListCache.updateLastMessage(chatUuid, previewOf(last))
+        }
+    }
+
+    private fun previewOf(message: Message) = MessagePreview(
+        messageUuid = message.messageUuid,
+        text = replyPreviewText(appContext, message),
+        senderId = message.senderId,
+        senderName = message.senderName,
+        createdAt = message.createdAt
+    )
 
     /** Сбрасывает «ответ»/«редактирование», если они ссылаются на это сообщение. */
     private fun clearComposerFor(messageUuid: String) {
@@ -427,19 +471,46 @@ class ChatConversationViewModel @Inject constructor(
         }
     }
 
-    /** Пересылает сообщение в выбранный чат. */
-    fun forwardMessage(message: Message, targetChatUuid: String) {
+    /**
+     * Пересылает сообщение в выбранный чат. Если пользователь добавил
+     * комментарий, он отправляется в тот же чат отдельным сообщением.
+     */
+    fun forwardMessage(message: Message, targetChatUuid: String, comment: String? = null) {
+        forwardMessages(listOf(message), targetChatUuid, comment)
+    }
+
+    /**
+     * Пересылает пачку сообщений. Комментарий пользователя отправляется один
+     * раз, после всех пересланных сообщений.
+     */
+    fun forwardMessages(messages: List<Message>, targetChatUuid: String, comment: String? = null) {
+        if (messages.isEmpty()) return
         viewModelScope.launch {
-            messageRepository.forwardMessage(message.messageUuid, targetChatUuid)
-                .collect { result ->
-                    when (result) {
-                        is Resource.Success ->
-                            _events.emit(appContext.getString(R.string.message_forwarded))
-                        is Resource.Error ->
-                            _sendError.emit(appContext.getString(R.string.forward_message_failed))
-                        is Resource.Loading -> Unit
+            var forwarded = false
+            for (message in messages) {
+                messageRepository.forwardMessage(message.messageUuid, targetChatUuid)
+                    .collect { result ->
+                        when (result) {
+                            is Resource.Success -> forwarded = true
+                            is Resource.Error ->
+                                _sendError.emit(appContext.getString(R.string.forward_message_failed))
+                            is Resource.Loading -> Unit
+                        }
+                    }
+            }
+            if (!forwarded) return@launch
+            if (!comment.isNullOrBlank()) {
+                messageRepository.sendMessage(
+                    targetChatUuid, comment, emptyList(), "TEXT", null
+                ).collect { result ->
+                    if (result is Resource.Error) {
+                        _sendError.emit(
+                            result.message ?: appContext.getString(R.string.forward_message_failed)
+                        )
                     }
                 }
+            }
+            _events.emit(appContext.getString(R.string.message_forwarded))
         }
     }
 

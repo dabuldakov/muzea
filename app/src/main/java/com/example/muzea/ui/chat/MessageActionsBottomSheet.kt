@@ -163,6 +163,7 @@ class MessageActionsBottomSheet : BottomSheetDialogFragment() {
         const val ACTION_FORWARD = "forward"
         const val ACTION_PIN = "pin"
         const val ACTION_UNPIN = "unpin"
+        const val ACTION_SELECT = "select"
 
         fun newInstance(
             messageUuid: String,

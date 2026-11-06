@@ -1,8 +1,8 @@
 package com.example.muzea.ui.common
 
 import android.content.Context
-import androidx.appcompat.app.AlertDialog
 import com.example.muzea.R
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 /**
  * Единый диалог выбора причины жалобы для всех UGC-разделов
@@ -20,7 +20,7 @@ object ReportDialog {
     )
 
     fun show(context: Context, onReason: (String) -> Unit) {
-        AlertDialog.Builder(context)
+        MaterialAlertDialogBuilder(context)
             .setTitle(R.string.report_reason_title)
             .setItems(reasons.map { context.getString(it.first) }.toTypedArray()) { _, which ->
                 onReason(reasons[which].second)

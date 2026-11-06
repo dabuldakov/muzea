@@ -37,6 +37,21 @@ class ChatMessageReducerTest {
     }
 
     @Test
+    fun `deleted messages are dropped from seed and merge`() {
+        val reducer = ChatMessageReducer()
+        val deleted = message("gone", "2026-01-01T00:00:00").copy(isDeleted = true)
+
+        val seeded = reducer.seed(listOf(deleted, message("m1", "2026-01-02T00:00:00")))
+        val merged = reducer.merge(
+            listOf(message("m1", "2026-01-02T00:00:00")),
+            listOf(deleted, message("m2", "2026-01-03T00:00:00"))
+        )
+
+        assertEquals(listOf("m1"), seeded.map { it.messageUuid })
+        assertEquals(listOf("m1", "m2"), merged.map { it.messageUuid })
+    }
+
+    @Test
     fun `merge keeps existing messages and appends new ones in order`() {
         val reducer = ChatMessageReducer()
         val current = listOf(message("m1", "2026-01-01T00:00:00"))
@@ -50,6 +65,19 @@ class ChatMessageReducerTest {
         )
 
         assertEquals(listOf("m1", "m2"), result.map { it.messageUuid })
+    }
+
+    @Test
+    fun `server delete marker removes an existing message`() {
+        val reducer = ChatMessageReducer()
+        val existing = message("m1", "2026-01-02T00:00:00")
+
+        val result = reducer.merge(
+            listOf(existing),
+            listOf(existing.copy(isDeleted = true))
+        )
+
+        assertEquals(emptyList<String>(), result.map { it.messageUuid })
     }
 
     @Test

@@ -7,7 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -22,6 +21,7 @@ import com.example.muzea.core.Resource
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 @AndroidEntryPoint
 class ContactListFragment : Fragment() {
@@ -117,7 +117,7 @@ class ContactListFragment : Fragment() {
         val input = EditText(requireContext())
         input.hint = getString(R.string.contact_username_hint)
 
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.contact_add_title)
             .setView(input)
             .setPositiveButton("Add") { _, _ ->

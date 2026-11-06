@@ -12,6 +12,19 @@
         <!-- Добавьте эти строки для Material Components -->
         <item name="materialButtonStyle">@style/Widget.MaterialComponents.Button</item>
         <item name="materialCardViewStyle">@style/Widget.MaterialComponents.CardView</item>
+
+        <!-- Единый стиль диалогов: скруглённые углы и мягкие цвета. -->
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Muzea.Dialog</item>
+    </style>
+
+    <style name="ThemeOverlay.Muzea.Dialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.Muzea.Dialog</item>
+        <item name="colorPrimary">@color/purple_500</item>
+    </style>
+
+    <style name="ShapeAppearance.Muzea.Dialog" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">20dp</item>
     </style>
 
     <!-- Прозрачная тема для приёмника «Поделиться»: активность сразу

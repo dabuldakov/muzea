@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Вернули прежнюю яркую фиолетовую палитру Material. -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
@@ -12,6 +13,17 @@
     <color name="blue">#FF0000FF</color>
     <color name="green">#FF2E7D32</color>
     <color name="error">#FFB3261E</color>
+
+    <!-- Градиенты и поверхности: те же цвета, что были, с лёгким переходом. -->
+    <color name="toolbar_gradient_start">#FF6200EE</color>
+    <color name="toolbar_gradient_end">#FF7F39FB</color>
+    <color name="bubble_outgoing_start">#FF6200EE</color>
+    <color name="bubble_outgoing_end">#FF7F39FB</color>
+    <color name="bubble_incoming">#FFEFEFEF</color>
+    <color name="surface">#FFFFFFFF</color>
+    <color name="icon_tint">#FF6200EE</color>
+    <color name="selected_message">#336200EE</color>
+
     <!-- Фон под гифками: в светлой теме белый, в тёмной — чёрный (values-night). -->
     <color name="gif_media_background">#FFFFFFFF</color>
 </resources>

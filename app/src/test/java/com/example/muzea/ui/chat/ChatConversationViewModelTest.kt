@@ -588,7 +588,7 @@ class ChatConversationViewModelTest {
     }
 
     @Test
-    fun `deleting a message marks it deleted and clears the composer`() = withViewModel(
+    fun `deleting a message removes it and clears the composer`() = withViewModel(
         network = flowOf(
             Resource.Success(listOf(message("m1", "hi", "2026-01-01T00:00:00", messageId = 10)))
         )
@@ -599,7 +599,9 @@ class ChatConversationViewModelTest {
 
         viewModel.deleteMessage(target)
 
-        assertTrue(viewModel.uiState.value.messages.single().isDeleted)
+        // Удалённое сообщение убираем из списка: пропадает заглушка и работает
+        // анимация исчезновения в RecyclerView.
+        assertTrue(viewModel.uiState.value.messages.isEmpty())
         assertNull(viewModel.uiState.value.replyTo)
         coVerify { messageRepository.deleteMessage("m1") }
     }

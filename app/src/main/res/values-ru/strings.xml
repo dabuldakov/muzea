@@ -299,6 +299,12 @@
     <string name="action_unpin">Открепить</string>
     <string name="action_forward">Переслать</string>
     <string name="forward_picker_title">Переслать…</string>
+    <string name="select_messages">Выбрать</string>
+    <string name="selected_count">Выбрано: %d</string>
+    <string name="delete_selected_title">Удалить выбранные сообщения?</string>
+    <string name="delete_selected_message">Они будут удалены у всех.</string>
+    <string name="forward_comment_title">Переслать сообщение</string>
+    <string name="forward_comment_hint">Добавить комментарий…</string>
     <string name="forward_picker_empty">Нет доступных чатов</string>
     <string name="message_forwarded">Сообщение переслано</string>
     <string name="forward_message_failed">Не удалось переслать сообщение</string>

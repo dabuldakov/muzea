@@ -13,6 +13,6 @@
         android:id="@+id/ivAction"
         android:layout_width="26dp"
         android:layout_height="26dp"
-        android:tint="?attr/colorPrimary" />
+        android:tint="@color/icon_tint" />
 
 </LinearLayout>

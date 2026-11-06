@@ -1,19 +1,26 @@
 package com.example.muzea.ui.chat
 
 import com.example.muzea.R
+import android.app.Dialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.view.ActionMode
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
@@ -52,12 +59,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 @AndroidEntryPoint
 class ChatConversationFragment : Fragment(),
     GifPickerBottomSheet.OnGifSelected,
     MessageActionsBottomSheet.Listener,
-    ForwardChatPickerBottomSheet.OnChatForwardTargetSelected {
+    ForwardChatPickerBottomSheet.OnChatForwardTargetSelected,
+    AttachmentsBottomSheet.Listener {
 
     private var _binding: FragmentChatConversationBinding? = null
     private val binding get() = _binding!!
@@ -81,8 +90,11 @@ class ChatConversationFragment : Fragment(),
     private var lastPending: List<PendingAttachment> = emptyList()
     private var lastReplyUuid: String? = null
     private var lastEditingUuid: String? = null
-    /** Сообщение, ожидающее выбора чата для пересылки. */
-    private var pendingForwardMessage: Message? = null
+    /** Сообщения, ожидающие выбора чата для пересылки (мультивыбор). */
+    private var pendingForwardMessages: List<Message> = emptyList()
+    private var selectionMode = false
+    private val selectedMessages = LinkedHashSet<String>()
+    private var selectionActionMode: ActionMode? = null
     /** Текущий список закреплённых (для клика по панели и открепления). */
     private var pinnedMessages: List<Message> = emptyList()
 
@@ -158,6 +170,8 @@ class ChatConversationFragment : Fragment(),
         private const val MAX_HIGHLIGHT_PAGES = 5
         private const val HIGHLIGHT_MS = 1800L
         private const val HIGHLIGHT_ATTEMPTS = 5
+        private const val MENU_DELETE = 1
+        private const val MENU_FORWARD = 2
         private const val HIGHLIGHT_COLOR = 0x55FFEB3B
 
         private val DOCUMENT_MIME_TYPES = arrayOf(
@@ -243,8 +257,9 @@ class ChatConversationFragment : Fragment(),
         // У удалённого сообщения действий нет.
         if (message.isDeleted) return
         val isMine = message.senderUuid != null && message.senderUuid == viewModel.myUserUuid
-        val isServerMessage = message.messageUuid.isNotBlank() &&
-            !message.messageUuid.startsWith("local-")
+        // После серверного эха uuid остаётся локальным (чтобы DiffUtil не
+        // пересоздавал строку), поэтому признак серверного сообщения — messageId.
+        val isServerMessage = message.messageId != null
         val actions = mutableListOf<MessageActionSpec>()
 
         val failedLocal = message.messageUuid.startsWith("local-") &&
@@ -272,12 +287,19 @@ class ChatConversationFragment : Fragment(),
                 R.drawable.ic_action_reply,
                 R.string.action_reply
             )
+            actions += MessageActionSpec(
+                MessageActionsBottomSheet.ACTION_SELECT,
+                R.drawable.ic_action_select,
+                R.string.select_messages
+            )
         }
 
-        // Редактировать можно только свои серверные текстовые сообщения.
+        // Редактировать можно свои серверные сообщения с текстом: для медиа
+        // это подпись к картинке/видео, а не только TEXT.
+        // Подпись к медиа можно и добавить, и изменить — поэтому править
+        // разрешаем и сообщения с вложением без текста.
         val canEdit = isMine && isServerMessage && !message.isDeleted &&
-            message.messageType.equals("TEXT", ignoreCase = true) &&
-            !message.text.isNullOrBlank()
+            (!message.text.isNullOrBlank() || message.attachments.isNotEmpty())
         if (canEdit) {
             actions += MessageActionSpec(
                 MessageActionsBottomSheet.ACTION_EDIT,
@@ -376,12 +398,14 @@ class ChatConversationFragment : Fragment(),
                 message.senderUuid?.let { confirmBlock(it) }
             MessageActionsBottomSheet.ACTION_REPLY ->
                 viewModel.setReplyTo(message)
+            MessageActionsBottomSheet.ACTION_SELECT ->
+                enterSelectionMode(message)
             MessageActionsBottomSheet.ACTION_EDIT ->
                 viewModel.startEditing(message)
             MessageActionsBottomSheet.ACTION_DELETE ->
                 confirmDeleteMessage(message)
             MessageActionsBottomSheet.ACTION_FORWARD -> {
-                pendingForwardMessage = message
+                pendingForwardMessages = listOf(message)
                 ForwardChatPickerBottomSheet.newInstance(chatUuid)
                     .show(childFragmentManager, "forward_picker")
             }
@@ -394,15 +418,125 @@ class ChatConversationFragment : Fragment(),
         }
     }
 
-    /** Выбран чат для пересылки: отправляем и сбрасываем ожидание. */
+    /** Выбран чат для пересылки: даём дописать комментарий и нажать самолётик. */
     override fun onForwardTargetSelected(chat: Chat) {
-        pendingForwardMessage?.let { viewModel.forwardMessage(it, chat.chatUuid) }
-        pendingForwardMessage = null
+        val messages = pendingForwardMessages
+        pendingForwardMessages = emptyList()
+        if (messages.isEmpty()) return
+        showForwardCommentDialog { comment ->
+            viewModel.forwardMessages(messages, chat.chatUuid, comment)
+        }
+    }
+
+    private fun showForwardCommentDialog(onSend: (String?) -> Unit) {
+        val view = layoutInflater.inflate(R.layout.dialog_forward_comment, null)
+        val input = view.findViewById<EditText>(R.id.etForwardComment)
+        val dialog = Dialog(requireContext())
+        dialog.setContentView(view)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.9f).toInt(),
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        // Случайный тап мимо окна не должен «терять» пересылку.
+        dialog.setCanceledOnTouchOutside(false)
+        view.findViewById<View>(R.id.btnForwardCancel).setOnClickListener { dialog.dismiss() }
+        view.findViewById<View>(R.id.btnForwardSend).setOnClickListener {
+            val comment = input.text?.toString()?.trim().orEmpty()
+            dialog.dismiss()
+            onSend(comment.ifBlank { null })
+        }
+        dialog.show()
+        input.requestFocus()
+    }
+
+    private fun enterSelectionMode(message: Message) {
+        selectionMode = true
+        selectedMessages.clear()
+        selectedMessages.add(message.messageUuid)
+        adapter.setSelection(selectedMessages)
+        selectionActionMode = (requireActivity() as AppCompatActivity)
+            .startSupportActionMode(selectionCallback)
+        selectionActionMode?.title = getString(R.string.selected_count, selectedMessages.size)
+    }
+
+    private fun toggleSelection(message: Message) {
+        if (!selectedMessages.remove(message.messageUuid)) {
+            selectedMessages.add(message.messageUuid)
+        }
+        adapter.setSelection(selectedMessages)
+        if (selectedMessages.isEmpty()) {
+            selectionActionMode?.finish()
+        } else {
+            selectionActionMode?.title = getString(R.string.selected_count, selectedMessages.size)
+        }
+    }
+
+    private fun selectedItems(): List<Message> =
+        adapter.currentList.filter { it.messageUuid in selectedMessages }
+
+    private fun deleteSelected() {
+        val deletable = selectedItems().filter {
+            it.messageId != null && it.senderUuid == viewModel.myUserUuid
+        }
+        if (deletable.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.delete_message_failed, Toast.LENGTH_SHORT).show()
+            return
+        }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.delete_selected_title)
+            .setMessage(R.string.delete_selected_message)
+            .setPositiveButton(R.string.action_delete) { _, _ ->
+                deletable.forEach { viewModel.deleteMessage(it) }
+                selectionActionMode?.finish()
+            }
+            .setNegativeButton(R.string.action_cancel, null)
+            .show()
+    }
+
+    private fun forwardSelected() {
+        val messages = selectedItems()
+        if (messages.isEmpty()) return
+        pendingForwardMessages = messages
+        selectionActionMode?.finish()
+        ForwardChatPickerBottomSheet.newInstance(chatUuid)
+            .show(childFragmentManager, "forward_picker")
+    }
+
+    private val selectionCallback = object : ActionMode.Callback {
+        override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
+            menu.add(Menu.NONE, MENU_DELETE, 0, R.string.action_delete)
+                .setIcon(R.drawable.ic_action_delete)
+                .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+            menu.add(Menu.NONE, MENU_FORWARD, 1, R.string.action_forward)
+                .setIcon(R.drawable.ic_action_forward)
+                .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+            return true
+        }
+
+        override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean {
+            mode.title = getString(R.string.selected_count, selectedMessages.size)
+            return true
+        }
+
+        override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean =
+            when (item.itemId) {
+                MENU_DELETE -> { deleteSelected(); true }
+                MENU_FORWARD -> { forwardSelected(); true }
+                else -> false
+            }
+
+        override fun onDestroyActionMode(mode: ActionMode) {
+            selectionMode = false
+            selectedMessages.clear()
+            adapter.setSelection(emptySet())
+            selectionActionMode = null
+        }
     }
 
     /** Подтверждение удаления сообщения «для всех». */
     private fun confirmDeleteMessage(message: Message) {
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.delete_message_confirm_title)
             .setMessage(R.string.delete_message_confirm_message)
             .setPositiveButton(R.string.action_delete) { _, _ ->
@@ -431,7 +565,7 @@ class ChatConversationFragment : Fragment(),
     }
 
     private fun confirmBlock(userUuid: String) {
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.block_confirm_title)
             .setMessage(R.string.block_confirm_message)
             .setPositiveButton(R.string.action_block) { _, _ ->
@@ -456,7 +590,9 @@ class ChatConversationFragment : Fragment(),
         adapter = MessageAdapter(
             myUserUuid = viewModel.myUserUuid,
             linkPreviews = linkPreviewStore,
-            onMessageClick = { message -> showMessageActions(message) },
+            onMessageClick = { message ->
+                if (selectionMode) toggleSelection(message) else showMessageActions(message)
+            },
             statusFor = { message -> viewModel.deliveryStatus(message.messageUuid) },
             onStatusClick = { message -> showMessageActions(message) },
             onAttachmentClick = { message, attachment ->
@@ -474,8 +610,8 @@ class ChatConversationFragment : Fragment(),
             adapter = this@ChatConversationFragment.adapter
             // Обновление содержимого (локальное сообщение -> серверное эхо) не
             // должно проходить через crossfade-анимацию: она и выглядит как
-            // мигание пузыря.
-            (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
+            // мигание пузыря. Удаление — «схлопывание» в точку.
+            itemAnimator = MessageItemAnimator().apply { supportsChangeAnimations = false }
             addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                     // Догружаем историю, когда пользователь домотал до самого верха.
@@ -626,28 +762,21 @@ class ChatConversationFragment : Fragment(),
     }
 
     private fun showAttachmentPicker() {
-        val options = arrayOf(
-            getString(R.string.attach_photo),
-            getString(R.string.attach_video),
-            getString(R.string.attach_audio),
-            getString(R.string.attach_file)
-        )
-        AlertDialog.Builder(requireContext())
-            .setTitle(R.string.attach_title)
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> pickPhotos.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
-                    1 -> pickVideo.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
-                    )
-                    2 -> pickAudio.launch(arrayOf("audio/*"))
-                    3 -> pickFile.launch(DOCUMENT_MIME_TYPES)
-                }
-            }
-            .setNegativeButton(R.string.action_cancel, null)
-            .show()
+        AttachmentsBottomSheet.newInstance()
+            .show(childFragmentManager, "attachments")
+    }
+
+    override fun onAttachmentKind(kind: AttachmentsBottomSheet.Kind) {
+        when (kind) {
+            AttachmentsBottomSheet.Kind.PHOTO -> pickPhotos.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
+            AttachmentsBottomSheet.Kind.VIDEO -> pickVideo.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
+            )
+            AttachmentsBottomSheet.Kind.AUDIO -> pickAudio.launch(arrayOf("audio/*"))
+            AttachmentsBottomSheet.Kind.FILE -> pickFile.launch(DOCUMENT_MIME_TYPES)
+        }
     }
 
     private fun renderPendingAttachments(pending: List<PendingAttachment>) {
@@ -798,11 +927,15 @@ class ChatConversationFragment : Fragment(),
     private fun updateSendButton() {
         val effective = if (canSendNow()) SendMode.TEXT else sendMode
         val (icon, description) = when (effective) {
-            SendMode.TEXT -> R.drawable.ic_send_arrow to R.string.send_mode_text
+            SendMode.TEXT -> R.drawable.ic_send_burst to R.string.send_mode_text
             SendMode.VOICE -> R.drawable.ic_mic to R.string.send_mode_voice
             SendMode.VIDEO -> R.drawable.ic_videocam to R.string.send_mode_video
         }
         binding.btnSend.setImageResource(icon)
+        // Взрыв — цветная иконка, её не тонируем; микрофон/камеру красим в акцент.
+        binding.btnSend.imageTintList =
+            if (effective == SendMode.TEXT) null
+            else ContextCompat.getColorStateList(requireContext(), R.color.purple_500)
         binding.btnSend.contentDescription = getString(description)
     }
 

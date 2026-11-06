@@ -302,6 +302,12 @@
     <string name="action_unpin">Unpin</string>
     <string name="action_forward">Forward</string>
     <string name="forward_picker_title">Forward to…</string>
+    <string name="select_messages">Select</string>
+    <string name="selected_count">%d selected</string>
+    <string name="delete_selected_title">Delete selected messages?</string>
+    <string name="delete_selected_message">They will be deleted for everyone.</string>
+    <string name="forward_comment_title">Forward message</string>
+    <string name="forward_comment_hint">Add a comment…</string>
     <string name="forward_picker_empty">No chats available</string>
     <string name="message_forwarded">Message forwarded</string>
     <string name="forward_message_failed">Failed to forward message</string>

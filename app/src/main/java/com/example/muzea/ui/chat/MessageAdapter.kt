@@ -9,6 +9,7 @@ import android.text.Spanned
 import android.text.TextPaint
 import android.text.method.LinkMovementMethod
 import android.text.style.ClickableSpan
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -59,6 +60,16 @@ class MessageAdapter(
 ) : ListAdapter<Message, RecyclerView.ViewHolder>(MessageDiffCallback()) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private var selectionMode = false
+    private var selectedUuids: Set<String> = emptySet()
+
+    /** Подсветка выбранных сообщений в режиме мультивыбора. */
+    fun setSelection(uuids: Set<String>) {
+        selectionMode = uuids.isNotEmpty()
+        selectedUuids = uuids.toSet()
+        if (itemCount > 0) notifyItemRangeChanged(0, itemCount)
+    }
 
     /** Вызывать при уничтожении вью: отменяет фоновые загрузки превью. */
     fun release() {
@@ -121,6 +132,11 @@ class MessageAdapter(
                 onAttachmentClick, playingAudioUuid, audioIsPlaying
             )
         }
+        val selected = selectionMode && message.messageUuid in selectedUuids
+        holder.itemView.setBackgroundColor(
+            if (selected) ContextCompat.getColor(holder.itemView.context, R.color.selected_message)
+            else Color.TRANSPARENT
+        )
     }
 
     private fun isMine(message: Message): Boolean {
@@ -151,7 +167,7 @@ class MessageAdapter(
             bindMedia(message)
             bindAttachments(
                 binding.attachmentsContainer, binding.tvMessage, binding.linkPreview,
-                message, playingAudioUuid, audioIsPlaying, onAttachmentClick
+                message, playingAudioUuid, audioIsPlaying, onAttachmentClick, onClick
             )
             bindTextOrPreview(
                 binding.tvMessage, binding.linkPreview,
@@ -237,7 +253,7 @@ class MessageAdapter(
             bindMedia(message)
             bindAttachments(
                 binding.attachmentsContainer, binding.tvMessage, binding.linkPreview,
-                message, playingAudioUuid, audioIsPlaying, onAttachmentClick
+                message, playingAudioUuid, audioIsPlaying, onAttachmentClick, onClick
             )
             bindTextOrPreview(
                 binding.tvMessage, binding.linkPreview,
@@ -440,7 +456,8 @@ private fun bindAttachments(
     message: Message,
     playingAudioUuid: String?,
     audioIsPlaying: Boolean,
-    onClick: (Message, MessageAttachment) -> Unit
+    onClick: (Message, MessageAttachment) -> Unit,
+    onLongClick: (Message) -> Unit
 ) {
     container.removeAllViews()
     // У удалённого сообщения вложений не показываем — только заглушку текста.
@@ -474,6 +491,7 @@ private fun bindAttachments(
                 else R.drawable.ic_play_circle
             )
             item.root.setOnClickListener { onClick(message, audio) }
+            item.root.setOnLongClickListener { onLongClick(message); true }
             container.addView(item.root)
         }
         return
@@ -489,6 +507,7 @@ private fun bindAttachments(
                 .into(item.ivThumb)
             item.tvDuration.text = formatDuration(video.duration)
             item.root.setOnClickListener { onClick(message, video) }
+            item.root.setOnLongClickListener { onLongClick(message); true }
             container.addView(item.root)
         }
         return
@@ -550,6 +569,11 @@ private fun bindAttachments(
                 item.root.setOnClickListener { onClick(message, attachment) }
                 container.addView(item.root)
             }
+        }
+
+        container.getChildAt(container.childCount - 1)?.setOnLongClickListener {
+            onLongClick(message)
+            true
         }
 
         if (attachments.last() !== attachment) {

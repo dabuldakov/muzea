@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -22,6 +21,7 @@ import com.example.muzea.utils.TokenManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 @AndroidEntryPoint
 class NewsDetailFragment : Fragment() {
@@ -100,7 +100,7 @@ class NewsDetailFragment : Fragment() {
     }
 
     private fun confirmDelete() {
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.delete_news)
             .setMessage(R.string.delete_news_message)
             .setPositiveButton(R.string.action_delete) { _, _ -> viewModel.deleteNews(newsId) }
