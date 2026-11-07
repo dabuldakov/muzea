@@ -270,6 +270,34 @@ def post_to_chat(chat_uuid: str, text: str) -> None:
     )
 
 
+def chat_history(chat_uuid: str, bot: dict, current_uuid: str) -> list[str]:
+    """История с последнего ответа бота: чтобы агент видел ход обсуждения."""
+    try:
+        response = api(f"/api/messages/{chat_uuid}?page=0&size=30")
+    except Exception as error:  # noqa: BLE001
+        print(f"history: {error}", file=sys.stderr)
+        return []
+    messages = list(reversed(response.get("content") or []))
+    messages = [m for m in messages if m.get("messageUuid") != current_uuid]
+    bot_name = (bot.get("username") or "").lower()
+    last_bot = None
+    for index, item in enumerate(messages):
+        if (item.get("senderName") or "").lower() == bot_name:
+            last_bot = index
+    selected = messages[last_bot:] if last_bot is not None else messages[-15:]
+    selected = selected[-15:]
+    lines = []
+    for item in selected:
+        text = (item.get("text") or "").strip().replace("\n", " ")
+        if not text:
+            continue
+        lines.append(f"@{item.get('senderName') or item.get('senderId')}: {text[:300]}")
+    # не раздуваем промпт: не больше ~4000 символов истории
+    while lines and sum(len(line) + 1 for line in lines) > 4000:
+        lines.pop(0)
+    return lines
+
+
 def handle_message(chat_uuid: str, bot: dict, message: dict) -> bool:
     if message.get("messageUuid") in (STATE.get("processed") or []):
         return True
@@ -278,13 +306,18 @@ def handle_message(chat_uuid: str, bot: dict, message: dict) -> bool:
 
     print(f"→ {message.get('senderName') or message.get('senderId')}: "
           f"{(message.get('text') or '')[:120]}")
-    prompt = "\n".join([
-        f"Сообщение из группового чата «{CHAT_TITLE}» в приложении Muzea.",
-        f"Автор: @{message.get('senderName') or message.get('senderId')}.",
-        f"Текст: {message.get('text')}",
+    history = chat_history(chat_uuid, bot, message.get("messageUuid"))
+    prompt_parts = [f"Ты ведёшь групповой чат «{CHAT_TITLE}» в приложении Muzea."]
+    if history:
+        prompt_parts += ["", "История с твоего последнего ответа:"] + history
+    prompt_parts += [
+        "",
+        f"Новое сообщение от @{message.get('senderName') or message.get('senderId')}: "
+        f"{message.get('text')}",
         "",
         "Ответь пользователю в чат: кратко, по делу, без служебных префиксов.",
-    ])
+    ]
+    prompt = "\n".join(prompt_parts)
 
     try:
         answer = ask_session(prompt, message['messageUuid'])
