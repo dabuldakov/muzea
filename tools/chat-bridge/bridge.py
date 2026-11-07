@@ -15,7 +15,8 @@
   CHAT_TITLE          «Баги»
   ALLOWED_USERNAMES   пусто = все участники чата, кроме бота; можно ограничить списком
   OPENCODE_SESSION    ID сессии (обязателен)
-  OPENCODE_CLI        путь к opencode-cli десктопного OpenCode (v2)
+  OPENCODE_URL        http://127.0.0.1:49374 (локальный сервис OpenCode)
+  OPENCODE_PASSWORD   пароль сервиса; иначе берётся из ~/.config/opencode/service.json
   POLL_MS             2500
   STATE_FILE          .chat-bridge-state.json
   REPLY_PREFIX        префикс ответа (по умолчанию пусто)
@@ -29,6 +30,7 @@ import sys
 import time
 import urllib.error
 import urllib.parse
+import base64
 import urllib.request
 import uuid
 from datetime import datetime, timezone
@@ -42,6 +44,14 @@ def required(name: str) -> str:
     return value
 
 
+def _service_password() -> str:
+    try:
+        with open(os.path.expanduser("~/.config/opencode/service.json")) as handle:
+            return json.load(handle)["password"]
+    except (OSError, ValueError, KeyError):
+        return ""
+
+
 BASE_URL = os.environ.get("CHAT_BASE_URL", "https://chat-muzea.su").rstrip("/")
 TOKEN = required("CHAT_TOKEN")
 CHAT_UUID = os.environ.get("CHAT_UUID", "")
@@ -52,7 +62,9 @@ ALLOWED = [
     if name.strip()
 ]
 SESSION = required("OPENCODE_SESSION")
-OPENCODE_CLI = os.environ.get("OPENCODE_CLI", "opencode-cli")
+OPENCODE_URL = os.environ.get("OPENCODE_URL", "http://127.0.0.1:49374").rstrip("/")
+OPENCODE_USER = os.environ.get("OPENCODE_USER", "opencode")
+OPENCODE_PASSWORD = os.environ.get("OPENCODE_PASSWORD") or _service_password()
 POLL_SECONDS = int(os.environ.get("POLL_MS", "2500")) / 1000.0
 STATE_FILE = os.environ.get("STATE_FILE", ".chat-bridge-state.json")
 REPLY_PREFIX = os.environ.get("REPLY_PREFIX", "")
@@ -75,8 +87,10 @@ STATE = load_state()
 
 def save_state() -> None:
     STATE["processed"] = (STATE.get("processed") or [])[-300:]
-    with open(STATE_FILE, "w", encoding="utf-8") as handle:
+    temp = f"{STATE_FILE}.tmp"
+    with open(temp, "w", encoding="utf-8") as handle:
         json.dump(STATE, handle, ensure_ascii=False, indent=2)
+    os.replace(temp, STATE_FILE)
 
 
 def api(path: str, method: str = "GET", body: dict | None = None):
@@ -132,17 +146,29 @@ def allowed_sender(message: dict, bot: dict) -> bool:
 
 
 def opencode_api(method: str, path: str, body: dict | None = None):
-    """Запрос к запущенному сервису OpenCode через его CLI (desktop, v2)."""
-    args = [OPENCODE_CLI, "api", method, path]
-    if body is not None:
-        args += ["-d", json.dumps(body, ensure_ascii=False)]
-    completed = subprocess.run(args, capture_output=True, text=True, timeout=60)
-    if completed.returncode != 0:
-        raise RuntimeError(
-            f"opencode api {method} {path}: {completed.stderr[-800:]}"
-        )
-    output = completed.stdout.strip()
-    return json.loads(output) if output else None
+    """Прямой HTTP-запрос к локальному сервису OpenCode (без обрезки CLI)."""
+    method = method.upper()
+    data = json.dumps(body).encode("utf-8") if body is not None else None
+    credentials = base64.b64encode(
+        f"{OPENCODE_USER}:{OPENCODE_PASSWORD}".encode()
+    ).decode()
+    request = urllib.request.Request(
+        f"{OPENCODE_URL}{path}",
+        method=method,
+        headers={
+            "Authorization": f"Basic {credentials}",
+            "Content-Type": "application/json",
+        },
+    )
+    if data is not None:
+        request.data = data
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            payload = response.read().decode("utf-8")
+            return json.loads(payload) if payload else None
+    except urllib.error.HTTPError as error:
+        detail = error.read().decode("utf-8", errors="replace")[:500]
+        raise RuntimeError(f"opencode {method} {path}: {error.code} {detail}") from error
 
 
 def wait_for_reply(prompt_time: int, timeout_seconds: int = 900) -> str:
@@ -155,7 +181,7 @@ def wait_for_reply(prompt_time: int, timeout_seconds: int = 900) -> str:
     while time.time() < deadline:
         response = opencode_api(
             "get",
-            f"/api/session/{SESSION}/message?limit=5&type=assistant",
+            f"/api/session/{SESSION}/message?limit=10&type=assistant",
         )
         candidates = []
         for message in response["data"]:
@@ -185,9 +211,7 @@ def session_is_idle() -> bool:
         return True
 
 
-def ask_session(prompt: str) -> str:
-    # Не вклиниваемся в текущий ход: иначе ответом можно принять сообщение
-    # незавершённой задачи. Ждём, пока сессия освободится.
+def send_prompt(prompt: str) -> int:
     waited = False
     while not session_is_idle():
         if not waited:
@@ -197,8 +221,31 @@ def ask_session(prompt: str) -> str:
     response = opencode_api(
         "post", f"/api/session/{SESSION}/prompt", {"text": prompt}
     )
-    user = response["data"]
-    return wait_for_reply(user["time"]["created"])
+    return response["data"]["time"]["created"]
+
+
+def ask_session(prompt: str, message_uuid: str) -> str:
+    """Отправляет prompt или продолжает ждать ответ на уже отправленный.
+
+    Pending хранится в state: рестарт моста не должен повторно инжектить
+    то же сообщение в сессию и плодить дубли ответов.
+    """
+    pending = STATE.get("pending") or {}
+    if pending.get("messageUuid") == message_uuid:
+        prompt_time = pending["promptTime"]
+    else:
+        prompt_time = send_prompt(prompt)
+        STATE["pending"] = {
+            "messageUuid": message_uuid,
+            "promptTime": prompt_time,
+        }
+        save_state()
+    try:
+        return wait_for_reply(prompt_time)
+    except TimeoutError:
+        STATE.pop("pending", None)
+        save_state()
+        raise
 
 
 def post_to_chat(chat_uuid: str, text: str) -> None:
@@ -230,15 +277,13 @@ def handle_message(chat_uuid: str, bot: dict, message: dict) -> bool:
     ])
 
     try:
-        # Подтверждаем приём сразу: ответ может ждать завершения текущего
-        # хода агента, и в чате не должно быть тишины.
-        post_to_chat(chat_uuid, "Принял. Отвечу, когда завершу текущий шаг.")
-        answer = ask_session(prompt)
+        answer = ask_session(prompt, message['messageUuid'])
         if not answer:
             print("OpenCode вернул пустой ответ", file=sys.stderr)
             return False
         post_to_chat(chat_uuid, answer)
         STATE["processed"] = [*(STATE.get("processed") or []), message["messageUuid"]]
+        STATE.pop("pending", None)
         print(f"← ответ {len(answer)} символов")
         return True
     except Exception as error:  # noqa: BLE001 — мост не должен падать
