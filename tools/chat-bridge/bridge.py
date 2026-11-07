@@ -68,6 +68,7 @@ OPENCODE_PASSWORD = os.environ.get("OPENCODE_PASSWORD") or _service_password()
 POLL_SECONDS = int(os.environ.get("POLL_MS", "2500")) / 1000.0
 STATE_FILE = os.environ.get("STATE_FILE", ".chat-bridge-state.json")
 REPLY_PREFIX = os.environ.get("REPLY_PREFIX", "")
+REQUIRE_MENTION = os.environ.get("REQUIRE_MENTION", "true") != "false"
 
 
 def now_iso() -> str:
@@ -140,6 +141,15 @@ def allowed_sender(message: dict, bot: dict) -> bool:
     text = message.get("text") or ""
     if not text.strip():
         return False
+    if REQUIRE_MENTION:
+        lowered = text.lower()
+        is_trigger = (
+            "@opencode" in lowered
+            or lowered.lstrip().startswith("[msg.")
+            or lowered.lstrip().startswith("/")
+        )
+        if not is_trigger:
+            return False
     if not ALLOWED:
         return True
     return (message.get("senderName") or "").lower() in ALLOWED
