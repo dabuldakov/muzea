@@ -40,3 +40,13 @@
     java.lang.Object writeReplace();
     java.lang.Object readResolve();
 }
+
+# Retrofit-сервисы: R8 не должен выкидывать методы и generic-сигнатуры,
+# иначе Gson парсит Response<List<T>> как сырой Object и падает cast.
+-keep,allowobfuscation interface com.example.muzea.data.api.** { *; }
+-keep class com.example.muzea.data.api.GitHubRelease { *; }
+-keep class com.example.muzea.data.api.GitHubAsset { *; }
+
+# Gson TypeToken и его наследники.
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken

@@ -96,8 +96,8 @@ android {
             // R8 временно выключен: в 1.7.19 он сломал generic-тип ответа
             // GitHubApi (ClassCastException в AppUpdateRepository на старте).
             // Включать только после проверки release-сборки на устройстве.
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
