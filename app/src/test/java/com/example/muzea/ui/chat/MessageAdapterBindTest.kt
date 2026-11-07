@@ -152,11 +152,12 @@ class MessageAdapterBindTest {
         onClick: (Message) -> Unit = {},
         onAttachmentClick: (Message, MessageAttachment) -> Unit = { _, _ -> },
         playingAudioUuid: String? = null,
-        audioIsPlaying: Boolean = false
+        audioIsPlaying: Boolean = false,
+        showHeader: Boolean = true
     ) {
         fx.incomingHolder().bind(
             message, replyTo, myUserUuid, linkPreviews, scope, onClick,
-            onAttachmentClick, playingAudioUuid, audioIsPlaying
+            onAttachmentClick, playingAudioUuid, audioIsPlaying, showHeader
         )
     }
 

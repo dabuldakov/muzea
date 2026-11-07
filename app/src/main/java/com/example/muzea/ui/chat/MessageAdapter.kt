@@ -57,7 +57,8 @@ class MessageAdapter(
     private val onMessageClick: (Message) -> Unit,
     private val statusFor: (Message) -> MessageDeliveryStatus?,
     private val onStatusClick: (Message) -> Unit,
-    private val onAttachmentClick: (Message, MessageAttachment) -> Unit
+    private val onAttachmentClick: (Message, MessageAttachment) -> Unit,
+    private val isGroupChat: Boolean = true
 ) : ListAdapter<Message, RecyclerView.ViewHolder>(MessageDiffCallback()) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -133,16 +134,29 @@ class MessageAdapter(
                 message, replyTo, myUserUuid, linkPreviews, scope, onMessageClick,
                 statusFor(message), onStatusClick, onAttachmentClick, playingAudioUuid, audioIsPlaying
             )
-            is IncomingViewHolder -> holder.bind(
-                message, replyTo, myUserUuid, linkPreviews, scope, onMessageClick,
-                onAttachmentClick, playingAudioUuid, audioIsPlaying
-            )
+            is IncomingViewHolder -> {
+                val previous = if (position > 0) getItem(position - 1) else null
+                val showHeader = previous == null ||
+                    previous.senderUuid != message.senderUuid ||
+                    !sameDay(previous.createdAt, message.createdAt)
+                holder.bind(
+                    message, replyTo, myUserUuid, linkPreviews, scope, onMessageClick,
+                    onAttachmentClick, playingAudioUuid, audioIsPlaying,
+                    showHeader = showHeader && isGroupChat,
+                    showAvatar = isGroupChat
+                )
+            }
         }
         val selected = selectionMode && message.messageUuid in selectedUuids
         holder.itemView.setBackgroundColor(
             if (selected) ContextCompat.getColor(holder.itemView.context, R.color.selected_message)
             else Color.TRANSPARENT
         )
+    }
+
+    private fun sameDay(first: String?, second: String?): Boolean {
+        if (first.isNullOrBlank() || second.isNullOrBlank()) return false
+        return first.take(10) == second.take(10)
     }
 
     private fun isMine(message: Message): Boolean {
@@ -163,8 +177,16 @@ class MessageAdapter(
             onClick: (Message) -> Unit,
             onAttachmentClick: (Message, MessageAttachment) -> Unit,
             playingAudioUuid: String?,
-            audioIsPlaying: Boolean
+            audioIsPlaying: Boolean,
+            showHeader: Boolean,
+            showAvatar: Boolean = true
         ) {
+            // В личных чатах аватар не нужен вовсе — освобождаем место баблу.
+            binding.ivAvatar.visibility = when {
+                !showAvatar -> View.GONE
+                showHeader -> View.VISIBLE
+                else -> View.INVISIBLE
+            }
             AvatarLoader.load(binding.ivAvatar, message.senderAvatar)
             bindReplyQuote(
                 binding.replyQuote, binding.tvReplyName, binding.tvReplyText,
@@ -185,7 +207,7 @@ class MessageAdapter(
             binding.ivGif.setOnClickListener { onClick(message) }
             // linkPreview сам открывает ссылку — не перекрываем его обработчик.
 
-            if (!message.senderName.isNullOrEmpty()) {
+            if (showHeader && !message.senderName.isNullOrEmpty()) {
                 binding.tvSenderName.text = message.senderName
                 binding.tvSenderName.visibility = View.VISIBLE
             } else {

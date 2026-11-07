@@ -4,6 +4,9 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
 import com.example.muzea.R
 import com.example.muzea.databinding.BottomSheetMessageActionsBinding
 import com.example.muzea.databinding.ItemMessageActionBinding
@@ -99,13 +102,49 @@ class MessageActionsBottomSheet : BottomSheetDialogFragment() {
         }
         binding.statusSection.visibility = View.VISIBLE
 
-        if (rows.isEmpty()) {
+        // Компактно: только те, кто прочитал, аватары внахлёст. Полный
+        // список с датами открывается тапом по этому ряду.
+        val readers = rows.filter { it.status == "READ" }
+        binding.readersRow.removeAllViews()
+        binding.readersRow.setOnClickListener(null)
+        binding.rowsScroll.visibility = View.GONE
+
+        if (readers.isEmpty()) {
+            binding.readersRow.visibility = View.GONE
             binding.tvEmpty.visibility = View.VISIBLE
             binding.rowsScroll.visibility = View.GONE
-            return
+        } else {
+            binding.tvEmpty.visibility = View.GONE
+            binding.readersRow.visibility = View.VISIBLE
+            val size = dp(38)
+            val overlap = -dp(12)
+            readers.take(MAX_AVATARS).forEach { row ->
+                val avatar = ImageView(requireContext()).apply {
+                    layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                        marginEnd = overlap
+                    }
+                    scaleType = ImageView.ScaleType.CENTER_CROP
+                    contentDescription = row.name
+                    AvatarLoader.load(this, row.avatarUrl)
+                }
+                binding.readersRow.addView(avatar)
+            }
+            if (readers.size > MAX_AVATARS) {
+                val more = TextView(requireContext()).apply {
+                    text = "+${readers.size - MAX_AVATARS}"
+                    textSize = 13f
+                    setPadding(dp(20), 0, 0, 0)
+                }
+                binding.readersRow.addView(more)
+            }
+            binding.readersRow.setOnClickListener {
+                binding.rowsScroll.visibility =
+                    if (binding.rowsScroll.visibility == View.VISIBLE) View.GONE
+                    else View.VISIBLE
+            }
         }
-        binding.tvEmpty.visibility = View.GONE
-        binding.rowsScroll.visibility = View.VISIBLE
+
+        if (rows.isEmpty()) return
 
         rows.forEach { row ->
             val item = ItemMessageInfoRowBinding.inflate(
@@ -120,10 +159,8 @@ class MessageActionsBottomSheet : BottomSheetDialogFragment() {
             binding.rowsContainer.addView(item.root)
         }
 
-        // Не даём длинному списку участников растянуть шторку на весь экран:
-        // при большом количестве строк ограничиваем высоту и скроллим внутри.
         binding.rowsContainer.post {
-            val maxHeight = (resources.displayMetrics.density * MAX_ROWS_HEIGHT_DP).toInt()
+            val maxHeight = dp(MAX_ROWS_HEIGHT_DP)
             if (binding.rowsContainer.height > maxHeight) {
                 binding.rowsScroll.layoutParams = binding.rowsScroll.layoutParams.apply {
                     height = maxHeight
@@ -131,6 +168,9 @@ class MessageActionsBottomSheet : BottomSheetDialogFragment() {
             }
         }
     }
+
+    private fun dp(value: Int): Int =
+        (resources.displayMetrics.density * value).toInt()
 
     private fun statusLabel(status: String): Int = when (status) {
         "READ" -> R.string.message_status_read
@@ -151,6 +191,7 @@ class MessageActionsBottomSheet : BottomSheetDialogFragment() {
         private const val ARG_ROWS = "rows"
         private const val ARG_SHOW_STATUS = "show_status"
         private const val MAX_ROWS_HEIGHT_DP = 300
+        private const val MAX_AVATARS = 4
 
         // Идентификаторы действий. Обработка — в ChatConversationFragment.
         const val ACTION_COPY = "copy"

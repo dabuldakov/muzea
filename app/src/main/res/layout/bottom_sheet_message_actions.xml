@@ -40,9 +40,18 @@
             android:id="@+id/tvStatusTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/message_info_title"
+            android:text="@string/message_read_by"
             android:textSize="16sp"
             android:textStyle="bold" />
+
+        <LinearLayout
+            android:id="@+id/readersRow"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/tvEmpty"

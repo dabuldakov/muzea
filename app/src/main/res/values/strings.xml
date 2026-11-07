@@ -228,6 +228,7 @@
     <string name="message_status_delivered">Delivered</string>
     <string name="message_status_read">Read</string>
     <string name="message_status_failed">Not sent</string>
+    <string name="message_read_by">Read by</string>
     <string name="message_info_title">Message status</string>
     <string name="message_info_empty">No recipients yet</string>
 

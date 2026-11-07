@@ -43,6 +43,7 @@ import com.example.muzea.ui.chat.recording.VoiceRecorder
 import com.example.muzea.utils.PreparedAttachment
 import com.example.muzea.utils.MediaUrl
 import com.example.muzea.utils.TokenManager
+import com.example.muzea.data.repository.ChatListCache
 import com.example.muzea.data.repository.LinkPreviewStore
 import com.example.muzea.databinding.FragmentChatConversationBinding
 import com.example.muzea.databinding.ItemPendingAttachmentBinding
@@ -365,8 +366,9 @@ class ChatConversationFragment : Fragment(),
             )
         }
 
-        // Статус показываем только для своих сообщений, уже принятых сервером.
-        val showStatus = isMine && message.messageId != null
+        // В личных чатах статус читается по галочкам; разворачивать список
+        // участников там излишне. В группах — только компактные аватары.
+        val showStatus = isMine && message.messageId != null && isGroupChat()
         if (actions.isEmpty() && !showStatus) return
 
         MessageActionsBottomSheet.newInstance(
@@ -376,6 +378,10 @@ class ChatConversationFragment : Fragment(),
             showStatus = showStatus
         ).show(childFragmentManager, "message_actions")
     }
+
+    private fun isGroupChat(): Boolean =
+        ChatListCache.get().firstOrNull { it.chatUuid == chatUuid }
+            ?.chatType.equals("GROUP", ignoreCase = true)
 
     /** Строки «кто прочитал / кому доставлено» для шторки статуса. */
     private fun buildStatusRows(message: Message): List<MessageStatusRow> =
@@ -599,7 +605,8 @@ class ChatConversationFragment : Fragment(),
             onStatusClick = { message -> showMessageActions(message) },
             onAttachmentClick = { message, attachment ->
                 openAttachment(message, attachment)
-            }
+            },
+            isGroupChat = isGroupChat()
         )
         adapter.registerAdapterDataObserver(scrollObserver)
         binding.recyclerViewMessages.apply {

@@ -157,7 +157,7 @@ class MessageActionsBottomSheetTest {
         val container = sheet.find(R.id.rowsContainer) as android.widget.LinearLayout
         assertEquals(5, container.childCount)
         assertEquals(View.GONE, sheet.find(R.id.tvEmpty).visibility)
-        assertEquals(View.VISIBLE, sheet.find(R.id.rowsScroll).visibility)
+        assertEquals(View.GONE, sheet.find(R.id.rowsScroll).visibility)
 
         // У второй строки времени нет — метка времени скрыта.
         val secondTime = container.getChildAt(1).findViewById<android.widget.TextView>(R.id.tvTime)

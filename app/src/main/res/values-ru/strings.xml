@@ -225,6 +225,7 @@
     <string name="message_status_delivered">Доставлено</string>
     <string name="message_status_read">Прочитано</string>
     <string name="message_status_failed">Не отправлено</string>
+    <string name="message_read_by">Прочитали</string>
     <string name="message_info_title">Статус сообщения</string>
     <string name="message_info_empty">Пока нет получателей</string>
 
