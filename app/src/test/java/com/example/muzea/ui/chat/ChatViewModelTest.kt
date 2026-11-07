@@ -259,6 +259,23 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun `addGroupParticipants forwards an error`() = runTest {
+        every { chatRepository.cachedChats() } returns emptyList()
+        coEvery { chatRepository.addGroupParticipants("group-1", listOf("u2")) } returns
+            flowOf(Resource.Error("Only group creator can add participants"))
+        val viewModel = ChatViewModel(chatRepository, contactRepository)
+        val results = mutableListOf<Resource<Unit>>()
+        val collector = launch(Dispatchers.Unconfined) {
+            viewModel.addParticipantsResult.collect { results += it }
+        }
+
+        viewModel.addGroupParticipants("group-1", listOf("u2"))
+
+        assertTrue((results.last() as Resource.Error).message!!.contains("creator"))
+        collector.cancel()
+    }
+
+    @Test
     fun `chatsErrorShown clears the error`() = runTest {
         every { chatRepository.cachedChats() } returns listOf(chat("a"))
         coEvery { chatRepository.loadChats() } returns flowOf(Resource.Error("down"))

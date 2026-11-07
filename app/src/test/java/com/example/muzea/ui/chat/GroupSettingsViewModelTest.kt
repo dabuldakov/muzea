@@ -162,4 +162,66 @@ class GroupSettingsViewModelTest {
         assertFalse(second.exists())
         coVerify(exactly = 1) { avatarRepository.uploadChatAvatar("chat-1", any(), any()) }
     }
+
+    @Test
+    fun `group creator can add members`() = runTest {
+        coEvery { chatRepository.loadChatParticipants("chat-1") } returns flowOf(
+            Resource.Success(
+                listOf(participant("me").copy(role = "OWNER"), participant("b"))
+            )
+        )
+
+        val viewModel = viewModel()
+        viewModel.loadParticipants()
+
+        assertTrue(viewModel.uiState.value.canAddMembers)
+    }
+
+    @Test
+    fun `regular member cannot add members`() = runTest {
+        coEvery { chatRepository.loadChatParticipants("chat-1") } returns flowOf(
+            Resource.Success(
+                listOf(participant("owner").copy(role = "OWNER"), participant("me"))
+            )
+        )
+
+        val viewModel = viewModel()
+        viewModel.loadParticipants()
+
+        assertFalse(viewModel.uiState.value.canAddMembers)
+    }
+
+    @Test
+    fun `addMembers error is forwarded to the screen`() = runTest {
+        coEvery { chatRepository.addGroupParticipants("chat-1", listOf("a")) } returns
+            flowOf(Resource.Error("Only group creator can add participants"))
+        val viewModel = viewModel()
+        val results = mutableListOf<Resource<Unit>>()
+        val collector = launch(Dispatchers.Unconfined) {
+            viewModel.addParticipantsResult.collect { results += it }
+        }
+
+        viewModel.addMembers(listOf("a"))
+
+        val error = results.last() as Resource.Error
+        assertTrue(error.message!!.contains("creator"))
+        collector.cancel()
+    }
+
+    @Test
+    fun `contacts load error is forwarded and does not crash`() = runTest {
+        coEvery { contactRepository.loadContacts() } returns flowOf(
+            Resource.Error("Failed to load contacts")
+        )
+        val viewModel = viewModel()
+        val results = mutableListOf<Resource<List<com.example.muzea.domain.model.Contact>>>()
+        val collector = launch(Dispatchers.Unconfined) {
+            viewModel.contactsResult.collect { results += it }
+        }
+
+        viewModel.loadContacts()
+
+        assertTrue((results.last() as Resource.Error).message!!.contains("contacts"))
+        collector.cancel()
+    }
 }

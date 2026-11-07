@@ -25,7 +25,9 @@ import javax.inject.Inject
 data class GroupSettingsUiState(
     val participants: List<ChatParticipant> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    /** Добавлять участников может только создатель группы — как и на сервере. */
+    val canAddMembers: Boolean = false
 )
 
 @HiltViewModel
@@ -63,11 +65,16 @@ class GroupSettingsViewModel @Inject constructor(
                     is Resource.Loading -> _uiState.value =
                         _uiState.value.copy(isLoading = _uiState.value.participants.isEmpty())
 
-                    is Resource.Success -> _uiState.value = _uiState.value.copy(
-                        participants = result.data ?: emptyList(),
-                        isLoading = false,
-                        error = null
-                    )
+                    is Resource.Success -> {
+                        val participants = result.data ?: emptyList()
+                        val owner = participants.firstOrNull { it.role == "OWNER" }
+                        _uiState.value = _uiState.value.copy(
+                            participants = participants,
+                            isLoading = false,
+                            error = null,
+                            canAddMembers = owner != null && owner.userUuid == myUserUuid
+                        )
+                    }
 
                     is Resource.Error -> _uiState.value = _uiState.value.copy(
                         isLoading = false,

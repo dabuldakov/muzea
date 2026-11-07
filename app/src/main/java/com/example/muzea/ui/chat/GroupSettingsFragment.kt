@@ -191,6 +191,10 @@ class GroupSettingsFragment : Fragment() {
             if (state.isLoading && state.participants.isEmpty()) View.VISIBLE else View.GONE
 
         adapter.updateList(state.participants)
+        // Сервер разрешает добавлять участников только создателю группы,
+        // поэтому не показываем кнопку остальным.
+        binding.btnAddMembers.visibility =
+            if (state.canAddMembers) View.VISIBLE else View.GONE
         val hasParticipants = state.participants.isNotEmpty()
 
         if (!hasParticipants && state.error != null) {
