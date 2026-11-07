@@ -25,3 +25,7 @@
 local.properties
 
 .idea
+
+# Python bridge
+__pycache__/
+*.pyc
