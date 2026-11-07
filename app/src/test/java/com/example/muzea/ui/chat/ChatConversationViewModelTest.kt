@@ -15,9 +15,12 @@ import com.example.muzea.domain.repository.MessageRepository
 import com.example.muzea.domain.ChatUserIdentity
 import com.example.muzea.ui.news.MainDispatcherRule
 import com.example.muzea.core.Resource
+import com.example.muzea.data.repository.OutboxEvent
+import com.example.muzea.data.repository.OutboxItem
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
+import io.mockk.slot
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -44,6 +47,13 @@ class ChatConversationViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val messageRepository = mockk<MessageRepository>()
+
+    private val outboxSender = mockk<com.example.muzea.data.repository.OutboxSender>(relaxed = true)
+    private val outboxEvents = kotlinx.coroutines.flow.MutableSharedFlow<com.example.muzea.data.repository.OutboxEvent>()
+    private val networkMonitor = mockk<com.example.muzea.utils.NetworkMonitor>(relaxed = true)
+    private val networkStatus = kotlinx.coroutines.flow.MutableStateFlow(
+        com.example.muzea.utils.NetworkStatus(com.example.muzea.utils.NetworkQuality.GOOD, metered = false)
+    )
     private val mediaFileReader = mockk<com.example.muzea.utils.MediaFileReader>(relaxed = true)
     private val appContext = mockk<android.content.Context>(relaxed = true)
     private val chatUuid = "chat-1"
@@ -109,6 +119,11 @@ class ChatConversationViewModelTest {
         block: suspend CoroutineScope.(ChatConversationViewModel) -> Unit
     ) = runTest {
         every { messageRepository.cachedMessages(chatUuid) } returns cached
+        every { outboxSender.events } returns outboxEvents
+        every { outboxSender.pendingForChat(chatUuid) } returns emptyList()
+        every { networkMonitor.status } returns networkStatus
+        coEvery { messageRepository.loadMessagesAfter(chatUuid, any()) } returns
+            flowOf(Resource.Success(emptyList()))
         coEvery { messageRepository.loadMessages(chatUuid) } returns network
 
         val savedStateHandle = SavedStateHandle(
@@ -122,7 +137,7 @@ class ChatConversationViewModelTest {
         val factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                ChatConversationViewModel(savedStateHandle, messageRepository, identity, mediaFileReader, appContext) as T
+                ChatConversationViewModel(savedStateHandle, messageRepository, outboxSender, networkMonitor, identity, mediaFileReader, appContext) as T
         }
         try {
             block(ViewModelProvider(store, factory)[ChatConversationViewModel::class.java])
@@ -202,11 +217,13 @@ class ChatConversationViewModelTest {
 
     @Test
     fun `optimistic bubble is updated in place by the server echo`() = withViewModel { viewModel ->
-        coEvery { messageRepository.sendMessage(chatUuid, "hello") } returns flowOf(
-            Resource.Success(message("server-1", "hello", "2026-01-01T00:00:00"))
-        )
+        val item = slot<OutboxItem>()
+        every { outboxSender.enqueue(capture(item)) } returns Unit
 
         viewModel.sendText("hello")
+        outboxEvents.emit(
+            OutboxEvent.Sent(item.captured, message("server-1", "hello", "2026-01-01T00:00:00"))
+        )
 
         // Идентификатор локального пузыря сохраняется, чтобы DiffUtil не
         // удалял и не вставлял строку заново (иначе список мигает).
@@ -219,10 +236,11 @@ class ChatConversationViewModelTest {
     @Test
     fun `server echo is not duplicated by the next poll`() = withViewModel { viewModel ->
         val serverCopy = message("server-1", "hello", "2026-01-01T00:00:00")
-        coEvery { messageRepository.sendMessage(chatUuid, "hello") } returns
-            flowOf(Resource.Success(serverCopy))
+        val item = slot<OutboxItem>()
+        every { outboxSender.enqueue(capture(item)) } returns Unit
 
         viewModel.sendText("hello")
+        outboxEvents.emit(OutboxEvent.Sent(item.captured, serverCopy))
         assertEquals(1, viewModel.uiState.value.messages.size)
 
         // Следующий опрос возвращает серверную копию — она уже показана
@@ -250,9 +268,8 @@ class ChatConversationViewModelTest {
 
     @Test
     fun `send failure keeps optimistic message and reports error`() = withViewModel { viewModel ->
-        coEvery { messageRepository.sendMessage(chatUuid, "hello") } returns flowOf(
-            Resource.Error("send failed")
-        )
+        val item = slot<OutboxItem>()
+        every { outboxSender.enqueue(capture(item)) } returns Unit
 
         // Подписка возникает до отправки: sendError одноразовый и позднему
         // подписчику событие не доставит — ровно как работает экран чата.
@@ -265,6 +282,7 @@ class ChatConversationViewModelTest {
         }
 
         viewModel.sendText("hello")
+        outboxEvents.emit(OutboxEvent.Failed(item.captured, "send failed"))
         // collect на одноразовом потоке не завершается сам, поэтому подписку
         // отменяем. К моменту отмены отправка уже разобрана: диспетчер теста
         // выполняет корутины незамедлительно.
@@ -382,11 +400,11 @@ class ChatConversationViewModelTest {
 
     @Test
     fun `failed send marks the optimistic message as failed`() = withViewModel { viewModel ->
-        coEvery { messageRepository.sendMessage(chatUuid, "hello") } returns flowOf(
-            Resource.Error("send failed")
-        )
+        val item = slot<OutboxItem>()
+        every { outboxSender.enqueue(capture(item)) } returns Unit
 
         viewModel.sendText("hello")
+        outboxEvents.emit(OutboxEvent.Failed(item.captured, "send failed"))
 
         val local = viewModel.uiState.value.messages.single()
         assertEquals(MessageDeliveryStatus.FAILED, viewModel.deliveryStatus(local.messageUuid))
@@ -418,8 +436,8 @@ class ChatConversationViewModelTest {
                 width = 10, height = 10, attachmentUuid = "a-1", fileName = "photo.jpg"
             )
         )
-        coEvery { messageRepository.sendMessage(chatUuid, "", listOf("a-1")) } returns
-            flowOf(Resource.Success(message("srv", "", "2026-01-01T00:00:00", messageId = 10)))
+        val item = slot<OutboxItem>()
+        every { outboxSender.enqueue(capture(item)) } returns Unit
 
         viewModel.addAttachments(listOf(android.net.Uri.parse("content://photo/1")))
         assertTrue(viewModel.uiState.value.pendingAttachments.single().isUploaded)
@@ -427,7 +445,7 @@ class ChatConversationViewModelTest {
         viewModel.sendText("")
 
         assertTrue(viewModel.uiState.value.pendingAttachments.isEmpty())
-        coVerify { messageRepository.sendMessage(chatUuid, "", listOf("a-1")) }
+        assertEquals(listOf("a-1"), item.captured.attachments.map { it.attachmentUuid })
         coVerify { mediaFileReader.cleanup(prepared) }
     }
 
@@ -947,5 +965,21 @@ class ChatConversationViewModelTest {
 
         assertTrue(viewModel.reportMessage("m1", "SPAM"))
         assertFalse(viewModel.blockUser("u1"))
+    }
+
+    @Test
+    fun `polling asks only for messages newer than the last known`() = withViewModel(
+        network = flowOf(
+            Resource.Success(
+                listOf(message("m1", "hi", "2026-01-01T00:00:00", messageId = 10, sender = "other"))
+            )
+        )
+    ) { _ ->
+        (this as kotlinx.coroutines.test.TestScope).testScheduler.advanceTimeBy(3_500)
+        (this as kotlinx.coroutines.test.TestScope).testScheduler.runCurrent()
+
+        coVerify {
+            messageRepository.loadMessagesAfter(chatUuid, "2026-01-01T00:00:00")
+        }
     }
 }

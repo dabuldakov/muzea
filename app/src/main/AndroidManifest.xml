@@ -4,6 +4,8 @@
     package="com.example.muzea">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Монитор сети: без него не работают офлайн-баннер и политика медиа. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- Push-уведомления (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

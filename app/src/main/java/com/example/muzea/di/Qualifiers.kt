@@ -11,3 +11,8 @@ annotation class MainHttpClient
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class ChatHttpClient
+
+/** Долгоживущий scope для очереди исходящих сообщений. */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class OutboxScope

@@ -42,6 +42,9 @@ class ChatListFragment : Fragment() {
     @Inject
     lateinit var messageRepository: MessageRepository
 
+    @Inject
+    lateinit var networkMonitor: com.example.muzea.utils.NetworkMonitor
+
     private lateinit var adapter: ChatAdapter
     private var membersAdapter: GroupMemberAdapter? = null
     private var membersDialog: AlertDialog? = null
@@ -74,6 +77,7 @@ class ChatListFragment : Fragment() {
         setupSwipeRefresh()
         setupCreateGroupFab()
         observeViewModel()
+        observeNetwork()
         loadChats()
         startAutoRefresh()
     }
@@ -82,8 +86,33 @@ class ChatListFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 while (isActive) {
-                    delay(AUTO_REFRESH_MS)
-                    loadChats()
+                    val status = networkMonitor.status.value
+                    delay(
+                        when (status.quality) {
+                            com.example.muzea.utils.NetworkQuality.GOOD -> AUTO_REFRESH_MS
+                            com.example.muzea.utils.NetworkQuality.WEAK -> WEAK_REFRESH_MS
+                            com.example.muzea.utils.NetworkQuality.OFFLINE -> OFFLINE_REFRESH_MS
+                        }
+                    )
+                    if (networkMonitor.status.value.online) loadChats()
+                }
+            }
+        }
+    }
+
+    private fun observeNetwork() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                networkMonitor.status.collect { status ->
+                    val show = status.quality != com.example.muzea.utils.NetworkQuality.GOOD
+                    binding.tvNetworkBanner.visibility = if (show) View.VISIBLE else View.GONE
+                    if (show) {
+                        binding.tvNetworkBanner.setText(
+                            if (status.quality == com.example.muzea.utils.NetworkQuality.OFFLINE)
+                                R.string.network_offline_banner
+                            else R.string.network_slow_banner
+                        )
+                    }
                 }
             }
         }
@@ -279,6 +308,10 @@ class ChatListFragment : Fragment() {
      * сервер запросами.
      */
     private fun prefetchChatMessages(chats: List<Chat>) {
+        val status = networkMonitor.status.value
+        // На слабой/мобильной сети не тянем переписки вперёд: это трафик,
+        // который конкурирует с текстом.
+        if (status.quality != com.example.muzea.utils.NetworkQuality.GOOD || status.metered) return
         val targets = chats.asSequence()
             .map { it.chatUuid }
             .filter { it.isNotBlank() && !ChatMessagesCache.has(it) }
@@ -338,7 +371,10 @@ class ChatListFragment : Fragment() {
 
         // Список из кэша остаётся на экране — сообщаем тостом и не затираем его.
         if (state.error != null && state.chats.isNotEmpty()) {
-            Toast.makeText(requireContext(), state.error, Toast.LENGTH_SHORT).show()
+            // На слабой сети не сыпем тостами: для этого есть баннер.
+            if (networkMonitor.status.value.quality == com.example.muzea.utils.NetworkQuality.GOOD) {
+                Toast.makeText(requireContext(), state.error, Toast.LENGTH_SHORT).show()
+            }
             viewModel.chatsErrorShown()
         }
     }
@@ -358,6 +394,8 @@ class ChatListFragment : Fragment() {
 
     private companion object {
         private const val AUTO_REFRESH_MS = 8_000L
+        private const val WEAK_REFRESH_MS = 30_000L
+        private const val OFFLINE_REFRESH_MS = 60_000L
         private const val MAX_PREFETCH_PER_PASS = 20
         private const val PREFETCH_DELAY_MS = 250L
     }

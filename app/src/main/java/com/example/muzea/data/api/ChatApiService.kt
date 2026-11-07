@@ -134,6 +134,13 @@ interface ChatApiService {
     ): Response<PageResponse<MessageResponse>>
 
     /** Сообщения старше указанного — для догрузки истории вверх. */
+    /** Новые сообщения после указанного времени (ISO-8601): дешёвый поллинг. */
+    @GET("/api/messages/{chatUuid}/after/{timestamp}")
+    suspend fun getMessagesAfter(
+        @Path("chatUuid") chatUuid: String,
+        @Path("timestamp") timestamp: String
+    ): Response<List<MessageResponse>>
+
     @GET("/api/messages/{chatUuid}/before/{messageUuid}")
     suspend fun getMessagesBefore(
         @Path("chatUuid") chatUuid: String,

@@ -44,6 +44,14 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    @OutboxScope
+    fun provideOutboxScope(): kotlinx.coroutines.CoroutineScope =
+        kotlinx.coroutines.CoroutineScope(
+            kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO
+        )
+
+    @Provides
+    @Singleton
     fun provideTokenManager(@ApplicationContext context: Context): TokenManager = TokenManager(context)
 
     /** Постоянный кэш гифок в filesDir (переживает перезапуск приложения). */
@@ -62,7 +70,7 @@ object NetworkModule {
         baseBuilder(authInterceptor)
             // После добавления токена: при 401/403 перелогинивается и повторяет.
             .addInterceptor(tokenRefreshInterceptor)
-            .readTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(25, TimeUnit.SECONDS)
             .writeTimeout(120, TimeUnit.SECONDS)
             .build()
 
@@ -183,9 +191,15 @@ object NetworkModule {
                 }
             )
             .addInterceptor(interceptor)
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
+            // Слабая сеть: не держим запрос полминуты, а быстрее отдаём
+            // управление ретраю/кэшу.
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(20, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
+            .dispatcher(okhttp3.Dispatcher().apply {
+                maxRequests = 16
+                maxRequestsPerHost = 4
+            })
 
     private fun retrofit(baseUrl: String, client: OkHttpClient): Retrofit =
         Retrofit.Builder()

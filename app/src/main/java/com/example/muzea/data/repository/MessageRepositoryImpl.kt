@@ -58,6 +58,35 @@ class MessageRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun loadMessagesAfter(
+        chatUuid: String,
+        timestamp: String
+    ): Flow<Resource<List<Message>>> = flow {
+        emit(Resource.Loading())
+        try {
+            if (!chatAuthManager.isAuthenticated()) {
+                emit(Resource.Error(chatAuthManager.authFailureMessage()))
+                return@flow
+            }
+
+            val response = chatAuthManager.retryOnceAfterUnauthorized {
+                apiService.getMessagesAfter(chatUuid, timestamp)
+            }
+
+            if (response.isSuccessful && response.body() != null) {
+                val content = response.body()!!.map { it.toDomain() }
+                ChatMessagesCache.appendNewer(chatUuid, content)
+                emit(Resource.Success(content))
+            } else {
+                emit(Resource.Error("Failed to load messages: ${response.message()}"))
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            emit(Resource.Error("Network error: ${e.message}"))
+        }
+    }
+
     override suspend fun loadMessagesBefore(
         chatUuid: String,
         beforeMessageUuid: String,
@@ -95,7 +124,8 @@ class MessageRepositoryImpl @Inject constructor(
         text: String,
         attachments: List<String>,
         messageType: String,
-        replyToMessageUuid: String?
+        replyToMessageUuid: String?,
+        clientMessageId: String?
     ): Flow<Resource<Message>> = flow {
         emit(Resource.Loading())
         try {
@@ -113,7 +143,8 @@ class MessageRepositoryImpl @Inject constructor(
                         // передаём явно, чтобы отрисовать голосовое/кружок.
                         messageType = messageType,
                         replyToMessageUuid = replyToMessageUuid,
-                        attachments = attachments.takeIf { it.isNotEmpty() }
+                        attachments = attachments.takeIf { it.isNotEmpty() },
+                        clientMessageId = clientMessageId
                     )
                 )
             }

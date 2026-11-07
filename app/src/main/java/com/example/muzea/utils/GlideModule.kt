@@ -42,9 +42,13 @@ class GlideModule : AppGlideModule() {
                 }
                 chain.proceed(authorized)
             }
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .writeTimeout(15, TimeUnit.SECONDS)
+            .dispatcher(okhttp3.Dispatcher().apply {
+                maxRequests = 12
+                maxRequestsPerHost = 4
+            })
             .build()
 
         registry.replace(

@@ -33,6 +33,7 @@ import com.example.muzea.domain.model.MessageAttachment
 import com.example.muzea.domain.model.MessageDeliveryStatus
 import com.example.muzea.utils.AvatarLoader
 import com.example.muzea.utils.ChatTimeFormatter
+import com.example.muzea.utils.MediaPolicy
 import com.example.muzea.utils.MediaUrl
 import com.example.muzea.utils.MessageLinks
 import com.example.muzea.databinding.ItemAttachmentAudioBinding
@@ -63,6 +64,11 @@ class MessageAdapter(
 
     private var selectionMode = false
     private var selectedUuids: Set<String> = emptySet()
+
+    /** Перерисовать видимые элементы: повторная попытка загрузки медиа. */
+    fun refreshMedia() {
+        if (itemCount > 0) notifyItemRangeChanged(0, itemCount)
+    }
 
     /** Подсветка выбранных сообщений в режиме мультивыбора. */
     fun setSelection(uuids: Set<String>) {
@@ -503,7 +509,7 @@ private fun bindAttachments(
             val item = ItemAttachmentVideoNoteBinding.inflate(inflater, container, false)
             Glide.with(item.ivThumb)
                 .load(attachmentPreviewUrl(video))
-                .diskCacheStrategy(DiskCacheStrategy.ALL)
+            .diskCacheStrategy(DiskCacheStrategy.ALL)
                 .into(item.ivThumb)
             item.tvDuration.text = formatDuration(video.duration)
             item.root.setOnClickListener { onClick(message, video) }
@@ -534,7 +540,7 @@ private fun bindAttachments(
                 }
                 Glide.with(item.ivImage)
                     .load(attachmentUrl(attachment))
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+            .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .into(item.ivImage)
                 item.root.setOnClickListener { onClick(message, attachment) }
                 container.addView(item.root)
@@ -543,7 +549,7 @@ private fun bindAttachments(
                 val item = ItemAttachmentVideoBinding.inflate(inflater, container, false)
                 Glide.with(item.ivThumb)
                     .load(attachmentPreviewUrl(attachment))
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+            .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .into(item.ivThumb)
                 item.tvDuration.text = formatDuration(attachment.duration)
                 item.tvDuration.visibility =
@@ -616,11 +622,19 @@ private fun bindGif(textView: TextView, imageView: ImageView, message: Message) 
         textView.visibility = View.VISIBLE
         return
     }
+    // На слабой сети анимированную гифку не тянем: покажем подпись, пока
+    // канал не станет лучше или пользователь не откроет чат заново.
+    if (!MediaPolicy.autoLoad && !MediaPolicy.cacheOnly) {
+        imageView.visibility = View.GONE
+        textView.visibility = View.VISIBLE
+        textView.text = "GIF"
+        return
+    }
     textView.visibility = View.GONE
     imageView.visibility = View.VISIBLE
     Glide.with(imageView)
         .load(url)
-        .diskCacheStrategy(DiskCacheStrategy.ALL)
+            .diskCacheStrategy(DiskCacheStrategy.ALL)
         .into(imageView)
 }
 
@@ -658,6 +672,12 @@ private fun bindTextOrPreview(
         return
     }
     if (linkPreviews.isLoaded(url)) {
+        showMessageText(tvMessage, card, url)
+        return
+    }
+
+    // На слабой сети превью ссылки не запрашиваем — оставляем кликабельный текст.
+    if (!MediaPolicy.autoLoad) {
         showMessageText(tvMessage, card, url)
         return
     }

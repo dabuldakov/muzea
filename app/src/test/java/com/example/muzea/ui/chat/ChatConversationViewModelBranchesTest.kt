@@ -47,6 +47,13 @@ class ChatConversationViewModelBranchesTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val messageRepository = mockk<MessageRepository>()
+
+    private val outboxSender = mockk<com.example.muzea.data.repository.OutboxSender>(relaxed = true)
+    private val outboxEvents = kotlinx.coroutines.flow.MutableSharedFlow<com.example.muzea.data.repository.OutboxEvent>()
+    private val networkMonitor = mockk<com.example.muzea.utils.NetworkMonitor>(relaxed = true)
+    private val networkStatus = kotlinx.coroutines.flow.MutableStateFlow(
+        com.example.muzea.utils.NetworkStatus(com.example.muzea.utils.NetworkQuality.GOOD, metered = false)
+    )
     private val mediaFileReader = mockk<com.example.muzea.utils.MediaFileReader>(relaxed = true)
     private val appContext = mockk<android.content.Context>(relaxed = true)
     private val chatUuid = "chat-1"
@@ -122,6 +129,11 @@ class ChatConversationViewModelBranchesTest {
         block: suspend CoroutineScope.(ChatConversationViewModel) -> Unit
     ) = runTest {
         every { messageRepository.cachedMessages(chatUuid) } returns cached
+        every { outboxSender.events } returns outboxEvents
+        every { outboxSender.pendingForChat(chatUuid) } returns emptyList()
+        every { networkMonitor.status } returns networkStatus
+        coEvery { messageRepository.loadMessagesAfter(chatUuid, any()) } returns
+            flowOf(Resource.Success(emptyList()))
         coEvery { messageRepository.loadMessages(chatUuid) } returns network
 
         val savedStateHandle = SavedStateHandle(
@@ -136,7 +148,7 @@ class ChatConversationViewModelBranchesTest {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T =
                 ChatConversationViewModel(
-                    savedStateHandle, messageRepository, identity, mediaFileReader, appContext
+                    savedStateHandle, messageRepository, outboxSender, networkMonitor, identity, mediaFileReader, appContext
                 ) as T
         }
         try {

@@ -12,5 +12,8 @@ data class SendMessageRequest(
     @SerializedName("gif")
     val gif: GifRequest? = null,
     @SerializedName("attachments")
-    val attachments: List<String>? = null
+    val attachments: List<String>? = null,
+    /** Клиентский UUID: повторная отправка не создаёт дубль. */
+    @SerializedName("clientMessageId")
+    val clientMessageId: String? = null
 )

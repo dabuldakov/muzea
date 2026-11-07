@@ -308,6 +308,8 @@
     <string name="delete_selected_message">They will be deleted for everyone.</string>
     <string name="forward_comment_title">Forward message</string>
     <string name="forward_comment_hint">Add a comment…</string>
+    <string name="network_offline_banner">No connection — messages will be sent later</string>
+    <string name="network_slow_banner">Slow connection — media will load later</string>
     <string name="forward_picker_empty">No chats available</string>
     <string name="message_forwarded">Message forwarded</string>
     <string name="forward_message_failed">Failed to forward message</string>

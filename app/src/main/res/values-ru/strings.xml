@@ -305,6 +305,8 @@
     <string name="delete_selected_message">Они будут удалены у всех.</string>
     <string name="forward_comment_title">Переслать сообщение</string>
     <string name="forward_comment_hint">Добавить комментарий…</string>
+    <string name="network_offline_banner">Нет сети — сообщения отправятся позже</string>
+    <string name="network_slow_banner">Слабая сеть — медиа загрузится позже</string>
     <string name="forward_picker_empty">Нет доступных чатов</string>
     <string name="message_forwarded">Сообщение переслано</string>
     <string name="forward_message_failed">Не удалось переслать сообщение</string>

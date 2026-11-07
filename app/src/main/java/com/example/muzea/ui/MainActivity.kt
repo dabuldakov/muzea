@@ -45,6 +45,10 @@ class MainActivity : AppCompatActivity(), Navigator {
     @Inject
     lateinit var appUpdateRepository: AppUpdateRepository
 
+    /** Создаём при старте: очередь исходящих сама доотправит накопленное. */
+    @Inject
+    lateinit var outboxSender: com.example.muzea.data.repository.OutboxSender
+
     private val requestNotificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 

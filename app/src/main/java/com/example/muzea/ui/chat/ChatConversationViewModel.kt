@@ -14,7 +14,12 @@ import com.example.muzea.domain.model.MessagePreview
 import com.example.muzea.data.repository.ChatListCache
 import com.example.muzea.data.repository.ChatMessagesCache
 import com.example.muzea.utils.MediaFileReader
+import com.example.muzea.utils.NetworkMonitor
+import com.example.muzea.utils.NetworkQuality
 import com.example.muzea.utils.PreparedAttachment
+import com.example.muzea.data.repository.OutboxEvent
+import com.example.muzea.data.repository.OutboxItem
+import com.example.muzea.data.repository.OutboxSender
 import com.example.muzea.domain.repository.MessageRepository
 import com.example.muzea.domain.ChatUserIdentity
 import com.example.muzea.domain.chat.ChatMessageReducer
@@ -78,6 +83,8 @@ data class ChatConversationUiState(
 class ChatConversationViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val messageRepository: MessageRepository,
+    private val outboxSender: OutboxSender,
+    private val networkMonitor: NetworkMonitor,
     chatUserIdentity: ChatUserIdentity,
     private val mediaFileReader: MediaFileReader,
     @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context
@@ -109,12 +116,59 @@ class ChatConversationViewModel @Inject constructor(
     private var pollingPaused = false
     private var lastMarkedReadUuid: String? = null
     private var lastMarkedDeliveredUuid: String? = null
+    /** Ошибку по сообщению показываем один раз, чтобы не спамить тостами. */
+    private val notifiedFailures = mutableSetOf<String>()
 
     init {
+        restorePendingMessages()
+        observeOutbox()
         // Опрос сам выполняет первый запрос, поэтому отдельный refresh() в init
         // был бы вторым обращением к серверу подряд при каждом входе в чат.
         startPolling()
         viewModelScope.launch { refreshPinned() }
+    }
+
+    /** Поднимаем из очереди сообщения, не отправленные в прошлой сессии. */
+    private fun restorePendingMessages() {
+        val pending = outboxSender.pendingForChat(chatUuid).map { item ->
+            Message(
+                messageUuid = item.localMessageUuid,
+                chatUuid = item.chatUuid,
+                senderId = null,
+                senderUuid = myUserUuid,
+                senderName = null,
+                senderAvatar = null,
+                text = item.text,
+                messageType = item.messageType,
+                replyToMessageUuid = item.replyToMessageUuid,
+                isEdited = false,
+                isDeleted = false,
+                isPinned = false,
+                createdAt = null,
+                updatedAt = null,
+                attachments = item.attachments
+            )
+        }
+        if (pending.isNotEmpty()) mergeMessages(pending)
+    }
+
+    private fun observeOutbox() {
+        viewModelScope.launch {
+            outboxSender.events.collect { event ->
+                when (event) {
+                    is OutboxEvent.Sent -> if (event.item.chatUuid == chatUuid) {
+                        notifiedFailures.remove(event.item.localMessageUuid)
+                        applyServerEcho(event.item.localMessageUuid, event.message)
+                    }
+                    is OutboxEvent.Failed -> if (event.item.chatUuid == chatUuid) {
+                        markFailed(event.item.localMessageUuid)
+                        if (notifiedFailures.add(event.item.localMessageUuid)) {
+                            _sendError.emit(event.reason)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /** Разовая загрузка вне цикла опроса: pull-to-refresh и ручное обновление. */
@@ -162,9 +216,15 @@ class ChatConversationViewModel @Inject constructor(
     }
 
     /** @return true, если запрос завершился успешно (нужно для backoff-а). */
-    private suspend fun loadOnce(): Boolean {
+    private suspend fun loadOnce(incremental: Boolean = false): Boolean {
         var success = true
-        messageRepository.loadMessages(chatUuid).collect { result ->
+        val since = lastServerCreatedAt
+        val source = if (incremental && since != null) {
+            messageRepository.loadMessagesAfter(chatUuid, since)
+        } else {
+            messageRepository.loadMessages(chatUuid)
+        }
+        source.collect { result ->
             when (result) {
                 // Спиннер показываем только когда показать нечего: переписка из
                 // кэша уже на экране, и мигать индикатором при входе незачем.
@@ -174,6 +234,7 @@ class ChatConversationViewModel @Inject constructor(
                 is Resource.Success -> {
                     _uiState.value = _uiState.value.copy(isLoading = false)
                     val incoming = result.data ?: emptyList()
+                    rememberServerTime(incoming)
                     cacheNewGifs(incoming)
                     mergeMessages(incoming)
                     refreshReceipts()
@@ -239,25 +300,20 @@ class ChatConversationViewModel @Inject constructor(
         clearPendingAttachments()
         clearReply()
 
-        viewModelScope.launch {
-            messageRepository.sendMessage(
+        // Отправка идёт через app-scope очередь: уход из чата или смерть
+        // процесса не теряют текст, повтор идемпотентен по clientMessageId.
+        outboxSender.enqueue(
+            OutboxItem(
+                clientMessageId = java.util.UUID.randomUUID().toString(),
+                localMessageUuid = optimistic.messageUuid,
                 chatUuid = chatUuid,
                 text = trimmed,
-                attachments = uploaded.mapNotNull { it.attachmentUuid },
-                replyToMessageUuid = replyToUuid
-            ).collect { result ->
-                when (result) {
-                    is Resource.Success -> {
-                        applyServerEcho(optimistic.messageUuid, result.data!!)
-                    }
-                    is Resource.Error -> {
-                        markFailed(optimistic.messageUuid)
-                        _sendError.emit(result.message ?: "Failed to send message")
-                    }
-                    is Resource.Loading -> {}
-                }
-            }
-        }
+                messageType = type,
+                replyToMessageUuid = replyToUuid,
+                attachments = uploaded,
+                createdAt = System.currentTimeMillis()
+            )
+        )
     }
 
     /** Добавляет выбранные в системном пикере файлы и сразу загружает их. */
@@ -815,6 +871,12 @@ class ChatConversationViewModel @Inject constructor(
             _uiState.value.copy(failedMessages = _uiState.value.failedMessages - localUuid)
         )
 
+        // Текстовые сообщения живут в очереди — повторяем оттуда.
+        if (outboxSender.pendingForChat(chatUuid).any { it.localMessageUuid == localUuid }) {
+            outboxSender.retry(chatUuid, localUuid)
+            return
+        }
+
         viewModelScope.launch {
             val uploaded = mutableListOf<MessageAttachment>()
             for (attachment in message.attachments) {
@@ -907,12 +969,41 @@ class ChatConversationViewModel @Inject constructor(
 
     private fun startPolling() {
         pollingJob = viewModelScope.launch {
+            var iteration = 0
             while (isActive) {
-                val success = if (pollingPaused) true else loadOnce()
-                // На слабой сети не долбим сервер каждые 3 секунды.
-                delay(if (success) POLL_INTERVAL_MS else ERROR_POLL_INTERVAL_MS)
+                val quality = networkMonitor.status.value.quality
+                if (pollingPaused || quality == NetworkQuality.OFFLINE) {
+                    delay(OFFLINE_POLL_INTERVAL_MS)
+                    continue
+                }
+
+                // Раз в FULL_SYNC_EVERY итераций делаем полную сверку: так
+                // подхватываем правки/удаления старых сообщений, которые
+                // инкрементальная выборка не видит.
+                val incremental = lastServerCreatedAt != null &&
+                    iteration % FULL_SYNC_EVERY != 0
+                val success = loadOnce(incremental)
+                iteration++
+
+                val delayMs = when (quality) {
+                    NetworkQuality.GOOD ->
+                        if (success) POLL_INTERVAL_MS else ERROR_POLL_INTERVAL_MS
+                    NetworkQuality.WEAK -> WEAK_POLL_INTERVAL_MS
+                    NetworkQuality.OFFLINE -> OFFLINE_POLL_INTERVAL_MS
+                }
+                delay(delayMs)
             }
         }
+    }
+
+    private var lastServerCreatedAt: String? = null
+
+    private fun rememberServerTime(messages: List<Message>) {
+        val latest = messages.asSequence()
+            .filter { it.messageId != null }
+            .mapNotNull { it.createdAt }
+            .maxOrNull()
+        if (latest != null) lastServerCreatedAt = latest
     }
 
     override fun onCleared() {
@@ -933,6 +1024,9 @@ class ChatConversationViewModel @Inject constructor(
         private const val LOCAL_PREFIX = "local-"
         private const val POLL_INTERVAL_MS = 3_000L
         private const val ERROR_POLL_INTERVAL_MS = 15_000L
+        private const val WEAK_POLL_INTERVAL_MS = 15_000L
+        private const val OFFLINE_POLL_INTERVAL_MS = 60_000L
+        private const val FULL_SYNC_EVERY = 10
         private const val PAGE_SIZE = 50
     }
 }

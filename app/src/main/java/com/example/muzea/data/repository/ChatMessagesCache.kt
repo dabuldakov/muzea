@@ -47,6 +47,17 @@ object ChatMessagesCache {
         put(chatUuid, merged)
     }
 
+    /** Добавляет новые сообщения, заменяя уже известные по uuid. */
+    @Synchronized
+    fun appendNewer(chatUuid: String, newer: List<Message>) {
+        if (newer.isEmpty()) return
+        val existing = messages[chatUuid].orEmpty()
+        val byUuid = LinkedHashMap<String, Message>()
+        existing.forEach { byUuid[it.messageUuid] = it }
+        newer.forEach { byUuid[it.messageUuid] = it }
+        put(chatUuid, byUuid.values.sortedWith(compareBy(nullsLast()) { it.createdAt }))
+    }
+
     @Synchronized
     fun clear() {
         messages.clear()

@@ -553,4 +553,25 @@ class MessageRepositoryImplTest {
         assertTrue(gifCache.getStale(GifCache.recentKey()).orEmpty().isNotEmpty())
         assertTrue(gifCache.getStale(GifCache.chatKey("chat-1")).orEmpty().isNotEmpty())
     }
+
+    @Test
+    fun `loadMessagesAfter reports failure`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.getMessagesAfter("chat-1", "2026-01-01T00:00:00") } returns httpError(504)
+
+        val last = repository.loadMessagesAfter("chat-1", "2026-01-01T00:00:00")
+            .toList().last()
+
+        assertTrue((last as Resource.Error).message!!.startsWith("Failed to load messages"))
+    }
+
+    @Test
+    fun `loadMessagesAfter fails without auth`() = runTest {
+        coEvery { auth.isAuthenticated() } returns false
+
+        val last = repository.loadMessagesAfter("chat-1", "2026-01-01T00:00:00")
+            .toList().last()
+
+        assertTrue((last as Resource.Error).message!!.contains("Chat auth failed"))
+    }
 }

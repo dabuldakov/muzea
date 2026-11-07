@@ -52,6 +52,20 @@
 
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/tvNetworkBanner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#FFFFF3CD"
+        android:paddingStart="16dp"
+        android:paddingTop="6dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="6dp"
+        android:text="@string/network_slow_banner"
+        android:textColor="#FF7A4F00"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
     <LinearLayout
         android:id="@+id/pinnedBar"
         android:layout_width="match_parent"

@@ -70,9 +70,9 @@ class NetworkModuleTest {
         val service = NetworkModule.provideApiService(client)
 
         assertNotNull(service)
-        assertEquals(60_000, client.readTimeoutMillis)
+        assertEquals(25_000, client.readTimeoutMillis)
         assertEquals(120_000, client.writeTimeoutMillis)
-        assertEquals(30_000, client.connectTimeoutMillis)
+        assertEquals(10_000, client.connectTimeoutMillis)
         assertTrue(client.certificatePinner.pins.isNotEmpty())
     }
 
@@ -82,8 +82,9 @@ class NetworkModuleTest {
         val service = NetworkModule.provideChatApiService(client)
 
         assertNotNull(service)
-        assertEquals(30_000, client.readTimeoutMillis)
+        assertEquals(20_000, client.readTimeoutMillis)
         assertEquals(30_000, client.writeTimeoutMillis)
+        assertEquals(10_000, client.connectTimeoutMillis)
         assertTrue(client.certificatePinner.pins.isNotEmpty())
     }
 

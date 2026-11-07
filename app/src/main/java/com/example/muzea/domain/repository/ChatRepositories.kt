@@ -31,6 +31,7 @@ interface MessageRepository {
     suspend fun loadMessages(chatUuid: String): Flow<Resource<List<Message>>>
 
     /** Догрузка истории: сообщения старше [beforeMessageUuid]. */
+    suspend fun loadMessagesAfter(chatUuid: String, timestamp: String): Flow<Resource<List<Message>>>
     suspend fun loadMessagesBefore(
         chatUuid: String,
         beforeMessageUuid: String,
@@ -43,7 +44,8 @@ interface MessageRepository {
         text: String,
         attachments: List<String> = emptyList(),
         messageType: String = "TEXT",
-        replyToMessageUuid: String? = null
+        replyToMessageUuid: String? = null,
+        clientMessageId: String? = null
     ): Flow<Resource<Message>>
     suspend fun sendGif(
         chatUuid: String,

@@ -31,6 +31,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
@@ -78,6 +79,9 @@ class ChatConversationFragment : Fragment(),
 
     @Inject
     lateinit var tokenManager: TokenManager
+
+    @Inject
+    lateinit var networkMonitor: com.example.muzea.utils.NetworkMonitor
     private var chatUuid: String = ""
     private var lastNewestUuid: String? = null
     private var unreadCount = 0L
@@ -164,6 +168,7 @@ class ChatConversationFragment : Fragment(),
         private const val ARG_DRAFT_TEXT = "chat_draft_text"
         private const val ARG_HIGHLIGHT_MESSAGE = "chat_highlight_message"
         private const val LONG_PRESS_MS = 250L
+        private const val MEDIA_RETRY_MS = 5 * 60 * 1000L
         private const val RECORD_CANCEL_DP = 72
         private const val MAX_VOICE_MS = 5 * 60 * 1000L
         private const val MAX_VIDEO_MS = 60 * 1000L
@@ -236,6 +241,8 @@ class ChatConversationFragment : Fragment(),
         setupPinnedBar()
         prefillDraft()
         observeViewModel()
+        observeNetwork()
+        startMediaRetry()
     }
 
     /**
@@ -1238,6 +1245,39 @@ class ChatConversationFragment : Fragment(),
             binding.tvError.visibility = View.GONE
             binding.recyclerViewMessages.visibility =
                 if (hasMessages) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun observeNetwork() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                networkMonitor.status.collect { status ->
+                    val show = status.quality != com.example.muzea.utils.NetworkQuality.GOOD
+                    binding.tvNetworkBanner.visibility = if (show) View.VISIBLE else View.GONE
+                    if (show) {
+                        binding.tvNetworkBanner.setText(
+                            if (status.quality == com.example.muzea.utils.NetworkQuality.OFFLINE)
+                                R.string.network_offline_banner
+                            else R.string.network_slow_banner
+                        )
+                    } else {
+                        // Сеть вернулась — пробуем догрузить то, что отложили.
+                        adapter.refreshMedia()
+                    }
+                }
+            }
+        }
+    }
+
+    /** Раз в 5 минут пробуем догрузить отложенные медиа, пока экран открыт. */
+    private fun startMediaRetry() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (isActive) {
+                    delay(MEDIA_RETRY_MS)
+                    if (networkMonitor.status.value.online) adapter.refreshMedia()
+                }
+            }
         }
     }
 
