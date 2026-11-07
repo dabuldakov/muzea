@@ -230,6 +230,9 @@ def handle_message(chat_uuid: str, bot: dict, message: dict) -> bool:
     ])
 
     try:
+        # Подтверждаем приём сразу: ответ может ждать завершения текущего
+        # хода агента, и в чате не должно быть тишины.
+        post_to_chat(chat_uuid, "Принял. Отвечу, когда завершу текущий шаг.")
         answer = ask_session(prompt)
         if not answer:
             print("OpenCode вернул пустой ответ", file=sys.stderr)
