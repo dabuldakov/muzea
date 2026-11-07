@@ -15,9 +15,7 @@
   CHAT_TITLE          «Баги»
   ALLOWED_USERNAMES   пусто = все участники чата, кроме бота; можно ограничить списком
   OPENCODE_SESSION    ID сессии (обязателен)
-  OPENCODE_URL        http://127.0.0.1:4096 (если поднят `opencode serve`)
-  OPENCODE_CMD        opencode
-  OPENCODE_AUTO       true — передать --auto (авто-подтверждение инструментов)
+  OPENCODE_CLI        путь к opencode-cli десктопного OpenCode (v2)
   POLL_MS             2500
   STATE_FILE          .chat-bridge-state.json
   REPLY_PREFIX        префикс ответа (по умолчанию пусто)
@@ -54,9 +52,7 @@ ALLOWED = [
     if name.strip()
 ]
 SESSION = required("OPENCODE_SESSION")
-OPENCODE_URL = os.environ.get("OPENCODE_URL", "")
-OPENCODE_CMD = os.environ.get("OPENCODE_CMD", "opencode")
-AUTO = os.environ.get("OPENCODE_AUTO", "true") != "false"
+OPENCODE_CLI = os.environ.get("OPENCODE_CLI", "opencode-cli")
 POLL_SECONDS = int(os.environ.get("POLL_MS", "2500")) / 1000.0
 STATE_FILE = os.environ.get("STATE_FILE", ".chat-bridge-state.json")
 REPLY_PREFIX = os.environ.get("REPLY_PREFIX", "")
@@ -135,37 +131,74 @@ def allowed_sender(message: dict, bot: dict) -> bool:
     return (message.get("senderName") or "").lower() in ALLOWED
 
 
-def run_opencode(prompt: str) -> str:
-    args = [OPENCODE_CMD, "run", "-s", SESSION, "--format", "json"]
-    if OPENCODE_URL:
-        args += ["--attach", OPENCODE_URL]
-    if AUTO:
-        args.append("--auto")
-    args.append(prompt)
-
-    completed = subprocess.run(
-        args,
-        capture_output=True,
-        text=True,
-        timeout=15 * 60,
-    )
+def opencode_api(method: str, path: str, body: dict | None = None):
+    """Запрос к запущенному сервису OpenCode через его CLI (desktop, v2)."""
+    args = [OPENCODE_CLI, "api", method, path]
+    if body is not None:
+        args += ["-d", json.dumps(body, ensure_ascii=False)]
+    completed = subprocess.run(args, capture_output=True, text=True, timeout=60)
     if completed.returncode != 0:
         raise RuntimeError(
-            f"OpenCode exited {completed.returncode}: {completed.stderr[-800:]}"
+            f"opencode api {method} {path}: {completed.stderr[-800:]}"
         )
+    output = completed.stdout.strip()
+    return json.loads(output) if output else None
 
-    texts = []
-    for line in completed.stdout.splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            event = json.loads(line)
-        except ValueError:
-            continue
-        if event.get("type") == "text" and event.get("part", {}).get("text"):
-            texts.append(event["part"]["text"])
-    return "\n".join(texts).strip()
+
+def wait_for_reply(prompt_time: int, timeout_seconds: int = 900) -> str:
+    """Ждёт финальный assistant-ответ после отправленного промпта.
+
+    Запрашиваем только assistant-сообщения и небольшую страницу: полный
+    список с reasoning бывает больше 100 КБ и обрезается CLI.
+    """
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        response = opencode_api(
+            "get",
+            f"/api/session/{SESSION}/message?limit=5&type=assistant",
+        )
+        candidates = []
+        for message in response["data"]:
+            if message.get("finish") != "stop":
+                continue
+            created = (message.get("time") or {}).get("created") or 0
+            if created < prompt_time:
+                continue
+            text = "\n".join(
+                part.get("text", "")
+                for part in (message.get("content") or [])
+                if part.get("type") == "text"
+            ).strip()
+            if text:
+                candidates.append((created, text))
+        if candidates:
+            return min(candidates, key=lambda item: item[0])[1]
+        time.sleep(2)
+    raise TimeoutError("OpenCode не ответил за 15 минут")
+
+
+def session_is_idle() -> bool:
+    try:
+        active = opencode_api("get", "/api/session/active")
+        return SESSION not in (active.get("data") or {})
+    except Exception:
+        return True
+
+
+def ask_session(prompt: str) -> str:
+    # Не вклиниваемся в текущий ход: иначе ответом можно принять сообщение
+    # незавершённой задачи. Ждём, пока сессия освободится.
+    waited = False
+    while not session_is_idle():
+        if not waited:
+            print("OpenCode занят, ждём завершения текущего хода…")
+            waited = True
+        time.sleep(3)
+    response = opencode_api(
+        "post", f"/api/session/{SESSION}/prompt", {"text": prompt}
+    )
+    user = response["data"]
+    return wait_for_reply(user["time"]["created"])
 
 
 def post_to_chat(chat_uuid: str, text: str) -> None:
@@ -197,7 +230,7 @@ def handle_message(chat_uuid: str, bot: dict, message: dict) -> bool:
     ])
 
     try:
-        answer = run_opencode(prompt)
+        answer = ask_session(prompt)
         if not answer:
             print("OpenCode вернул пустой ответ", file=sys.stderr)
             return False
