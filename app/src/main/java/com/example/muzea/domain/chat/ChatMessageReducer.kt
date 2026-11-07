@@ -14,6 +14,27 @@ class ChatMessageReducer {
     // serverUuid -> localUuid для наших отправленных сообщений.
     private val serverToLocal = HashMap<String, String>()
 
+    // localUuid -> serverUuid: чтобы действия (правка/удаление/закреп/пересылка/
+    // ответ) уходили на бэкенд с реальным ID, а не с локальным.
+    private val localToServer = HashMap<String, String>()
+
+    /** Реальный серверный uuid для локального (или тот же, если уже серверный). */
+    fun serverUuid(localOrServer: String): String = localToServer[localOrServer] ?: localOrServer
+
+    /** Локальный uuid для серверного (если это наше отправленное сообщение). */
+    fun localUuidFor(serverUuid: String): String? = serverToLocal[serverUuid]
+
+    /**
+     * Версия списка с серверными идентификаторами — для кэша и превью списка
+     * чатов, чтобы локальные uuid не «всплывали» после перезахода.
+     */
+    fun toServerIdentities(messages: List<Message>): List<Message> = messages.map { message ->
+        message.copy(
+            messageUuid = serverUuid(message.messageUuid),
+            replyToMessageUuid = message.replyToMessageUuid?.let { serverUuid(it) }
+        )
+    }
+
     /**
      * Стартовый список из кэша: сервер отдаёт «сначала новые», показываем по
      * возрастанию. Удалённые сообщения не показываем вовсе — вместо заглушки
@@ -55,16 +76,18 @@ class ChatMessageReducer {
         serverMessage: Message
     ): List<Message> {
         serverToLocal[serverMessage.messageUuid] = localUuid
+        localToServer[localUuid] = serverMessage.messageUuid
         return current
             .map { existing ->
                 if (existing.messageUuid == localUuid) {
+                    // Цитата ответа тоже может ссылаться на наше сообщение —
+                    // переводим серверный uuid в локальный для отображения.
+                    val replyTo = serverMessage.replyToMessageUuid
+                        ?.let { serverToLocal[it] ?: it }
+                        ?: existing.replyToMessageUuid
                     serverMessage.copy(
                         messageUuid = localUuid,
-                        // Ответ сервера на отправку может не содержать ссылку на
-                        // оригинал. Не теряем её: uuid уже известен из локального
-                        // пузыря, иначе цитата ответа пропадала после публикации.
-                        replyToMessageUuid = serverMessage.replyToMessageUuid
-                            ?: existing.replyToMessageUuid
+                        replyToMessageUuid = replyTo
                     )
                 } else {
                     existing

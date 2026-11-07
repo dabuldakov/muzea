@@ -128,6 +128,55 @@ class ChatMessageReducerTest {
         assertEquals("local-1", result.single().messageUuid)
     }
 
+
+    @Test
+    fun `server echo exposes the real server uuid for actions`() {
+        val reducer = ChatMessageReducer()
+        val server = message("server-1", "2026-01-01T00:00:00")
+
+        reducer.applyServerEcho(listOf(message("local-1", null)), "local-1", server)
+
+        assertEquals("server-1", reducer.serverUuid("local-1"))
+        assertEquals("server-1", reducer.serverUuid("server-1"))
+        assertEquals("local-1", reducer.localUuidFor("server-1"))
+        assertEquals(null, reducer.localUuidFor("unknown"))
+    }
+
+    @Test
+    fun `reply reference to our own message is translated to the local uuid`() {
+        val reducer = ChatMessageReducer()
+        val own = message("server-orig", "2026-01-01T00:00:00")
+        reducer.applyServerEcho(listOf(message("local-orig", null)), "local-orig", own)
+
+        val reply = message("server-reply", "2026-01-02T00:00:00")
+            .copy(replyToMessageUuid = "server-orig")
+        val result = reducer.applyServerEcho(listOf(message("local-reply", null)), "local-reply", reply)
+
+        assertEquals("local-orig", result.single().replyToMessageUuid)
+    }
+
+
+    @Test
+    fun `toServerIdentities replaces local uuids and reply references`() {
+        val reducer = ChatMessageReducer()
+        reducer.applyServerEcho(
+            listOf(message("local-1", null)),
+            "local-1",
+            message("server-1", "2026-01-01T00:00:00")
+        )
+        reducer.applyServerEcho(
+            listOf(message("local-2", null)),
+            "local-2",
+            message("server-2", "2026-01-02T00:00:00")
+        )
+        val reply = message("local-2", null).copy(replyToMessageUuid = "local-1")
+
+        val result = reducer.toServerIdentities(listOf(reply)).single()
+
+        assertEquals("server-2", result.messageUuid)
+        assertEquals("server-1", result.replyToMessageUuid)
+    }
+
     @Test
     fun `updateMessage replaces the matching message keeping order`() {
         val reducer = ChatMessageReducer()

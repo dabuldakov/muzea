@@ -278,7 +278,7 @@ class ChatConversationViewModel @Inject constructor(
 
         val uploaded = attachments.mapNotNull { it.uploaded }
         val type = messageTypeFor(uploaded)
-        val replyToUuid = state.replyTo?.messageUuid
+        val replyToUuid = state.replyTo?.messageUuid?.let { reducer.serverUuid(it) }
         val optimistic = Message(
             messageUuid = LOCAL_PREFIX + System.currentTimeMillis(),
             chatUuid = chatUuid,
@@ -437,7 +437,7 @@ class ChatConversationViewModel @Inject constructor(
         if (trimmed == target.text) return
 
         viewModelScope.launch {
-            messageRepository.editMessage(target.messageUuid, trimmed).collect { result ->
+            messageRepository.editMessage(reducer.serverUuid(target.messageUuid), trimmed).collect { result ->
                 when (result) {
                     is Resource.Success -> updateMessage(result.data!!)
                     is Resource.Error ->
@@ -455,21 +455,26 @@ class ChatConversationViewModel @Inject constructor(
     }
 
     private fun updateMessage(updated: Message) {
+        // Сервер возвращает сообщение с реальным uuid; в списке наше сообщение
+        // может храниться под локальным uuid — приводим к нему, иначе правка
+        // не найдёт нужный пузырь.
+        val displayUuid = reducer.localUuidFor(updated.messageUuid) ?: updated.messageUuid
+        val reconciled = updated.copy(messageUuid = displayUuid)
         // Сервер может вернуть сообщение без вложений (например, при правке
         // подписи к фото). Не теряем уже показанную картинку.
         val existing = _uiState.value.messages.firstOrNull {
-            it.messageUuid == updated.messageUuid
+            it.messageUuid == displayUuid
         }
-        val merged = if (updated.attachments.isEmpty() &&
+        val merged = if (reconciled.attachments.isEmpty() &&
             existing != null && existing.attachments.isNotEmpty()
         ) {
-            updated.copy(attachments = existing.attachments)
+            reconciled.copy(attachments = existing.attachments)
         } else {
-            updated
+            reconciled
         }
         val messages = reducer.updateMessage(_uiState.value.messages, merged)
         _uiState.value = withStatuses(_uiState.value.copy(messages = messages))
-        ChatMessagesCache.put(chatUuid, messages)
+        ChatMessagesCache.put(chatUuid, reducer.toServerIdentities(messages))
         // Если правили последнее сообщение — сразу обновляем превью в списке чатов.
         if (messages.lastOrNull()?.messageUuid == merged.messageUuid) {
             ChatListCache.updateLastMessage(chatUuid, previewOf(merged))
@@ -479,7 +484,7 @@ class ChatConversationViewModel @Inject constructor(
     /** Мягко удаляет своё сообщение «для всех». */
     fun deleteMessage(message: Message) {
         viewModelScope.launch {
-            val ok = messageRepository.deleteMessage(message.messageUuid)
+            val ok = messageRepository.deleteMessage(reducer.serverUuid(message.messageUuid))
             if (ok) {
                 removeMessageLocally(message.messageUuid)
                 clearComposerFor(message.messageUuid)
@@ -497,7 +502,7 @@ class ChatConversationViewModel @Inject constructor(
     private fun removeMessageLocally(messageUuid: String) {
         val remaining = _uiState.value.messages.filterNot { it.messageUuid == messageUuid }
         _uiState.value = withStatuses(_uiState.value.copy(messages = remaining))
-        ChatMessagesCache.put(chatUuid, remaining)
+        ChatMessagesCache.put(chatUuid, reducer.toServerIdentities(remaining))
         val last = remaining.lastOrNull()
         if (last == null) {
             ChatListCache.clearLastMessage(chatUuid)
@@ -507,7 +512,7 @@ class ChatConversationViewModel @Inject constructor(
     }
 
     private fun previewOf(message: Message) = MessagePreview(
-        messageUuid = message.messageUuid,
+        messageUuid = reducer.serverUuid(message.messageUuid),
         text = replyPreviewText(appContext, message),
         senderId = message.senderId,
         senderName = message.senderName,
@@ -544,7 +549,7 @@ class ChatConversationViewModel @Inject constructor(
         viewModelScope.launch {
             var forwarded = false
             for (message in messages) {
-                messageRepository.forwardMessage(message.messageUuid, targetChatUuid)
+                messageRepository.forwardMessage(reducer.serverUuid(message.messageUuid), targetChatUuid)
                     .collect { result ->
                         when (result) {
                             is Resource.Success -> forwarded = true
@@ -573,7 +578,7 @@ class ChatConversationViewModel @Inject constructor(
     /** Закрепляет сообщение в текущем чате. */
     fun pinMessage(message: Message) {
         viewModelScope.launch {
-            val ok = messageRepository.pinMessage(chatUuid, message.messageUuid)
+            val ok = messageRepository.pinMessage(chatUuid, reducer.serverUuid(message.messageUuid))
             if (ok) {
                 updateMessage(message.copy(isPinned = true))
                 refreshPinned()
@@ -586,7 +591,7 @@ class ChatConversationViewModel @Inject constructor(
     /** Открепляет сообщение. */
     fun unpinMessage(message: Message) {
         viewModelScope.launch {
-            val ok = messageRepository.unpinMessage(chatUuid, message.messageUuid)
+            val ok = messageRepository.unpinMessage(chatUuid, reducer.serverUuid(message.messageUuid))
             if (ok) {
                 updateMessage(message.copy(isPinned = false))
                 refreshPinned()
@@ -611,7 +616,7 @@ class ChatConversationViewModel @Inject constructor(
     }
 
     fun sendGif(gif: Gif) {
-        val replyToUuid = _uiState.value.replyTo?.messageUuid
+        val replyToUuid = _uiState.value.replyTo?.messageUuid?.let { reducer.serverUuid(it) }
         val optimistic = Message(
             messageUuid = LOCAL_PREFIX + System.currentTimeMillis(),
             chatUuid = chatUuid,
@@ -733,7 +738,7 @@ class ChatConversationViewModel @Inject constructor(
         if (latest.messageUuid == lastMarkedDeliveredUuid) return
         lastMarkedDeliveredUuid = latest.messageUuid
         viewModelScope.launch {
-            if (!messageRepository.markMessagesAsDelivered(chatUuid, latest.messageUuid)) {
+            if (!messageRepository.markMessagesAsDelivered(chatUuid, reducer.serverUuid(latest.messageUuid))) {
                 lastMarkedDeliveredUuid = null
             }
         }
@@ -767,7 +772,7 @@ class ChatConversationViewModel @Inject constructor(
      */
     fun sendRecordedAttachment(prepared: PreparedAttachment, messageType: String) {
         val localUuid = LOCAL_PREFIX + System.currentTimeMillis()
-        val replyToUuid = _uiState.value.replyTo?.messageUuid
+        val replyToUuid = _uiState.value.replyTo?.messageUuid?.let { reducer.serverUuid(it) }
         val localAttachment = MessageAttachment(
             fileUrl = prepared.file.absolutePath,
             thumbnailUrl = prepared.thumbnail?.absolutePath,
@@ -1013,7 +1018,7 @@ class ChatConversationViewModel @Inject constructor(
 
     /** Отправить жалобу на сообщение. Возвращает true, если сервер её принял. */
     suspend fun reportMessage(messageUuid: String, reason: String): Boolean =
-        messageRepository.reportMessage(messageUuid, reason)
+        messageRepository.reportMessage(reducer.serverUuid(messageUuid), reason)
 
     /** Заблокировать автора сообщения. */
     suspend fun blockUser(userUuid: String): Boolean =
