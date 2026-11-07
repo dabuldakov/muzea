@@ -303,6 +303,7 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/composerBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@android:color/white"
@@ -362,4 +363,57 @@
 
     </LinearLayout>
 
+
+    <LinearLayout
+        android:id="@+id/selectionBar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="@color/surface"
+        android:elevation="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="8dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvSelectionCount"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/selected_count"
+            android:textColor="@color/purple_700"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btnSelectionDelete"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/action_delete"
+            android:padding="12dp"
+            android:src="@drawable/ic_action_delete"
+            android:tint="@color/purple_500" />
+
+        <ImageButton
+            android:id="@+id/btnSelectionForward"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/action_forward"
+            android:padding="12dp"
+            android:src="@drawable/ic_action_forward"
+            android:tint="@color/purple_500" />
+
+        <ImageButton
+            android:id="@+id/btnSelectionClose"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/action_cancel"
+            android:padding="12dp"
+            android:src="@drawable/ic_close"
+            android:tint="@color/icon_tint" />
+    </LinearLayout>
 </LinearLayout>

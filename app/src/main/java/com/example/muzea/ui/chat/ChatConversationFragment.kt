@@ -10,8 +10,6 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.LayoutInflater
 import android.view.View
@@ -19,12 +17,11 @@ import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.view.ActionMode
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
@@ -98,7 +95,11 @@ class ChatConversationFragment : Fragment(),
     private var pendingForwardMessages: List<Message> = emptyList()
     private var selectionMode = false
     private val selectedMessages = LinkedHashSet<String>()
-    private var selectionActionMode: ActionMode? = null
+    private val selectionBackCallback = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() {
+            exitSelectionMode()
+        }
+    }
     /** Текущий список закреплённых (для клика по панели и открепления). */
     private var pinnedMessages: List<Message> = emptyList()
 
@@ -239,6 +240,7 @@ class ChatConversationFragment : Fragment(),
         setupAttachments()
         setupReplyBanner()
         setupPinnedBar()
+        setupSelectionBar()
         prefillDraft()
         observeViewModel()
         observeNetwork()
@@ -457,14 +459,24 @@ class ChatConversationFragment : Fragment(),
         input.requestFocus()
     }
 
+    private fun setupSelectionBar() {
+        requireActivity().onBackPressedDispatcher.addCallback(
+            viewLifecycleOwner, selectionBackCallback
+        )
+        binding.btnSelectionDelete.setOnClickListener { deleteSelected() }
+        binding.btnSelectionForward.setOnClickListener { forwardSelected() }
+        binding.btnSelectionClose.setOnClickListener { exitSelectionMode() }
+    }
+
     private fun enterSelectionMode(message: Message) {
         selectionMode = true
         selectedMessages.clear()
         selectedMessages.add(message.messageUuid)
         adapter.setSelection(selectedMessages)
-        selectionActionMode = (requireActivity() as AppCompatActivity)
-            .startSupportActionMode(selectionCallback)
-        selectionActionMode?.title = getString(R.string.selected_count, selectedMessages.size)
+        selectionBackCallback.isEnabled = true
+        binding.selectionBar.visibility = View.VISIBLE
+        binding.composerBar.visibility = View.GONE
+        updateSelectionCount()
     }
 
     private fun toggleSelection(message: Message) {
@@ -473,10 +485,24 @@ class ChatConversationFragment : Fragment(),
         }
         adapter.setSelection(selectedMessages)
         if (selectedMessages.isEmpty()) {
-            selectionActionMode?.finish()
+            exitSelectionMode()
         } else {
-            selectionActionMode?.title = getString(R.string.selected_count, selectedMessages.size)
+            updateSelectionCount()
         }
+    }
+
+    private fun updateSelectionCount() {
+        binding.tvSelectionCount.text =
+            getString(R.string.selected_count, selectedMessages.size)
+    }
+
+    private fun exitSelectionMode() {
+        selectionMode = false
+        selectedMessages.clear()
+        adapter.setSelection(emptySet())
+        selectionBackCallback.isEnabled = false
+        binding.selectionBar.visibility = View.GONE
+        binding.composerBar.visibility = View.VISIBLE
     }
 
     private fun selectedItems(): List<Message> =
@@ -495,7 +521,7 @@ class ChatConversationFragment : Fragment(),
             .setMessage(R.string.delete_selected_message)
             .setPositiveButton(R.string.action_delete) { _, _ ->
                 deletable.forEach { viewModel.deleteMessage(it) }
-                selectionActionMode?.finish()
+                exitSelectionMode()
             }
             .setNegativeButton(R.string.action_cancel, null)
             .show()
@@ -505,40 +531,9 @@ class ChatConversationFragment : Fragment(),
         val messages = selectedItems()
         if (messages.isEmpty()) return
         pendingForwardMessages = messages
-        selectionActionMode?.finish()
+        exitSelectionMode()
         ForwardChatPickerBottomSheet.newInstance(chatUuid)
             .show(childFragmentManager, "forward_picker")
-    }
-
-    private val selectionCallback = object : ActionMode.Callback {
-        override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
-            menu.add(Menu.NONE, MENU_DELETE, 0, R.string.action_delete)
-                .setIcon(R.drawable.ic_action_delete)
-                .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-            menu.add(Menu.NONE, MENU_FORWARD, 1, R.string.action_forward)
-                .setIcon(R.drawable.ic_action_forward)
-                .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-            return true
-        }
-
-        override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean {
-            mode.title = getString(R.string.selected_count, selectedMessages.size)
-            return true
-        }
-
-        override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean =
-            when (item.itemId) {
-                MENU_DELETE -> { deleteSelected(); true }
-                MENU_FORWARD -> { forwardSelected(); true }
-                else -> false
-            }
-
-        override fun onDestroyActionMode(mode: ActionMode) {
-            selectionMode = false
-            selectedMessages.clear()
-            adapter.setSelection(emptySet())
-            selectionActionMode = null
-        }
     }
 
     /** Подтверждение удаления сообщения «для всех». */
