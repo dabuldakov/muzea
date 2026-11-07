@@ -306,7 +306,7 @@
         android:id="@+id/composerBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/white"
+        android:background="@color/surface"
         android:elevation="4dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
@@ -347,7 +347,7 @@
             android:inputType="textMultiLine"
             android:maxLines="4"
             android:minLines="1"
-            android:textColor="@android:color/black"
+            android:textColor="?android:textColorPrimary"
             android:textColorHint="@color/gray" />
 
         <ImageButton

@@ -2,4 +2,10 @@
 <resources>
     <!-- Фон под гифками в тёмной теме. -->
     <color name="gif_media_background">#FF000000</color>
+
+    <!-- Тёмные поверхности: шторки, диалоги, композер, настройки. -->
+    <color name="surface">#FF1B1B1F</color>
+    <color name="bubble_incoming">#FF2A2A30</color>
+    <color name="icon_tint">#FFB9AEE8</color>
+    <color name="selected_message">#33B9AEE8</color>
 </resources>
