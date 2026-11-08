@@ -75,6 +75,36 @@ class ChatMessagesCacheTest {
     }
 
     @Test
+    fun `prependOlder adds older messages first and skips duplicates`() {
+        ChatMessagesCache.put("chat-1", listOf(message("m2")))
+
+        ChatMessagesCache.prependOlder("chat-1", listOf(message("m1"), message("m2")))
+        ChatMessagesCache.prependOlder("chat-1", emptyList())
+
+        assertEquals(
+            listOf("m1", "m2"),
+            ChatMessagesCache.get("chat-1").map { it.messageUuid }
+        )
+    }
+
+    @Test
+    fun `appendNewer replaces known messages and sorts by time`() {
+        ChatMessagesCache.put("chat-1", listOf(message("m1")))
+
+        ChatMessagesCache.appendNewer(
+            "chat-1",
+            listOf(message("m1").copy(text = "edited"), message("m2"))
+        )
+        ChatMessagesCache.appendNewer("chat-1", emptyList())
+
+        assertEquals(
+            listOf("m1", "m2"),
+            ChatMessagesCache.get("chat-1").map { it.messageUuid }
+        )
+        assertEquals("edited", ChatMessagesCache.get("chat-1").first().text)
+    }
+
+    @Test
     fun `clear removes all chats`() {
         ChatMessagesCache.put("chat-1", listOf(message("m1")))
 

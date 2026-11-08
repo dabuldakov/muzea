@@ -226,7 +226,13 @@ tasks.register<org.gradle.testing.jacoco.tasks.JacocoReport>("jacocoUnitTestRepo
                 "**/*_HiltComponents*",
                 "**/*_GeneratedInjector*",
                 "**/*_MembersInjector*",
-                "**/hilt_aggregated_deps/**"
+                "**/hilt_aggregated_deps/**",
+                // Сгенерированные Glide API-классы — не наш код.
+                "**/utils/GlideApp.class",
+                "**/utils/GlideOptions.class",
+                "**/utils/GlideRequest.class",
+                "**/utils/GlideRequests.class",
+                "**/GeneratedAppGlideModule*.class"
             )
         }
     )
