@@ -116,8 +116,11 @@ class ChatConversationViewModelTest {
         cached: List<Message> = emptyList(),
         network: Flow<Resource<List<Message>>> =
             flowOf(Resource.Success(emptyList())),
+        initialNetwork: com.example.muzea.utils.NetworkQuality =
+            com.example.muzea.utils.NetworkQuality.GOOD,
         block: suspend CoroutineScope.(ChatConversationViewModel) -> Unit
     ) = runTest {
+        networkStatus.value = com.example.muzea.utils.NetworkStatus(initialNetwork, metered = false)
         every { messageRepository.cachedMessages(chatUuid) } returns cached
         every { outboxSender.events } returns outboxEvents
         every { outboxSender.pendingForChat(chatUuid) } returns emptyList()
@@ -981,6 +984,43 @@ class ChatConversationViewModelTest {
         coVerify {
             messageRepository.loadMessagesAfter(chatUuid, "2026-01-01T00:00:00")
         }
+    }
+
+    @Test
+    fun `network recovery from offline reloads immediately`() = withViewModel(
+        initialNetwork = com.example.muzea.utils.NetworkQuality.OFFLINE
+    ) { viewModel ->
+        (this as kotlinx.coroutines.test.TestScope).testScheduler.runCurrent()
+        // Пока сети нет, запросов не делаем: ждём offline-интервал.
+        coVerify(exactly = 0) { messageRepository.loadMessages(chatUuid) }
+
+        networkStatus.value = com.example.muzea.utils.NetworkStatus(
+            com.example.muzea.utils.NetworkQuality.GOOD,
+            metered = false
+        )
+        (this as kotlinx.coroutines.test.TestScope).testScheduler.runCurrent()
+
+        // Возврат сети перезапускает polling, не дожидаясь 60-секундного delay.
+        coVerify(exactly = 1) { messageRepository.loadMessages(chatUuid) }
+    }
+
+    @Test
+    fun `network recovery does not reload while the screen is paused`() = withViewModel(
+        initialNetwork = com.example.muzea.utils.NetworkQuality.OFFLINE
+    ) { viewModel ->
+        (this as kotlinx.coroutines.test.TestScope).testScheduler.runCurrent()
+        viewModel.pausePolling()
+
+        networkStatus.value = com.example.muzea.utils.NetworkStatus(
+            com.example.muzea.utils.NetworkQuality.GOOD,
+            metered = false
+        )
+        (this as kotlinx.coroutines.test.TestScope).testScheduler.runCurrent()
+        coVerify(exactly = 0) { messageRepository.loadMessages(chatUuid) }
+
+        viewModel.resumePolling()
+        (this as kotlinx.coroutines.test.TestScope).testScheduler.runCurrent()
+        coVerify(exactly = 1) { messageRepository.loadMessages(chatUuid) }
     }
 
     @Test

@@ -5,6 +5,7 @@ import com.example.muzea.domain.model.MessageAttachment
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -90,6 +91,29 @@ class OutboxStoreTest {
         store.clear()
 
         assertTrue(store.all().isEmpty())
+    }
+
+    @Test
+    fun `legacy outbox file is deleted and v2 is used`() {
+        val dir = temp.newFolder()
+        val legacy = File(dir, "outbox.json")
+        // Такой файл мог остаться после R8-обфускации: разбор падал.
+        legacy.writeText("""[{"clientMessageId":"broken","attachments":{}}]""")
+
+        val store = store(dir)
+        store.add(item())
+
+        assertFalse("legacy outbox.json must be removed", legacy.exists())
+        assertTrue("new queue file must be created", File(dir, "outbox_v2.json").exists())
+        assertEquals(listOf("a-1"), store.all().single().attachments.map { it.attachmentUuid })
+    }
+
+    @Test
+    fun `corrupted queue is ignored instead of crashing`() {
+        val dir = temp.newFolder()
+        File(dir, "outbox_v2.json").writeText("{not-json")
+
+        assertTrue(store(dir).all().isEmpty())
     }
 
     @Test
