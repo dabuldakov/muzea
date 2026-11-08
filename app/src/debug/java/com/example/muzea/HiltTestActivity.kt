@@ -24,6 +24,7 @@ class HiltTestActivity : FragmentActivity(), Navigator {
     )
 
     var lastConversation: Conversation? = null
+    var lastNewsId: Long? = null
 
     override fun openConversation(
         chatUuid: String,
@@ -40,7 +41,9 @@ class HiltTestActivity : FragmentActivity(), Navigator {
 
     override fun openGroupSettings(chatUuid: String, title: String, avatarUrl: String?) = Unit
 
-    override fun openNewsDetail(newsId: Long) = Unit
+    override fun openNewsDetail(newsId: Long) {
+        lastNewsId = newsId
+    }
 
     override fun back() = Unit
 }
