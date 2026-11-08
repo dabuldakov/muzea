@@ -106,6 +106,7 @@ class ChatConversationFragment : Fragment(),
     /** Текущий список закреплённых (для клика по панели и открепления). */
     private var pinnedMessages: List<Message> = emptyList()
     private var mentionPopup: ListPopupWindow? = null
+    private var downloadJob: kotlinx.coroutines.Job? = null
     private var mentionStart = -1
     private var mentionEnd = -1
 
@@ -867,25 +868,52 @@ class ChatConversationFragment : Fragment(),
     }
 
     private fun downloadAndOpen(attachment: MessageAttachment) {
-        viewLifecycleOwner.lifecycleScope.launch {
-            val file = viewModel.downloadAttachment(attachment)
-            if (file == null) {
-                Toast.makeText(requireContext(), R.string.attachment_download_failed, Toast.LENGTH_SHORT).show()
-                return@launch
-            }
+        // Повторные нажатия не должны запускать параллельные загрузки.
+        if (downloadJob?.isActive == true) return
+        val content = layoutInflater.inflate(R.layout.dialog_download_progress, null)
+        val progressBar = content.findViewById<android.widget.ProgressBar>(R.id.downloadProgress)
+        val percentText = content.findViewById<android.widget.TextView>(R.id.downloadPercent)
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.attachment_downloading)
+            .setView(content)
+            .setNegativeButton(android.R.string.cancel) { _, _ -> downloadJob?.cancel() }
+            .setCancelable(false)
+            .create()
+        dialog.show()
+        downloadJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
-                val uri = androidx.core.content.FileProvider.getUriForFile(
-                    requireContext(),
-                    "${requireContext().packageName}.fileprovider",
-                    file
-                )
-                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-                    setDataAndType(uri, attachment.mimeType ?: "*/*")
-                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                val file = viewModel.downloadAttachment(attachment) { value ->
+                    content.post {
+                        progressBar.progress = value
+                        percentText.text = "$value%"
+                    }
                 }
-                startActivity(intent)
-            } catch (e: Exception) {
-                Toast.makeText(requireContext(), R.string.attachment_open_failed, Toast.LENGTH_SHORT).show()
+                if (dialog.isShowing) dialog.dismiss()
+                if (file == null) {
+                    Toast.makeText(
+                        requireContext(), R.string.attachment_download_failed, Toast.LENGTH_SHORT
+                    ).show()
+                    return@launch
+                }
+                try {
+                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                        requireContext(),
+                        "${requireContext().packageName}.fileprovider",
+                        file
+                    )
+                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri, attachment.mimeType ?: "*/*")
+                        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(
+                        requireContext(), R.string.attachment_open_failed, Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } finally {
+                if (dialog.isShowing) dialog.dismiss()
+                downloadJob = null
             }
         }
     }

@@ -243,6 +243,7 @@
     <string name="attachment_audio">Audio</string>
     <string name="attachment_document">Document</string>
     <string name="attachment_download_failed">Could not download the file</string>
+    <string name="attachment_downloading">Downloading file…</string>
     <string name="attachment_open_failed">No app to open this file</string>
     <string name="attachment_play">Play</string>
     <string name="attachment_wait_upload">Wait until the files are uploaded</string>

@@ -964,9 +964,12 @@ class ChatConversationViewModel @Inject constructor(
     }
 
     /** Скачивает документ во временный файл для открытия системным приложением. */
-    suspend fun downloadAttachment(attachment: MessageAttachment): java.io.File? {
+    suspend fun downloadAttachment(
+        attachment: MessageAttachment,
+        onProgress: (Int) -> Unit = {}
+    ): java.io.File? {
         val uuid = attachment.attachmentUuid ?: return null
-        return messageRepository.downloadAttachment(uuid, attachment.fileName)
+        return messageRepository.downloadAttachment(uuid, attachment.fileName, onProgress)
     }
 
     /** Статус сообщения для адаптера; null — у входящих и пока неизвестных. */

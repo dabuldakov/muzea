@@ -13,6 +13,8 @@ import com.example.muzea.domain.model.MessageAttachment
 import com.example.muzea.utils.PreparedAttachment
 import com.example.muzea.core.Resource
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -457,8 +459,15 @@ class MessageRepositoryImpl @Inject constructor(
     override suspend fun downloadAttachment(
         attachmentUuid: String,
         fileName: String?
-    ): File? {
-        return try {
+    ): File? = downloadAttachment(attachmentUuid, fileName) {}
+
+    override suspend fun downloadAttachment(
+        attachmentUuid: String,
+        fileName: String?,
+        onProgress: (Int) -> Unit
+    ): File? = withContext(Dispatchers.IO) {
+        var part: File? = null
+        try {
             val response = chatAuthManager.authenticatedRequest {
                 apiService.downloadAttachment(attachmentUuid)
             }
@@ -472,14 +481,41 @@ class MessageRepositoryImpl @Inject constructor(
                 ).apply { mkdirs() }
                 val safeName = (fileName ?: "file").replace(Regex("""[\\/:*?"<>|]"""), "_")
                 val target = File(targetDir, safeName)
+                val temp = File(targetDir, "$safeName.part")
+                part = temp
+                val total = body.contentLength().takeIf { it > 0 } ?: -1L
+                // @Streaming: байты читаются из сети по мере копирования.
+                // Раньше copyTo выполнялся на Main и вешал UI (ANR) на APK.
                 body.byteStream().use { input ->
-                    target.outputStream().use { output -> input.copyTo(output) }
+                    temp.outputStream().use { output ->
+                        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                        var copied = 0L
+                        while (true) {
+                            val read = input.read(buffer)
+                            if (read < 0) break
+                            output.write(buffer, 0, read)
+                            copied += read
+                            if (total > 0) {
+                                onProgress(((copied * 100) / total).toInt().coerceIn(0, 100))
+                            }
+                        }
+                    }
                 }
+                // Открываем только полностью скачанный файл: недокачанный
+                // .part после отмены удаляем.
+                if (!temp.renameTo(target)) {
+                    temp.copyTo(target, overwrite = true)
+                    temp.delete()
+                }
+                part = null
+                onProgress(100)
                 target
             }
         } catch (e: CancellationException) {
+            part?.delete()
             throw e
         } catch (e: Exception) {
+            part?.delete()
             null
         }
     }

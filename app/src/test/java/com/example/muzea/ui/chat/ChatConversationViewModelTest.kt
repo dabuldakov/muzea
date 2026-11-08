@@ -955,9 +955,16 @@ class ChatConversationViewModelTest {
             attachmentUuid = "a-1", fileName = "f.pdf"
         )
         val expected = java.io.File("/tmp/f.pdf")
-        coEvery { messageRepository.downloadAttachment("a-1", "f.pdf") } returns expected
+        coEvery {
+            messageRepository.downloadAttachment("a-1", "f.pdf", any())
+        } answers {
+            thirdArg<(Int) -> Unit>().invoke(100)
+            expected
+        }
+        val progress = mutableListOf<Int>()
 
-        assertEquals(expected, viewModel.downloadAttachment(attachment))
+        assertEquals(expected, viewModel.downloadAttachment(attachment) { progress += it })
+        assertEquals(listOf(100), progress)
         assertNull(viewModel.downloadAttachment(attachment.copy(attachmentUuid = null)))
     }
 

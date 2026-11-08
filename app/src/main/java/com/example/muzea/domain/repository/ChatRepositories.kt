@@ -83,6 +83,13 @@ interface MessageRepository {
 
     /** Скачивает вложение в cacheDir; null — если не удалось. */
     suspend fun downloadAttachment(attachmentUuid: String, fileName: String?): java.io.File?
+
+    /** То же, но с прогрессом 0..100 (для индикатора в UI). */
+    suspend fun downloadAttachment(
+        attachmentUuid: String,
+        fileName: String?,
+        onProgress: (Int) -> Unit
+    ): java.io.File? = downloadAttachment(attachmentUuid, fileName)
     suspend fun markMessagesAsRead(chatUuid: String, upToMessageUuid: String): Boolean
 
     /** Подтверждает доставку всей ленты до [upToMessageUuid] на это устройство. */
