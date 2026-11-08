@@ -76,6 +76,7 @@ class ChatListFragmentTest {
         hiltRule.inject()
         every { chatRepository.cachedChats() } returns emptyList()
         coEvery { chatRepository.loadChats() } returns flowOf(Resource.Success(emptyList()))
+        coEvery { contactRepository.loadContacts() } returns flowOf(Resource.Success(emptyList()))
     }
 
     private fun chat(uuid: String = "chat-1", title: String = "Баги") = Chat(
@@ -172,6 +173,33 @@ class ChatListFragmentTest {
         assertEquals(View.VISIBLE, list.visibility)
         assertEquals(1, list.adapter?.itemCount)
         assertEquals(View.GONE, fragment.requireView().findViewById<View>(R.id.tvError).visibility)
+    }
+
+    private fun firstEditText(view: android.view.View): android.widget.EditText? {
+        if (view is android.widget.EditText) return view
+        if (view is android.view.ViewGroup) {
+            for (i in 0 until view.childCount) {
+                firstEditText(view.getChildAt(i))?.let { return it }
+            }
+        }
+        return null
+    }
+
+    @Test
+    fun `create group sends the title and opens the members dialog`() {
+        coEvery { chatRepository.createGroupChat("Тест", any()) } returns
+            flowOf(Resource.Success(chat(title = "Тест")))
+        val (_, fragment) = launch()
+
+        fragment.requireView().findViewById<View>(R.id.fabCreateGroup).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        val dialog = ShadowDialog.getLatestDialog() as androidx.appcompat.app.AlertDialog
+        firstEditText(dialog.window!!.decorView)?.setText("Тест")
+        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        io.mockk.coVerify { chatRepository.createGroupChat("Тест", emptyList()) }
+        assertEquals(true, ShadowDialog.getLatestDialog()?.isShowing)
     }
 
     @Test
