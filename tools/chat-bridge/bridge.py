@@ -270,6 +270,36 @@ def post_to_chat(chat_uuid: str, text: str) -> None:
     )
 
 
+HISTORY_MESSAGE_LIMIT = 1500
+HISTORY_TOTAL_LIMIT = 12000
+HISTORY_WINDOW = 15
+
+
+def format_history(messages: list[dict], bot_name: str, current_uuid: str) -> list[str]:
+    """Строки истории с последнего ответа бота и до текущего сообщения."""
+    messages = [m for m in messages if m.get("messageUuid") != current_uuid]
+    bot_name = (bot_name or "").lower()
+    last_bot = None
+    for index, item in enumerate(messages):
+        if (item.get("senderName") or "").lower() == bot_name:
+            last_bot = index
+    selected = messages[last_bot:] if last_bot is not None else messages[-HISTORY_WINDOW:]
+    selected = selected[-HISTORY_WINDOW:]
+    lines = []
+    for item in selected:
+        text = (item.get("text") or "").strip().replace("\n", " ")
+        if not text:
+            continue
+        lines.append(
+            f"@{item.get('senderName') or item.get('senderId')}: "
+            f"{text[:HISTORY_MESSAGE_LIMIT]}"
+        )
+    # Не раздуваем промпт: старые строки уходят первыми.
+    while lines and sum(len(line) + 1 for line in lines) > HISTORY_TOTAL_LIMIT:
+        lines.pop(0)
+    return lines
+
+
 def chat_history(chat_uuid: str, bot: dict, current_uuid: str) -> list[str]:
     """История с последнего ответа бота: чтобы агент видел ход обсуждения."""
     try:
@@ -278,24 +308,7 @@ def chat_history(chat_uuid: str, bot: dict, current_uuid: str) -> list[str]:
         print(f"history: {error}", file=sys.stderr)
         return []
     messages = list(reversed(response.get("content") or []))
-    messages = [m for m in messages if m.get("messageUuid") != current_uuid]
-    bot_name = (bot.get("username") or "").lower()
-    last_bot = None
-    for index, item in enumerate(messages):
-        if (item.get("senderName") or "").lower() == bot_name:
-            last_bot = index
-    selected = messages[last_bot:] if last_bot is not None else messages[-15:]
-    selected = selected[-15:]
-    lines = []
-    for item in selected:
-        text = (item.get("text") or "").strip().replace("\n", " ")
-        if not text:
-            continue
-        lines.append(f"@{item.get('senderName') or item.get('senderId')}: {text[:1500]}")
-    # не раздуваем промпт: не больше ~4000 символов истории
-    while lines and sum(len(line) + 1 for line in lines) > 12000:
-        lines.pop(0)
-    return lines
+    return format_history(messages, bot.get("username") or "", current_uuid)
 
 
 def handle_message(chat_uuid: str, bot: dict, message: dict) -> bool:
