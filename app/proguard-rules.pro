@@ -50,3 +50,9 @@
 # Gson TypeToken и его наследники.
 -keep class com.google.gson.reflect.TypeToken { *; }
 -keep class * extends com.google.gson.reflect.TypeToken
+
+# Очередь исходящих: Gson читает OutboxItem рефлексией. Без keep R8
+# стирал generic-тип attachments, и после перезапуска падало
+# ClassCastException LinkedTreeMap -> MessageAttachment.
+-keep class com.example.muzea.data.repository.OutboxItem { *; }
+-keep class com.example.muzea.data.repository.OutboxStore { *; }

@@ -35,6 +35,13 @@ class OutboxStore @Inject constructor(
 
     private val gson = Gson()
     private val file = File(context.filesDir, FILE_NAME)
+    private val legacyFile = File(context.filesDir, LEGACY_FILE_NAME)
+
+    init {
+        // Старый файл мог быть записан R8-обфусцированными ключами и
+        // валить приложение при разборе вложений. Начинаем с чистого v2.
+        legacyFile.delete()
+    }
     private val type = object : TypeToken<MutableList<OutboxItem>>() {}.type
     private val lock = Any()
 
@@ -86,6 +93,7 @@ class OutboxStore @Inject constructor(
     }
 
     private companion object {
-        const val FILE_NAME = "outbox.json"
+        const val FILE_NAME = "outbox_v2.json"
+        const val LEGACY_FILE_NAME = "outbox.json"
     }
 }
