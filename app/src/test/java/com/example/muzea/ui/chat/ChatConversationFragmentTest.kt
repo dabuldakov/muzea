@@ -84,6 +84,9 @@ class ChatConversationFragmentTest {
     @Before
     fun setUp() {
         hiltRule.inject()
+        androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+            .getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
+            .edit().putString("chat_user_uuid", "me").commit()
         ChatMessagesCache.clear()
         every { messageRepository.cachedMessages(any()) } returns emptyList()
         coEvery { messageRepository.loadMessages(any()) } returns flowOf(Resource.Success(emptyList()))
@@ -131,6 +134,16 @@ class ChatConversationFragmentTest {
         )
         list.layout(0, 0, 1080, 2400)
         shadowOf(Looper.getMainLooper()).idle()
+    }
+
+    private fun launchWithActivity(): Pair<HiltTestActivity, ChatConversationFragment> {
+        val activity = Robolectric.buildActivity(HiltTestActivity::class.java).setup().get()
+        val fragment = ChatConversationFragment.newInstance("chat-1", "Баги")
+        activity.supportFragmentManager.beginTransaction()
+            .replace(android.R.id.content, fragment)
+            .commitNow()
+        shadowOf(Looper.getMainLooper()).idle()
+        return activity to fragment
     }
 
     private fun launch(): ChatConversationFragment {
@@ -237,6 +250,49 @@ class ChatConversationFragmentTest {
         val clipboard = fragment.requireContext()
             .getSystemService(android.content.ClipboardManager::class.java)
         assertEquals("привет", clipboard.primaryClip?.getItemAt(0)?.text.toString())
+    }
+
+    @Test
+    fun `back button and title use the navigator`() {
+        val (activity, fragment) = launchWithActivity()
+
+        fragment.requireView().findViewById<View>(R.id.btnBack).performClick()
+        fragment.requireView().findViewById<View>(R.id.tvTitle).performClick()
+
+        assertEquals(true, activity.backCalled)
+        assertEquals("chat-1", activity.lastGroupSettings?.chatUuid)
+    }
+
+    @Test
+    fun `delete selected shows the confirmation dialog`() {
+        every { messageRepository.cachedMessages("chat-1") } returns listOf(message())
+        val fragment = launch()
+        fragment.onMessageAction("m1", MessageActionsBottomSheet.ACTION_SELECT)
+
+        fragment.requireView().findViewById<View>(R.id.btnSelectionDelete).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(
+            true,
+            org.robolectric.shadows.ShadowDialog.getLatestDialog()?.isShowing
+        )
+    }
+
+    @Test
+    fun `forward selected opens the chat picker`() {
+        every { messageRepository.cachedMessages("chat-1") } returns listOf(message())
+        coEvery { chatRepository.loadChats() } returns
+            flowOf(Resource.Success(emptyList()))
+        val fragment = launch()
+        fragment.onMessageAction("m1", MessageActionsBottomSheet.ACTION_SELECT)
+
+        fragment.requireView().findViewById<View>(R.id.btnSelectionForward).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(
+            true,
+            fragment.childFragmentManager.findFragmentByTag("forward_picker") != null
+        )
     }
 
     @Test
