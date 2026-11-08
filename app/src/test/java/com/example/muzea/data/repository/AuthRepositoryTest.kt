@@ -126,6 +126,37 @@ class AuthRepositoryTest {
     }
 
     @Test
+    fun `login without a user profile persists only the token pair`() = runTest {
+        coEvery { api.verifyLoginCode(any()) } returns httpOk(tokens().copy(user = null))
+
+        assertTrue(repository.verifyLoginCode("a@b.c", "1234").toList().last() is Resource.Success)
+
+        verify(exactly = 1) { tokenManager.saveToken("access") }
+        verify(exactly = 0) { tokenManager.saveUsername(any()) }
+        verify(exactly = 0) { tokenManager.saveEmail(any()) }
+    }
+
+    @Test
+    fun `malformed error body falls back to the generic message`() = runTest {
+        coEvery { api.requestLoginCode(any()) } returns httpError(500, "{not-json")
+
+        val last = repository.requestLoginCode("a@b.c").toList().last()
+
+        assertTrue(last is Resource.Error)
+        assertEquals("generic", last.message)
+    }
+
+    @Test
+    fun `please wait error is localized`() = runTest {
+        coEvery { api.requestLoginCode(any()) } returns
+            httpError(429, """{"message":"Please wait 30 seconds"}""")
+
+        val last = repository.requestLoginCode("a@b.c").toList().last()
+
+        assertEquals("wait", last.message)
+    }
+
+    @Test
     fun `failed login code verification keeps the old tokens`() = runTest {
         coEvery { api.verifyLoginCode(any()) } returns httpError(400, """{"message":"Invalid code"}""")
 
