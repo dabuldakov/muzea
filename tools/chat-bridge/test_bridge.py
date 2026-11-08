@@ -9,6 +9,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 
@@ -82,6 +83,65 @@ class FormatHistoryTest(unittest.TestCase):
         self.assertLessEqual(sum(len(line) + 1 for line in lines), 12000)
         self.assertTrue(lines[-1].endswith("y" * 1500))
         self.assertLess(len(lines), 15)
+
+
+class ContinuationTest(unittest.TestCase):
+    """Продолжения ответа: агент может ответить ещё раз уже после первого ответа."""
+
+    def setUp(self):
+        bridge.STATE.clear()
+        bridge.STATE.update({"lastReplyTs": 1000, "processed": []})
+
+    @staticmethod
+    def reply(created, text, finish="stop"):
+        return {
+            "finish": finish,
+            "time": {"created": created},
+            "content": [{"type": "text", "text": text}],
+        }
+
+    def test_assistant_replies_keeps_only_new_final_text(self):
+        payload = {
+            "data": [
+                self.reply(3000, "b"),
+                self.reply(2000, "a"),
+                self.reply(500, "old"),
+                self.reply(4000, "tools", finish="tool-calls"),
+                self.reply(4500, "   "),
+            ]
+        }
+        with mock.patch.object(bridge, "opencode_api", return_value=payload):
+            self.assertEqual([(2000, "a"), (3000, "b")], bridge.assistant_replies(1000))
+
+    def test_forward_continuations_posts_new_reply_and_marks_it(self):
+        posted = []
+        payload = {"data": [self.reply(2000, "result")]}
+        with mock.patch.object(bridge, "opencode_api", return_value=payload), \
+                mock.patch.object(
+                    bridge, "post_to_chat",
+                    side_effect=lambda chat, text: posted.append((chat, text))
+                ), \
+                mock.patch.object(bridge, "save_state"):
+            bridge.forward_continuations("chat-1")
+
+        self.assertEqual([("chat-1", "result")], posted)
+        self.assertEqual(2000, bridge.STATE["lastReplyTs"])
+
+    def test_forward_continuations_does_not_repeat_old_reply(self):
+        posted = []
+        payload = {"data": [self.reply(1000, "already sent")]}
+        with mock.patch.object(bridge, "opencode_api", return_value=payload), \
+                mock.patch.object(bridge, "post_to_chat", side_effect=posted.append), \
+                mock.patch.object(bridge, "save_state"):
+            bridge.forward_continuations("chat-1")
+
+        self.assertEqual([], posted)
+
+    def test_wait_for_reply_returns_first_reply_with_time(self):
+        with mock.patch.object(
+            bridge, "assistant_replies", return_value=[(1234, "hi")]
+        ):
+            self.assertEqual((1234, "hi"), bridge.wait_for_reply(1000))
 
 
 if __name__ == "__main__":

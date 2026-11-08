@@ -80,7 +80,12 @@ def load_state() -> dict:
         with open(STATE_FILE, encoding="utf-8") as handle:
             return json.load(handle)
     except (OSError, ValueError):
-        return {"lastTs": now_iso(), "processed": []}
+        return {
+            "lastTs": now_iso(),
+            "processed": [],
+            # Время последнего ответа, уже опубликованного в чат.
+            "lastReplyTs": int(time.time() * 1000),
+        }
 
 
 STATE = load_state()
@@ -181,34 +186,40 @@ def opencode_api(method: str, path: str, body: dict | None = None):
         raise RuntimeError(f"opencode {method} {path}: {error.code} {detail}") from error
 
 
-def wait_for_reply(prompt_time: int, timeout_seconds: int = 900) -> str:
-    """Ждёт финальный assistant-ответ после отправленного промпта.
+def assistant_replies(since: int) -> list[tuple[int, str]]:
+    """Финальные текстовые ответы assistant новее `since` (мс)."""
+    response = opencode_api(
+        "get",
+        f"/api/session/{SESSION}/message?limit=20&type=assistant",
+    )
+    replies = []
+    for message in response["data"]:
+        if message.get("finish") != "stop":
+            continue
+        created = (message.get("time") or {}).get("created") or 0
+        if created <= since:
+            continue
+        text = "\n".join(
+            part.get("text", "")
+            for part in (message.get("content") or [])
+            if part.get("type") == "text"
+        ).strip()
+        if text:
+            replies.append((created, text))
+    return sorted(replies)
+
+
+def wait_for_reply(prompt_time: int, timeout_seconds: int = 900) -> tuple[int, str]:
+    """Ждёт первый финальный assistant-ответ после отправленного промпта.
 
     Запрашиваем только assistant-сообщения и небольшую страницу: полный
     список с reasoning бывает больше 100 КБ и обрезается CLI.
     """
     deadline = time.time() + timeout_seconds
     while time.time() < deadline:
-        response = opencode_api(
-            "get",
-            f"/api/session/{SESSION}/message?limit=10&type=assistant",
-        )
-        candidates = []
-        for message in response["data"]:
-            if message.get("finish") != "stop":
-                continue
-            created = (message.get("time") or {}).get("created") or 0
-            if created < prompt_time:
-                continue
-            text = "\n".join(
-                part.get("text", "")
-                for part in (message.get("content") or [])
-                if part.get("type") == "text"
-            ).strip()
-            if text:
-                candidates.append((created, text))
-        if candidates:
-            return min(candidates, key=lambda item: item[0])[1]
+        replies = assistant_replies(prompt_time - 1)
+        if replies:
+            return replies[0]
         time.sleep(2)
     raise TimeoutError("OpenCode не ответил за 15 минут")
 
@@ -251,7 +262,9 @@ def ask_session(prompt: str, message_uuid: str) -> str:
         }
         save_state()
     try:
-        return wait_for_reply(prompt_time)
+        created, text = wait_for_reply(prompt_time)
+        note_reply(created)
+        return text
     except TimeoutError:
         STATE.pop("pending", None)
         save_state()
@@ -311,6 +324,34 @@ def chat_history(chat_uuid: str, bot: dict, current_uuid: str) -> list[str]:
     return format_history(messages, bot.get("username") or "", current_uuid)
 
 
+def note_reply(created: int) -> None:
+    """Запоминаем, до какого ответа чат уже получил продолжения."""
+    if created > int(STATE.get("lastReplyTs") or 0):
+        STATE["lastReplyTs"] = created
+
+
+def forward_continuations(chat_uuid: str) -> None:
+    """Досылает в чат ответы, появившиеся уже после первого ответа.
+
+    Агент может отдать промежуточное «ушёл проверять» и закончить ход, а
+    результат — отдельным сообщением после фоновой работы. Раньше мост
+    забирал только первый ответ, и продолжение терялось.
+    """
+    since = int(STATE.get("lastReplyTs") or 0)
+    if not since:
+        return
+    try:
+        replies = assistant_replies(since)
+    except Exception as error:  # noqa: BLE001 — мост не должен падать
+        print(f"continuations: {error}", file=sys.stderr)
+        return
+    for created, text in replies:
+        post_to_chat(chat_uuid, text)
+        note_reply(created)
+        save_state()
+        print(f"← продолжение ответа {len(text)} символов")
+
+
 def handle_message(chat_uuid: str, bot: dict, message: dict) -> bool:
     if message.get("messageUuid") in (STATE.get("processed") or []):
         return True
@@ -358,9 +399,14 @@ def poll(chat_uuid: str, bot: dict) -> None:
         if not handle_message(chat_uuid, bot, message):
             return
         STATE["lastTs"] = message.get("createdAt") or STATE["lastTs"]
+    forward_continuations(chat_uuid)
 
 
 def main() -> None:
+    # Старый state без поля: начинаем с текущего момента, чтобы не
+    # вывалить в чат всю прошлую переписку сессии.
+    STATE.setdefault("lastReplyTs", int(time.time() * 1000))
+    save_state()
     chat_uuid = resolve_chat()
     bot = me()
     print(f"Сессия OpenCode: {SESSION}")
