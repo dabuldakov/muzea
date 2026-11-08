@@ -69,6 +69,36 @@ class AttachmentViewerActivityTest {
     }
 
     @Test
+    fun `video opens the player view`() {
+        val activity = Robolectric.buildActivity(
+            AttachmentViewerActivity::class.java, intent("VIDEO")
+        ).setup().get()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(
+            View.VISIBLE,
+            activity.findViewById<View>(R.id.playerView).visibility
+        )
+    }
+
+    @Test
+    fun `audio shows controls and toggles playback`() {
+        val activity = Robolectric.buildActivity(
+            AttachmentViewerActivity::class.java, intent("AUDIO")
+        ).setup().get()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(
+            View.VISIBLE,
+            activity.findViewById<View>(R.id.audioControls).visibility
+        )
+        activity.findViewById<View>(R.id.btnPlay).performClick()
+        activity.findViewById<View>(R.id.btnPlay).performClick()
+        activity.findViewById<android.widget.SeekBar>(R.id.seekBar).progress = 1000
+        shadowOf(Looper.getMainLooper()).idle()
+    }
+
+    @Test
     fun `unknown type closes the screen`() {
         val activity = Robolectric.buildActivity(
             AttachmentViewerActivity::class.java, intent("STICKER")
