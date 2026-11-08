@@ -115,6 +115,24 @@ class ChatConversationFragmentTest {
         updatedAt = null
     )
 
+    private fun awaitItems(list: RecyclerView, count: Int) {
+        repeat(100) {
+            shadowOf(Looper.getMainLooper()).idle()
+            if (list.adapter?.itemCount == count) return
+            Thread.sleep(10)
+        }
+        assertEquals(count, list.adapter?.itemCount)
+    }
+
+    private fun layout(list: RecyclerView) {
+        list.measure(
+            View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(2400, View.MeasureSpec.EXACTLY)
+        )
+        list.layout(0, 0, 1080, 2400)
+        shadowOf(Looper.getMainLooper()).idle()
+    }
+
     private fun launch(): ChatConversationFragment {
         val activity = Robolectric.buildActivity(HiltTestActivity::class.java).setup().get()
         val fragment = ChatConversationFragment.newInstance("chat-1", "Баги")
@@ -144,6 +162,81 @@ class ChatConversationFragmentTest {
 
         val list = fragment.requireView().findViewById<RecyclerView>(R.id.recyclerViewMessages)
         assertEquals(1, list.adapter?.itemCount)
+    }
+
+    @Test
+    fun `clicking a message opens the actions sheet`() {
+        every { messageRepository.cachedMessages("chat-1") } returns listOf(message())
+        val fragment = launch()
+        val list = fragment.requireView().findViewById<RecyclerView>(R.id.recyclerViewMessages)
+        awaitItems(list, 1)
+        layout(list)
+
+        list.findViewHolderForAdapterPosition(0)!!.itemView.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(
+            true,
+            fragment.childFragmentManager.findFragmentByTag("message_actions") != null
+        )
+    }
+
+    @Test
+    fun `select action enters selection mode and close exits`() {
+        every { messageRepository.cachedMessages("chat-1") } returns listOf(message())
+        val fragment = launch()
+
+        fragment.onMessageAction("m1", MessageActionsBottomSheet.ACTION_SELECT)
+
+        assertEquals(
+            View.VISIBLE,
+            fragment.requireView().findViewById<View>(R.id.selectionBar).visibility
+        )
+        assertEquals(
+            View.GONE,
+            fragment.requireView().findViewById<View>(R.id.composerBar).visibility
+        )
+        fragment.requireView().findViewById<View>(R.id.btnSelectionClose).performClick()
+        assertEquals(
+            View.GONE,
+            fragment.requireView().findViewById<View>(R.id.selectionBar).visibility
+        )
+    }
+
+    @Test
+    fun `reply action shows the reply banner`() {
+        every { messageRepository.cachedMessages("chat-1") } returns listOf(message())
+        val fragment = launch()
+
+        fragment.onMessageAction("m1", MessageActionsBottomSheet.ACTION_REPLY)
+
+        assertEquals(
+            View.VISIBLE,
+            fragment.requireView().findViewById<View>(R.id.replyBanner).visibility
+        )
+    }
+
+    @Test
+    fun `edit action fills the input`() {
+        every { messageRepository.cachedMessages("chat-1") } returns listOf(message())
+        val fragment = launch()
+
+        fragment.onMessageAction("m1", MessageActionsBottomSheet.ACTION_EDIT)
+
+        val input = fragment.requireView().findViewById<android.widget.EditText>(R.id.etMessageInput)
+        assertEquals("привет", input.text.toString())
+    }
+
+    @Test
+    fun `copy action puts the text into the clipboard`() {
+        every { messageRepository.cachedMessages("chat-1") } returns listOf(message())
+        val fragment = launch()
+
+        fragment.onMessageAction("m1", MessageActionsBottomSheet.ACTION_COPY)
+
+        val clipboard = fragment.requireContext()
+            .getSystemService(android.content.ClipboardManager::class.java)
+        assertEquals("привет", clipboard.primaryClip?.getItemAt(0)?.text.toString())
     }
 
     @Test
