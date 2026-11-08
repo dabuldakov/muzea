@@ -180,6 +180,9 @@ val instrumentDebugUnitTestClasses by tasks.registering {
 
 tasks.withType<Test>().configureEach {
     dependsOn(instrumentDebugUnitTestClasses)
+    // Полный прогон Robolectric держит много sandbox-загрузчиков; дефолтной
+    // памяти не хватает и падает OOM на android-all.
+    maxHeapSize = "3g"
     // Не включаем on-the-fly агент: классы уже инструментированы offline,
     // иначе они инструментируются дважды.
     extensions.configure<org.gradle.testing.jacoco.plugins.JacocoTaskExtension> {

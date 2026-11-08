@@ -147,6 +147,15 @@ class ChatConversationFragmentTest {
         return activity to fragment
     }
 
+    private fun messageWithAttachment(type: String = "DOCUMENT"): Message {
+        val attachment = com.example.muzea.domain.model.MessageAttachment(
+            fileUrl = "/f", thumbnailUrl = null, type = type, width = 10, height = 10,
+            attachmentUuid = "a-1", fileName = "file.pdf", fileSize = 128L,
+            mimeType = "application/pdf"
+        )
+        return message().copy(text = "", messageType = type, attachments = listOf(attachment))
+    }
+
     private fun launch(): ChatConversationFragment {
         val activity = Robolectric.buildActivity(HiltTestActivity::class.java).setup().get()
         val fragment = ChatConversationFragment.newInstance("chat-1", "Баги")
@@ -395,6 +404,42 @@ class ChatConversationFragmentTest {
         repeat(3) { fragment.requireView().findViewById<View>(R.id.btnSend).performClick() }
 
         assertTrue(true)
+    }
+
+    @Test
+    fun `document attachment downloads and opens on tap`() {
+        every { messageRepository.cachedMessages("chat-1") } returns
+            listOf(messageWithAttachment("DOCUMENT"))
+        coEvery { messageRepository.downloadAttachment("a-1", any(), any()) } returns null
+        val fragment = launch()
+        val list = fragment.requireView().findViewById<RecyclerView>(R.id.recyclerViewMessages)
+        awaitItems(list, 1)
+        layout(list)
+        val item = list.findViewHolderForAdapterPosition(0)!!.itemView
+        val container = item.findViewById<android.view.ViewGroup>(R.id.attachmentsContainer)
+
+        container.getChildAt(0).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertTrue(true)
+    }
+
+    @Test
+    fun `image attachment opens the viewer`() {
+        every { messageRepository.cachedMessages("chat-1") } returns
+            listOf(messageWithAttachment("IMAGE"))
+        val fragment = launch()
+        val list = fragment.requireView().findViewById<RecyclerView>(R.id.recyclerViewMessages)
+        awaitItems(list, 1)
+        layout(list)
+        val item = list.findViewHolderForAdapterPosition(0)!!.itemView
+        val container = item.findViewById<android.view.ViewGroup>(R.id.attachmentsContainer)
+
+        container.getChildAt(0).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        val started = shadowOf(fragment.requireActivity()).nextStartedActivity
+        assertTrue(started.component?.className!!.endsWith("AttachmentViewerActivity"))
     }
 
     @Test

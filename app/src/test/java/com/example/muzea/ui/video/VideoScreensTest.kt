@@ -88,6 +88,44 @@ class VideoScreensTest {
     }
 
     @Test
+    fun `copying a picked video fills the form`() {
+        val activity = Robolectric.buildActivity(VideoUploadActivity::class.java).setup().get()
+        val uri = android.net.Uri.parse("content://test/clip.mp4")
+        org.robolectric.Shadows.shadowOf(activity.contentResolver)
+            .registerInputStream(uri, java.io.ByteArrayInputStream(ByteArray(1024)))
+
+        val method = VideoUploadActivity::class.java
+            .getDeclaredMethod("copyVideoToCache", android.net.Uri::class.java)
+        method.isAccessible = true
+        method.invoke(activity, uri)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertTrue(
+            activity.findViewById<android.widget.TextView>(R.id.tvSelectedFile)
+                .text.toString().contains(".mp4")
+        )
+        assertTrue(activity.findViewById<View>(R.id.btnUpload).isEnabled)
+    }
+
+    @Test
+    fun `upload failure keeps the screen open`() {
+        coEvery { videoRepository.uploadVideo(any(), any(), any(), any()) } returns
+            flowOf(Resource.Error("offline"))
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val file = File(context.cacheDir, "clip.mp4").apply { writeBytes(ByteArray(16)) }
+        val activity = Robolectric.buildActivity(VideoUploadActivity::class.java).setup().get()
+        activity.findViewById<android.widget.EditText>(R.id.etTitle).setText("Заголовок")
+        val field = VideoUploadActivity::class.java.getDeclaredField("selectedVideoFile")
+        field.isAccessible = true
+        field.set(activity, file)
+
+        activity.findViewById<View>(R.id.btnUpload).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertTrue(!activity.isFinishing)
+    }
+
+    @Test
     fun `empty title is rejected`() {
         val activity = Robolectric.buildActivity(VideoUploadActivity::class.java).setup().get()
 
@@ -146,6 +184,46 @@ class VideoScreensTest {
         )
         // Токена чата в тесте нет — плеер не создаётся, экран закрывается.
         assertTrue(activity.isFinishing)
+    }
+
+    @Test
+    fun `own video shows delete and the dialog deletes it`() {
+        coEvery { videoRepository.getVideoById(1) } returns flowOf(Resource.Success(video()))
+        coEvery { videoRepository.deleteVideo(1) } returns flowOf(Resource.Success(Unit))
+        val intent = Intent(
+            ApplicationProvider.getApplicationContext(),
+            VideoDetailActivity::class.java
+        ).putExtra("video_id", 1L)
+        val activity = Robolectric.buildActivity(VideoDetailActivity::class.java, intent)
+            .setup().get()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(View.VISIBLE, activity.findViewById<View>(R.id.btnDelete).visibility)
+        assertEquals(View.GONE, activity.findViewById<View>(R.id.btnReport).visibility)
+        activity.findViewById<View>(R.id.btnDelete).performClick()
+        val dialog = org.robolectric.shadows.ShadowDialog.getLatestDialog()
+            as androidx.appcompat.app.AlertDialog
+        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        io.mockk.coVerify { videoRepository.deleteVideo(1) }
+    }
+
+    @Test
+    fun `foreign video shows report instead of delete`() {
+        coEvery { videoRepository.getVideoById(1) } returns flowOf(
+            Resource.Success(video().copy(uploadedBy = "Morris2"))
+        )
+        val intent = Intent(
+            ApplicationProvider.getApplicationContext(),
+            VideoDetailActivity::class.java
+        ).putExtra("video_id", 1L)
+        val activity = Robolectric.buildActivity(VideoDetailActivity::class.java, intent)
+            .setup().get()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(View.VISIBLE, activity.findViewById<View>(R.id.btnReport).visibility)
+        assertEquals(View.GONE, activity.findViewById<View>(R.id.btnDelete).visibility)
     }
 
     @Test

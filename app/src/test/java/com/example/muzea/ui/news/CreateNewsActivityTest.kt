@@ -134,6 +134,33 @@ class CreateNewsActivityTest {
     }
 
     @Test
+    fun `picked image is copied and sent with the news`() {
+        coEvery { newsRepository.createNews(any(), any(), any(), any()) } returns
+            flowOf(Resource.Success(42L))
+        val activity = launch()
+        shadowOf(Looper.getMainLooper()).idle()
+        val uri = android.net.Uri.parse("content://test/photo.jpg")
+        org.robolectric.Shadows.shadowOf(activity.contentResolver)
+            .registerInputStream(uri, java.io.ByteArrayInputStream(ByteArray(64)))
+        val method = CreateNewsActivity::class.java
+            .getDeclaredMethod("handleSelectedImage", android.net.Uri::class.java)
+        method.isAccessible = true
+        method.invoke(activity, uri)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(
+            View.VISIBLE,
+            activity.findViewById<View>(R.id.cardImagePreview).visibility
+        )
+        activity.findViewById<android.widget.EditText>(R.id.etTitle).setText("Заголовок")
+        activity.findViewById<android.widget.EditText>(R.id.etContent).setText("Текст")
+        activity.findViewById<View>(R.id.btnSubmit).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        io.mockk.coVerify { newsRepository.createNews("Заголовок", "Текст", null, any()) }
+    }
+
+    @Test
     fun `missing image file is reported without submitting`() {
         coEvery { newsRepository.createNews(any(), any(), any(), any()) } returns
             flowOf(Resource.Success(42L))
