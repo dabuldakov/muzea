@@ -37,6 +37,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -87,6 +88,17 @@ class MainActivityTest {
         coEvery { chatSessionRepository.getTotalUnreadCount() } returns
             flowOf(Resource.Success(0L))
         coEvery { chatSessionRepository.sendHeartbeat() } returns true
+        every { messageRepository.cachedMessages(any()) } returns emptyList()
+        coEvery { messageRepository.loadMessages(any()) } returns flowOf(Resource.Success(emptyList()))
+        coEvery { messageRepository.loadMessagesAfter(any(), any()) } returns
+            flowOf(Resource.Success(emptyList()))
+        coEvery { messageRepository.loadChatReceipts(any()) } returns emptyList()
+        coEvery { messageRepository.loadPinned(any()) } returns emptyList()
+        coEvery { messageRepository.markMessagesAsRead(any(), any()) } returns true
+        coEvery { messageRepository.markMessagesAsDelivered(any(), any()) } returns true
+        coEvery { newsRepository.getNewsById(any()) } returns flowOf(Resource.Error("none"))
+        every { outboxSender.events } returns kotlinx.coroutines.flow.MutableSharedFlow()
+        every { outboxSender.pendingForChat(any()) } returns emptyList()
         coEvery { userRepository.getCurrentUser() } returns flowOf(
             Resource.Success(
                 User(1, "morris", "Morris", null, "USER", null, true)
@@ -139,6 +151,57 @@ class MainActivityTest {
         select(activity, R.id.profileFragment)
         assertTrue(
             activity.supportFragmentManager.findFragmentByTag("tab_profile") is ProfileFragment
+        )
+    }
+
+    @Test
+    fun `chat deep link opens the conversation`() {
+        val intent = android.content.Intent(
+            ApplicationProvider.getApplicationContext(), MainActivity::class.java
+        ).putExtra(MainActivity.EXTRA_OPEN_CHAT_UUID, "chat-1")
+            .putExtra(MainActivity.EXTRA_OPEN_CHAT_TITLE, "Баги")
+
+        val activity = Robolectric.buildActivity(MainActivity::class.java, intent).setup().get()
+        activity.supportFragmentManager.executePendingTransactions()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertTrue(
+            activity.supportFragmentManager.fragments.any {
+                it is com.example.muzea.ui.chat.ChatConversationFragment
+            }
+        )
+    }
+
+    @Test
+    fun `news deep link opens the news detail`() {
+        val intent = android.content.Intent(
+            ApplicationProvider.getApplicationContext(), MainActivity::class.java
+        ).putExtra(MainActivity.EXTRA_OPEN_NEWS_ID, 7L)
+
+        val activity = Robolectric.buildActivity(MainActivity::class.java, intent).setup().get()
+        activity.supportFragmentManager.executePendingTransactions()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertTrue(
+            activity.supportFragmentManager.fragments.any {
+                it is com.example.muzea.ui.news.NewsDetailFragment
+            }
+        )
+    }
+
+    @Test
+    fun `shared text selects the chat tab`() {
+        val intent = android.content.Intent(
+            ApplicationProvider.getApplicationContext(), MainActivity::class.java
+        ).putExtra(MainActivity.EXTRA_SHARED_TEXT, "https://muzea.su")
+
+        val activity = Robolectric.buildActivity(MainActivity::class.java, intent).setup().get()
+        activity.supportFragmentManager.executePendingTransactions()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(
+            R.id.chatFragment,
+            activity.findViewById<BottomNavigationView>(R.id.bottomNavigation).selectedItemId
         )
     }
 

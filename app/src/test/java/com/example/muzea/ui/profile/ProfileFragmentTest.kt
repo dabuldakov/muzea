@@ -28,7 +28,9 @@ import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.HiltTestApplication
 import dagger.hilt.android.testing.UninstallModules
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
+import io.mockk.verify
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
@@ -86,6 +88,13 @@ class ProfileFragmentTest {
         every { appUpdateRepository.availableUpdate } returns MutableStateFlow<AppUpdate?>(null)
         every { appUpdateRepository.currentVersionName } returns "1.7.28"
         coEvery { appUpdateRepository.checkForUpdate() } returns UpdateCheckResult.UpToDate
+        coEvery { avatarRepository.loadAvatar() } returns flowOf(Resource.Error("none"))
+        coEvery { avatarRepository.deleteAvatar() } returns flowOf(Resource.Error("none"))
+        coEvery { userRepository.updateUser(1L, "Новое имя") } returns
+            flowOf(Resource.Success(User(1, "morris", "Новое имя", null, "USER", null, true)))
+        coEvery { chatSessionRepository.deleteAccount() } returns true
+        coEvery { userRepository.deleteAccount(1L) } returns flowOf(Resource.Success(Unit))
+        coEvery { authRepository.deleteAccount() } returns true
     }
 
     private fun launch(): HiltTestActivity {
@@ -116,6 +125,58 @@ class ProfileFragmentTest {
         activity.findViewById<View>(R.id.btnEditProfile).performClick()
 
         assertTrue(name.isEnabled)
+    }
+
+    @Test
+    fun `avatar buttons call the avatar repository`() {
+        val activity = launch()
+
+        activity.findViewById<View>(R.id.btnDeleteAvatar).performClick()
+        activity.findViewById<View>(R.id.btnRetryAvatar).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        coVerify { avatarRepository.deleteAvatar() }
+        coVerify(atLeast = 2) { avatarRepository.loadAvatar() }
+    }
+
+    @Test
+    fun `editing the name saves the profile`() {
+        val activity = launch()
+        activity.findViewById<View>(R.id.btnEditProfile).performClick()
+        activity.findViewById<android.widget.EditText>(R.id.etFullName).setText("Новое имя")
+
+        activity.findViewById<View>(R.id.btnEditProfile).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        coVerify { userRepository.updateUser(1L, "Новое имя") }
+    }
+
+    @Test
+    fun `delete account confirms and calls both servers`() {
+        val activity = launch()
+
+        activity.findViewById<View>(R.id.btnDeleteAccount).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        val dialog = org.robolectric.shadows.ShadowDialog.getLatestDialog()
+            as androidx.appcompat.app.AlertDialog
+        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        coVerify { chatSessionRepository.deleteAccount() }
+        coVerify { userRepository.deleteAccount(1L) }
+    }
+
+    @Test
+    fun `language button opens the picker`() {
+        val activity = launch()
+
+        activity.findViewById<View>(R.id.btnLanguage).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(
+            true,
+            org.robolectric.shadows.ShadowDialog.getLatestDialog()?.isShowing
+        )
     }
 
     @Test
