@@ -29,6 +29,7 @@ import io.mockk.verify
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -293,6 +294,107 @@ class ChatConversationFragmentTest {
             true,
             fragment.childFragmentManager.findFragmentByTag("forward_picker") != null
         )
+    }
+
+    @Test
+    fun `pin and unpin actions call the repository`() {
+        every { messageRepository.cachedMessages("chat-1") } returns listOf(message())
+        coEvery { messageRepository.pinMessage("chat-1", "m1") } returns true
+        coEvery { messageRepository.unpinMessage("chat-1", "m1") } returns true
+        val fragment = launch()
+
+        fragment.onMessageAction("m1", MessageActionsBottomSheet.ACTION_PIN)
+        fragment.onMessageAction("m1", MessageActionsBottomSheet.ACTION_UNPIN)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        io.mockk.coVerify { messageRepository.pinMessage("chat-1", "m1") }
+        io.mockk.coVerify { messageRepository.unpinMessage("chat-1", "m1") }
+    }
+
+    @Test
+    fun `delete action confirms and deletes the message`() {
+        every { messageRepository.cachedMessages("chat-1") } returns listOf(message())
+        coEvery { messageRepository.deleteMessage("m1") } returns true
+        val fragment = launch()
+
+        fragment.onMessageAction("m1", MessageActionsBottomSheet.ACTION_DELETE)
+        shadowOf(Looper.getMainLooper()).idle()
+        val dialog = org.robolectric.shadows.ShadowDialog.getLatestDialog()
+            as androidx.appcompat.app.AlertDialog
+        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        io.mockk.coVerify { messageRepository.deleteMessage("m1") }
+    }
+
+    @Test
+    fun `block action opens the confirmation dialog`() {
+        every { messageRepository.cachedMessages("chat-1") } returns
+            listOf(message().copy(senderUuid = "other"))
+        val fragment = launch()
+
+        fragment.onMessageAction("m1", MessageActionsBottomSheet.ACTION_BLOCK)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(
+            true,
+            org.robolectric.shadows.ShadowDialog.getLatestDialog()?.isShowing
+        )
+    }
+
+    @Test
+    fun `forward action opens the chat picker`() {
+        every { messageRepository.cachedMessages("chat-1") } returns listOf(message())
+        coEvery { chatRepository.loadChats() } returns flowOf(Resource.Success(emptyList()))
+        val fragment = launch()
+
+        fragment.onMessageAction("m1", MessageActionsBottomSheet.ACTION_FORWARD)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(
+            true,
+            fragment.childFragmentManager.findFragmentByTag("forward_picker") != null
+        )
+    }
+
+    @Test
+    fun `reply can be cancelled from the banner`() {
+        every { messageRepository.cachedMessages("chat-1") } returns listOf(message())
+        val fragment = launch()
+        fragment.onMessageAction("m1", MessageActionsBottomSheet.ACTION_REPLY)
+
+        fragment.requireView().findViewById<View>(R.id.btnCancelReply).performClick()
+
+        assertEquals(
+            View.GONE,
+            fragment.requireView().findViewById<View>(R.id.replyBanner).visibility
+        )
+    }
+
+    @Test
+    fun `send after edit submits the edited text`() {
+        every { messageRepository.cachedMessages("chat-1") } returns listOf(message())
+        coEvery { messageRepository.editMessage("m1", "исправлено") } returns
+            flowOf(Resource.Success(message()))
+        val fragment = launch()
+        fragment.onMessageAction("m1", MessageActionsBottomSheet.ACTION_EDIT)
+        shadowOf(Looper.getMainLooper()).idle()
+        fragment.requireView().findViewById<android.widget.EditText>(R.id.etMessageInput)
+            .setText("исправлено")
+
+        fragment.requireView().findViewById<View>(R.id.btnSend).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        io.mockk.coVerify { messageRepository.editMessage("m1", "исправлено") }
+    }
+
+    @Test
+    fun `empty composer cycles send mode without crashing`() {
+        val fragment = launch()
+
+        repeat(3) { fragment.requireView().findViewById<View>(R.id.btnSend).performClick() }
+
+        assertTrue(true)
     }
 
     @Test
