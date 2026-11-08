@@ -122,10 +122,28 @@ class ChatConversationViewModel @Inject constructor(
     init {
         restorePendingMessages()
         observeOutbox()
+        observeNetworkWakeup()
         // Опрос сам выполняет первый запрос, поэтому отдельный refresh() в init
         // был бы вторым обращением к серверу подряд при каждом входе в чат.
         startPolling()
         viewModelScope.launch { refreshPinned() }
+    }
+
+    /**
+     * После блокировки/авиарежима сеть возвращается уже после onStart.
+     * Перезапускаем polling, чтобы не ждать 60-секундный offline-delay.
+     */
+    private fun observeNetworkWakeup() {
+        viewModelScope.launch {
+            var wasOnline = networkMonitor.status.value.online
+            networkMonitor.status.collect { status ->
+                if (status.online && !wasOnline && !pollingPaused) {
+                    pollingJob?.cancel()
+                    startPolling()
+                }
+                wasOnline = status.online
+            }
+        }
     }
 
     /** Поднимаем из очереди сообщения, не отправленные в прошлой сессии. */
@@ -253,11 +271,16 @@ class ChatConversationViewModel @Inject constructor(
     /** Пауза опроса, когда экран не виден: не тратим сеть и батарею. */
     fun pausePolling() {
         pollingPaused = true
+        // Не оставляем job спать в delay(60s) за спиной: при возврате
+        // на экран запускаем его заново с немедленным запросом.
+        pollingJob?.cancel()
+        pollingJob = null
     }
 
     fun resumePolling() {
         pollingPaused = false
-        if (pollingJob?.isActive != true) startPolling()
+        pollingJob?.cancel()
+        startPolling()
     }
 
     fun sendText(text: String) {
@@ -973,6 +996,7 @@ class ChatConversationViewModel @Inject constructor(
 
 
     private fun startPolling() {
+        pollingJob?.cancel()
         pollingJob = viewModelScope.launch {
             var iteration = 0
             while (isActive) {

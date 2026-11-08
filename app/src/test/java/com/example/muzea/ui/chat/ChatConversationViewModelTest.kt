@@ -982,4 +982,17 @@ class ChatConversationViewModelTest {
             messageRepository.loadMessagesAfter(chatUuid, "2026-01-01T00:00:00")
         }
     }
+
+    @Test
+    fun `resume polling immediately reloads messages`() = withViewModel { viewModel ->
+        (this as kotlinx.coroutines.test.TestScope).testScheduler.runCurrent()
+        coVerify(atLeast = 1) { messageRepository.loadMessages(chatUuid) }
+
+        viewModel.pausePolling()
+        viewModel.resumePolling()
+        (this as kotlinx.coroutines.test.TestScope).testScheduler.runCurrent()
+
+        // Повторный вход на экран (onStart) не должен ждать следующего тика.
+        coVerify(atLeast = 2) { messageRepository.loadMessages(chatUuid) }
+    }
 }
