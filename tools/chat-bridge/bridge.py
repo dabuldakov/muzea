@@ -291,9 +291,9 @@ def chat_history(chat_uuid: str, bot: dict, current_uuid: str) -> list[str]:
         text = (item.get("text") or "").strip().replace("\n", " ")
         if not text:
             continue
-        lines.append(f"@{item.get('senderName') or item.get('senderId')}: {text[:300]}")
+        lines.append(f"@{item.get('senderName') or item.get('senderId')}: {text[:1500]}")
     # не раздуваем промпт: не больше ~4000 символов истории
-    while lines and sum(len(line) + 1 for line in lines) > 4000:
+    while lines and sum(len(line) + 1 for line in lines) > 12000:
         lines.pop(0)
     return lines
 
