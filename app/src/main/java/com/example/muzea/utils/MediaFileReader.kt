@@ -52,7 +52,11 @@ class MediaFileReader @Inject constructor(
             ?: throw IllegalArgumentException(context.getString(R.string.attachment_unknown_type))
 
         val meta = queryMeta(uri)
-        val size = meta.second ?: resolver.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: 0L
+        // Провайдер может не отдавать дескриптор (облачные/битые URI):
+        // размер тогда неизвестен, но файл всё равно пробуем прочитать.
+        val size = meta.second ?: runCatching {
+            resolver.openAssetFileDescriptor(uri, "r")?.use { it.length }
+        }.getOrNull() ?: 0L
         val name = sanitizeName(meta.first ?: uri.lastPathSegment ?: "file")
         val type = typeOf(mime, name)
         checkSize(type, size)

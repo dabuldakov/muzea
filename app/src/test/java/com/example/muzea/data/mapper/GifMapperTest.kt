@@ -66,6 +66,82 @@ class GifMapperTest {
     }
 
     @Test
+    fun `falls back through md and sm variants`() {
+        val dto = KlipyGifDto(
+            id = 3L,
+            file = mapOf(
+                "md" to mapOf(
+                    "webp" to media("https://c/md.webp", 320, 180),
+                    "mp4" to media("https://c/md.mp4", 320, 180)
+                ),
+                "sm" to mapOf("webp" to media("https://c/sm.webp", 160, 90))
+            )
+        )
+
+        val gif = dto.toGif()!!
+
+        assertEquals("https://c/md.webp", gif.url)
+        assertEquals("https://c/sm.webp", gif.previewUrl)
+        assertEquals("https://c/md.mp4", gif.mp4Url)
+    }
+
+    @Test
+    fun `uses arbitrary size key when hd md sm are absent`() {
+        val dto = KlipyGifDto(
+            id = 4L,
+            file = mapOf(
+                "xs" to mapOf(
+                    "gif" to media("https://c/xs.gif", 80, 40),
+                    "mp4" to media("https://c/xs.mp4", 80, 40)
+                )
+            )
+        )
+
+        val gif = dto.toGif()!!
+
+        assertEquals("https://c/xs.gif", gif.url)
+        assertEquals("https://c/xs.gif", gif.previewUrl)
+        assertEquals("https://c/xs.mp4", gif.mp4Url)
+    }
+
+    @Test
+    fun `falls back to gif in md and sm and keeps preview equal to url`() {
+        val dto = KlipyGifDto(
+            id = 5L,
+            file = mapOf(
+                "md" to mapOf("gif" to media("https://c/md.gif", 300, 200)),
+                "sm" to mapOf("gif" to media("https://c/sm.gif", 150, 100))
+            )
+        )
+
+        val gif = dto.toGif()!!
+
+        assertEquals("https://c/md.gif", gif.url)
+        assertEquals("https://c/md.gif", gif.previewUrl)
+        assertNull(gif.mp4Url)
+    }
+
+    @Test
+    fun `prefers small jpg preview and md mp4 when hd is missing`() {
+        val dto = KlipyGifDto(
+            id = 6L,
+            file = mapOf(
+                "md" to mapOf(
+                    "webp" to media("https://c/md.webp", 320, 180),
+                    "jpg" to media("https://c/md.jpg", 320, 180),
+                    "mp4" to media("https://c/md.mp4", 320, 180)
+                ),
+                "sm" to mapOf("webp" to media("https://c/sm.webp", 160, 90))
+            )
+        )
+
+        val gif = dto.toGif()!!
+
+        assertEquals("https://c/sm.webp", gif.previewUrl)
+        assertEquals("https://c/md.mp4", gif.mp4Url)
+    }
+
+    @Test
     fun `api gif response maps to domain with gif key`() {
         val gif = GifResponse(
             gifUuid = "key-1", provider = "klipy", providerGifId = "s", title = "t",
