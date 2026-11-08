@@ -6,6 +6,7 @@ plugins {
     id("kotlin-kapt")
     id("com.google.gms.google-services")
     id("com.google.dagger.hilt.android")
+    jacoco
 }
 
 // Ключ подписи release-сборок. Источники в порядке приоритета:
@@ -69,8 +70,9 @@ android {
 
     buildTypes {
         debug {
-            // Отчёт покрытия unit-тестами: ./gradlew :app:createDebugUnitTestCoverageReport
-            enableUnitTestCoverage = true
+            // Покрытие считаем offline-инструментацией (см. ниже): AGP-агент
+            // не видит классы, которые Robolectric перезагружает в sandbox.
+            enableUnitTestCoverage = false
             // Тот же ключ, что и у релиза. Иначе сборка из Android Studio не
             // встанет поверх установленной релизной (INSTALL_FAILED_UPDATE_
             // INCOMPATIBLE), а релизная — поверх отладочной. Флаг DEBUGGABLE
@@ -134,7 +136,94 @@ android {
     }
 }
 
+jacoco {
+    toolVersion = "0.8.13"
+}
+
+// --- Offline-инструментация для unit-тестов ---------------------------------
+// Robolectric перезагружает классы приложения в своём sandbox-загрузчике из
+// исходных байтов, поэтому on-the-fly агент JaCoCo их не видит. Инструментируем
+// классы заранее и подкладываем их в classpath теста.
+val jacocoInstrumentedDir = layout.buildDirectory.dir("jacoco/instrumented-debug")
+
+val instrumentDebugUnitTestClasses by tasks.registering {
+    dependsOn("compileDebugKotlin", "compileDebugJavaWithJavac")
+    val outputDir = jacocoInstrumentedDir
+    doLast {
+        val target = outputDir.get().asFile
+        target.deleteRecursively()
+        target.mkdirs()
+        val roots = listOf(
+            file("build/tmp/kotlin-classes/debug"),
+            file("build/intermediates/javac/debug/compileDebugJavaWithJavac/classes")
+        ).filter { it.exists() }
+        val instrumenter = org.jacoco.core.instr.Instrumenter(
+            org.jacoco.core.runtime.OfflineInstrumentationAccessGenerator()
+        )
+        roots.forEach { root ->
+            root.walkTopDown()
+                .filter { it.isFile && it.extension == "class" }
+                .forEach { source ->
+                    val copy = File(target, source.relativeTo(root).path)
+                    copy.parentFile.mkdirs()
+                    source.inputStream().use { input ->
+                        copy.outputStream().use { output ->
+                            instrumenter.instrument(input, output, source.name)
+                        }
+                    }
+                }
+        }
+    }
+}
+
+tasks.withType<Test>().configureEach {
+    dependsOn(instrumentDebugUnitTestClasses)
+    // Не включаем on-the-fly агент: классы уже инструментированы offline,
+    // иначе они инструментируются дважды.
+    extensions.configure<org.gradle.testing.jacoco.plugins.JacocoTaskExtension> {
+        isEnabled = false
+    }
+    val execFile = layout.buildDirectory.file("outputs/unit_test_code_coverage/${name}.exec")
+    systemProperty("jacoco-agent.destfile", execFile.get().asFile.absolutePath)
+    systemProperty("jacoco-agent.append", "false")
+    // Данные покрытия — тоже результат теста: если файл удалили, тест
+    // должен выполниться заново, а не взяться из build cache.
+    outputs.file(execFile)
+    doFirst {
+        execFile.get().asFile.delete()
+        val original = setOf(
+            file("build/tmp/kotlin-classes/debug").canonicalPath,
+            file("build/intermediates/javac/debug/compileDebugJavaWithJavac/classes").canonicalPath
+        )
+        classpath = files(jacocoInstrumentedDir) +
+            classpath.filter { it.canonicalPath !in original }
+    }
+}
+
+tasks.register<org.gradle.testing.jacoco.tasks.JacocoReport>("jacocoUnitTestReport") {
+    group = "verification"
+    description = "Покрытие unit-тестов, включая Robolectric (offline instrumentation)."
+    dependsOn("testDebugUnitTest")
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+    classDirectories.setFrom(
+        files(
+            file("build/tmp/kotlin-classes/debug"),
+            file("build/intermediates/javac/debug/compileDebugJavaWithJavac/classes")
+        ).asFileTree.matching {
+            exclude("**/databinding/**", "**/Dagger*/**", "**/Hilt_*/**", "**/*_Factory.class")
+        }
+    )
+    sourceDirectories.setFrom(files("src/main/java"))
+    executionData.setFrom(
+        file("build/outputs/unit_test_code_coverage/testDebugUnitTest.exec")
+    )
+}
+
 dependencies {
+    testImplementation("org.jacoco:org.jacoco.agent:0.8.13:runtime")
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
