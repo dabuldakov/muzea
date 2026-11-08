@@ -147,15 +147,17 @@ jacoco {
 val jacocoInstrumentedDir = layout.buildDirectory.dir("jacoco/instrumented-debug")
 
 val instrumentDebugUnitTestClasses by tasks.registering {
-    dependsOn("compileDebugKotlin", "compileDebugJavaWithJavac")
+    // Hilt переписывает байткод (@AndroidEntryPoint) только в этом каталоге:
+    // инструментировать kotlin-classes напрямую нельзя, иначе фрагменты
+    // теряют Hilt-компонент.
+    dependsOn("transformDebugClassesWithAsm")
     val outputDir = jacocoInstrumentedDir
     doLast {
         val target = outputDir.get().asFile
         target.deleteRecursively()
         target.mkdirs()
         val roots = listOf(
-            file("build/tmp/kotlin-classes/debug"),
-            file("build/intermediates/javac/debug/compileDebugJavaWithJavac/classes")
+            file("build/intermediates/classes/debug/transformDebugClassesWithAsm/dirs")
         ).filter { it.exists() }
         val instrumenter = org.jacoco.core.instr.Instrumenter(
             org.jacoco.core.runtime.OfflineInstrumentationAccessGenerator()
@@ -192,6 +194,7 @@ tasks.withType<Test>().configureEach {
     doFirst {
         execFile.get().asFile.delete()
         val original = setOf(
+            file("build/intermediates/classes/debug/transformDebugClassesWithAsm/dirs").canonicalPath,
             file("build/tmp/kotlin-classes/debug").canonicalPath,
             file("build/intermediates/javac/debug/compileDebugJavaWithJavac/classes").canonicalPath
         )
@@ -210,10 +213,21 @@ tasks.register<org.gradle.testing.jacoco.tasks.JacocoReport>("jacocoUnitTestRepo
     }
     classDirectories.setFrom(
         files(
-            file("build/tmp/kotlin-classes/debug"),
-            file("build/intermediates/javac/debug/compileDebugJavaWithJavac/classes")
+            // Тот же каталог, что инструментируется для теста: JaCoCo
+            // сопоставляет классы по CRC, иначе отчёт показывает 0%.
+            file("build/intermediates/classes/debug/transformDebugClassesWithAsm/dirs")
         ).asFileTree.matching {
-            exclude("**/databinding/**", "**/Dagger*/**", "**/Hilt_*/**", "**/*_Factory.class")
+            exclude(
+                "**/databinding/**",
+                "**/Dagger*.class",
+                "**/Hilt_*.class",
+                "**/*_Factory.class",
+                "**/*_HiltModules*",
+                "**/*_HiltComponents*",
+                "**/*_GeneratedInjector*",
+                "**/*_MembersInjector*",
+                "**/hilt_aggregated_deps/**"
+            )
         }
     )
     sourceDirectories.setFrom(files("src/main/java"))
@@ -280,6 +294,8 @@ dependencies {
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     // Robolectric — реальный Android-Context (cacheDir, externalCacheDirs) в JVM-тестах.
     testImplementation("org.robolectric:robolectric:4.12.1")
+    testImplementation("com.google.dagger:hilt-android-testing:2.48")
+    kaptTest("com.google.dagger:hilt-android-compiler:2.48")
     testImplementation("androidx.test:core:1.5.0")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
