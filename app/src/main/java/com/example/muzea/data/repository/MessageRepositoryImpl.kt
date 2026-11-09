@@ -461,6 +461,19 @@ class MessageRepositoryImpl @Inject constructor(
         fileName: String?
     ): File? = downloadAttachment(attachmentUuid, fileName) {}
 
+    override suspend fun publishDownloadedAttachment(
+        file: File,
+        fileName: String?,
+        mimeType: String?
+    ): Boolean = withContext(Dispatchers.IO) {
+        AttachmentDownloads.publish(
+            context = context,
+            source = file,
+            displayName = fileName ?: file.name,
+            mimeType = mimeType ?: "application/octet-stream"
+        )
+    }
+
     override suspend fun downloadAttachment(
         attachmentUuid: String,
         fileName: String?,

@@ -244,6 +244,8 @@
     <string name="attachment_document">Document</string>
     <string name="attachment_download_failed">Could not download the file</string>
     <string name="attachment_downloading">Downloading file…</string>
+    <string name="attachment_saved_downloads">Saved to Downloads</string>
+    <string name="attachment_saved_private">Saved in app storage</string>
     <string name="charge_zero">⚡ 0%</string>
     <string name="charge_format">⚡ %1$d%%</string>
     <string name="attachment_open_failed">No app to open this file</string>

@@ -978,6 +978,12 @@ class ChatConversationViewModel @Inject constructor(
         return messageRepository.downloadAttachment(uuid, attachment.fileName, onProgress)
     }
 
+    suspend fun publishDownloadedAttachment(
+        file: java.io.File,
+        fileName: String?,
+        mimeType: String?
+    ): Boolean = messageRepository.publishDownloadedAttachment(file, fileName, mimeType)
+
     /** Статус сообщения для адаптера; null — у входящих и пока неизвестных. */
     fun deliveryStatus(messageUuid: String): MessageDeliveryStatus? =
         _uiState.value.statuses[messageUuid]

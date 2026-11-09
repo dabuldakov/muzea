@@ -900,6 +900,15 @@ class ChatConversationFragment : Fragment(),
                     ).show()
                     return@launch
                 }
+                val published = viewModel.publishDownloadedAttachment(
+                    file, attachment.fileName, attachment.mimeType
+                )
+                Toast.makeText(
+                    requireContext(),
+                    if (published) R.string.attachment_saved_downloads
+                    else R.string.attachment_saved_private,
+                    Toast.LENGTH_SHORT
+                ).show()
                 try {
                     val uri = androidx.core.content.FileProvider.getUriForFile(
                         requireContext(),
