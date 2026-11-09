@@ -1076,7 +1076,8 @@ class ChatConversationFragment : Fragment(),
 
     /** Короткий «взрыв» кнопки: чем сильнее заряд, тем заметнее анимация. */
     private fun playSendBurst(power: Int) {
-        val scale = 1f + 0.6f * (power / 100f)
+        val scale = 1f + 0.9f * (power / 100f)
+        binding.chargeBurst.burst(power)
         binding.btnSend.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
         binding.btnSend.animate()
             .scaleX(scale)
@@ -1137,6 +1138,13 @@ class ChatConversationFragment : Fragment(),
         binding.chargeBar.visibility = View.VISIBLE
         binding.progressCharge.progress = power
         binding.tvChargePercent.text = getString(R.string.charge_format, power)
+        binding.chargeBurst.updatePower(power)
+        // Кнопка «раздувается» и слегка пульсирует; к концу — сильнее.
+        val level = power / 100f
+        val pulse = 1f + 0.06f * level * (0.5f + 0.5f * kotlin.math.sin(heldMs / 120.0).toFloat())
+        val scale = 1f + 0.38f * level
+        binding.btnSend.scaleX = scale * pulse
+        binding.btnSend.scaleY = scale * pulse
     }
 
     private fun cancelCharge() {
@@ -1151,6 +1159,9 @@ class ChatConversationFragment : Fragment(),
         binding.chargeBar.visibility = View.GONE
         binding.progressCharge.progress = 0
         binding.tvChargePercent.text = getString(R.string.charge_zero)
+        binding.chargeBurst.clear()
+        binding.btnSend.scaleX = 1f
+        binding.btnSend.scaleY = 1f
     }
 
     private fun cycleSendMode() {
