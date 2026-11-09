@@ -67,7 +67,8 @@ class MessageAdapterTest {
         isDeleted: Boolean = false,
         isEdited: Boolean = false,
         createdAt: String? = "2026-01-01T10:00:00",
-        attachments: List<MessageAttachment> = emptyList()
+        attachments: List<MessageAttachment> = emptyList(),
+        power: Int = 0
     ) = Message(
         messageUuid = uuid,
         chatUuid = "chat-1",
@@ -83,7 +84,8 @@ class MessageAdapterTest {
         isPinned = false,
         createdAt = createdAt,
         updatedAt = null,
-        attachments = attachments
+        attachments = attachments,
+        power = power
     )
 
     private fun adapter(myUserUuid: String? = "me"): MessageAdapter {
@@ -161,6 +163,28 @@ class MessageAdapterTest {
 
         adapter.onViewRecycled(holder)
         adapter.release()
+    }
+
+    @Test
+    fun `power badge is shown for a charged message`() {
+        val adapter = adapter()
+        adapter.submitList(listOf(message(uuid = "mine", senderUuid = "me", power = 64)))
+
+        val holder = adapter.onCreateViewHolder(parent, 1)
+        adapter.onBindViewHolder(holder, 0)
+
+        verify { fx.tvPower.visibility = android.view.View.VISIBLE }
+    }
+
+    @Test
+    fun `power badge is hidden for a normal message`() {
+        val adapter = adapter()
+        adapter.submitList(listOf(message(uuid = "mine", senderUuid = "me", power = 0)))
+
+        val holder = adapter.onCreateViewHolder(parent, 1)
+        adapter.onBindViewHolder(holder, 0)
+
+        verify { fx.tvPower.visibility = android.view.View.GONE }
     }
 
     @Test

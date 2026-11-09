@@ -45,7 +45,9 @@ data class Message(
     val isPinned: Boolean,
     val createdAt: String?,
     val updatedAt: String?,
-    val attachments: List<MessageAttachment> = emptyList()
+    val attachments: List<MessageAttachment> = emptyList(),
+    /** Сила «заряда» отправителя, 0..100 (0 — обычное сообщение). */
+    val power: Int = 0
 )
 
 /** Вложение сообщения: для GIF — ссылка на гифку, превью и наш ключ гифки. */

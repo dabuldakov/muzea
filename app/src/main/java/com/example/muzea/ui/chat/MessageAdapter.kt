@@ -51,6 +51,17 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+private fun bindPower(view: android.widget.TextView, message: Message) {
+    if (message.power > 0) {
+        view.text = view.context.getString(
+            com.example.muzea.R.string.charge_format, message.power
+        )
+        view.visibility = View.VISIBLE
+    } else {
+        view.visibility = View.GONE
+    }
+}
+
 class MessageAdapter(
     private val myUserUuid: String?,
     private val linkPreviews: LinkPreviewStore,
@@ -217,6 +228,7 @@ class MessageAdapter(
             binding.tvTime.text = formatTime(message.createdAt)
             binding.tvEdited.visibility =
                 if (message.isEdited && !message.isDeleted) View.VISIBLE else View.GONE
+            bindPower(binding.tvPower, message)
         }
 
         private var player: ExoPlayer? = null
@@ -295,6 +307,7 @@ class MessageAdapter(
             binding.tvTime.text = formatTime(message.createdAt)
             binding.tvEdited.visibility =
                 if (message.isEdited && !message.isDeleted) View.VISIBLE else View.GONE
+            bindPower(binding.tvPower, message)
             bindStatus(message, status, onStatusClick)
         }
 

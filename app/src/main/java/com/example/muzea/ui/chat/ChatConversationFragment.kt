@@ -107,6 +107,10 @@ class ChatConversationFragment : Fragment(),
     private var pinnedMessages: List<Message> = emptyList()
     private var mentionPopup: ListPopupWindow? = null
     private var downloadJob: kotlinx.coroutines.Job? = null
+    private var chargeJob: Job? = null
+    private var chargeStartedAt = 0L
+    private var isCharging = false
+    private var chargeCancelled = false
     private var mentionStart = -1
     private var mentionEnd = -1
 
@@ -176,6 +180,7 @@ class ChatConversationFragment : Fragment(),
         private const val ARG_DRAFT_TEXT = "chat_draft_text"
         private const val ARG_HIGHLIGHT_MESSAGE = "chat_highlight_message"
         private const val LONG_PRESS_MS = 250L
+        private const val CHARGE_TICK_MS = 50L
         private const val MEDIA_RETRY_MS = 5 * 60 * 1000L
         private const val RECORD_CANCEL_DP = 72
         private const val MAX_VOICE_MS = 5 * 60 * 1000L
@@ -1004,12 +1009,92 @@ class ChatConversationFragment : Fragment(),
         binding.etMessageInput.text?.toString()?.isNotBlank() == true ||
             viewModel.uiState.value.pendingAttachments.isNotEmpty()
 
-    private fun sendClicked() {
+    private fun sendClicked(power: Int = 0) {
         val text = binding.etMessageInput.text?.toString().orEmpty()
         if (canSendNow()) {
-            viewModel.sendText(text)
+            viewModel.sendText(text, power)
             binding.etMessageInput.setText("")
+            if (power > 0) playSendBurst(power)
         }
+    }
+
+    /** Короткий «взрыв» кнопки: чем сильнее заряд, тем заметнее анимация. */
+    private fun playSendBurst(power: Int) {
+        val scale = 1f + 0.6f * (power / 100f)
+        binding.btnSend.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+        binding.btnSend.animate()
+            .scaleX(scale)
+            .scaleY(scale)
+            .setDuration(120)
+            .withEndAction {
+                binding.btnSend.animate().scaleX(1f).scaleY(1f).setDuration(180).start()
+            }
+            .start()
+    }
+
+    private fun handleTextSendTouch(event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                chargeStartedAt = android.os.SystemClock.elapsedRealtime()
+                isCharging = false
+                chargeCancelled = false
+                pressStartY = event.rawY
+                chargeJob?.cancel()
+                chargeJob = viewLifecycleOwner.lifecycleScope.launch {
+                    while (isActive) {
+                        delay(CHARGE_TICK_MS)
+                        val held = android.os.SystemClock.elapsedRealtime() - chargeStartedAt
+                        if (ChargeCalculator.isCharged(held)) {
+                            isCharging = true
+                            renderCharge(held)
+                        }
+                    }
+                }
+                return true
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (isCharging && event.rawY < pressStartY - dp(RECORD_CANCEL_DP)) {
+                    chargeCancelled = true
+                    cancelCharge()
+                }
+                return true
+            }
+            MotionEvent.ACTION_UP -> {
+                chargeJob?.cancel()
+                val held = android.os.SystemClock.elapsedRealtime() - chargeStartedAt
+                val power = if (isCharging && !chargeCancelled) ChargeCalculator.power(held) else 0
+                val shouldSend = !chargeCancelled
+                resetChargeMeter()
+                if (shouldSend) sendClicked(power)
+                return true
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                cancelCharge()
+                return true
+            }
+        }
+        return true
+    }
+
+    private fun renderCharge(heldMs: Long) {
+        val power = ChargeCalculator.power(heldMs)
+        binding.chargeBar.visibility = View.VISIBLE
+        binding.progressCharge.progress = power
+        binding.tvChargePercent.text = getString(R.string.charge_format, power)
+    }
+
+    private fun cancelCharge() {
+        chargeJob?.cancel()
+        isCharging = false
+        resetChargeMeter()
+    }
+
+    private fun resetChargeMeter() {
+        isCharging = false
+        chargeStartedAt = 0L
+        binding.chargeBar.visibility = View.GONE
+        binding.progressCharge.progress = 0
+        binding.tvChargePercent.text = getString(R.string.charge_zero)
     }
 
     private fun cycleSendMode() {
@@ -1039,6 +1124,7 @@ class ChatConversationFragment : Fragment(),
     }
 
     private fun handleSendTouch(event: MotionEvent): Boolean {
+        if (sendMode == SendMode.TEXT && canSendNow()) return handleTextSendTouch(event)
         if (sendMode == SendMode.TEXT || canSendNow()) return false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {

@@ -44,6 +44,7 @@ internal class MessageAdapterFixtures {
     val tvReplyText: TextView = mockk(relaxed = true)
     val tvTime: TextView = mockk(relaxed = true)
     val tvEdited: TextView = mockk(relaxed = true)
+    val tvPower: TextView = mockk(relaxed = true)
     val tvLinkTitle: TextView = mockk(relaxed = true)
     val tvLinkDomain: TextView = mockk(relaxed = true)
     val playerGif: PlayerView = mockk(relaxed = true)
@@ -108,6 +109,7 @@ internal class MessageAdapterFixtures {
         inject(ItemMessageIncomingBinding::class.java, incomingBinding, "replyQuote", replyQuote)
         inject(ItemMessageIncomingBinding::class.java, incomingBinding, "tvSenderName", tvSenderName)
         inject(ItemMessageIncomingBinding::class.java, incomingBinding, "tvEdited", tvEdited)
+        inject(ItemMessageIncomingBinding::class.java, incomingBinding, "tvPower", tvPower)
         inject(ItemMessageIncomingBinding::class.java, incomingBinding, "tvTime", tvTime)
 
         every { outgoingBinding.root } returns root
@@ -127,6 +129,7 @@ internal class MessageAdapterFixtures {
         inject(ItemMessageOutgoingBinding::class.java, outgoingBinding, "tvReplyText", tvReplyText)
         inject(ItemMessageOutgoingBinding::class.java, outgoingBinding, "replyQuote", replyQuote)
         inject(ItemMessageOutgoingBinding::class.java, outgoingBinding, "tvEdited", tvEdited)
+        inject(ItemMessageOutgoingBinding::class.java, outgoingBinding, "tvPower", tvPower)
         inject(ItemMessageOutgoingBinding::class.java, outgoingBinding, "tvTime", tvTime)
 
         mockkStatic(ItemAttachmentImageBinding::class)

@@ -87,7 +87,10 @@ class ChatMessageReducer {
                         ?: existing.replyToMessageUuid
                     serverMessage.copy(
                         messageUuid = localUuid,
-                        replyToMessageUuid = replyTo
+                        replyToMessageUuid = replyTo,
+                        // Сервер пока не знает про power — не теряем заряд,
+                        // накопленный при удержании кнопки.
+                        power = if (serverMessage.power > 0) serverMessage.power else existing.power
                     )
                 } else {
                     existing

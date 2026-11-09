@@ -283,7 +283,7 @@ class ChatConversationViewModel @Inject constructor(
         startPolling()
     }
 
-    fun sendText(text: String) {
+    fun sendText(text: String, power: Int = 0) {
         val editing = _uiState.value.editing
         if (editing != null) {
             submitEdit(editing, text)
@@ -317,7 +317,8 @@ class ChatConversationViewModel @Inject constructor(
             isPinned = false,
             createdAt = null,
             updatedAt = null,
-            attachments = uploaded
+            attachments = uploaded,
+            power = power.coerceIn(0, 100)
         )
         mergeMessages(listOf(optimistic))
         clearPendingAttachments()
@@ -491,9 +492,14 @@ class ChatConversationViewModel @Inject constructor(
         val merged = if (reconciled.attachments.isEmpty() &&
             existing != null && existing.attachments.isNotEmpty()
         ) {
-            reconciled.copy(attachments = existing.attachments)
+            reconciled.copy(
+                attachments = existing.attachments,
+                power = if (reconciled.power > 0) reconciled.power else existing.power
+            )
         } else {
-            reconciled
+            reconciled.copy(
+                power = if (reconciled.power > 0) reconciled.power else existing?.power ?: 0
+            )
         }
         val messages = reducer.updateMessage(_uiState.value.messages, merged)
         _uiState.value = withStatuses(_uiState.value.copy(messages = messages))

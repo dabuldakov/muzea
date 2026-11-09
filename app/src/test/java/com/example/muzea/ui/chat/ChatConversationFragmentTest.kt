@@ -442,6 +442,73 @@ class ChatConversationFragmentTest {
         assertTrue(started.component?.className!!.endsWith("AttachmentViewerActivity"))
     }
 
+    private fun touch(action: Int, y: Float = 1000f): android.view.MotionEvent =
+        android.view.MotionEvent.obtain(0L, 0L, action, 10f, y, 0)
+
+    @Test
+    fun `short tap sends with zero power`() {
+        val fragment = launch()
+        fragment.requireView().findViewById<android.widget.EditText>(R.id.etMessageInput)
+            .setText("привет")
+
+        val button = fragment.requireView().findViewById<View>(R.id.btnSend)
+        button.dispatchTouchEvent(touch(android.view.MotionEvent.ACTION_DOWN))
+        button.dispatchTouchEvent(touch(android.view.MotionEvent.ACTION_UP))
+        shadowOf(Looper.getMainLooper()).idle()
+
+        verify { outboxSender.enqueue(any()) }
+        assertEquals(
+            View.GONE,
+            fragment.requireView().findViewById<View>(R.id.chargeBar).visibility
+        )
+    }
+
+    @Test
+    fun `holding the send button charges and sends power`() {
+        val fragment = launch()
+        fragment.requireView().findViewById<android.widget.EditText>(R.id.etMessageInput)
+            .setText("привет")
+        val button = fragment.requireView().findViewById<View>(R.id.btnSend)
+
+        button.dispatchTouchEvent(touch(android.view.MotionEvent.ACTION_DOWN))
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(2_500))
+
+        assertEquals(
+            View.VISIBLE,
+            fragment.requireView().findViewById<View>(R.id.chargeBar).visibility
+        )
+        val percent = fragment.requireView()
+            .findViewById<android.widget.TextView>(R.id.tvChargePercent).text.toString()
+        assertTrue(percent.contains("%"))
+        assertTrue(percent != fragment.getString(R.string.charge_zero))
+
+        button.dispatchTouchEvent(touch(android.view.MotionEvent.ACTION_UP))
+        shadowOf(Looper.getMainLooper()).idle()
+
+        verify { outboxSender.enqueue(any()) }
+        assertEquals(
+            View.GONE,
+            fragment.requireView().findViewById<View>(R.id.chargeBar).visibility
+        )
+    }
+
+    @Test
+    fun `sliding up cancels the charge without sending`() {
+        val fragment = launch()
+        fragment.requireView().findViewById<android.widget.EditText>(R.id.etMessageInput)
+            .setText("привет")
+        val button = fragment.requireView().findViewById<View>(R.id.btnSend)
+        io.mockk.clearMocks(outboxSender, answers = false)
+
+        button.dispatchTouchEvent(touch(android.view.MotionEvent.ACTION_DOWN))
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(2_500))
+        button.dispatchTouchEvent(touch(android.view.MotionEvent.ACTION_MOVE, y = 500f))
+        button.dispatchTouchEvent(touch(android.view.MotionEvent.ACTION_UP, y = 500f))
+        shadowOf(Looper.getMainLooper()).idle()
+
+        verify(exactly = 0) { outboxSender.enqueue(any()) }
+    }
+
     @Test
     fun `pinned message is shown in the pinned bar`() {
         coEvery { messageRepository.loadPinned("chat-1") } returns listOf(message(text = "закреп"))
