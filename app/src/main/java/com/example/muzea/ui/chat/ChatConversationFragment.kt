@@ -900,36 +900,83 @@ class ChatConversationFragment : Fragment(),
                     ).show()
                     return@launch
                 }
-                val published = viewModel.publishDownloadedAttachment(
+                val publicUri = viewModel.publishDownloadedAttachment(
                     file, attachment.fileName, attachment.mimeType
                 )
                 Toast.makeText(
                     requireContext(),
-                    if (published) R.string.attachment_saved_downloads
+                    if (publicUri != null) R.string.attachment_saved_downloads
                     else R.string.attachment_saved_private,
                     Toast.LENGTH_SHORT
                 ).show()
-                try {
-                    val uri = androidx.core.content.FileProvider.getUriForFile(
-                        requireContext(),
-                        "${requireContext().packageName}.fileprovider",
-                        file
-                    )
-                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-                        setDataAndType(uri, attachment.mimeType ?: "*/*")
-                        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    }
-                    startActivity(intent)
-                } catch (e: Exception) {
-                    Toast.makeText(
-                        requireContext(), R.string.attachment_open_failed, Toast.LENGTH_SHORT
-                    ).show()
-                }
+                openDownloadedFile(publicUri, file, attachment)
             } finally {
                 if (dialog.isShowing) dialog.dismiss()
                 downloadJob = null
             }
         }
+    }
+
+    private fun openDownloadedFile(
+        publicUri: android.net.Uri?,
+        file: java.io.File,
+        attachment: MessageAttachment
+    ) {
+        val uri = publicUri ?: runCatching {
+            androidx.core.content.FileProvider.getUriForFile(
+                requireContext(),
+                "${requireContext().packageName}.fileprovider",
+                file
+            )
+        }.getOrNull()
+        if (uri == null) {
+            Toast.makeText(
+                requireContext(), R.string.attachment_open_failed, Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+        val mime = when {
+            attachment.fileName?.endsWith(".apk", ignoreCase = true) == true ->
+                "application/vnd.android.package-archive"
+            !attachment.mimeType.isNullOrBlank() -> attachment.mimeType
+            else -> "*/*"
+        }
+        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, mime)
+            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            // Часть прошивок (Transsion/Infinix) не передаёт грант установщику
+            // только по флагу — дублируем URI в ClipData.
+            clipData = android.content.ClipData.newRawUri("", uri)
+        }
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            showOpenFallback(uri, mime, publicUri != null)
+        }
+    }
+
+    /** Нет обработчика для файла: предлагаем «Поделиться» и не теряем его. */
+    private fun showOpenFallback(uri: android.net.Uri, mime: String, savedToDownloads: Boolean) {
+        if (!isAdded) return
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.attachment_open_failed)
+            .setMessage(
+                if (savedToDownloads) R.string.attachment_saved_downloads
+                else R.string.attachment_saved_private
+            )
+            .setPositiveButton(R.string.action_share) { _, _ ->
+                val share = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                    type = mime
+                    putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    clipData = android.content.ClipData.newRawUri("", uri)
+                }
+                runCatching {
+                    startActivity(android.content.Intent.createChooser(share, null))
+                }
+            }
+            .setNegativeButton(R.string.action_later, null)
+            .show()
     }
 
     private fun setupInput() {

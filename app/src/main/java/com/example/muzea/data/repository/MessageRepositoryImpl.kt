@@ -465,7 +465,7 @@ class MessageRepositoryImpl @Inject constructor(
         file: File,
         fileName: String?,
         mimeType: String?
-    ): Boolean = withContext(Dispatchers.IO) {
+    ): android.net.Uri? = withContext(Dispatchers.IO) {
         AttachmentDownloads.publish(
             context = context,
             source = file,

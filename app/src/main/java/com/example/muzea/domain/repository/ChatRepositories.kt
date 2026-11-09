@@ -91,12 +91,12 @@ interface MessageRepository {
         onProgress: (Int) -> Unit
     ): java.io.File? = downloadAttachment(attachmentUuid, fileName)
 
-    /** Копирует скачанный файл в системные «Загрузки». true — опубликован. */
+    /** Копирует файл в «Загрузки» и возвращает content-uri (null — не вышло). */
     suspend fun publishDownloadedAttachment(
         file: java.io.File,
         fileName: String?,
         mimeType: String?
-    ): Boolean = false
+    ): android.net.Uri? = null
 
     suspend fun markMessagesAsRead(chatUuid: String, upToMessageUuid: String): Boolean
 

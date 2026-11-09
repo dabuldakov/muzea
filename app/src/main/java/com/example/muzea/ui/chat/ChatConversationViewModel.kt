@@ -982,7 +982,7 @@ class ChatConversationViewModel @Inject constructor(
         file: java.io.File,
         fileName: String?,
         mimeType: String?
-    ): Boolean = messageRepository.publishDownloadedAttachment(file, fileName, mimeType)
+    ): android.net.Uri? = messageRepository.publishDownloadedAttachment(file, fileName, mimeType)
 
     /** Статус сообщения для адаптера; null — у входящих и пока неизвестных. */
     fun deliveryStatus(messageUuid: String): MessageDeliveryStatus? =

@@ -3,7 +3,7 @@ package com.example.muzea.data.repository
 import android.content.Context
 import android.provider.MediaStore
 import androidx.test.core.app.ApplicationProvider
-import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -27,7 +27,7 @@ class AttachmentDownloadsTest {
             "application/vnd.android.package-archive"
         )
 
-        assertTrue(published)
+        assertNotNull(published)
 
     }
 }

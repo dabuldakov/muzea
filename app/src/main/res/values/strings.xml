@@ -189,6 +189,7 @@
     <string name="group_create_title">Create group chat</string>
     <string name="action_create">Create</string>
     <string name="action_later">Later</string>
+    <string name="action_share">Share</string>
     <string name="group_name_hint">Group name</string>
     <string name="group_chat_default">Group chat</string>
     <string name="video_selected_format">Selected: %1$s (%2$d KB)</string>
