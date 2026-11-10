@@ -530,6 +530,14 @@ class MessageRepositoryImpl @Inject constructor(
             }
             val body = response.body()
             if (!response.isSuccessful || body == null) {
+                // Ошибку сервера раньше молча превращали в null и она нигде не
+                // оставалась: не было видно ни в логах, ни в отчётах.
+                if (response.code() >= 500) {
+                    com.example.muzea.utils.ErrorReporter.logCaught(
+                        "AttachmentDownload",
+                        java.io.IOException("HTTP ${response.code()} for $attachmentUuid")
+                    )
+                }
                 null
             } else {
                 val targetDir = File(
@@ -573,6 +581,7 @@ class MessageRepositoryImpl @Inject constructor(
             throw e
         } catch (e: Exception) {
             part?.delete()
+            com.example.muzea.utils.ErrorReporter.logCaught("AttachmentDownload", e)
             null
         }
     }
