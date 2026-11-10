@@ -6,4 +6,7 @@ package com.example.muzea.utils
 object ChatTimeFormatter {
 
     fun format(iso: String?): String = LocalTimeFormatter.format(iso)
+
+    /** Время без даты — для метки внутри бабла. */
+    fun formatTimeOnly(iso: String?): String = LocalTimeFormatter.formatTime(iso)
 }

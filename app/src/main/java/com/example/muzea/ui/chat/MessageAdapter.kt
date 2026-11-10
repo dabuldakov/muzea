@@ -78,7 +78,7 @@ private fun bindReactions(
         val chip = android.widget.TextView(container.context).apply {
             text = if (reaction.count > 1) "${reaction.emoji} ${reaction.count}" else reaction.emoji
             textSize = 13f
-            setPadding((8 * density).toInt(), (2 * density).toInt(), (8 * density).toInt(), (2 * density).toInt())
+            setPadding((9 * density).toInt(), (3 * density).toInt(), (9 * density).toInt(), (3 * density).toInt())
             setBackgroundResource(
                 if (reaction.mine) com.example.muzea.R.drawable.bg_reaction_mine
                 else com.example.muzea.R.drawable.bg_reaction
@@ -86,12 +86,12 @@ private fun bindReactions(
             setOnClickListener { onClick(message, reaction.emoji) }
         }
         (chip.layoutParams as? android.widget.LinearLayout.LayoutParams)?.let {
-            it.marginEnd = (4 * density).toInt()
+            it.marginEnd = (6 * density).toInt()
         } ?: run {
             chip.layoutParams = android.widget.LinearLayout.LayoutParams(
                 android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
                 android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { marginEnd = (4 * density).toInt() }
+            ).apply { marginEnd = (6 * density).toInt() }
         }
         container.addView(chip)
     }
@@ -279,6 +279,7 @@ class MessageAdapter(
                 binding.playerGif.visibility = View.GONE
                 binding.ivGif.visibility = View.GONE
                 binding.tvMessage.visibility = View.VISIBLE
+                binding.bubbleContainer.visibility = View.VISIBLE
                 return
             }
             val mp4 = gifMp4Url(message)?.let { MediaUrl.chat(it) }
@@ -286,11 +287,14 @@ class MessageAdapter(
                 releasePlayer()
                 binding.playerGif.visibility = View.GONE
                 bindGif(binding.tvMessage, binding.ivGif, message)
+                binding.bubbleContainer.visibility =
+                    if (binding.tvMessage.visibility == View.VISIBLE) View.VISIBLE else View.GONE
                 return
             }
             binding.tvMessage.visibility = View.GONE
             binding.ivGif.visibility = View.GONE
             binding.playerGif.visibility = View.VISIBLE
+            binding.bubbleContainer.visibility = View.GONE
             val exo = player ?: ExoPlayer.Builder(binding.root.context).build().also {
                 it.repeatMode = Player.REPEAT_MODE_ONE
                 it.volume = 0f
@@ -379,7 +383,7 @@ class MessageAdapter(
                 MessageDeliveryStatus.DELIVERED ->
                     Triple(R.drawable.ic_message_delivered, R.color.gray, R.string.message_status_delivered)
                 MessageDeliveryStatus.READ ->
-                    Triple(R.drawable.ic_message_read, R.color.teal_700, R.string.message_status_read)
+                    Triple(R.drawable.ic_message_read, R.color.power_badge, R.string.message_status_read)
                 MessageDeliveryStatus.FAILED ->
                     Triple(R.drawable.ic_message_failed, R.color.error, R.string.message_status_failed)
             }
@@ -409,6 +413,7 @@ class MessageAdapter(
                 binding.playerGif.visibility = View.GONE
                 binding.ivGif.visibility = View.GONE
                 binding.tvMessage.visibility = View.VISIBLE
+                binding.bubbleContainer.visibility = View.VISIBLE
                 return
             }
             val mp4 = gifMp4Url(message)?.let { MediaUrl.chat(it) }
@@ -416,11 +421,14 @@ class MessageAdapter(
                 releasePlayer()
                 binding.playerGif.visibility = View.GONE
                 bindGif(binding.tvMessage, binding.ivGif, message)
+                binding.bubbleContainer.visibility =
+                    if (binding.tvMessage.visibility == View.VISIBLE) View.VISIBLE else View.GONE
                 return
             }
             binding.tvMessage.visibility = View.GONE
             binding.ivGif.visibility = View.GONE
             binding.playerGif.visibility = View.VISIBLE
+            binding.bubbleContainer.visibility = View.GONE
             val exo = player ?: ExoPlayer.Builder(binding.root.context).build().also {
                 it.repeatMode = Player.REPEAT_MODE_ONE
                 it.volume = 0f
@@ -456,7 +464,7 @@ class MessageAdapter(
         private const val TYPE_OUTGOING = 1
 
         private fun formatTime(iso: String?): String {
-            return ChatTimeFormatter.format(iso)
+            return ChatTimeFormatter.formatTimeOnly(iso)
         }
     }
 

@@ -62,7 +62,7 @@
     <string name="hint_password">Пароль</string>
     <string name="hint_related_video">Связанное видео (необязательно)</string>
     <string name="hint_title">Заголовок</string>
-    <string name="hint_message">Введите сообщение…</string>
+    <string name="hint_message">Сообщение…</string>
     <string name="hint_username">Логин</string>
     <string name="label_video_title">Название видео</string>
     <string name="video_likes_zero">0 лайков</string>
@@ -316,4 +316,6 @@
     <string name="pinned_message_title">Закреплённое сообщение</string>
     <string name="pinned_messages_count">Закреплённых: %1$d</string>
     <string name="action_open_pinned">Открыть закреплённое сообщение</string>
+    <string name="chat_participants_count">%d участников</string>
+    <string name="chat_type_direct">личный чат</string>
 </resources>

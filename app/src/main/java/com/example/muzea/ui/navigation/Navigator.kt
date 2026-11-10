@@ -16,7 +16,8 @@ interface Navigator {
         avatarUrl: String?,
         unreadCount: Long,
         draftText: String? = null,
-        highlightMessageUuid: String? = null
+        highlightMessageUuid: String? = null,
+        participantCount: Int = 0
     )
 
     fun openGroupSettings(chatUuid: String, title: String, avatarUrl: String?)

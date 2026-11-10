@@ -202,7 +202,7 @@ class ContactListFragment : Fragment() {
     }
 
     private fun openConversation(chat: Chat) {
-        navigator.openConversation(chat.chatUuid, chat.title ?: "Chat", chat.avatarUrl, 0L)
+        navigator.openConversation(chat.chatUuid, chat.title ?: "Chat", chat.avatarUrl, 0L, null, null, chat.participantCount?.toInt() ?: 0)
     }
 
     override fun onResume() {

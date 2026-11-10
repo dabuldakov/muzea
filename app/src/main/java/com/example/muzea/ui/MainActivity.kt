@@ -324,11 +324,13 @@ class MainActivity : AppCompatActivity(), Navigator {
         avatarUrl: String?,
         unreadCount: Long,
         draftText: String?,
-        highlightMessageUuid: String?
+        highlightMessageUuid: String?,
+        participantCount: Int
     ) {
         openDetail(
             ChatConversationFragment.newInstance(
-                chatUuid, title, avatarUrl, unreadCount, draftText, highlightMessageUuid
+                chatUuid, title, avatarUrl, unreadCount, draftText, highlightMessageUuid,
+                participantCount
             )
         )
     }

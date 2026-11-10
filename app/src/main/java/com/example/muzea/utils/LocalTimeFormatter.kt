@@ -16,12 +16,16 @@ object LocalTimeFormatter {
     private const val SERVER_PATTERN = "yyyy-MM-dd'T'HH:mm:ss"
     private const val OUT_DATETIME_PATTERN = "yyyy-MM-dd HH:mm"
     private const val OUT_DATE_PATTERN = "yyyy-MM-dd"
+    private const val OUT_TIME_PATTERN = "HH:mm"
 
     /** Полное время, например «2026-09-22 12:00» в поясе устройства. */
     fun format(iso: String?): String = format(iso, OUT_DATETIME_PATTERN)
 
     /** Только дата, например «2026-09-22» в поясе устройства. */
     fun formatDate(iso: String?): String = format(iso, OUT_DATE_PATTERN)
+
+    /** Только время, например «15:00» в поясе устройства. */
+    fun formatTime(iso: String?): String = format(iso, OUT_TIME_PATTERN)
 
     private fun format(iso: String?, outPattern: String): String {
         if (iso.isNullOrEmpty()) return ""

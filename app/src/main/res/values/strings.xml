@@ -63,7 +63,7 @@
     <string name="hint_password">Password</string>
     <string name="hint_related_video">Related Video (Optional)</string>
     <string name="hint_title">Title</string>
-    <string name="hint_message">Type a message...</string>
+    <string name="hint_message">Message…</string>
     <string name="hint_username">Username</string>
     <string name="label_video_title">Video Title</string>
     <string name="video_likes_zero">0 likes</string>
@@ -329,4 +329,6 @@
     <string name="pinned_message_title">Pinned message</string>
     <string name="pinned_messages_count">Pinned: %1$d</string>
     <string name="action_open_pinned">Open pinned message</string>
+    <string name="chat_participants_count">%d members</string>
+    <string name="chat_type_direct">direct chat</string>
 </resources>

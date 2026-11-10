@@ -23,6 +23,12 @@ class ChatTimeFormatterTest {
     }
 
     @Test
+    fun `time only has no date`() {
+        TimeZone.setDefault(TimeZone.getTimeZone("Europe/Moscow"))
+        assertEquals("15:00", ChatTimeFormatter.formatTimeOnly("2026-09-22T12:00:00"))
+    }
+
+    @Test
     fun `nanosecond precision from server is handled`() {
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
         assertEquals("2026-09-22 12:00", ChatTimeFormatter.format("2026-09-22T12:00:00.123456789"))

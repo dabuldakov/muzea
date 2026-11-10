@@ -34,7 +34,8 @@ class HiltTestActivity : FragmentActivity(), Navigator {
         avatarUrl: String?,
         unreadCount: Long,
         draftText: String?,
-        highlightMessageUuid: String?
+        highlightMessageUuid: String?,
+        participantCount: Int
     ) {
         lastConversation = Conversation(
             chatUuid, title, avatarUrl, unreadCount, draftText, highlightMessageUuid

@@ -177,6 +177,7 @@ class ChatConversationFragment : Fragment(),
 
     companion object {
         private const val ARG_CHAT_TITLE = "chat_title"
+        private const val ARG_PARTICIPANTS = "chat_participants"
         private const val ARG_CHAT_AVATAR = "chat_avatar"
         private const val ARG_UNREAD_COUNT = "chat_unread_count"
         private const val ARG_DRAFT_TEXT = "chat_draft_text"
@@ -209,7 +210,8 @@ class ChatConversationFragment : Fragment(),
             avatarUrl: String? = null,
             unreadCount: Long = 0L,
             draftText: String? = null,
-            highlightMessageUuid: String? = null
+            highlightMessageUuid: String? = null,
+            participantCount: Int = 0
         ): ChatConversationFragment {
             return ChatConversationFragment().apply {
                 arguments = Bundle().apply {
@@ -219,6 +221,7 @@ class ChatConversationFragment : Fragment(),
                     putLong(ARG_UNREAD_COUNT, unreadCount)
                     putString(ARG_DRAFT_TEXT, draftText)
                     putString(ARG_HIGHLIGHT_MESSAGE, highlightMessageUuid)
+                    putInt(ARG_PARTICIPANTS, participantCount)
                 }
             }
         }
@@ -240,6 +243,10 @@ class ChatConversationFragment : Fragment(),
         unreadCount = arguments?.getLong(ARG_UNREAD_COUNT, 0L) ?: 0L
 
         binding.tvTitle.text = chatTitle
+        val participants = arguments?.getInt(ARG_PARTICIPANTS, 0) ?: 0
+        binding.tvSubtitle.text =
+            if (participants > 2) getString(R.string.chat_participants_count, participants)
+            else getString(R.string.chat_type_direct)
         pendingHighlightUuid = arguments?.getString(ARG_HIGHLIGHT_MESSAGE)
         AvatarLoader.load(binding.ivAvatar, arguments?.getString(ARG_CHAT_AVATAR))
         binding.tvTitle.setOnClickListener {
