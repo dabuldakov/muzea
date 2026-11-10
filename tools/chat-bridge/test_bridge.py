@@ -100,18 +100,26 @@ class ContinuationTest(unittest.TestCase):
             "content": [{"type": "text", "text": text}],
         }
 
-    def test_assistant_replies_keeps_only_new_final_text(self):
+    def test_assistant_replies_includes_tool_call_preamble(self):
         payload = {
             "data": [
                 self.reply(3000, "b"),
                 self.reply(2000, "a"),
                 self.reply(500, "old"),
-                self.reply(4000, "tools", finish="tool-calls"),
+                self.reply(4000, "ухожу проверять", finish="tool-calls"),
                 self.reply(4500, "   "),
             ]
         }
         with mock.patch.object(bridge, "opencode_api", return_value=payload):
-            self.assertEqual([(2000, "a"), (3000, "b")], bridge.assistant_replies(1000))
+            self.assertEqual(
+                [(2000, "a"), (3000, "b"), (4000, "ухожу проверять")],
+                bridge.assistant_replies(1000),
+            )
+
+    def test_streaming_message_without_finish_is_skipped(self):
+        payload = {"data": [self.reply(2000, "part", finish=None)]}
+        with mock.patch.object(bridge, "opencode_api", return_value=payload):
+            self.assertEqual([], bridge.assistant_replies(1000))
 
     def test_forward_continuations_posts_new_reply_and_marks_it(self):
         posted = []

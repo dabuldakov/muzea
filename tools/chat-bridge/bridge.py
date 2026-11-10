@@ -187,14 +187,20 @@ def opencode_api(method: str, path: str, body: dict | None = None):
 
 
 def assistant_replies(since: int) -> list[tuple[int, str]]:
-    """Финальные текстовые ответы assistant новее `since` (мс)."""
+    """Текстовые ответы assistant новее `since` (мс).
+
+    Включаем и finish=tool-calls: агент часто пишет «ушёл проверять» перед
+    вызовом инструментов, и это сообщение должно дойти до чата сразу, не
+    дожидаясь конца хода.
+    """
     response = opencode_api(
         "get",
         f"/api/session/{SESSION}/message?limit=20&type=assistant",
     )
     replies = []
     for message in response["data"]:
-        if message.get("finish") != "stop":
+        # finish=None — сообщение ещё стримится; не публикуем частичный текст.
+        if message.get("finish") not in ("stop", "tool-calls"):
             continue
         created = (message.get("time") or {}).get("created") or 0
         if created <= since:
