@@ -77,6 +77,34 @@ class MessageRepositoryIntegrationTest {
     }
 
     @Test
+    fun `sendMessage posts power and maps it back`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        server.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"messageUuid":"9c1e5d22-11aa-4b7c-8d3e-0f9a7b6c5d4e",
+                         "chatUuid":"7b0b15f8-6b3c-4c2d-a9e2-2e1e32de9b1f",
+                         "senderId":4,"senderUuid":"me","senderName":"me","senderAvatar":null,
+                         "text":"hi","messageType":"TEXT","replyToMessageUuid":null,
+                         "isEdited":false,"isDeleted":false,"isPinned":false,
+                         "createdAt":"2026-11-10T10:00:00","updatedAt":null,
+                         "power":77}"""
+                )
+        )
+
+        val result = repository().sendMessage(
+            "7b0b15f8-6b3c-4c2d-a9e2-2e1e32de9b1f", "hi", emptyList(), "TEXT",
+            null, "c-1", 77
+        ).toList().last()
+
+        assertTrue(result is Resource.Success)
+        assertEquals(77, result.data!!.power)
+        val body = JsonParser().parse(server.takeRequest().body.readUtf8()).asJsonObject
+        assertEquals(77, body.get("power").asInt)
+    }
+
+    @Test
     fun `deleteMessage sends DELETE and reports success`() = runTest {
         coEvery { auth.isAuthenticated() } returns true
         server.enqueue(MockResponse().setResponseCode(200))

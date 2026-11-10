@@ -99,14 +99,27 @@ class OutboxSender @Inject constructor(
     private suspend fun send(item: OutboxItem): Boolean {
         var error: String? = null
         var sent: Message? = null
-        messageRepository.sendMessage(
-            chatUuid = item.chatUuid,
-            text = item.text,
-            attachments = item.attachments.mapNotNull { it.attachmentUuid },
-            messageType = item.messageType,
-            replyToMessageUuid = item.replyToMessageUuid,
-            clientMessageId = item.clientMessageId
-        ).collect { result ->
+        val sending = if (item.power > 0) {
+            messageRepository.sendMessage(
+                chatUuid = item.chatUuid,
+                text = item.text,
+                attachments = item.attachments.mapNotNull { it.attachmentUuid },
+                messageType = item.messageType,
+                replyToMessageUuid = item.replyToMessageUuid,
+                clientMessageId = item.clientMessageId,
+                power = item.power
+            )
+        } else {
+            messageRepository.sendMessage(
+                chatUuid = item.chatUuid,
+                text = item.text,
+                attachments = item.attachments.mapNotNull { it.attachmentUuid },
+                messageType = item.messageType,
+                replyToMessageUuid = item.replyToMessageUuid,
+                clientMessageId = item.clientMessageId
+            )
+        }
+        sending.collect { result ->
             when (result) {
                 is Resource.Success -> sent = result.data
                 is Resource.Error -> error = result.message ?: "Failed to send message"

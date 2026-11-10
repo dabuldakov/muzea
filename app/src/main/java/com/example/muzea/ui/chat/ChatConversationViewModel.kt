@@ -171,7 +171,8 @@ class ChatConversationViewModel @Inject constructor(
                 isPinned = false,
                 createdAt = null,
                 updatedAt = null,
-                attachments = item.attachments
+                attachments = item.attachments,
+                power = item.power
             )
         }
         if (pending.isNotEmpty()) mergeMessages(pending)
@@ -345,7 +346,8 @@ class ChatConversationViewModel @Inject constructor(
                 messageType = type,
                 replyToMessageUuid = replyToUuid,
                 attachments = uploaded,
-                createdAt = System.currentTimeMillis()
+                createdAt = System.currentTimeMillis(),
+                power = optimistic.power
             )
         )
     }

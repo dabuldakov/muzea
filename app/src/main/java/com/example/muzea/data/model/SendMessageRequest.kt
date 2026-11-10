@@ -15,5 +15,8 @@ data class SendMessageRequest(
     val attachments: List<String>? = null,
     /** Клиентский UUID: повторная отправка не создаёт дубль. */
     @SerializedName("clientMessageId")
-    val clientMessageId: String? = null
+    val clientMessageId: String? = null,
+    /** 0..100 — сила удержания кнопки отправки. */
+    @SerializedName("power")
+    val power: Int = 0
 )

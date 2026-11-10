@@ -40,6 +40,10 @@ class ChargeBurstView @JvmOverloads constructor(
         style = Paint.Style.FILL
         color = Color.parseColor("#FFC107")
     }
+    private val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = Color.parseColor("#33FFEB3B")
+    }
     private val path = Path()
     private var tickAnimator: ValueAnimator? = null
     private var ticks = 0
@@ -116,12 +120,15 @@ class ChargeBurstView @JvmOverloads constructor(
         val density = resources.displayMetrics.density
         // Начинаем у края кнопки (42dp => радиус 21dp) и уходим наружу.
         val baseRadius = 20f * density
-        val reach = baseRadius + 24f * density * intensity * (1f + 0.5f * burstFactor)
+        val reach = baseRadius + 32f * density * intensity * (1f + 0.6f * burstFactor)
 
-        // Молнии: от 2 до 7 ветвей, тем больше, чем сильнее заряд.
-        val branches = 2 + (intensity * 5).toInt()
-        boltPaint.strokeWidth = 1.5f + 3f * intensity
-        corePaint.strokeWidth = 0.8f + 1.4f * intensity
+        glowPaint.alpha = (40 + 90 * intensity).toInt().coerceIn(0, 255)
+        canvas.drawCircle(cx, cy, reach * 0.75f, glowPaint)
+
+        // Молнии: от 3 до 11 ветвей, тем больше, чем сильнее заряд.
+        val branches = 3 + (intensity * 8).toInt()
+        boltPaint.strokeWidth = 2f + 4.5f * intensity
+        corePaint.strokeWidth = 1f + 2f * intensity
         repeat(branches) { index ->
             val angle = -Math.PI / 2 + (index - branches / 2f) * 0.55f +
                 random.nextFloat() * 0.25f
@@ -129,7 +136,7 @@ class ChargeBurstView @JvmOverloads constructor(
         }
 
         // Искры разлетаются по кругу; при burst — дальше.
-        val sparks = 4 + (intensity * 14).toInt()
+        val sparks = 6 + (intensity * 22).toInt()
         repeat(sparks) {
             val angle = random.nextFloat() * (2 * Math.PI).toFloat()
             val distance = baseRadius + (reach - baseRadius) * random.nextFloat()

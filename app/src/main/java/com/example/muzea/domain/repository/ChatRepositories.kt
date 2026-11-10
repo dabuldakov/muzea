@@ -47,6 +47,19 @@ interface MessageRepository {
         replyToMessageUuid: String? = null,
         clientMessageId: String? = null
     ): Flow<Resource<Message>>
+
+    /** Отправка с силой «заряда» 0..100. */
+    suspend fun sendMessage(
+        chatUuid: String,
+        text: String,
+        attachments: List<String>,
+        messageType: String,
+        replyToMessageUuid: String?,
+        clientMessageId: String?,
+        power: Int
+    ): Flow<Resource<Message>> = sendMessage(
+        chatUuid, text, attachments, messageType, replyToMessageUuid, clientMessageId
+    )
     suspend fun sendGif(
         chatUuid: String,
         gif: Gif,

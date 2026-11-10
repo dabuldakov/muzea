@@ -54,6 +54,7 @@ fun com.example.muzea.data.model.MessageResponse.toDomain(): Message = Message(
     createdAt = createdAt,
     updatedAt = updatedAt,
     attachments = attachments.orEmpty().mapNotNull { it.toDomainAttachment() },
+    power = power,
     reactions = reactions.orEmpty().map {
         com.example.muzea.domain.model.MessageReaction(
             emoji = it.emoji,

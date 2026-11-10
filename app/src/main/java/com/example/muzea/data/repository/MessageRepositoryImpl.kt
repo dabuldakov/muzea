@@ -128,6 +128,18 @@ class MessageRepositoryImpl @Inject constructor(
         messageType: String,
         replyToMessageUuid: String?,
         clientMessageId: String?
+    ): Flow<Resource<Message>> = sendMessage(
+        chatUuid, text, attachments, messageType, replyToMessageUuid, clientMessageId, 0
+    )
+
+    override suspend fun sendMessage(
+        chatUuid: String,
+        text: String,
+        attachments: List<String>,
+        messageType: String,
+        replyToMessageUuid: String?,
+        clientMessageId: String?,
+        power: Int
     ): Flow<Resource<Message>> = flow {
         emit(Resource.Loading())
         try {
@@ -146,7 +158,8 @@ class MessageRepositoryImpl @Inject constructor(
                         messageType = messageType,
                         replyToMessageUuid = replyToMessageUuid,
                         attachments = attachments.takeIf { it.isNotEmpty() },
-                        clientMessageId = clientMessageId
+                        clientMessageId = clientMessageId,
+                        power = power.coerceIn(0, 100)
                     )
                 )
             }

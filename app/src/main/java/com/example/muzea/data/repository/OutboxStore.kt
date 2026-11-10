@@ -19,7 +19,8 @@ data class OutboxItem(
     val replyToMessageUuid: String?,
     val attachments: List<MessageAttachment> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),
-    val attempts: Int = 0
+    val attempts: Int = 0,
+    val power: Int = 0
 )
 
 /**

@@ -112,6 +112,7 @@ class ChatConversationFragment : Fragment(),
     private var chargeStartedAt = 0L
     private var isCharging = false
     private var chargeCancelled = false
+    private var lastChargeVibrationAt = 0L
     private var mentionStart = -1
     private var mentionEnd = -1
 
@@ -1117,9 +1118,19 @@ class ChatConversationFragment : Fragment(),
 
     /** Короткий «взрыв» кнопки: чем сильнее заряд, тем заметнее анимация. */
     private fun playSendBurst(power: Int) {
-        val scale = 1f + 0.9f * (power / 100f)
+        val scale = 1f + 1.3f * (power / 100f)
         binding.chargeBurst.burst(power)
-        binding.btnSend.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+        val vibrator = requireContext().getSystemService(android.os.Vibrator::class.java)
+        if (vibrator != null && vibrator.hasVibrator()) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                vibrator.vibrate(android.os.VibrationEffect.createOneShot(140, 255))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(140)
+            }
+        } else {
+            binding.btnSend.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+        }
         binding.btnSend.animate()
             .scaleX(scale)
             .scaleY(scale)
@@ -1180,12 +1191,36 @@ class ChatConversationFragment : Fragment(),
         binding.progressCharge.progress = power
         binding.tvChargePercent.text = getString(R.string.charge_format, power)
         binding.chargeBurst.updatePower(power)
-        // Кнопка «раздувается» и слегка пульсирует; к концу — сильнее.
+        // Кнопка «раздувается» и пульсирует; к концу — сильнее.
         val level = power / 100f
-        val pulse = 1f + 0.06f * level * (0.5f + 0.5f * kotlin.math.sin(heldMs / 120.0).toFloat())
-        val scale = 1f + 0.38f * level
+        val pulse = 1f + 0.10f * level * (0.5f + 0.5f * kotlin.math.sin(heldMs / 90.0).toFloat())
+        val scale = 1f + 0.55f * level
         binding.btnSend.scaleX = scale * pulse
         binding.btnSend.scaleY = scale * pulse
+        vibrateCharge(level)
+    }
+
+    /** Вибрация усиливается и учащается по мере заряда. */
+    private fun vibrateCharge(level: Float) {
+        if (level <= 0.02f) return
+        val now = android.os.SystemClock.elapsedRealtime()
+        val interval = (220 - 170 * level).toLong().coerceAtLeast(50)
+        if (now - lastChargeVibrationAt < interval) return
+        lastChargeVibrationAt = now
+        val vibrator = requireContext().getSystemService(android.os.Vibrator::class.java)
+        val amplitude = (25 + 230 * level).toInt().coerceIn(1, 255)
+        if (vibrator == null || !vibrator.hasVibrator()) {
+            binding.btnSend.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+            return
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            vibrator.vibrate(
+                android.os.VibrationEffect.createOneShot(30, amplitude)
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(30)
+        }
     }
 
     private fun cancelCharge() {

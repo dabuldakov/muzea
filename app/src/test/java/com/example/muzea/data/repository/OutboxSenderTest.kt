@@ -45,13 +45,14 @@ class OutboxSenderTest {
         return OutboxStore(context)
     }
 
-    private fun item() = OutboxItem(
+    private fun item(power: Int = 0) = OutboxItem(
         clientMessageId = "c1",
         localMessageUuid = "local-1",
         chatUuid = "chat-1",
         text = "hello",
         messageType = "TEXT",
-        replyToMessageUuid = null
+        replyToMessageUuid = null,
+        power = power
     )
 
     private fun serverMessage() = Message(
@@ -98,6 +99,25 @@ class OutboxSenderTest {
 
         assertTrue(store.all().isEmpty())
         assertTrue(events.single() is OutboxEvent.Sent)
+    }
+
+    @Test
+    fun `charged message is sent with its power`() = runTest {
+        val store = store()
+        val repository = mockk<MessageRepository>()
+        val (monitor, _) = monitor(NetworkQuality.GOOD)
+        coEvery {
+            repository.sendMessage("chat-1", "hello", emptyList(), "TEXT", null, "c1", 75)
+        } returns flowOf(Resource.Success(serverMessage()))
+        val sender = OutboxSender(store, repository, monitor, backgroundScope)
+
+        sender.enqueue(item(power = 75))
+        sender.drainNow()
+
+        coVerify {
+            repository.sendMessage("chat-1", "hello", emptyList(), "TEXT", null, "c1", 75)
+        }
+        assertTrue(store.all().isEmpty())
     }
 
     @Test
