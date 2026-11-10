@@ -288,6 +288,11 @@ class ChatConversationFragment : Fragment(),
         // пересоздавал строку), поэтому признак серверного сообщения — messageId.
         val isServerMessage = message.messageId != null
         val actions = mutableListOf<MessageActionSpec>()
+        actions += MessageActionSpec(
+            MessageActionsBottomSheet.ACTION_REACT,
+            R.drawable.ic_reaction,
+            R.string.action_react
+        )
 
         val failedLocal = message.messageUuid.startsWith("local-") &&
             viewModel.deliveryStatus(message.messageUuid) == MessageDeliveryStatus.FAILED
@@ -396,6 +401,35 @@ class ChatConversationFragment : Fragment(),
         ).show(childFragmentManager, "message_actions")
     }
 
+    private fun showReactionPicker(message: Message) {
+        val emojis = listOf("👍", "❤️", "😂", "😮", "😢", "🔥")
+        val density = resources.displayMetrics.density
+        val grid = android.widget.GridLayout(requireContext()).apply { columnCount = 6 }
+        val size = (44 * density).toInt()
+        var dialog: androidx.appcompat.app.AlertDialog? = null
+        emojis.forEach { emoji ->
+            val cell = android.widget.TextView(requireContext()).apply {
+                text = emoji
+                textSize = 26f
+                gravity = android.view.Gravity.CENTER
+                layoutParams = android.widget.GridLayout.LayoutParams().apply {
+                    width = size
+                    height = size
+                }
+                setOnClickListener {
+                    viewModel.toggleReaction(message, emoji)
+                    dialog?.dismiss()
+                }
+            }
+            grid.addView(cell)
+        }
+        dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.action_react)
+            .setView(grid)
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
     private fun isGroupChat(): Boolean =
         ChatListCache.get().firstOrNull { it.chatUuid == chatUuid }
             ?.chatType.equals("GROUP", ignoreCase = true)
@@ -420,6 +454,7 @@ class ChatConversationFragment : Fragment(),
         val message = viewModel.uiState.value.messages
             .firstOrNull { it.messageUuid == messageUuid } ?: return
         when (actionId) {
+            MessageActionsBottomSheet.ACTION_REACT -> showReactionPicker(message)
             MessageActionsBottomSheet.ACTION_COPY ->
                 message.text?.takeIf { it.isNotBlank() }?.let { copyMessage(it) }
             MessageActionsBottomSheet.ACTION_REPORT ->
@@ -623,7 +658,8 @@ class ChatConversationFragment : Fragment(),
             onAttachmentClick = { message, attachment ->
                 openAttachment(message, attachment)
             },
-            isGroupChat = isGroupChat()
+            isGroupChat = isGroupChat(),
+            onReactionClick = { message, emoji -> viewModel.toggleReaction(message, emoji) }
         )
         adapter.registerAdapterDataObserver(scrollObserver)
         binding.recyclerViewMessages.apply {

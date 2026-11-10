@@ -90,7 +90,12 @@ class ChatMessageReducer {
                         replyToMessageUuid = replyTo,
                         // Сервер пока не знает про power — не теряем заряд,
                         // накопленный при удержании кнопки.
-                        power = if (serverMessage.power > 0) serverMessage.power else existing.power
+                        power = if (serverMessage.power > 0) serverMessage.power else existing.power,
+                        reactions = if (serverMessage.reactions.isNotEmpty()) {
+                            serverMessage.reactions
+                        } else {
+                            existing.reactions
+                        }
                     )
                 } else {
                     existing

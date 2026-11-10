@@ -148,6 +148,13 @@ interface ChatApiService {
         @Query("limit") limit: Int = 50
     ): Response<List<MessageResponse>>
 
+    /** Поставить или снять реакцию; сервер возвращает сводку по сообщению. */
+    @POST("/api/messages/{messageUuid}/reactions")
+    suspend fun toggleReaction(
+        @Path("messageUuid") messageUuid: String,
+        @Body request: com.example.muzea.data.model.ReactionRequest
+    ): Response<List<com.example.muzea.data.model.ReactionResponse>>
+
     @POST("/api/messages/{chatUuid}")
     suspend fun sendMessage(
         @Path("chatUuid") chatUuid: String,

@@ -98,6 +98,12 @@ interface MessageRepository {
         mimeType: String?
     ): android.net.Uri? = null
 
+    /** Ставит/снимает реакцию и возвращает обновлённую сводку; null — ошибка. */
+    suspend fun toggleReaction(
+        messageUuid: String,
+        emoji: String
+    ): List<com.example.muzea.domain.model.MessageReaction>? = null
+
     suspend fun markMessagesAsRead(chatUuid: String, upToMessageUuid: String): Boolean
 
     /** Подтверждает доставку всей ленты до [upToMessageUuid] на это устройство. */

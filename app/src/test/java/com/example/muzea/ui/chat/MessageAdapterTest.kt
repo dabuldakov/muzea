@@ -68,7 +68,8 @@ class MessageAdapterTest {
         isEdited: Boolean = false,
         createdAt: String? = "2026-01-01T10:00:00",
         attachments: List<MessageAttachment> = emptyList(),
-        power: Int = 0
+        power: Int = 0,
+        reactions: List<com.example.muzea.domain.model.MessageReaction> = emptyList()
     ) = Message(
         messageUuid = uuid,
         chatUuid = "chat-1",
@@ -85,7 +86,8 @@ class MessageAdapterTest {
         createdAt = createdAt,
         updatedAt = null,
         attachments = attachments,
-        power = power
+        power = power,
+        reactions = reactions
     )
 
     private fun adapter(myUserUuid: String? = "me"): MessageAdapter {
@@ -185,6 +187,26 @@ class MessageAdapterTest {
         adapter.onBindViewHolder(holder, 0)
 
         verify { fx.tvPower.visibility = android.view.View.GONE }
+    }
+
+    @Test
+    fun `reaction chips are rendered`() {
+        val adapter = adapter()
+        adapter.submitList(
+            listOf(
+                message(
+                    uuid = "mine", senderUuid = "me",
+                    reactions = listOf(
+                        com.example.muzea.domain.model.MessageReaction("👍", 2, true)
+                    )
+                )
+            )
+        )
+
+        val holder = adapter.onCreateViewHolder(parent, 1)
+        adapter.onBindViewHolder(holder, 0)
+
+        verify { fx.reactionsContainer.visibility = android.view.View.VISIBLE }
     }
 
     @Test

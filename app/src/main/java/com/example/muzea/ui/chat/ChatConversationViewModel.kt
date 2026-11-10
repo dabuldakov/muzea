@@ -587,11 +587,21 @@ class ChatConversationViewModel @Inject constructor(
         ) {
             reconciled.copy(
                 attachments = existing.attachments,
-                power = if (reconciled.power > 0) reconciled.power else existing.power
+                power = if (reconciled.power > 0) reconciled.power else existing.power,
+                reactions = if (reconciled.reactions.isNotEmpty()) {
+                    reconciled.reactions
+                } else {
+                    existing.reactions
+                }
             )
         } else {
             reconciled.copy(
-                power = if (reconciled.power > 0) reconciled.power else existing?.power ?: 0
+                power = if (reconciled.power > 0) reconciled.power else existing?.power ?: 0,
+                reactions = if (reconciled.reactions.isNotEmpty()) {
+                    reconciled.reactions
+                } else {
+                    existing?.reactions.orEmpty()
+                }
             )
         }
         val messages = reducer.updateMessage(_uiState.value.messages, merged)
@@ -1076,6 +1086,19 @@ class ChatConversationViewModel @Inject constructor(
         fileName: String?,
         mimeType: String?
     ): android.net.Uri? = messageRepository.publishDownloadedAttachment(file, fileName, mimeType)
+
+    fun toggleReaction(message: Message, emoji: String) {
+        viewModelScope.launch {
+            val updated = messageRepository.toggleReaction(
+                reducer.serverUuid(message.messageUuid), emoji
+            )
+            if (updated != null) {
+                updateMessage(message.copy(reactions = updated))
+            } else {
+                _sendError.emit(appContext.getString(R.string.reaction_failed))
+            }
+        }
+    }
 
     /** Статус сообщения для адаптера; null — у входящих и пока неизвестных. */
     fun deliveryStatus(messageUuid: String): MessageDeliveryStatus? =

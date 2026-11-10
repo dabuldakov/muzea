@@ -35,7 +35,16 @@ data class MessageResponse(
     @SerializedName("updatedAt")
     val updatedAt: String?,
     @SerializedName("attachments")
-    val attachments: List<AttachmentResponse>? = null
+    val attachments: List<AttachmentResponse>? = null,
+    @SerializedName("reactions")
+    val reactions: List<ReactionResponse>? = null
+)
+
+/** Реакция на сообщение: эмодзи произвольный (в пределах лимита сервера). */
+data class ReactionResponse(
+    @SerializedName("emoji") val emoji: String,
+    @SerializedName("count") val count: Int,
+    @SerializedName("mine") val mine: Boolean
 )
 
 /** Вложение сообщения (в т.ч. GIF). */
@@ -52,4 +61,8 @@ data class AttachmentResponse(
     @SerializedName("fileSize") val fileSize: Long? = null,
     @SerializedName("mimeType") val mimeType: String? = null,
     @SerializedName("duration") val duration: Int? = null
+)
+/** Запрос реакции: эмодзи произвольный. */
+data class ReactionRequest(
+    @SerializedName("emoji") val emoji: String
 )

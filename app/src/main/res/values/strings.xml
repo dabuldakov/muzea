@@ -190,6 +190,8 @@
     <string name="action_create">Create</string>
     <string name="action_later">Later</string>
     <string name="action_share">Share</string>
+    <string name="action_react">Реакция</string>
+    <string name="reaction_failed">Не удалось поставить реакцию</string>
     <string name="emoji_title">Эмодзи и GIF</string>
     <string name="emoji_open_gif">GIF</string>
     <string name="group_name_hint">Group name</string>

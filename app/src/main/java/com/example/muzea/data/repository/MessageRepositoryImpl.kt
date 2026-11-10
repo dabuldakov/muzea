@@ -321,6 +321,35 @@ class MessageRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun toggleReaction(
+        messageUuid: String,
+        emoji: String
+    ): List<com.example.muzea.domain.model.MessageReaction>? {
+        return try {
+            val response = chatAuthManager.authenticatedRequest {
+                apiService.toggleReaction(
+                    messageUuid,
+                    com.example.muzea.data.model.ReactionRequest(emoji)
+                )
+            }
+            if (response.isSuccessful) {
+                response.body()?.map {
+                    com.example.muzea.domain.model.MessageReaction(
+                        emoji = it.emoji,
+                        count = it.count,
+                        mine = it.mine
+                    )
+                }.orEmpty()
+            } else {
+                null
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     override suspend fun markMessagesAsRead(chatUuid: String, upToMessageUuid: String): Boolean {
         return try {
             chatAuthManager.authenticatedRequest {

@@ -53,7 +53,14 @@ fun com.example.muzea.data.model.MessageResponse.toDomain(): Message = Message(
     isPinned = isPinned,
     createdAt = createdAt,
     updatedAt = updatedAt,
-    attachments = attachments.orEmpty().mapNotNull { it.toDomainAttachment() }
+    attachments = attachments.orEmpty().mapNotNull { it.toDomainAttachment() },
+    reactions = reactions.orEmpty().map {
+        com.example.muzea.domain.model.MessageReaction(
+            emoji = it.emoji,
+            count = it.count,
+            mine = it.mine
+        )
+    }
 )
 
 fun com.example.muzea.data.model.ContactResponse.toDomain(): Contact = Contact(

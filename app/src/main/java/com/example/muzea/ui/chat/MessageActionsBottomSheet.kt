@@ -195,6 +195,7 @@ class MessageActionsBottomSheet : BottomSheetDialogFragment() {
 
         // Идентификаторы действий. Обработка — в ChatConversationFragment.
         const val ACTION_COPY = "copy"
+        const val ACTION_REACT = "react"
         const val ACTION_REPORT = "report"
         const val ACTION_BLOCK = "block"
         const val ACTION_RETRY = "retry"

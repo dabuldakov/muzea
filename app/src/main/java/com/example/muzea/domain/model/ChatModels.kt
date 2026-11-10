@@ -47,7 +47,15 @@ data class Message(
     val updatedAt: String?,
     val attachments: List<MessageAttachment> = emptyList(),
     /** Сила «заряда» отправителя, 0..100 (0 — обычное сообщение). */
-    val power: Int = 0
+    val power: Int = 0,
+    val reactions: List<MessageReaction> = emptyList()
+)
+
+/** Сводка реакций: эмодзи, сколько раз поставили и поставил ли текущий пользователь. */
+data class MessageReaction(
+    val emoji: String,
+    val count: Int,
+    val mine: Boolean
 )
 
 /** Вложение сообщения: для GIF — ссылка на гифку, превью и наш ключ гифки. */

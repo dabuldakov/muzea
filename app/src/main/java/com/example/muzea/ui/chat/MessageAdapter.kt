@@ -62,6 +62,41 @@ private fun bindPower(view: android.widget.TextView, message: Message) {
     }
 }
 
+private fun bindReactions(
+    container: android.widget.LinearLayout,
+    message: Message,
+    onClick: (Message, String) -> Unit
+) {
+    container.removeAllViews()
+    if (message.reactions.isEmpty()) {
+        container.visibility = android.view.View.GONE
+        return
+    }
+    container.visibility = android.view.View.VISIBLE
+    val density = container.resources.displayMetrics.density
+    message.reactions.forEach { reaction ->
+        val chip = android.widget.TextView(container.context).apply {
+            text = if (reaction.count > 1) "${reaction.emoji} ${reaction.count}" else reaction.emoji
+            textSize = 13f
+            setPadding((8 * density).toInt(), (2 * density).toInt(), (8 * density).toInt(), (2 * density).toInt())
+            setBackgroundResource(
+                if (reaction.mine) com.example.muzea.R.drawable.bg_reaction_mine
+                else com.example.muzea.R.drawable.bg_reaction
+            )
+            setOnClickListener { onClick(message, reaction.emoji) }
+        }
+        (chip.layoutParams as? android.widget.LinearLayout.LayoutParams)?.let {
+            it.marginEnd = (4 * density).toInt()
+        } ?: run {
+            chip.layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { marginEnd = (4 * density).toInt() }
+        }
+        container.addView(chip)
+    }
+}
+
 class MessageAdapter(
     private val myUserUuid: String?,
     private val linkPreviews: LinkPreviewStore,
@@ -69,7 +104,8 @@ class MessageAdapter(
     private val statusFor: (Message) -> MessageDeliveryStatus?,
     private val onStatusClick: (Message) -> Unit,
     private val onAttachmentClick: (Message, MessageAttachment) -> Unit,
-    private val isGroupChat: Boolean = true
+    private val isGroupChat: Boolean = true,
+    private val onReactionClick: (Message, String) -> Unit = { _, _ -> }
 ) : ListAdapter<Message, RecyclerView.ViewHolder>(MessageDiffCallback()) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -143,7 +179,8 @@ class MessageAdapter(
         when (holder) {
             is OutgoingViewHolder -> holder.bind(
                 message, replyTo, myUserUuid, linkPreviews, scope, onMessageClick,
-                statusFor(message), onStatusClick, onAttachmentClick, playingAudioUuid, audioIsPlaying
+                statusFor(message), onStatusClick, onAttachmentClick, playingAudioUuid, audioIsPlaying,
+                onReactionClick
             )
             is IncomingViewHolder -> {
                 val previous = if (position > 0) getItem(position - 1) else null
@@ -154,7 +191,8 @@ class MessageAdapter(
                     message, replyTo, myUserUuid, linkPreviews, scope, onMessageClick,
                     onAttachmentClick, playingAudioUuid, audioIsPlaying,
                     showHeader = showHeader && isGroupChat,
-                    showAvatar = isGroupChat
+                    showAvatar = isGroupChat,
+                    onReactionClick = onReactionClick
                 )
             }
         }
@@ -190,7 +228,8 @@ class MessageAdapter(
             playingAudioUuid: String?,
             audioIsPlaying: Boolean,
             showHeader: Boolean,
-            showAvatar: Boolean = true
+            showAvatar: Boolean = true,
+            onReactionClick: (Message, String) -> Unit = { _, _ -> }
         ) {
             // В личных чатах аватар не нужен вовсе — освобождаем место баблу.
             binding.ivAvatar.visibility = when {
@@ -203,6 +242,7 @@ class MessageAdapter(
                 binding.replyQuote, binding.tvReplyName, binding.tvReplyText,
                 message, replyTo, myUserUuid
             )
+            bindReactions(binding.reactionsContainer, message, onReactionClick)
             bindMedia(message)
             bindAttachments(
                 binding.attachmentsContainer, binding.tvMessage, binding.linkPreview,
@@ -284,12 +324,14 @@ class MessageAdapter(
             onStatusClick: (Message) -> Unit,
             onAttachmentClick: (Message, MessageAttachment) -> Unit,
             playingAudioUuid: String?,
-            audioIsPlaying: Boolean
+            audioIsPlaying: Boolean,
+            onReactionClick: (Message, String) -> Unit = { _, _ -> }
         ) {
             bindReplyQuote(
                 binding.replyQuote, binding.tvReplyName, binding.tvReplyText,
                 message, replyTo, myUserUuid
             )
+            bindReactions(binding.reactionsContainer, message, onReactionClick)
             bindMedia(message)
             bindAttachments(
                 binding.attachmentsContainer, binding.tvMessage, binding.linkPreview,
