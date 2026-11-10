@@ -346,6 +346,7 @@ class MessageRepositoryImpl @Inject constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            com.example.muzea.utils.ErrorReporter.logCaught("MessageRepository", e)
             null
         }
     }
@@ -392,6 +393,7 @@ class MessageRepositoryImpl @Inject constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            com.example.muzea.utils.ErrorReporter.logCaught("MessageRepository", e)
             null
         }
     }

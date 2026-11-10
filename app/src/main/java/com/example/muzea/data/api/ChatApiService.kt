@@ -149,6 +149,12 @@ interface ChatApiService {
     ): Response<List<MessageResponse>>
 
     /** Поставить или снять реакцию; сервер возвращает сводку по сообщению. */
+    /** Диагностика: батч новых ошибок клиента. */
+    @POST("/api/telemetry/errors")
+    suspend fun uploadErrorEvents(
+        @Body request: com.example.muzea.data.model.ErrorReportRequest
+    ): Response<com.example.muzea.data.model.ErrorReportResponse>
+
     @POST("/api/messages/{messageUuid}/reactions")
     suspend fun toggleReaction(
         @Path("messageUuid") messageUuid: String,

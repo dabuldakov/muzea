@@ -109,6 +109,7 @@ class AuthRepository @Inject constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            com.example.muzea.utils.ErrorReporter.logCaught("AuthRepository", e)
             emit(Resource.Error(context.getString(R.string.error_no_connection)))
         }
     }
@@ -130,6 +131,7 @@ class AuthRepository @Inject constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            com.example.muzea.utils.ErrorReporter.logCaught("AuthRepository", e)
             emit(Resource.Error(context.getString(R.string.error_no_connection)))
         }
     }

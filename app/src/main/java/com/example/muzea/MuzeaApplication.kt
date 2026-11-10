@@ -12,8 +12,13 @@ class MuzeaApplication : Application() {
     @Inject
     lateinit var pushTokenRegistrar: PushTokenRegistrar
 
+    @Inject
+    lateinit var errorReporter: com.example.muzea.utils.ErrorReporter
+
     override fun onCreate() {
         super.onCreate()
+        errorReporter.install()
+        errorReporter.uploadPending()
         NotificationChannels.ensureAll(this)
         pushTokenRegistrar.sync()
     }
