@@ -512,6 +512,85 @@ class ChatConversationFragmentTest {
     }
 
     @Test
+    fun `group entry with several participants and unread image does not crash`() {
+        val participants = (1..5).map { index ->
+            com.example.muzea.domain.model.ChatReceipt(
+                userUuid = "u$index",
+                username = "user$index",
+                fullName = "User $index",
+                avatarUrl = null,
+                joinedAt = "2026-10-15T10:30:00",
+                lastDeliveredMessageId = 100L + index,
+                lastDeliveredAt = "2026-11-09T04:53:00",
+                lastReadMessageId = 100L + index,
+                lastReadAt = "2026-11-09T04:53:00"
+            )
+        }
+        coEvery { messageRepository.loadChatReceipts("chat-1") } returns participants
+        com.example.muzea.data.repository.ChatListCache.put(
+            listOf(
+                com.example.muzea.domain.model.Chat(
+                    chatUuid = "chat-1",
+                    chatType = "GROUP",
+                    title = "группа 1",
+                    avatarUrl = null,
+                    createdAt = null,
+                    updatedAt = null,
+                    participantCount = 6,
+                    lastMessage = null,
+                    unreadCount = 11
+                )
+            )
+        )
+        val history = (1..11).map { index ->
+            message(uuid = "m$index", text = "сообщение $index").copy(
+                senderUuid = "u${index % 5 + 1}",
+                senderName = "User ${index % 5 + 1}",
+                messageId = 1670L + index
+            )
+        }
+        val image = message(uuid = "image-1880", text = "").copy(
+            messageId = 1880L,
+            senderUuid = "u2",
+            senderName = "yegor",
+            messageType = "IMAGE",
+            attachments = listOf(
+                com.example.muzea.domain.model.MessageAttachment(
+                    fileUrl = "attachments/photo.jpg",
+                    thumbnailUrl = null,
+                    type = "IMAGE",
+                    width = 1080,
+                    height = 2400,
+                    attachmentUuid = "a-image",
+                    fileName = "1000000158.jpg",
+                    fileSize = 862738,
+                    mimeType = "image/jpeg"
+                )
+            )
+        )
+        every { messageRepository.cachedMessages("chat-1") } returns history + image
+        coEvery { messageRepository.loadMessages(any()) } returns
+            flowOf(Resource.Success(history + image))
+
+        val activity = Robolectric.buildActivity(HiltTestActivity::class.java).setup().get()
+        val fragment = ChatConversationFragment.newInstance(
+            "chat-1", "группа 1", unreadCount = 11
+        )
+        activity.supportFragmentManager.beginTransaction()
+            .replace(android.R.id.content, fragment)
+            .commitNow()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(
+            "группа 1",
+            fragment.requireView().findViewById<android.widget.TextView>(R.id.tvTitle).text.toString()
+        )
+        val list = fragment.requireView().findViewById<RecyclerView>(R.id.recyclerViewMessages)
+        awaitItems(list, 12)
+        assertEquals(12, list.adapter?.itemCount)
+    }
+
+    @Test
     fun `pinned message is shown in the pinned bar`() {
         coEvery { messageRepository.loadPinned("chat-1") } returns listOf(message(text = "закреп"))
 
