@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Нео-брутализм: тёмная схема, фиолетовый акцент сохранён. -->
-    <color name="app_background">#FF0F0A1C</color>
+    <color name="app_background">#FF171027</color>
     <color name="surface">#FF1F2937</color>
     <color name="surface_raised">#FF273244</color>
     <color name="text_muted">#FFB9B3C9</color>

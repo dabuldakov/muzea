@@ -28,6 +28,8 @@
             android:id="@+id/ivAvatar"
             android:layout_width="40dp"
             android:layout_height="40dp"
+            android:background="@drawable/bg_avatar_shadow"
+            android:padding="3dp"
             android:layout_marginVertical="8dp"
             android:contentDescription="@string/avatar_description"
             android:src="@drawable/ic_default_avatar" />
@@ -347,15 +349,15 @@
         android:paddingEnd="8dp"
         android:paddingBottom="6dp">
 
-        <TextView
+        <ImageButton
             android:id="@+id/btnGif"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:background="@drawable/bg_round_icon"
             android:contentDescription="@string/emoji_title"
-            android:gravity="center"
-            android:text="😊"
-            android:textSize="22sp" />
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_smiley" />
 
         <EditText
             android:id="@+id/etMessageInput"
@@ -407,7 +409,7 @@
                 android:contentDescription="@string/action_send"
                 android:padding="9dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/ic_send_burst" />
+                android:src="@drawable/ic_send_plane" />
         </FrameLayout>
 
     </LinearLayout>

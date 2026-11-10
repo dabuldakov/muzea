@@ -1,10 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="@color/surface_raised" />
-    <corners
-        android:topLeftRadius="10dp"
-        android:topRightRadius="10dp"
-        android:bottomRightRadius="3dp"
-        android:bottomLeftRadius="10dp" />
-    <stroke android:width="2dp" android:color="@color/neon_outline" />
-</shape>
+<!-- Реакция — отдельный «островок» с контуром и жёсткой тенью. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:left="2dp" android:top="2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/neon_outline" />
+            <corners
+                android:topLeftRadius="10dp"
+                android:topRightRadius="10dp"
+                android:bottomRightRadius="3dp"
+                android:bottomLeftRadius="10dp" />
+        </shape>
+    </item>
+    <item android:right="2dp" android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/surface_raised" />
+            <corners
+                android:topLeftRadius="10dp"
+                android:topRightRadius="10dp"
+                android:bottomRightRadius="3dp"
+                android:bottomLeftRadius="10dp" />
+            <stroke android:width="2dp" android:color="@color/neon_outline" />
+        </shape>
+    </item>
+</layer-list>

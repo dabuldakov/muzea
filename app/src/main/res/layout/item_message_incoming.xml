@@ -12,6 +12,8 @@
         android:id="@+id/ivAvatar"
         android:layout_width="32dp"
         android:layout_height="32dp"
+        android:background="@drawable/bg_avatar_shadow"
+        android:padding="2dp"
         android:layout_marginEnd="8dp"
         android:contentDescription="@string/avatar_description"
         android:src="@drawable/ic_default_avatar" />
