@@ -67,7 +67,8 @@ class ChatConversationFragment : Fragment(),
     GifPickerBottomSheet.OnGifSelected,
     MessageActionsBottomSheet.Listener,
     ForwardChatPickerBottomSheet.OnChatForwardTargetSelected,
-    AttachmentsBottomSheet.Listener {
+    AttachmentsBottomSheet.Listener,
+    EmojiGifBottomSheet.Listener {
 
     private var _binding: FragmentChatConversationBinding? = null
     private val binding get() = _binding!!
@@ -1005,8 +1006,8 @@ class ChatConversationFragment : Fragment(),
         }
 
         binding.btnGif.setOnClickListener {
-            GifPickerBottomSheet.newInstance(chatUuid)
-                .show(childFragmentManager, "gif_picker")
+            EmojiGifBottomSheet.newInstance()
+                .show(childFragmentManager, "emoji_gif")
         }
         updateSendButton()
     }
@@ -1472,6 +1473,21 @@ class ChatConversationFragment : Fragment(),
 
     override fun onGifSelected(gif: com.example.muzea.domain.model.Gif) {
         viewModel.sendGif(gif)
+    }
+
+    override fun onEmojiSelected(emoji: String) {
+        val input = binding.etMessageInput
+        val start = input.selectionStart.coerceAtLeast(0)
+        val end = input.selectionEnd.coerceAtLeast(start)
+        val current = input.text?.toString().orEmpty()
+        val updated = current.substring(0, start) + emoji + current.substring(end)
+        input.setText(updated)
+        input.setSelection((start + emoji.length).coerceAtMost(updated.length))
+    }
+
+    override fun onOpenGif() {
+        GifPickerBottomSheet.newInstance(chatUuid)
+            .show(childFragmentManager, "gif_picker")
     }
 
     /**
