@@ -264,9 +264,14 @@ class ChatConversationFragment : Fragment(),
      * Отправляет его пользователь сам — это черновик, а не автоотправка.
      */
     private fun prefillDraft() {
-        val draft = arguments?.getString(ARG_DRAFT_TEXT)?.takeIf { it.isNotEmpty() } ?: return
+        val shared = arguments?.getString(ARG_DRAFT_TEXT)?.takeIf { it.isNotEmpty() }
+        val draft = shared ?: ChatDrafts.get(requireContext(), chatUuid) ?: return
         binding.etMessageInput.setText(draft)
         binding.etMessageInput.setSelection(draft.length)
+        if (shared != null) {
+            // Текст из «Поделиться» — тоже черновик, пока его не отправили.
+            ChatDrafts.save(requireContext(), chatUuid, shared)
+        }
     }
 
     /**
@@ -675,10 +680,8 @@ class ChatConversationFragment : Fragment(),
         binding.recyclerViewMessages.scrollToPosition(position)
     }
 
-    private fun isAtBottom(): Boolean {
-        val layoutManager = binding.recyclerViewMessages.layoutManager as? LinearLayoutManager ?: return true
-        return layoutManager.findLastVisibleItemPosition() >= adapter.itemCount - 2
-    }
+    private fun isAtBottom(): Boolean =
+        !binding.recyclerViewMessages.canScrollVertically(1)
 
     private fun setupAttachments() {
         binding.btnAdd.setOnClickListener { showAttachmentPicker() }
@@ -1070,6 +1073,7 @@ class ChatConversationFragment : Fragment(),
         if (canSendNow()) {
             viewModel.sendText(text, power)
             binding.etMessageInput.setText("")
+            ChatDrafts.clear(requireContext(), chatUuid)
             if (power > 0) playSendBurst(power)
         }
     }
@@ -1549,10 +1553,33 @@ class ChatConversationFragment : Fragment(),
                     }
                 }
                 val listChanged = messages !== lastMessages
+                // Если пользователь читает историю, запоминаем верхний видимый
+                // пузырь и возвращаем его после DiffUtil — иначе список
+                // «прыгает» при фоновом обновлении.
+                val layoutManager = binding.recyclerViewMessages.layoutManager as? LinearLayoutManager
+                val anchorPosition = if (initialScrollDone && !wasAtBottom) {
+                    layoutManager?.findFirstVisibleItemPosition() ?: -1
+                } else {
+                    -1
+                }
+                val anchorUuid = messages.getOrNull(anchorPosition)?.messageUuid
+                val anchorOffset = if (anchorPosition >= 0) {
+                    layoutManager?.findViewByPosition(anchorPosition)?.top ?: 0
+                } else {
+                    0
+                }
                 if (listChanged) {
                     lastMessages = messages
                     adapter.updateList(messages) {
                         if (statusesChanged) notifyChangedStatuses()
+                        if (anchorUuid != null) {
+                            val position = adapter.currentList.indexOfFirst {
+                                it.messageUuid == anchorUuid
+                            }
+                            if (position >= 0) {
+                                layoutManager?.scrollToPositionWithOffset(position, anchorOffset)
+                            }
+                        }
                     }
                 } else if (statusesChanged) {
                     notifyChangedStatuses()
@@ -1703,6 +1730,13 @@ class ChatConversationFragment : Fragment(),
 
     override fun onPause() {
         if (activeRecorderMode != null) finishRecording(cancel = true)
+        // Черновик сохраняем только для обычного ввода: текст редактирования
+        // не должен затирать неотправленное сообщение.
+        if (_binding != null && viewModel.uiState.value.editing == null) {
+            ChatDrafts.save(
+                requireContext(), chatUuid, binding.etMessageInput.text?.toString()
+            )
+        }
         super.onPause()
     }
 

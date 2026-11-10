@@ -115,6 +115,8 @@ class ChatConversationViewModelBranchesTest {
         coEvery { messageRepository.loadChatReceipts(any()) } returns emptyList()
         coEvery { messageRepository.loadPinned(any()) } returns emptyList()
         every { appContext.getString(any()) } returns "error"
+        every { appContext.filesDir } returns
+            java.nio.file.Files.createTempDirectory("muzea-vm").toFile()
         every { messageRepository.cacheSentGif(any(), any(), any()) } returns Unit
     }
 

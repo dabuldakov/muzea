@@ -18,6 +18,8 @@ import com.example.muzea.utils.NetworkMonitor
 import com.example.muzea.utils.NetworkQuality
 import com.example.muzea.utils.PreparedAttachment
 import com.example.muzea.data.repository.OutboxEvent
+import com.example.muzea.data.repository.PendingAttachmentStore
+import com.example.muzea.data.repository.StoredPendingAttachment
 import com.example.muzea.data.repository.OutboxItem
 import com.example.muzea.data.repository.OutboxSender
 import com.example.muzea.domain.repository.MessageRepository
@@ -87,7 +89,8 @@ class ChatConversationViewModel @Inject constructor(
     private val networkMonitor: NetworkMonitor,
     chatUserIdentity: ChatUserIdentity,
     private val mediaFileReader: MediaFileReader,
-    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
+    private val pendingStore: PendingAttachmentStore = PendingAttachmentStore(appContext)
 ) : ViewModel() {
 
     private val chatUuid: String = savedStateHandle.get<String>(ARG_CHAT_UUID).orEmpty()
@@ -115,12 +118,15 @@ class ChatConversationViewModel @Inject constructor(
     @Volatile
     private var pollingPaused = false
     private var lastMarkedReadUuid: String? = null
+    /** Первая загрузка экрана уже завершилась: больше не мигаем спиннером. */
+    private var initialLoadDone = false
     private var lastMarkedDeliveredUuid: String? = null
     /** Ошибку по сообщению показываем один раз, чтобы не спамить тостами. */
     private val notifiedFailures = mutableSetOf<String>()
 
     init {
         restorePendingMessages()
+        restorePendingAttachments()
         observeOutbox()
         observeNetworkWakeup()
         // Опрос сам выполняет первый запрос, поэтому отдельный refresh() в init
@@ -140,6 +146,7 @@ class ChatConversationViewModel @Inject constructor(
                 if (status.online && !wasOnline && !pollingPaused) {
                     pollingJob?.cancel()
                     startPolling()
+                    retryQueuedUploads()
                 }
                 wasOnline = status.online
             }
@@ -246,10 +253,12 @@ class ChatConversationViewModel @Inject constructor(
             when (result) {
                 // Спиннер показываем только когда показать нечего: переписка из
                 // кэша уже на экране, и мигать индикатором при входе незачем.
-                is Resource.Loading -> _uiState.value =
-                    _uiState.value.copy(isLoading = _uiState.value.messages.isEmpty())
+                is Resource.Loading -> _uiState.value = _uiState.value.copy(
+                    isLoading = _uiState.value.messages.isEmpty() && !initialLoadDone
+                )
 
                 is Resource.Success -> {
+                    initialLoadDone = true
                     _uiState.value = _uiState.value.copy(isLoading = false)
                     val incoming = result.data ?: emptyList()
                     rememberServerTime(incoming)
@@ -260,6 +269,7 @@ class ChatConversationViewModel @Inject constructor(
 
                 is Resource.Error -> {
                     success = false
+                    initialLoadDone = true
                     _uiState.value =
                         _uiState.value.copy(isLoading = false, error = result.message)
                 }
@@ -340,6 +350,83 @@ class ChatConversationViewModel @Inject constructor(
         )
     }
 
+    private fun restorePendingAttachments() {
+        val stored = pendingStore.load(chatUuid)
+        if (stored.isEmpty()) return
+        _uiState.value = _uiState.value.copy(
+            pendingAttachments = stored.map { toPending(it) }
+        )
+        if (networkMonitor.status.value.online) retryQueuedUploads()
+    }
+
+    private fun retryQueuedUploads() {
+        val ids = _uiState.value.pendingAttachments
+            .filter { !it.isUploaded && it.error == null }
+            .map { it.id }
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            for (id in ids) uploadPending(id)
+        }
+    }
+
+    private fun toPending(stored: StoredPendingAttachment): PendingAttachment {
+        val file = File(stored.filePath)
+        val prepared = PreparedAttachment(
+            file = file,
+            thumbnail = stored.thumbnailPath?.let(::File)?.takeIf { it.exists() },
+            name = stored.name,
+            size = stored.size,
+            mimeType = stored.mimeType,
+            type = stored.type,
+            width = stored.width,
+            height = stored.height,
+            duration = stored.duration
+        )
+        val uploaded = stored.uploadedUuid?.let { uuid ->
+            MessageAttachment(
+                fileUrl = "",
+                thumbnailUrl = null,
+                type = stored.type,
+                width = stored.width,
+                height = stored.height,
+                attachmentUuid = uuid,
+                fileName = stored.name,
+                fileSize = stored.size,
+                mimeType = stored.mimeType,
+                duration = stored.duration
+            )
+        }
+        return PendingAttachment(
+            id = stored.id,
+            name = stored.name,
+            size = stored.size,
+            mimeType = stored.mimeType,
+            type = stored.type,
+            prepared = prepared,
+            uploaded = uploaded
+        )
+    }
+
+    private fun persistPending() {
+        val stored = _uiState.value.pendingAttachments.mapNotNull { pending ->
+            val prepared = pending.prepared ?: return@mapNotNull null
+            StoredPendingAttachment(
+                id = pending.id,
+                name = pending.name,
+                size = pending.size,
+                mimeType = pending.mimeType,
+                type = pending.type,
+                filePath = prepared.file.absolutePath,
+                thumbnailPath = prepared.thumbnail?.absolutePath,
+                width = prepared.width,
+                height = prepared.height,
+                duration = prepared.duration,
+                uploadedUuid = pending.uploaded?.attachmentUuid
+            )
+        }
+        pendingStore.save(chatUuid, stored)
+    }
+
     /** Добавляет выбранные в системном пикере файлы и сразу загружает их. */
     fun addAttachments(uris: List<Uri>) {
         if (uris.isEmpty()) return
@@ -367,6 +454,7 @@ class ChatConversationViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         pendingAttachments = _uiState.value.pendingAttachments + pending
                     )
+                    persistPending()
                     uploadPending(id)
                 }
             } finally {
@@ -381,6 +469,7 @@ class ChatConversationViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             pendingAttachments = _uiState.value.pendingAttachments.filterNot { it.id == id }
         )
+        persistPending()
     }
 
     fun retryPendingAttachment(id: String) {
@@ -410,11 +499,14 @@ class ChatConversationViewModel @Inject constructor(
                 }
             )
         }) {
-            is Resource.Success -> _uiState.value = _uiState.value.copy(
-                pendingAttachments = _uiState.value.pendingAttachments.map {
-                    if (it.id == id) it.copy(uploaded = result.data) else it
-                }
-            )
+            is Resource.Success -> {
+                _uiState.value = _uiState.value.copy(
+                    pendingAttachments = _uiState.value.pendingAttachments.map {
+                        if (it.id == id) it.copy(uploaded = result.data) else it
+                    }
+                )
+                persistPending()
+            }
             is Resource.Error -> _uiState.value = _uiState.value.copy(
                 pendingAttachments = _uiState.value.pendingAttachments.map {
                     if (it.id == id) it.copy(error = result.message) else it
@@ -426,6 +518,7 @@ class ChatConversationViewModel @Inject constructor(
 
     private fun clearPendingAttachments() {
         _uiState.value.pendingAttachments.forEach { mediaFileReader.cleanup(it.prepared) }
+        pendingStore.clear(chatUuid)
         _uiState.value = _uiState.value.copy(pendingAttachments = emptyList())
     }
 
