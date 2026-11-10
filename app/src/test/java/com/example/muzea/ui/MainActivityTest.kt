@@ -170,6 +170,18 @@ class MainActivityTest {
                 it is com.example.muzea.ui.chat.ChatConversationFragment
             }
         )
+        assertEquals(
+            android.view.View.GONE,
+            activity.findViewById<BottomNavigationView>(R.id.bottomNavigation).visibility
+        )
+
+        activity.onBackPressedDispatcher.onBackPressed()
+        activity.supportFragmentManager.executePendingTransactions()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(
+            android.view.View.VISIBLE,
+            activity.findViewById<BottomNavigationView>(R.id.bottomNavigation).visibility
+        )
     }
 
     @Test

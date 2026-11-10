@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -77,6 +78,7 @@ class MainActivity : AppCompatActivity(), Navigator {
         }
 
         setupBottomNavigation()
+        supportFragmentManager.addOnBackStackChangedListener { updateBottomNavVisibility() }
         setupUnreadBadge()
         setupUpdateBadge()
         startPresenceHeartbeat()
@@ -252,6 +254,12 @@ class MainActivity : AppCompatActivity(), Navigator {
         }
     }
 
+    /** На экранах поверх вкладок (чат, настройки группы) нижнее меню не нужно. */
+    private fun updateBottomNavVisibility() {
+        binding.bottomNavigation.visibility =
+            if (supportFragmentManager.backStackEntryCount > 0) View.GONE else View.VISIBLE
+    }
+
     /**
      * Переключение вкладок без пересоздания фрагментов.
      *
@@ -320,6 +328,7 @@ class MainActivity : AppCompatActivity(), Navigator {
 
     override fun back() {
         supportFragmentManager.popBackStack()
+        updateBottomNavVisibility()
     }
 
     /** Открывает экран поверх текущего, пряча видимый фрагмент (вкладку или деталь). */
@@ -332,6 +341,7 @@ class MainActivity : AppCompatActivity(), Navigator {
         transaction.add(R.id.fragment_container, fragment)
             .addToBackStack(null)
             .commit()
+        updateBottomNavVisibility()
     }
 
     private fun createTabFragment(itemId: Int): Fragment = when (itemId) {

@@ -174,6 +174,8 @@ class ChatConversationFragmentTest {
         assertEquals("Баги", title.text.toString())
         val list = fragment.requireView().findViewById<RecyclerView>(R.id.recyclerViewMessages)
         assertEquals(0, list.adapter?.itemCount)
+        assertEquals(6, fragment.requireView()
+            .findViewById<android.widget.EditText>(R.id.etMessageInput).maxLines)
     }
 
     @Test
