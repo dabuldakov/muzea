@@ -38,7 +38,12 @@ class ErrorStore(context: Context) {
 
     @Synchronized
     fun append(event: ErrorEvent) = synchronized(lock) {
-        if (file.length() >= MAX_BYTES) trim()
+        if (file.length() >= MAX_BYTES) {
+            // Старые записи не удаляем: переполнение — сигнал, что отправка
+            // на сервер не проходит. Флаг уйдёт вместе со следующим отчётом.
+            overflowed = true
+            return
+        }
         file.appendText(gson.toJson(event) + "\n")
     }
 
@@ -65,6 +70,13 @@ class ErrorStore(context: Context) {
         writeAtomically(keep)
     }
 
+    /** Буфер достиг 5 МБ, новые ошибки не записывались. */
+    var overflowed: Boolean
+        get() = prefs.getBoolean(KEY_OVERFLOWED, false)
+        set(value) {
+            prefs.edit().putBoolean(KEY_OVERFLOWED, value).apply()
+        }
+
     var lastUploadedAt: String?
         get() = prefs.getString(KEY_LAST_UPLOAD, null)
         set(value) {
@@ -72,20 +84,6 @@ class ErrorStore(context: Context) {
         }
 
     fun sizeBytes(): Long = if (file.exists()) file.length() else 0
-
-    private fun trim() {
-        // Оставляем примерно 4 МБ свежих записей; режем по строкам.
-        val lines = file.useLines { it.toList() }
-        val keep = ArrayList<String>(lines.size)
-        var bytes = 0L
-        for (line in lines.asReversed()) {
-            val size = line.toByteArray().size + 1
-            if (bytes + size > TRIM_TARGET_BYTES) break
-            keep.add(line)
-            bytes += size
-        }
-        writeAtomically(keep.asReversed())
-    }
 
     private fun writeAtomically(lines: List<String>) {
         val temp = File(file.parentFile, "$FILE_NAME.tmp")
@@ -101,6 +99,6 @@ class ErrorStore(context: Context) {
         const val PREFS = "error_reporting"
         const val KEY_LAST_UPLOAD = "last_uploaded_at"
         const val MAX_BYTES = 5L * 1024 * 1024
-        const val TRIM_TARGET_BYTES = 4L * 1024 * 1024
+        const val KEY_OVERFLOWED = "buffer_overflowed"
     }
 }

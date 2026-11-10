@@ -4,7 +4,8 @@ import com.google.gson.annotations.SerializedName
 
 /** Батч ошибок, который клиент отправляет при старте. */
 data class ErrorReportRequest(
-    @SerializedName("events") val events: List<ErrorEventRequest>
+    @SerializedName("events") val events: List<ErrorEventRequest>,
+    @SerializedName("overflowed") val overflowed: Boolean = false
 )
 
 data class ErrorEventRequest(

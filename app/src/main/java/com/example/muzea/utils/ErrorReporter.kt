@@ -87,13 +87,18 @@ class ErrorReporter @Inject constructor(
             val response = runCatching {
                 auth.retryOnceAfterUnauthorized {
                     api.uploadErrorEvents(
-                        ErrorReportRequest(batch.map { it.toRequest() })
+                        ErrorReportRequest(
+                            events = batch.map { it.toRequest() },
+                            overflowed = store.overflowed
+                        )
                     )
                 }
             }.getOrNull()
             if (response?.isSuccessful != true) return
             store.remove(batch.map { it.eventId }.toSet())
             store.lastUploadedAt = batch.maxOfOrNull { it.time } ?: store.lastUploadedAt
+            // Всё ушло — буфер больше не переполнен.
+            if (store.pending(1).isEmpty()) store.overflowed = false
         }
     }
 

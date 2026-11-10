@@ -17,6 +17,7 @@ class ErrorStoreTest {
     val temp = TemporaryFolder()
 
     private val prefs = mutableMapOf<String, String?>()
+    private val bools = mutableMapOf<String, Boolean>()
 
     private fun context(): Context {
         val context = mockk<Context>(relaxed = true)
@@ -29,7 +30,7 @@ class ErrorStoreTest {
                 override fun clear() = apply { prefs.clear() }
                 override fun putLong(key: String?, value: Long) = this
                 override fun putInt(key: String?, value: Int) = this
-                override fun putBoolean(key: String?, value: Boolean) = this
+                override fun putBoolean(key: String?, value: Boolean) = apply { bools[key.orEmpty()] = value }
                 override fun putFloat(key: String?, value: Float) = this
                 override fun putStringSet(key: String?, values: MutableSet<String>?) = this
                 override fun commit() = true
@@ -40,7 +41,7 @@ class ErrorStoreTest {
             override fun getInt(key: String?, defValue: Int) = defValue
             override fun getLong(key: String?, defValue: Long) = defValue
             override fun getFloat(key: String?, defValue: Float) = defValue
-            override fun getBoolean(key: String?, defValue: Boolean) = defValue
+            override fun getBoolean(key: String?, defValue: Boolean) = bools[key] ?: defValue
             override fun contains(key: String?) = prefs.containsKey(key)
             override fun registerOnSharedPreferenceChangeListener(
                 listener: SharedPreferences.OnSharedPreferenceChangeListener?
@@ -85,6 +86,19 @@ class ErrorStoreTest {
         store.remove(setOf("a", "c"))
 
         assertEquals(listOf("b"), store.pending().map { it.eventId })
+    }
+
+    @Test
+    fun `full buffer is not trimmed and sets the overflow flag`() {
+        val context = context()
+        File(temp.root, "error_events.jsonl").writeBytes(ByteArray(5 * 1024 * 1024))
+        val store = ErrorStore(context)
+
+        store.append(event("a"))
+
+        assertTrue(store.overflowed)
+        assertEquals(5L * 1024 * 1024, store.sizeBytes())
+        assertTrue(store.pending().isEmpty())
     }
 
     @Test
