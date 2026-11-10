@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Фон под гифками в тёмной теме. -->
-    <color name="gif_media_background">#FF000000</color>
-
-    <!-- Тёмные поверхности: шторки, диалоги, композер, настройки. -->
-    <color name="surface">#FF1B1B1F</color>
-    <color name="bubble_incoming">#FF2A2A30</color>
-    <color name="icon_tint">#FFB9AEE8</color>
-    <color name="selected_message">#33B9AEE8</color>
+    <!-- Тёмная схема теперь одна и та же при любой системной теме. -->
+    <color name="gif_media_background">#FF0F0A1C</color>
+    <color name="surface">#FF1F2937</color>
+    <color name="bubble_incoming">#FF1F2937</color>
+    <color name="icon_tint">#FFC4B5FD</color>
+    <color name="selected_message">#4D7C3AED</color>
 </resources>

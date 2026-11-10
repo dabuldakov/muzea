@@ -9,13 +9,13 @@
         android:id="@+id/tvNetworkBanner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#FFFFF3CD"
+        android:background="#FF3A2A00"
         android:paddingStart="16dp"
         android:paddingTop="6dp"
         android:paddingEnd="16dp"
         android:paddingBottom="6dp"
         android:text="@string/network_slow_banner"
-        android:textColor="#FF7A4F00"
+        android:textColor="#FFFFD400"
         android:textSize="13sp"
         android:visibility="gone" />
 
@@ -68,6 +68,10 @@
             android:layout_gravity="bottom|end"
             android:layout_margin="16dp"
             android:src="@android:drawable/ic_input_add"
+            app:backgroundTint="@color/purple_500"
+            app:elevation="0dp"
+            app:strokeColor="@color/neon_outline"
+            app:strokeWidth="3dp"
             app:fabSize="normal" />
 
     </FrameLayout>

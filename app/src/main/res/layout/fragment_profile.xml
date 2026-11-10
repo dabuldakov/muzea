@@ -95,7 +95,7 @@
             android:layout_marginTop="12dp"
             android:letterSpacing="0.01"
             android:text="@string/profile_username_placeholder"
-            android:textColor="@android:color/black"
+            android:textColor="@color/white"
             android:textFontWeight="500"
             android:textSize="22sp" />
 

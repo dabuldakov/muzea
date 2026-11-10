@@ -34,7 +34,7 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:text="▁▃▅▇▆▄▂▅▃▆▇▄▂"
-            android:textColor="#FF6200EE"
+            android:textColor="@color/purple_200"
             android:textSize="16sp" />
 
         <TextView
@@ -42,7 +42,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
-            android:textColor="#FF666666"
+            android:textColor="@color/gray"
             android:textSize="12sp" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

@@ -159,7 +159,12 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="4dp"
-            android:textColor="?attr/colorPrimary"
+            android:background="@drawable/bg_power_badge"
+            android:paddingStart="5dp"
+            android:paddingTop="1dp"
+            android:paddingEnd="5dp"
+            android:paddingBottom="1dp"
+            android:textColor="@color/black"
             android:textSize="11sp"
             android:textStyle="bold"
             android:visibility="gone" />

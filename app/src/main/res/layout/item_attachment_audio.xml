@@ -35,14 +35,14 @@
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:textColor="#FF1A1A1A"
+                android:textColor="@color/white"
                 android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/tvSize"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="#FF666666"
+                android:textColor="@color/gray"
                 android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>

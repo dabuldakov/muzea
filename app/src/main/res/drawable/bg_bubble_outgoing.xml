@@ -1,9 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <gradient
-        android:angle="0"
-        android:endColor="@color/bubble_outgoing_end"
-        android:startColor="@color/bubble_outgoing_start" />
-    <corners android:radius="16dp" />
-</shape>
+<!-- Своё сообщение: фиолетовый, чёрный контур 3dp, срез правого нижнего угла. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:left="4dp" android:top="4dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/neon_outline" />
+            <corners
+                android:topLeftRadius="22dp"
+                android:topRightRadius="22dp"
+                android:bottomLeftRadius="22dp"
+                android:bottomRightRadius="4dp" />
+        </shape>
+    </item>
+    <item android:right="4dp" android:bottom="4dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/purple_500" />
+            <stroke android:width="3dp" android:color="@color/neon_outline" />
+            <corners
+                android:topLeftRadius="22dp"
+                android:topRightRadius="22dp"
+                android:bottomLeftRadius="22dp"
+                android:bottomRightRadius="4dp" />
+        </shape>
+    </item>
+</layer-list>
