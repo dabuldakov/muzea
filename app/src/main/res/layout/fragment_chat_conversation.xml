@@ -321,116 +321,95 @@
             android:tint="@color/gray" />
     </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/chargeBar"
+    <FrameLayout
+        android:id="@+id/composerWrap"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/surface"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingTop="4dp"
-        android:paddingEnd="16dp"
-        android:visibility="gone">
+        android:layout_height="wrap_content">
 
-        <TextView
-            android:id="@+id/tvChargePercent"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:id="@+id/composerBar"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/charge_zero"
-            android:textColor="?attr/colorPrimary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <ProgressBar
-            android:id="@+id/progressCharge"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:layout_weight="1"
-            android:max="100"
-            android:progress="0" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/composerBar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@drawable/bg_composer"
-        android:elevation="0dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="8dp"
-        android:paddingTop="6dp"
-        android:paddingEnd="8dp"
-        android:paddingBottom="6dp">
-
-        <ImageButton
-            android:id="@+id/btnGif"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@drawable/bg_round_icon"
-            android:contentDescription="@string/emoji_title"
-            android:padding="8dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_smiley" />
-
-        <EditText
-            android:id="@+id/etMessageInput"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:layout_marginEnd="6dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_input"
-            android:paddingStart="12dp"
-            android:paddingTop="9dp"
-            android:paddingEnd="12dp"
-            android:paddingBottom="9dp"
-            android:hint="@string/hint_message"
-            android:imeOptions="actionSend"
-            android:inputType="textMultiLine"
-            android:maxLines="6"
-            android:minLines="1"
-            android:textColor="?android:textColorPrimary"
-            android:textColorHint="@color/gray" />
-
-        <ImageButton
-            android:id="@+id/btnAdd"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginStart="2dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/action_attach"
-            android:padding="6dp"
-            android:src="@drawable/ic_attachment"
-            android:tint="@android:color/white" />
-
-        <FrameLayout
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_marginStart="4dp">
-
-            <com.example.muzea.ui.chat.ChargeBurstView
-                android:id="@+id/chargeBurst"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent" />
+            android:background="@drawable/bg_composer"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="8dp">
 
             <ImageButton
-                android:id="@+id/btnSend"
-                android:layout_width="42dp"
-                android:layout_height="42dp"
-                android:layout_gravity="center"
-                android:background="@drawable/bg_send_button"
-                android:contentDescription="@string/action_send"
+                android:id="@+id/btnGif"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_round_icon"
+                android:contentDescription="@string/emoji_title"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_smiley" />
+
+            <EditText
+                android:id="@+id/etMessageInput"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input"
+                android:gravity="center_vertical"
+                android:hint="@string/hint_message"
+                android:imeOptions="actionSend"
+                android:inputType="textMultiLine"
+                android:maxLines="6"
+                android:minHeight="46dp"
+                android:minLines="1"
+                android:paddingStart="12dp"
+                android:paddingTop="10dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="10dp"
+                android:textColor="?android:textColorPrimary"
+                android:textColorHint="@color/gray" />
+
+            <ImageButton
+                android:id="@+id/btnAdd"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_round_icon"
+                android:contentDescription="@string/action_attach"
                 android:padding="9dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/ic_send_plane" />
-        </FrameLayout>
+                android:src="@drawable/ic_paperclip_comic" />
 
-    </LinearLayout>
+            <FrameLayout
+                android:layout_width="44dp"
+                android:layout_height="44dp">
 
+                <ImageButton
+                    android:id="@+id/btnSend"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/bg_send_button"
+                    android:contentDescription="@string/action_send"
+                    android:padding="8dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_send_bolt" />
+
+                <View
+                    android:id="@+id/recordingDot"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:layout_gravity="top|end"
+                    android:background="@drawable/bg_recording_dot"
+                    android:visibility="gone" />
+            </FrameLayout>
+
+        </LinearLayout>
+
+        <com.example.muzea.ui.chat.ComposerChargeView
+            android:id="@+id/composerCharge"
+            android:layout_width="match_parent"
+            android:layout_height="0dp" />
+
+    </FrameLayout>
 
     <LinearLayout
         android:id="@+id/selectionBar"

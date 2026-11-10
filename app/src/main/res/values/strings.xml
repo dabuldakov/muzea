@@ -252,7 +252,7 @@
     <string name="attachment_saved_downloads">Saved to Downloads</string>
     <string name="attachment_saved_private">Saved in app storage</string>
     <string name="charge_zero">⚡ 0%</string>
-    <string name="charge_format">⚡ %1$d%%</string>
+    <string name="charge_format">%1$d%%</string>
     <string name="attachment_open_failed">No app to open this file</string>
     <string name="attachment_play">Play</string>
     <string name="attachment_wait_upload">Wait until the files are uploaded</string>

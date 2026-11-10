@@ -460,8 +460,10 @@ class ChatConversationFragmentTest {
 
         verify { outboxSender.enqueue(any()) }
         assertEquals(
-            View.GONE,
-            fragment.requireView().findViewById<View>(R.id.chargeBar).visibility
+            0,
+            fragment.requireView()
+                .findViewById<com.example.muzea.ui.chat.ComposerChargeView>(R.id.composerCharge)
+                .power
         )
     }
 
@@ -475,23 +477,15 @@ class ChatConversationFragmentTest {
         button.dispatchTouchEvent(touch(android.view.MotionEvent.ACTION_DOWN))
         shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(2_500))
 
-        assertEquals(
-            View.VISIBLE,
-            fragment.requireView().findViewById<View>(R.id.chargeBar).visibility
-        )
-        val percent = fragment.requireView()
-            .findViewById<android.widget.TextView>(R.id.tvChargePercent).text.toString()
-        assertTrue(percent.contains("%"))
-        assertTrue(percent != fragment.getString(R.string.charge_zero))
+        val charge = fragment.requireView()
+            .findViewById<com.example.muzea.ui.chat.ComposerChargeView>(R.id.composerCharge)
+        assertTrue(charge.power > 0)
 
         button.dispatchTouchEvent(touch(android.view.MotionEvent.ACTION_UP))
-        shadowOf(Looper.getMainLooper()).idle()
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(600))
 
         verify { outboxSender.enqueue(any()) }
-        assertEquals(
-            View.GONE,
-            fragment.requireView().findViewById<View>(R.id.chargeBar).visibility
-        )
+        assertEquals(0, charge.power)
     }
 
     @Test

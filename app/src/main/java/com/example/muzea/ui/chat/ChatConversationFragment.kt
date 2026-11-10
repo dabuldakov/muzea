@@ -25,6 +25,7 @@ import androidx.activity.result.contract.ActivityResultContracts.RequestPermissi
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
+import androidx.core.widget.doAfterTextChanged
 import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -254,6 +255,15 @@ class ChatConversationFragment : Fragment(),
         }
         binding.btnBack.setOnClickListener {
             navigator.back()
+        }
+
+        binding.composerBar.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            // Оверлей заряда повторяет высоту композера, включая многострочный ввод.
+            val height = binding.composerBar.height
+            if (height > 0 && binding.composerCharge.layoutParams.height != height) {
+                binding.composerCharge.layoutParams =
+                    binding.composerCharge.layoutParams.apply { this.height = height }
+            }
         }
 
         setupRecyclerView()
@@ -1027,6 +1037,13 @@ class ChatConversationFragment : Fragment(),
             .show()
     }
 
+    /** Кнопки композера: по центру на коротком тексте, по низу на длинном. */
+    private fun updateComposerGravity() {
+        val bottom = binding.etMessageInput.lineCount >= 4
+        binding.composerBar.gravity =
+            if (bottom) android.view.Gravity.BOTTOM else android.view.Gravity.CENTER_VERTICAL
+    }
+
     private fun setupInput() {
         binding.btnSend.setOnClickListener {
             if (canSendNow()) {
@@ -1039,6 +1056,10 @@ class ChatConversationFragment : Fragment(),
         binding.etMessageInput.setOnEditorActionListener { _, _, _ ->
             if (canSendNow()) sendClicked()
             false
+        }
+        binding.etMessageInput.doAfterTextChanged {
+            // До трёх строк кнопки по центру, дальше — по низу.
+            binding.composerBar.post { updateComposerGravity() }
         }
         binding.etMessageInput.doOnTextChanged { text, _, _, _ ->
             if (!text.isNullOrBlank()) sendMode = SendMode.TEXT
@@ -1123,10 +1144,9 @@ class ChatConversationFragment : Fragment(),
         }
     }
 
-    /** Короткий «взрыв» кнопки: чем сильнее заряд, тем заметнее анимация. */
+    /** Короткая вспышка композера после отправки. */
     private fun playSendBurst(power: Int) {
-        val scale = 1f + 1.3f * (power / 100f)
-        binding.chargeBurst.burst(power)
+        binding.composerCharge.burst(power)
         val vibrator = requireContext().getSystemService(android.os.Vibrator::class.java)
         if (vibrator != null && vibrator.hasVibrator()) {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -1138,14 +1158,6 @@ class ChatConversationFragment : Fragment(),
         } else {
             binding.btnSend.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
         }
-        binding.btnSend.animate()
-            .scaleX(scale)
-            .scaleY(scale)
-            .setDuration(120)
-            .withEndAction {
-                binding.btnSend.animate().scaleX(1f).scaleY(1f).setDuration(180).start()
-            }
-            .start()
     }
 
     private fun handleTextSendTouch(event: MotionEvent): Boolean {
@@ -1194,17 +1206,9 @@ class ChatConversationFragment : Fragment(),
 
     private fun renderCharge(heldMs: Long) {
         val power = ChargeCalculator.power(heldMs)
-        binding.chargeBar.visibility = View.VISIBLE
-        binding.progressCharge.progress = power
-        binding.tvChargePercent.text = getString(R.string.charge_format, power)
-        binding.chargeBurst.updatePower(power)
-        // Кнопка «раздувается» и пульсирует; к концу — сильнее.
-        val level = power / 100f
-        val pulse = 1f + 0.10f * level * (0.5f + 0.5f * kotlin.math.sin(heldMs / 90.0).toFloat())
-        val scale = 1f + 0.55f * level
-        binding.btnSend.scaleX = scale * pulse
-        binding.btnSend.scaleY = scale * pulse
-        vibrateCharge(level)
+        // Пока палец на кнопке, её не видно: силу показывает композер.
+        binding.composerCharge.updatePower(power)
+        vibrateCharge(power / 100f)
     }
 
     /** Вибрация усиливается и учащается по мере заряда. */
@@ -1239,12 +1243,7 @@ class ChatConversationFragment : Fragment(),
     private fun resetChargeMeter() {
         isCharging = false
         chargeStartedAt = 0L
-        binding.chargeBar.visibility = View.GONE
-        binding.progressCharge.progress = 0
-        binding.tvChargePercent.text = getString(R.string.charge_zero)
-        binding.chargeBurst.clear()
-        binding.btnSend.scaleX = 1f
-        binding.btnSend.scaleY = 1f
+        binding.composerCharge.clear()
     }
 
     private fun cycleSendMode() {
@@ -1261,15 +1260,15 @@ class ChatConversationFragment : Fragment(),
     private fun updateSendButton() {
         val effective = if (canSendNow()) SendMode.TEXT else sendMode
         val (icon, description) = when (effective) {
-            SendMode.TEXT -> R.drawable.ic_send_burst to R.string.send_mode_text
-            SendMode.VOICE -> R.drawable.ic_mic to R.string.send_mode_voice
-            SendMode.VIDEO -> R.drawable.ic_videocam to R.string.send_mode_video
+            SendMode.TEXT -> R.drawable.ic_send_bolt to R.string.send_mode_text
+            SendMode.VOICE -> R.drawable.ic_mic_comic to R.string.send_mode_voice
+            SendMode.VIDEO -> R.drawable.ic_videocam_comic to R.string.send_mode_video
         }
         binding.btnSend.setImageResource(icon)
-        // Взрыв — цветная иконка, её не тонируем; микрофон/камеру красим в акцент.
+        // Молния уже жёлтая, микрофон и камеру рисуем белыми.
         binding.btnSend.imageTintList =
             if (effective == SendMode.TEXT) null
-            else ContextCompat.getColorStateList(requireContext(), R.color.purple_500)
+            else android.content.res.ColorStateList.valueOf(android.graphics.Color.WHITE)
         binding.btnSend.contentDescription = getString(description)
     }
 
@@ -1368,6 +1367,7 @@ class ChatConversationFragment : Fragment(),
 
         activeRecorderMode = mode
         cancelArmed = false
+        binding.recordingDot.visibility = View.VISIBLE
         binding.recordingOverlay.visibility = View.VISIBLE
         binding.tvRecordingTimer.text = "0:00"
         binding.videoNotePreviewCard.visibility =
@@ -1468,6 +1468,7 @@ class ChatConversationFragment : Fragment(),
         finishingRecording = true
         val mode = activeRecorderMode
         activeRecorderMode = null
+        binding.recordingDot.visibility = View.GONE
         recordTimerJob?.cancel()
         recordTimerJob = null
         val cancelEffective = cancel || (mode == SendMode.VIDEO && !videoReady)

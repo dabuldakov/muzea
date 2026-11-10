@@ -29,6 +29,7 @@
     <color name="icon_tint">#FFC4B5FD</color>
     <color name="selected_message">#4D7C3AED</color>
     <color name="power_badge">#FFFFD400</color>
+    <color name="neon_green">#FF2BFF88</color>
 
     <color name="gif_media_background">#FF0F0A1C</color>
 </resources>

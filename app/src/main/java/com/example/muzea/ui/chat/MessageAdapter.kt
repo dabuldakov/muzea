@@ -56,6 +56,10 @@ private fun bindPower(view: android.widget.TextView, message: Message) {
         view.text = view.context.getString(
             com.example.muzea.R.string.charge_format, message.power
         )
+        view.setCompoundDrawablesRelativeWithIntrinsicBounds(
+            com.example.muzea.R.drawable.ic_bolt_chip, 0, 0, 0
+        )
+        view.compoundDrawablePadding = (3 * view.resources.displayMetrics.density).toInt()
         view.visibility = View.VISIBLE
     } else {
         view.visibility = View.GONE
@@ -377,13 +381,13 @@ class MessageAdapter(
             val context = binding.root.context
             val (icon, color, label) = when (status) {
                 MessageDeliveryStatus.SENDING ->
-                    Triple(R.drawable.ic_message_sending, R.color.gray, R.string.message_status_sending)
+                    Triple(R.drawable.ic_message_sending, R.color.white, R.string.message_status_sending)
                 MessageDeliveryStatus.SENT ->
-                    Triple(R.drawable.ic_message_sent, R.color.gray, R.string.message_status_sent)
+                    Triple(R.drawable.ic_message_sent, R.color.white, R.string.message_status_sent)
                 MessageDeliveryStatus.DELIVERED ->
-                    Triple(R.drawable.ic_message_delivered, R.color.gray, R.string.message_status_delivered)
+                    Triple(R.drawable.ic_message_delivered, R.color.white, R.string.message_status_delivered)
                 MessageDeliveryStatus.READ ->
-                    Triple(R.drawable.ic_message_read, R.color.power_badge, R.string.message_status_read)
+                    Triple(R.drawable.ic_message_read, R.color.neon_green, R.string.message_status_read)
                 MessageDeliveryStatus.FAILED ->
                     Triple(R.drawable.ic_message_failed, R.color.error, R.string.message_status_failed)
             }
