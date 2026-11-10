@@ -9,6 +9,8 @@ import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -78,6 +80,7 @@ class MainActivity : AppCompatActivity(), Navigator {
         }
 
         setupBottomNavigation()
+        setupFragmentInsets()
         supportFragmentManager.addOnBackStackChangedListener { updateBottomNavVisibility() }
         setupUnreadBadge()
         setupUpdateBadge()
@@ -254,10 +257,25 @@ class MainActivity : AppCompatActivity(), Navigator {
         }
     }
 
+    /**
+     * Когда нижнее меню скрыто (чат), его системный отступ нужно отдать
+     * фрагменту, иначе композер уезжает под кнопки навигации.
+     */
+    private fun setupFragmentInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.fragmentContainer) { view, insets ->
+            val navBar = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            val imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
+            val hidden = binding.bottomNavigation.visibility == View.GONE
+            view.setPadding(0, 0, 0, if (hidden && !imeVisible) navBar else 0)
+            insets
+        }
+    }
+
     /** На экранах поверх вкладок (чат, настройки группы) нижнее меню не нужно. */
     private fun updateBottomNavVisibility() {
         binding.bottomNavigation.visibility =
             if (supportFragmentManager.backStackEntryCount > 0) View.GONE else View.VISIBLE
+        ViewCompat.requestApplyInsets(binding.fragmentContainer)
     }
 
     /**

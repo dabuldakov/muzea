@@ -48,11 +48,14 @@ object SystemBars {
             val bars = insets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
             )
+            // Edge-to-edge: adjustResize сам окно не сжимает, поэтому клавиатуру
+            // учитываем вручную — иначе поле ввода остаётся за ней.
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
             view.setPadding(
                 bars.left,
                 bars.top,
                 bars.right,
-                if (applyBottomInset) bars.bottom else 0
+                maxOf(if (applyBottomInset) bars.bottom else 0, ime)
             )
             insets
         }
