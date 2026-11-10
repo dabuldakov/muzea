@@ -1367,7 +1367,6 @@ class ChatConversationFragment : Fragment(),
 
         activeRecorderMode = mode
         cancelArmed = false
-        binding.recordingDot.visibility = View.VISIBLE
         binding.recordingOverlay.visibility = View.VISIBLE
         binding.tvRecordingTimer.text = "0:00"
         binding.videoNotePreviewCard.visibility =
@@ -1468,7 +1467,6 @@ class ChatConversationFragment : Fragment(),
         finishingRecording = true
         val mode = activeRecorderMode
         activeRecorderMode = null
-        binding.recordingDot.visibility = View.GONE
         recordTimerJob?.cancel()
         recordTimerJob = null
         val cancelEffective = cancel || (mode == SendMode.VIDEO && !videoReady)
