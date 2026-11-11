@@ -6,14 +6,16 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
+import kotlin.math.min
 import kotlin.random.Random
 
 /**
- * Бабл с накопленным повреждением: трещины, обугленный контур и тлеющие искры.
+ * Бабл с накопленным повреждением в текущем стиле приложения.
  *
- * Рисуем сами, без растровых ассетов. Трещины детерминированы по seed (uuid
- * сообщения), поэтому при прокрутке не «перерисовываются» каждый раз.
- * Текст остаётся читаемым: затемнение ограничено, контраст текста сохраняется.
+ * Дизайн не меняем: та же заливка, контур и жёсткая тень. Добавляем только
+ * «физику» — трещины как по стеклу, длинные разломы и отломанные куски по
+ * кромке. Трещины детерминированы по seed (uuid сообщения), поэтому при
+ * прокрутке рисунок не скачет. Текст остаётся читаемым: затемнение небольшое.
  */
 class DamagedBubbleDrawable(
     private val outgoing: Boolean,
@@ -24,7 +26,7 @@ class DamagedBubbleDrawable(
     private val density: Float
 ) : Drawable() {
 
-    private val level = (damage.coerceIn(0, 100)) / 100f
+    private val level = damage.coerceIn(0, 100) / 100f
     private val random = Random(seed)
 
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
@@ -35,7 +37,14 @@ class DamagedBubbleDrawable(
     private val crack = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
-        color = Color.parseColor("#1A0B0714")
+        strokeJoin = Paint.Join.ROUND
+        color = Color.parseColor("#1F0B0714")
+    }
+    private val highlight = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+        color = Color.parseColor("#55FFFFFF")
     }
     private val ember = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
@@ -48,78 +57,182 @@ class DamagedBubbleDrawable(
         val b = bounds
         val shadow = 4f * density
         val dmg = level
+        val base = if (outgoing) outgoingColor else incomingColor
 
-        // Жёсткая тень.
-        rect.set(
-            b.left + shadow, b.top + shadow,
-            b.right.toFloat(), b.bottom.toFloat()
-        )
+        // Тень — как у обычного бабла.
+        rect.set(b.left + shadow, b.top + shadow, b.right.toFloat(), b.bottom.toFloat())
         fill.color = Color.BLACK
         canvas.drawPath(roundedPath(rect), fill)
 
-        // Заливка бабла.
-        rect.set(
-            b.left.toFloat(), b.top.toFloat(),
-            b.right - shadow, b.bottom - shadow
-        )
-        fill.color = blend(if (outgoing) outgoingColor else incomingColor, CHAR, 0.62f * dmg)
+        // Заливка: слегка коптится, но текст должен читаться.
+        rect.set(b.left.toFloat(), b.top.toFloat(), b.right - shadow, b.bottom - shadow)
+        fill.color = blend(base, SOOT, 0.32f * dmg)
         canvas.drawPath(roundedPath(rect), fill)
 
-        // Контур 3dp.
         stroke.color = Color.BLACK
         stroke.strokeWidth = 3f * density
         canvas.drawPath(roundedPath(rect), stroke)
 
-        // Трещины от краёв к центру.
-        val cracks = 3 + (dmg * 6).toInt()
-        repeat(cracks) { drawCrack(canvas, rect, dmg) }
+        // Стеклянные трещины: 1–4 точки удара с ветвлением.
+        val impacts = 1 + (dmg * 3.5f).toInt()
+        repeat(impacts) { drawImpactCracks(canvas, rect, dmg) }
 
-        // Тлеющие искры на сильных повреждениях.
+        // Длинные разломы через бабл на сильных уровнях.
         if (dmg > 0.35f) {
-            val embers = (2 + dmg * 8).toInt()
-            repeat(embers) {
+            repeat(1 + (dmg * 2).toInt()) { drawFracture(canvas, rect, dmg) }
+        }
+
+        // Отломанные куски по кромке.
+        val shards = (dmg * 3).toInt().coerceAtMost(4)
+        repeat(shards) { drawShard(canvas, rect, dmg, base) }
+
+        // Тлеющие угли вдоль трещин.
+        if (dmg > 0.3f) {
+            repeat(2 + (dmg * 9).toInt()) {
                 val x = rect.left + random.nextFloat() * rect.width()
                 val y = rect.top + random.nextFloat() * rect.height()
                 ember.alpha = (90 + 150 * dmg).toInt().coerceIn(0, 255)
-                canvas.drawCircle(x, y, (0.6f + random.nextFloat() * 1.2f) * density, ember)
+                canvas.drawCircle(x, y, (0.6f + random.nextFloat() * 1.1f) * density, ember)
             }
         }
     }
 
-    private fun drawCrack(canvas: Canvas, r: RectF, dmg: Float) {
-        val side = random.nextInt(4)
+    /** Точка удара: короткие лучи с ветками — как трещины на стекле. */
+    private fun drawImpactCracks(canvas: Canvas, r: RectF, dmg: Float) {
+        val cx = r.left + r.width() * (0.2f + random.nextFloat() * 0.6f)
+        val cy = r.top + r.height() * (0.2f + random.nextFloat() * 0.6f)
+        val rays = 3 + random.nextInt(3)
+        val reach = (10f + 34f * random.nextFloat()) * density * (0.7f + dmg)
+        crack.strokeWidth = (1f + 1.6f * dmg) * density
+        crack.alpha = (120 + 110 * dmg).toInt().coerceIn(0, 255)
+        highlight.strokeWidth = (0.5f + 0.6f * dmg) * density
+        highlight.alpha = (40 + 70 * dmg).toInt().coerceIn(0, 255)
+
+        repeat(rays) { ray ->
+            var angle = (Math.PI * 2 / rays) * ray + random.nextFloat() * 0.5f
+            var x = cx
+            var y = cy
+            path.reset()
+            path.moveTo(x, y)
+            val segments = 3 + random.nextInt(3)
+            repeat(segments) {
+                val step = reach / segments
+                angle += (random.nextFloat() - 0.5f) * 0.9f
+                x += kotlin.math.cos(angle).toFloat() * step
+                y += kotlin.math.sin(angle).toFloat() * step
+                path.lineTo(
+                    x.coerceIn(r.left + 2, r.right - 2),
+                    y.coerceIn(r.top + 2, r.bottom - 2)
+                )
+            }
+            canvas.drawPath(path, crack)
+            canvas.save()
+            canvas.translate(0.8f * density, 0.8f * density)
+            canvas.drawPath(path, highlight)
+            canvas.restore()
+
+            // Ветка от середины луча.
+            if (random.nextFloat() < 0.7f) {
+                val bx = (cx + x) / 2f
+                val by = (cy + y) / 2f
+                path.reset()
+                path.moveTo(bx, by)
+                var a2 = angle + (if (random.nextBoolean()) 1f else -1f) * (0.5f + random.nextFloat())
+                var px = bx
+                var py = by
+                repeat(2) {
+                    val step = (reach * 0.4f) / 2f
+                    a2 += (random.nextFloat() - 0.5f) * 0.8f
+                    px += kotlin.math.cos(a2).toFloat() * step
+                    py += kotlin.math.sin(a2).toFloat() * step
+                    path.lineTo(
+                        px.coerceIn(r.left + 2, r.right - 2),
+                        py.coerceIn(r.top + 2, r.bottom - 2)
+                    )
+                }
+                canvas.drawPath(path, crack)
+            }
+        }
+    }
+
+    /** Длинный разлом через весь бабл. */
+    private fun drawFracture(canvas: Canvas, r: RectF, dmg: Float) {
+        val horizontal = random.nextBoolean()
         val startX: Float
         val startY: Float
-        when (side) {
-            0 -> { startX = r.left; startY = r.top + random.nextFloat() * r.height() }
-            1 -> { startX = r.right; startY = r.top + random.nextFloat() * r.height() }
-            2 -> { startX = r.left + random.nextFloat() * r.width(); startY = r.top }
-            else -> { startX = r.left + random.nextFloat() * r.width(); startY = r.bottom }
+        if (horizontal) {
+            startX = r.left + 2
+            startY = r.top + r.height() * (0.2f + random.nextFloat() * 0.6f)
+        } else {
+            startX = r.left + r.width() * (0.2f + random.nextFloat() * 0.6f)
+            startY = r.top + 2
         }
-        val segments = 4 + random.nextInt(3)
-        val length = (10f + 26f * random.nextFloat()) * density * (0.6f + dmg)
-        var angle = random.nextFloat() * (Math.PI * 2).toFloat()
+        val endX = if (horizontal) r.right - 2 else r.left + r.width() * (0.1f + random.nextFloat() * 0.8f)
+        val endY = if (horizontal) r.top + r.height() * (0.1f + random.nextFloat() * 0.8f) else r.bottom - 2
+        val steps = 7
         var x = startX
         var y = startY
         path.reset()
         path.moveTo(x, y)
-        repeat(segments) { i ->
-            val step = length / segments
-            x += kotlin.math.cos(angle) * step
-            y += kotlin.math.sin(angle) * step
-            angle += (random.nextFloat() - 0.5f) * 1.2f
+        repeat(steps) { i ->
+            val t = (i + 1f) / steps
+            x = startX + (endX - startX) * t + (random.nextFloat() - 0.5f) * 8f * density
+            y = startY + (endY - startY) * t + (random.nextFloat() - 0.5f) * 8f * density
             path.lineTo(
                 x.coerceIn(r.left + 2, r.right - 2),
                 y.coerceIn(r.top + 2, r.bottom - 2)
             )
         }
-        crack.strokeWidth = (1.1f + 1.6f * dmg) * density
-        crack.alpha = (140 + 100 * dmg).toInt().coerceIn(0, 255)
+        crack.strokeWidth = (1.4f + 2f * dmg) * density
+        crack.alpha = (150 + 90 * dmg).toInt().coerceIn(0, 255)
         canvas.drawPath(path, crack)
+        highlight.strokeWidth = 0.7f * density
+        highlight.alpha = 70
+        canvas.save()
+        canvas.translate(1f * density, 1f * density)
+        canvas.drawPath(path, highlight)
+        canvas.restore()
+    }
+
+    /** Отломанный кусок: маленький осколок снаружи бабла, текст не перекрывает. */
+    private fun drawShard(canvas: Canvas, r: RectF, dmg: Float, base: Int) {
+        val side = random.nextInt(4)
+        val size = (2.2f + 2.8f * random.nextFloat()) * density * (0.7f + 0.6f * dmg)
+        val cx: Float
+        val cy: Float
+        when (side) {
+            0 -> { cx = r.left + random.nextFloat() * r.width(); cy = r.top }
+            1 -> { cx = r.left + random.nextFloat() * r.width(); cy = r.bottom }
+            2 -> { cx = r.left; cy = r.top + random.nextFloat() * r.height() }
+            else -> { cx = r.right; cy = r.top + random.nextFloat() * r.height() }
+        }
+        val dx = when (side) { 2 -> -1f; 3 -> 1f; else -> 0f }
+        val dy = when (side) { 0 -> -1f; 1 -> 1f; else -> 0f }
+
+        val shard = Path()
+        // Осколок целиком снаружи кромки.
+        shard.moveTo(cx + dx * size * 0.2f, cy + dy * size * 0.2f)
+        shard.lineTo(cx + dx * size * 1.4f - dy * size * 0.7f, cy + dy * size * 1.4f - dx * size * 0.7f)
+        shard.lineTo(cx + dx * size * 1.1f + dy * size * 0.9f, cy + dy * size * 1.1f + dx * size * 0.9f)
+        shard.close()
+
+        fill.color = blend(base, SOOT, 0.3f * dmg)
+        canvas.drawPath(shard, fill)
+        stroke.strokeWidth = 1.8f * density
+        canvas.drawPath(shard, stroke)
+
+        // Тёмная выемка ровно на кромке — след отлома, без заливки внутрь.
+        stroke.strokeWidth = 2.2f * density
+        stroke.color = Color.parseColor("#66000000")
+        val notch = Path()
+        notch.moveTo(cx - size * 0.9f, cy - size * 0.4f)
+        notch.lineTo(cx + size * 0.9f, cy - size * 0.4f)
+        canvas.drawPath(notch, stroke)
+        stroke.color = Color.BLACK
     }
 
     private fun roundedPath(r: RectF): Path {
-        val big = 18f * density
+        val big = 16f * density
         val small = 4f * density
         val radii = if (outgoing) {
             floatArrayOf(big, big, big, big, small, small, big, big)
@@ -145,6 +258,6 @@ class DamagedBubbleDrawable(
     override fun getOpacity(): Int = android.graphics.PixelFormat.TRANSLUCENT
 
     private companion object {
-        const val CHAR = 0xFF120C20.toInt()
+        const val SOOT = 0xFF120C20.toInt()
     }
 }
