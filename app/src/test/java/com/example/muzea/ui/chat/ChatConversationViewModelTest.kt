@@ -129,6 +129,8 @@ class ChatConversationViewModelTest {
         every { networkMonitor.status } returns networkStatus
         coEvery { messageRepository.loadMessagesAfter(chatUuid, any()) } returns
             flowOf(Resource.Success(emptyList()))
+        coEvery { messageRepository.loadUpdatedMessages(chatUuid, any()) } returns
+            flowOf(Resource.Success(emptyList()))
         coEvery { messageRepository.loadMessages(chatUuid) } returns network
 
         val savedStateHandle = SavedStateHandle(

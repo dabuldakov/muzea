@@ -276,6 +276,16 @@ class ChatConversationViewModel @Inject constructor(
                 }
             }
         }
+        // Инкрементальная выборка видит только новые сообщения. Отдельно
+        // забираем изменения старых — так повреждение приходит сразу, а не
+        // после полной сверки раз в 10 опросов.
+        if (incremental && since != null) {
+            messageRepository.loadUpdatedMessages(chatUuid, since).collect { result ->
+                if (result is Resource.Success) {
+                    mergeMessages(result.data ?: emptyList())
+                }
+            }
+        }
         return success
     }
 

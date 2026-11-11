@@ -32,6 +32,9 @@ interface MessageRepository {
 
     /** Догрузка истории: сообщения старше [beforeMessageUuid]. */
     suspend fun loadMessagesAfter(chatUuid: String, timestamp: String): Flow<Resource<List<Message>>>
+
+    /** Сообщения, изменённые после [timestamp] (повреждения, правки, удаления). */
+    suspend fun loadUpdatedMessages(chatUuid: String, timestamp: String): Flow<Resource<List<Message>>>
     suspend fun loadMessagesBefore(
         chatUuid: String,
         beforeMessageUuid: String,

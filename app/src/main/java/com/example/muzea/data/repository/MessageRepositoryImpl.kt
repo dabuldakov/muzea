@@ -89,6 +89,30 @@ class MessageRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun loadUpdatedMessages(
+        chatUuid: String,
+        timestamp: String
+    ): Flow<Resource<List<Message>>> = flow {
+        try {
+            if (!chatAuthManager.isAuthenticated()) {
+                emit(Resource.Error(chatAuthManager.authFailureMessage()))
+                return@flow
+            }
+            val response = chatAuthManager.retryOnceAfterUnauthorized {
+                apiService.getMessagesUpdated(chatUuid, timestamp)
+            }
+            if (response.isSuccessful && response.body() != null) {
+                emit(Resource.Success(response.body()!!.map { it.toDomain() }))
+            } else {
+                emit(Resource.Error("Failed to load updates: ${response.message()}"))
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            emit(Resource.Error("Network error: ${e.message}"))
+        }
+    }
+
     override suspend fun loadMessagesBefore(
         chatUuid: String,
         beforeMessageUuid: String,

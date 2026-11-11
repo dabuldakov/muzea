@@ -141,6 +141,12 @@ interface ChatApiService {
         @Path("timestamp") timestamp: String
     ): Response<List<MessageResponse>>
 
+    @GET("/api/messages/{chatUuid}/updated/{timestamp}")
+    suspend fun getMessagesUpdated(
+        @Path("chatUuid") chatUuid: String,
+        @Path("timestamp") timestamp: String
+    ): Response<List<MessageResponse>>
+
     @GET("/api/messages/{chatUuid}/before/{messageUuid}")
     suspend fun getMessagesBefore(
         @Path("chatUuid") chatUuid: String,
