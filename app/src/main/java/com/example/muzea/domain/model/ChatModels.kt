@@ -48,6 +48,8 @@ data class Message(
     val attachments: List<MessageAttachment> = emptyList(),
     /** Сила «заряда» отправителя, 0..100 (0 — обычное сообщение). */
     val power: Int = 0,
+    /** Накопленное повреждение 0..100 от ответов с зарядом. */
+    val damage: Int = 0,
     val reactions: List<MessageReaction> = emptyList()
 )
 

@@ -39,6 +39,7 @@ internal class MessageAdapterFixtures {
     val replyQuote: LinearLayout = mockk(relaxed = true)
     val attachmentsContainer: LinearLayout = mockk(relaxed = true)
     val reactionsContainer: LinearLayout = mockk(relaxed = true)
+    val messageFx: android.widget.FrameLayout = mockk(relaxed = true)
     val tvMessage: TextView = mockk(relaxed = true)
     val tvSenderName: TextView = mockk(relaxed = true)
     val tvReplyName: TextView = mockk(relaxed = true)
@@ -105,6 +106,7 @@ internal class MessageAdapterFixtures {
             "attachmentsContainer", attachmentsContainer
         )
         inject(ItemMessageIncomingBinding::class.java, incomingBinding, "reactionsContainer", reactionsContainer)
+        inject(ItemMessageIncomingBinding::class.java, incomingBinding, "messageFx", messageFx)
         inject(ItemMessageIncomingBinding::class.java, incomingBinding, "tvMessage", tvMessage)
         inject(ItemMessageIncomingBinding::class.java, incomingBinding, "tvReplyName", tvReplyName)
         inject(ItemMessageIncomingBinding::class.java, incomingBinding, "tvReplyText", tvReplyText)
@@ -127,6 +129,7 @@ internal class MessageAdapterFixtures {
             "attachmentsContainer", attachmentsContainer
         )
         inject(ItemMessageOutgoingBinding::class.java, outgoingBinding, "reactionsContainer", reactionsContainer)
+        inject(ItemMessageOutgoingBinding::class.java, outgoingBinding, "messageFx", messageFx)
         inject(ItemMessageOutgoingBinding::class.java, outgoingBinding, "tvMessage", tvMessage)
         inject(ItemMessageOutgoingBinding::class.java, outgoingBinding, "tvReplyName", tvReplyName)
         inject(ItemMessageOutgoingBinding::class.java, outgoingBinding, "tvReplyText", tvReplyText)

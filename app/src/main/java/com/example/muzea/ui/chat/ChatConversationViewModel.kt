@@ -329,7 +329,8 @@ class ChatConversationViewModel @Inject constructor(
             createdAt = null,
             updatedAt = null,
             attachments = uploaded,
-            power = power.coerceIn(0, 100)
+            power = power.coerceIn(0, 100),
+            damage = 0
         )
         mergeMessages(listOf(optimistic))
         clearPendingAttachments()

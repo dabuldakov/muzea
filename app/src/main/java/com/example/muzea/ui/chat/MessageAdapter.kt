@@ -62,6 +62,51 @@ private fun bindPower(view: android.widget.TextView, message: Message) {
     }
 }
 
+/**
+ * Повреждение и ареол: рисуем по данным сервера, поэтому состояние
+ * сохраняется в истории и одинаково у всех участников.
+ */
+private fun applyBubbleFx(
+    textView: android.widget.TextView,
+    fx: android.view.View,
+    message: Message,
+    incoming: Boolean
+) {
+    val context = textView.context
+    (fx.foreground as? MessageHaloDrawable)?.stop()
+    fx.foreground = null
+    fx.tag = null
+    if (textView.visibility != View.VISIBLE) {
+        textView.setBackgroundResource(
+            if (incoming) com.example.muzea.R.drawable.bg_bubble_incoming
+            else com.example.muzea.R.drawable.bg_bubble_outgoing
+        )
+        return
+    }
+    textView.background = if (message.damage > 0) {
+        DamagedBubbleDrawable(
+            outgoing = !incoming,
+            damage = message.damage,
+            seed = message.messageUuid.hashCode().toLong(),
+            incomingColor = ContextCompat.getColor(context, com.example.muzea.R.color.bubble_incoming),
+            outgoingColor = ContextCompat.getColor(context, com.example.muzea.R.color.purple_500),
+            density = context.resources.displayMetrics.density
+        )
+    } else {
+        ContextCompat.getDrawable(
+            context,
+            if (incoming) com.example.muzea.R.drawable.bg_bubble_incoming
+            else com.example.muzea.R.drawable.bg_bubble_outgoing
+        )
+    }
+    if (message.power > 0 && message.replyToMessageUuid == null && !message.isDeleted) {
+        val halo = MessageHaloDrawable(message.power, context.resources.displayMetrics.density)
+        fx.foreground = halo
+        fx.tag = message.messageUuid
+        halo.start()
+    }
+}
+
 private fun bindReactions(
     container: android.widget.LinearLayout,
     message: Message,
@@ -269,6 +314,7 @@ class MessageAdapter(
             binding.tvEdited.visibility =
                 if (message.isEdited && !message.isDeleted) View.VISIBLE else View.GONE
             bindPower(binding.tvPower, message)
+            applyBubbleFx(binding.tvMessage, binding.messageFx, message, incoming = true)
         }
 
         private var player: ExoPlayer? = null
@@ -351,6 +397,7 @@ class MessageAdapter(
                 if (message.isEdited && !message.isDeleted) View.VISIBLE else View.GONE
             bindPower(binding.tvPower, message)
             bindStatus(message, status, onStatusClick)
+            applyBubbleFx(binding.tvMessage, binding.messageFx, message, incoming = false)
         }
 
         private fun bindStatus(

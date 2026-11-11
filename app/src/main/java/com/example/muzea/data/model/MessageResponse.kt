@@ -39,7 +39,9 @@ data class MessageResponse(
     @SerializedName("reactions")
     val reactions: List<ReactionResponse>? = null,
     @SerializedName("power")
-    val power: Int = 0
+    val power: Int = 0,
+    @SerializedName("damage")
+    val damage: Int = 0
 )
 
 /** Реакция на сообщение: эмодзи произвольный (в пределах лимита сервера). */
