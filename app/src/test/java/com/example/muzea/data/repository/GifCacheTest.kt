@@ -46,6 +46,46 @@ class GifCacheTest {
     }
 
     @Test
+    fun `legacy cache file is parsed into gif objects`() {
+        // Так файл выглядел раньше: Gson писал Entry как обычный объект.
+        val file = cacheFile()
+        file.writeText(
+            """{"chat:1":{"at":123,"items":[{"provider":"klipy","providerGifId":"p1",""" +
+                """"title":"g","url":"https://c/1.gif","previewUrl":null,""" +
+                """"width":1,"height":1,"mp4Url":null,"gifKey":null}]}}"""
+        )
+
+        val items = GifCache(file).getStale("chat:1")
+
+        assertEquals(1, items?.size)
+        assertEquals("https://c/1.gif", items?.first()?.url)
+    }
+
+    @Test
+    fun `broken entry does not break the rest of the cache`() {
+        val file = cacheFile()
+        file.writeText(
+            """{"bad":{"at":"oops","items":[]},"recent":{"at":1,"items":[]}}"""
+        )
+
+        val cache = GifCache(file)
+
+        assertNull(cache.getStale("bad"))
+        assertNotNull(cache.getStale("recent"))
+    }
+
+    @Test
+    fun `written cache survives reload with all fields`() {
+        val file = cacheFile()
+        GifCache(file).put("recent", listOf(gif("https://c/1.gif", key = "k1")))
+
+        val reloaded = GifCache(file).getStale("recent")
+
+        assertEquals("k1", reloaded?.single()?.gifKey)
+        assertEquals("klipy", reloaded?.single()?.provider)
+    }
+
+    @Test
     fun `prepend deduplicates by gif key and url`() {
         val cache = GifCache(cacheFile())
         cache.prepend("recent", gif("https://c/1.gif", key = "k1"))

@@ -2,6 +2,8 @@ package com.example.muzea.data.repository
 
 import com.example.muzea.domain.model.Gif
 import com.google.gson.Gson
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import com.google.gson.reflect.TypeToken
 import java.io.File
 
@@ -16,6 +18,9 @@ import java.io.File
 class GifCache(private val file: File) {
 
     private val gson = Gson()
+
+    /** Явный тип списка: Gson не теряет generic-параметр после R8. */
+    private val itemsType = object : TypeToken<List<Gif>>() {}.type
     private val lock = Any()
     private var loaded = false
     private val entries = LinkedHashMap<String, Entry>()
@@ -86,10 +91,16 @@ class GifCache(private val file: File) {
         if (loaded) return
         loaded = true
         runCatching {
-            if (file.exists()) {
-                val type = object : TypeToken<LinkedHashMap<String, Entry>>() {}.type
-                val stored: LinkedHashMap<String, Entry>? = gson.fromJson(file.readText(), type)
-                stored?.let { entries.putAll(it) }
+            if (!file.exists()) return
+            val root = JsonParser.parseString(file.readText()).asJsonObject
+            root.entrySet().forEach { (key, value) ->
+                // Каждую запись разбираем отдельно: битая не ломает остальной кэш.
+                runCatching {
+                    val obj = value.asJsonObject
+                    val at = obj.get("at").asLong
+                    val items: List<Gif> = gson.fromJson(obj.get("items"), itemsType)
+                    entries[key] = Entry(at, items)
+                }
             }
         }
     }
@@ -97,8 +108,15 @@ class GifCache(private val file: File) {
     private fun persist() {
         runCatching {
             file.parentFile?.mkdirs()
-            val type = object : TypeToken<LinkedHashMap<String, Entry>>() {}.type
-            file.writeText(gson.toJson(entries, type))
+            // Собираем JSON вручную: так формат не зависит от R8 и generic-сигнатур.
+            val root = JsonObject()
+            entries.forEach { (key, entry) ->
+                val obj = JsonObject()
+                obj.addProperty("at", entry.at)
+                obj.add("items", gson.toJsonTree(entry.items, itemsType))
+                root.add(key, obj)
+            }
+            file.writeText(root.toString())
         }
     }
 
