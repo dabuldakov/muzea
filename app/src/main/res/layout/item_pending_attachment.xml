@@ -27,7 +27,7 @@
             android:ellipsize="end"
             android:maxWidth="140dp"
             android:maxLines="1"
-            android:textColor="@color/white"
+            android:textColor="@color/text_primary"
             android:textSize="13sp" />
 
         <ImageView

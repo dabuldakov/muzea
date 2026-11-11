@@ -12,6 +12,18 @@
         android:paddingHorizontal="28dp"
         android:paddingVertical="36dp">
 
+        <ImageButton
+            android:id="@+id/btnSettings"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="end"
+            android:background="@drawable/bg_round_icon"
+            android:contentDescription="@string/settings_title"
+            android:padding="9dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_settings"
+            android:tint="@color/icon_tint" />
+
         <!-- Avatar -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="96dp"
@@ -95,7 +107,7 @@
             android:layout_marginTop="12dp"
             android:letterSpacing="0.01"
             android:text="@string/profile_username_placeholder"
-            android:textColor="@color/white"
+            android:textColor="@color/text_primary"
             android:textFontWeight="500"
             android:textSize="22sp" />
 

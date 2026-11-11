@@ -1268,7 +1268,7 @@ class ChatConversationFragment : Fragment(),
         // Молния уже жёлтая, микрофон и камеру рисуем белыми.
         binding.btnSend.imageTintList =
             if (effective == SendMode.TEXT) null
-            else android.content.res.ColorStateList.valueOf(android.graphics.Color.WHITE)
+            else ContextCompat.getColorStateList(requireContext(), R.color.text_primary)
         binding.btnSend.contentDescription = getString(description)
     }
 

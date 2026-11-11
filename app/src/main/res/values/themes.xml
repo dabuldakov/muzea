@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Нео-брутализм: тёмный фон, фиолетовый акцент, чёрные контуры. -->
-    <style name="Theme.Muzea" parent="Theme.MaterialComponents.NoActionBar">
+    <style name="Theme.Muzea" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/purple_500</item>
         <item name="colorPrimaryVariant">@color/purple_700</item>
         <item name="colorOnPrimary">@color/white</item>
@@ -11,16 +11,14 @@
 
         <item name="android:colorBackground">@color/app_background</item>
         <item name="colorSurface">@color/surface</item>
-        <item name="colorOnSurface">@color/white</item>
-        <item name="colorOnBackground">@color/white</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorOnBackground">@color/text_primary</item>
         <item name="android:fontFamily">@font/nunito</item>
-        <item name="android:textColorPrimary">@color/white</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColorSecondary">@color/text_muted</item>
 
         <item name="android:statusBarColor">@color/app_background</item>
         <item name="android:navigationBarColor">@color/app_background</item>
-        <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:windowBackground">@color/app_background</item>
 
         <item name="materialButtonStyle">@style/Widget.Muzea.Button</item>
@@ -50,7 +48,7 @@
         <item name="colorPrimary">@color/purple_500</item>
         <item name="colorSurface">@color/surface</item>
         <item name="android:fontFamily">@font/nunito</item>
-        <item name="android:textColorPrimary">@color/white</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColorSecondary">@color/text_muted</item>
     </style>
 

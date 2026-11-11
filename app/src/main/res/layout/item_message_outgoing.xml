@@ -179,7 +179,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="4dp"
                 android:text="@string/message_edited"
-                android:textColor="#E9E2FF"
+                android:textColor="@color/bubble_meta_outgoing"
                 android:textSize="10sp"
                 android:visibility="gone" />
 
@@ -187,7 +187,7 @@
                 android:id="@+id/tvTime"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="#E9E2FF"
+                android:textColor="@color/bubble_meta_outgoing"
                 android:textSize="10sp" />
             <ImageView
                 android:id="@+id/ivStatus"

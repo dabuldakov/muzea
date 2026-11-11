@@ -1,35 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Нео-брутализм: тёмная схема, фиолетовый акцент сохранён. -->
-    <color name="app_background">#FF171027</color>
-    <color name="surface">#FF1F2937</color>
-    <color name="surface_raised">#FF273244</color>
-    <color name="text_muted">#FFB9B3C9</color>
+    <!-- Светлая тема: та же нео-брутальная геометрия, светлые поверхности. -->
+    <color name="app_background">#FFF6F1FF</color>
+    <color name="surface">#FFFFFFFF</color>
+    <color name="surface_raised">#FFEDE6FB</color>
+    <color name="text_primary">#FF120C20</color>
+    <color name="text_muted">#FF5B5470</color>
 
     <color name="purple_200">#FFA78BFA</color>
     <color name="purple_500">#FF7C3AED</color>
     <color name="purple_700">#FF6D28D9</color>
-    <color name="teal_200">#FF34D399</color>
-    <color name="teal_700">#FF10B981</color>
+    <color name="teal_200">#FF10B981</color>
+    <color name="teal_700">#FF0E9F6E</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="gray">#FFB9B3C9</color>
-    <color name="red">#FFFF5C7A</color>
-    <color name="blue">#FF60A5FA</color>
-    <color name="green">#FF34D399</color>
-    <color name="error">#FFFF5C7A</color>
+    <color name="gray">#FF5B5470</color>
+    <color name="red">#FFD92D4B</color>
+    <color name="blue">#FF2563EB</color>
+    <color name="green">#FF10B981</color>
+    <color name="error">#FFD92D4B</color>
 
-    <!-- Контур, тень и заливки баблов. -->
     <color name="neon_outline">#FF000000</color>
     <color name="toolbar_gradient_start">#FF7C3AED</color>
     <color name="toolbar_gradient_end">#FF7C3AED</color>
     <color name="bubble_outgoing_start">#FF7C3AED</color>
     <color name="bubble_outgoing_end">#FF7C3AED</color>
-    <color name="bubble_incoming">#FF1F2937</color>
-    <color name="icon_tint">#FFC4B5FD</color>
-    <color name="selected_message">#4D7C3AED</color>
+    <color name="bubble_incoming">#FFFFFFFF</color>
+    <color name="bubble_meta_incoming">#FF5B5470</color>
+    <color name="bubble_meta_outgoing">#FFE9E2FF</color>
+    <color name="icon_tint">#FF6D28D9</color>
+    <color name="selected_message">#337C3AED</color>
+    <color name="chip_background">#FF171027</color>
+    <color name="chip_text">#FFFFFFFF</color>
     <color name="power_badge">#FFFFD400</color>
     <color name="neon_green">#FF2BFF88</color>
 
-    <color name="gif_media_background">#FF0F0A1C</color>
+    <color name="gif_media_background">#FFF6F1FF</color>
 </resources>

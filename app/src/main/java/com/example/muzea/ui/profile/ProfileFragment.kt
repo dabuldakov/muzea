@@ -70,9 +70,26 @@ class ProfileFragment : Fragment() {
         return binding.root
     }
 
+    /** Выбор темы: тёмная (основная) или светлая. */
+    private fun showThemeDialog() {
+        val dark = com.example.muzea.utils.ThemePrefs.isDark(requireContext())
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.settings_theme)
+            .setSingleChoiceItems(
+                arrayOf(getString(R.string.theme_dark), getString(R.string.theme_light)),
+                if (dark) 0 else 1
+            ) { dialog, which ->
+                com.example.muzea.utils.ThemePrefs.setDark(requireContext(), which == 0)
+                com.example.muzea.utils.ThemePrefs.apply(requireContext())
+                dialog.dismiss()
+            }
+            .show()
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        binding.btnSettings.setOnClickListener { showThemeDialog() }
         binding.btnChangeAvatar.setOnClickListener { pickAvatar.launch(arrayOf("image/jpeg", "image/png")) }
         binding.btnDeleteAvatar.setOnClickListener { avatarViewModel.delete() }
         binding.btnRetryAvatar.setOnClickListener { avatarViewModel.load() }

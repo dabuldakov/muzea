@@ -17,6 +17,7 @@ class MuzeaApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        com.example.muzea.utils.ThemePrefs.apply(this)
         errorReporter.install()
         errorReporter.uploadPending()
         NotificationChannels.ensureAll(this)

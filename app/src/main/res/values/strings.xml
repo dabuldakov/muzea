@@ -331,4 +331,8 @@
     <string name="action_open_pinned">Open pinned message</string>
     <string name="chat_participants_count">%d members</string>
     <string name="chat_type_direct">direct chat</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_theme">Theme</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_light">Light</string>
 </resources>

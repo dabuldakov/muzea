@@ -318,4 +318,8 @@
     <string name="action_open_pinned">Открыть закреплённое сообщение</string>
     <string name="chat_participants_count">%d участников</string>
     <string name="chat_type_direct">личный чат</string>
+    <string name="settings_title">Настройки</string>
+    <string name="settings_theme">Тема оформления</string>
+    <string name="theme_dark">Тёмная</string>
+    <string name="theme_light">Светлая</string>
 </resources>
