@@ -67,8 +67,8 @@ class ErrorReporter @Inject constructor(
                 ErrorEvent(
                     level = level,
                     tag = tag,
-                    message = message?.take(MAX_MESSAGE),
-                    stack = stack?.take(MAX_STACK),
+                    message = message?.let(ErrorSanitizer::sanitize)?.take(MAX_MESSAGE),
+                    stack = stack?.let(ErrorSanitizer::sanitize)?.take(MAX_STACK),
                     appVersion = BuildConfig.VERSION_NAME,
                     versionCode = BuildConfig.VERSION_CODE,
                     buildType = if (BuildConfig.DEBUG) "debug" else "release",
