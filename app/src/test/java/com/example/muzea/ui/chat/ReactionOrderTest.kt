@@ -15,20 +15,13 @@ class ReactionOrderTest {
     }
 
     @Test
-    fun `expanded grid skips reactions that are already in the strip`() {
-        val result = ReactionOrder.rest(
+    fun `expanded grid holds every reaction without duplicates`() {
+        val result = ReactionOrder.ordered(
             recent = listOf("🔥", "👍"),
             full = listOf("👍", "❤️", "🔥", "😂")
         )
-        assertEquals(listOf("❤️", "😂"), result)
-    }
-
-    @Test
-    fun `expanded grid is empty when the strip holds every reaction`() {
-        assertEquals(
-            emptyList<String>(),
-            ReactionOrder.rest(listOf("👍", "❤️"), listOf("👍", "❤️"))
-        )
+        assertEquals(listOf("🔥", "👍", "❤️", "😂"), result)
+        assertEquals(result.size, result.toSet().size)
     }
 
     @Test

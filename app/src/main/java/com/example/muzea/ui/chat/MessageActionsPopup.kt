@@ -167,6 +167,7 @@ class MessageActionsPopup(
     }
 
     private fun renderReactions() {
+        val strip = content.findViewById<LinearLayout>(R.id.reactionsStrip)
         val recentRow = content.findViewById<LinearLayout>(R.id.recentReactions)
         val full = content.findViewById<GridLayout>(R.id.fullReactions)
         val arrow = content.findViewById<ImageButton>(R.id.btnExpandReactions)
@@ -179,18 +180,18 @@ class MessageActionsPopup(
             recentRow.addView(emojiView(emoji, size, grid = false))
         }
 
-        // В раскрытом списке — только те реакции, которых нет в полосе,
-        // полоса прокручивается по всей истории, дублировать её незачем.
-        val rest = ReactionOrder.rest(recent, ReactionHistory.FULL)
-        rest.forEach { emoji ->
+        // Раскрытие заменяет полосу общим списком: все реакции разом,
+        // без дублей, сверху вниз. Сворачивать нечего — выбор эмодзи или
+        // тап мимо закрывают карточку.
+        ReactionOrder.ordered(recent, ReactionHistory.FULL).forEach { emoji ->
             full.addView(emojiView(emoji, size, grid = true))
         }
-        arrow.visibility = if (rest.isEmpty()) View.GONE else View.VISIBLE
         arrow.setOnClickListener {
-            expanded = !expanded
-            full.visibility = if (expanded) View.VISIBLE else View.GONE
-            arrow.rotation = if (expanded) 90f else 0f
-            content.post { animateToContent() }
+            if (expanded) return@setOnClickListener
+            expanded = true
+            strip.visibility = View.GONE
+            full.visibility = View.VISIBLE
+            animateToContent()
         }
     }
 
