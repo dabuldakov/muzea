@@ -57,6 +57,13 @@ class ChatViewModel @Inject constructor(
     val addParticipantsResult: SharedFlow<Resource<Unit>> =
         _addParticipantsResult.asSharedFlow()
 
+    /** Принудительное обновление при возврате на список: не ждём 8-секундный опрос. */
+    fun refreshChats() {
+        chatsJob?.cancel()
+        chatsJob = null
+        loadChats()
+    }
+
     fun loadChats() {
         // Экран дёргает загрузку из onResume и из автообновления раз в 8 секунд.
         // Без этой защиты запросы накладывались бы друг на друга.

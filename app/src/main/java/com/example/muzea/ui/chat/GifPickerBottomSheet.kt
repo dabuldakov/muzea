@@ -61,6 +61,12 @@ class GifPickerBottomSheet : BottomSheetDialogFragment() {
 
         setupTabs()
 
+        binding.btnBackToEmoji.setOnClickListener {
+            dismiss()
+            EmojiGifBottomSheet.newInstance()
+                .show(parentFragmentManager, "emoji_gif")
+        }
+
         binding.etGifSearch.setOnEditorActionListener { _, _, _ ->
             viewModel.setQuery(binding.etGifSearch.text?.toString()?.trim().orEmpty())
             true

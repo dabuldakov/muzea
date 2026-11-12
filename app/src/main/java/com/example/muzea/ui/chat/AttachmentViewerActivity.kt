@@ -49,7 +49,11 @@ class AttachmentViewerActivity : AppCompatActivity() {
         binding.btnBack.setOnClickListener { finish() }
 
         when (type) {
-            "IMAGE" -> showImage(url)
+            "IMAGE" -> {
+                showImage(url)
+                binding.btnDownload.visibility = android.view.View.VISIBLE
+                binding.btnDownload.setOnClickListener { downloadImage(url, name) }
+            }
             "VIDEO" -> showVideo(url, withControls = true)
             "AUDIO" -> showAudio(url)
             else -> finish()
@@ -62,6 +66,25 @@ class AttachmentViewerActivity : AppCompatActivity() {
             .load(url)
             .diskCacheStrategy(DiskCacheStrategy.ALL)
             .into(binding.ivImage)
+    }
+
+    /** Скачивание картинки в системные «Загрузки» с авторизацией. */
+    private fun downloadImage(url: String, name: String?) {
+        val fileName = name?.takeIf { it.isNotBlank() }
+            ?: "muzea-${System.currentTimeMillis()}.jpg"
+        val request = android.app.DownloadManager.Request(android.net.Uri.parse(url))
+            .setTitle(fileName)
+            .setMimeType("image/*")
+            .setNotificationVisibility(
+                android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
+            )
+            .setDestinationInExternalPublicDir(android.os.Environment.DIRECTORY_DOWNLOADS, fileName)
+        tokenManager.getToken()?.let { request.addRequestHeader("Authorization", "Bearer $it") }
+        val manager = getSystemService(Context.DOWNLOAD_SERVICE) as android.app.DownloadManager
+        manager.enqueue(request)
+        android.widget.Toast.makeText(
+            this, R.string.attachment_saved_downloads, android.widget.Toast.LENGTH_SHORT
+        ).show()
     }
 
     private fun showVideo(url: String, withControls: Boolean) {

@@ -384,7 +384,7 @@ class ChatListFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        loadChats()
+        viewModel.refreshChats()
     }
 
     override fun onDestroyView() {

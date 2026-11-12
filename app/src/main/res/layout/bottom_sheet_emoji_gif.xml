@@ -42,7 +42,6 @@
             android:id="@+id/emojiGrid"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:columnCount="8"
-            android:rowCount="4" />
+            android:columnCount="8" />
     </ScrollView>
 </LinearLayout>
