@@ -253,6 +253,7 @@ class ChatConversationFragment : Fragment(),
 
         setupRecyclerView()
         setupScrollButton()
+        applyComicChrome()
         setupInput()
         setupAttachments()
         setupReplyBanner()
@@ -746,6 +747,29 @@ class ChatConversationFragment : Fragment(),
             if (unreadAnchorPosition != null) R.string.scroll_to_unread
             else R.string.scroll_to_latest
         )
+    }
+
+    /** Оформление чата для комикс-тем: шапка, композер, кнопки. */
+    private fun applyComicChrome() {
+        val palette = ComicStyle.palette(requireContext()) ?: return
+        val context = requireContext()
+        binding.headerBar.background = ComicStyle.header(context)
+        binding.btnBack.background = ComicStyle.button(context, filled = false)
+        binding.ivAvatar.background = ComicStyle.circleBorder(context)
+        binding.tvTitle.setTextColor(
+            if (com.example.muzea.utils.ThemeManager.current(context) ==
+                com.example.muzea.utils.ThemeManager.PINK
+            ) android.graphics.Color.BLACK else android.graphics.Color.WHITE
+        )
+        binding.tvTitle.typeface = android.graphics.Typeface.create(
+            "sans-serif-condensed", android.graphics.Typeface.BOLD
+        )
+        binding.composerBar.background = ComicStyle.panel(context)
+        binding.etMessageInput.background = ComicStyle.field(context)
+        binding.etMessageInput.setTextColor(palette.incomingText)
+        binding.btnGif.background = ComicStyle.button(context, filled = false)
+        binding.btnAdd.background = ComicStyle.button(context, filled = false)
+        binding.btnSend.background = ComicStyle.button(context, filled = true)
     }
 
     private fun setupScrollButton() {

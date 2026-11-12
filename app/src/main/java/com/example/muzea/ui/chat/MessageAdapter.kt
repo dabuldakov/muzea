@@ -68,6 +68,24 @@ private fun opaqueTextColor(context: android.content.Context): Int =
         android.content.res.Configuration.UI_MODE_NIGHT_YES
     ) android.graphics.Color.WHITE else android.graphics.Color.BLACK
 
+/** Комикс-темы: угловатый бабл с хвостом и контрастный текст. */
+private fun applyComicBubble(textView: android.widget.TextView, incoming: Boolean) {
+    if (textView.visibility != View.VISIBLE) return
+    val context = textView.context
+    val palette = ComicStyle.palette(context) ?: return
+    textView.background = ComicStyle.bubble(context, incoming)
+    textView.setTextColor(if (incoming) palette.incomingText else palette.outgoingText)
+    val density = context.resources.displayMetrics.density
+    val pad = (14 * density).toInt()
+    val tailPad = (22 * density).toInt()
+    textView.setPadding(
+        if (incoming) pad else tailPad,
+        (10 * density).toInt(),
+        if (incoming) tailPad else pad,
+        (12 * density).toInt()
+    )
+}
+
 private fun bindReactions(
     container: android.widget.LinearLayout,
     message: Message,
@@ -280,6 +298,7 @@ class MessageAdapter(
             binding.tvEdited.visibility =
                 if (message.isEdited && !message.isDeleted) View.VISIBLE else View.GONE
             bindPower(binding.tvPower, message)
+            applyComicBubble(binding.tvMessage, incoming = true)
         }
 
         private var player: ExoPlayer? = null
@@ -362,6 +381,7 @@ class MessageAdapter(
                 if (message.isEdited && !message.isDeleted) View.VISIBLE else View.GONE
             bindPower(binding.tvPower, message)
             bindStatus(message, status, onStatusClick)
+            applyComicBubble(binding.tvMessage, incoming = false)
         }
 
         private fun bindStatus(
