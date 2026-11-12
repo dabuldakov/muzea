@@ -46,24 +46,19 @@
         android:visibility="gone" />
 
     <LinearLayout
-        android:id="@+id/statusSection"
+        android:id="@+id/actionsRow"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
+        android:orientation="horizontal" />
+
+    <LinearLayout
+        android:id="@+id/statusSection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
         android:orientation="vertical"
         android:visibility="gone">
-
-        <TextView
-            android:id="@+id/tvStatusTitle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingStart="6dp"
-            android:paddingTop="2dp"
-            android:paddingEnd="6dp"
-            android:text="@string/message_status_title"
-            android:textColor="?attr/colorPrimary"
-            android:textSize="12sp"
-            android:textStyle="bold" />
 
         <LinearLayout
             android:id="@+id/readersRow"
@@ -89,11 +84,4 @@
                 android:orientation="vertical" />
         </ScrollView>
     </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/actionsRow"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:orientation="horizontal" />
 </LinearLayout>

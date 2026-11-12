@@ -34,6 +34,20 @@ class ActionsPopupPositionTest {
     }
 
     @Test
+    fun `popup is lifted back when it does not fit below`() {
+        val point = ActionsPopupPosition.calculate(
+            tapX = 540,
+            tapY = 399,
+            popupWidth = 300,
+            popupHeight = 2000,
+            screenWidth = 1080,
+            margin = 8,
+            screenHeight = 2400
+        )
+        assertEquals(392, point.y)
+    }
+
+    @Test
     fun `different taps produce different vertical positions`() {
         val first = pos(tapX = 500, tapY = 900)
         val second = pos(tapX = 500, tapY = 1300)

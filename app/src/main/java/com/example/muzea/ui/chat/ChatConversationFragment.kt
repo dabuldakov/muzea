@@ -95,6 +95,7 @@ class ChatConversationFragment : Fragment(),
     private var pendingHighlightUuid: String? = null
     private var highlightAttempts = 0
     private var actionsPopup: MessageActionsPopup? = null
+    private var actionsOverlay: View? = null
     /** Точка последнего касания списка — к ней ставим модалку. */
     private var lastTapX = 0
     private var lastTapY = 0
@@ -412,23 +413,28 @@ class ChatConversationFragment : Fragment(),
             ?: holder?.itemView
         if (anchor != null) {
             actionsPopup?.dismiss()
-            actionsPopup = MessageActionsPopup(
+            val popup = MessageActionsPopup(
                 context = requireContext(),
                 messageUuid = message.messageUuid,
                 actions = actions,
                 statusRows = if (showStatus) buildStatusRows(message) else emptyList(),
                 showStatus = showStatus,
                 onAction = { actionId -> onMessageAction(message.messageUuid, actionId) },
-                onReaction = { emoji -> viewModel.toggleReaction(message, emoji) }
-            ).also {
-                it.show(
-                    anchor,
-                    tapX = lastTapX.takeIf { v -> v > 0 }
-                        ?: MessageAdapter.lastTouchX.takeIf { v -> v > 0 },
-                    tapY = lastTapY.takeIf { v -> v > 0 }
-                        ?: MessageAdapter.lastTouchY.takeIf { v -> v > 0 }
-                )
-            }
+                onReaction = { emoji -> viewModel.toggleReaction(message, emoji) },
+                onDismissed = { removeActionsOverlay() }
+            )
+            actionsPopup = popup
+            // Прозрачная накладка ловит тапы мимо карточки: они закрывают
+            // модалку и не доходят до сообщения, иначе она тут же
+            // открывается заново.
+            addActionsOverlay()
+            popup.show(
+                anchor,
+                tapX = lastTapX.takeIf { v -> v > 0 }
+                    ?: MessageAdapter.lastTouchX.takeIf { v -> v > 0 },
+                tapY = lastTapY.takeIf { v -> v > 0 }
+                    ?: MessageAdapter.lastTouchY.takeIf { v -> v > 0 }
+            )
         } else {
             // Строка ещё не разложена — показываем старую шторку.
             MessageActionsBottomSheet.newInstance(
@@ -442,6 +448,32 @@ class ChatConversationFragment : Fragment(),
 
     /** Для тестов: видна ли сейчас плавающая модалка действий. */
     internal fun isActionsPopupShowing(): Boolean = actionsPopup?.isShowing() == true
+
+    private fun addActionsOverlay() {
+        removeActionsOverlay()
+        val overlay = View(requireContext()).apply {
+            isClickable = true
+            setBackgroundColor(Color.TRANSPARENT)
+            setOnClickListener { actionsPopup?.dismiss() }
+        }
+        val container = requireActivity().findViewById<ViewGroup>(android.R.id.content)
+            ?: return
+        container.addView(
+            overlay,
+            ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
+        actionsOverlay = overlay
+    }
+
+    private fun removeActionsOverlay() {
+        actionsOverlay?.let { view ->
+            (view.parent as? ViewGroup)?.removeView(view)
+        }
+        actionsOverlay = null
+    }
 
     private fun opaqueEmojiTextColor(): Int =
         if ((resources.configuration.uiMode and
@@ -1948,6 +1980,8 @@ class ChatConversationFragment : Fragment(),
     }
 
     override fun onDestroyView() {
+        actionsPopup?.dismiss()
+        removeActionsOverlay()
         audioPlayer?.release()
         audioPlayer = null
         playingAudioUuid = null
