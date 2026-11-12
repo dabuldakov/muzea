@@ -51,6 +51,12 @@ class EmojiGifBottomSheet : BottomSheetDialogFragment() {
                 textSize = 28f
                 includeFontPadding = false
                 gravity = android.view.Gravity.CENTER
+                setTextColor(
+                    if ((resources.configuration.uiMode and
+                            android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+                        android.content.res.Configuration.UI_MODE_NIGHT_YES
+                    ) android.graphics.Color.WHITE else android.graphics.Color.BLACK
+                )
                 layoutParams = GridLayout.LayoutParams().apply {
                     width = size
                     height = size

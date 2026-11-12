@@ -68,6 +68,24 @@ class ChatMessageReducerTest {
     }
 
     @Test
+    fun `merge applies server updates to an existing message`() {
+        val reducer = ChatMessageReducer()
+        val existing = message("m1", "2026-01-01T00:00:00").copy(
+            text = "old",
+            reactions = listOf(com.example.muzea.domain.model.MessageReaction("👍", 1, true))
+        )
+        val updated = message("m1", "2026-01-01T00:00:00").copy(
+            text = "new",
+            reactions = emptyList()
+        )
+
+        val result = reducer.merge(listOf(existing), listOf(updated))
+
+        assertEquals("new", result.single().text)
+        assertEquals(emptyList<Any>(), result.single().reactions)
+    }
+
+    @Test
     fun `server delete marker removes an existing message`() {
         val reducer = ChatMessageReducer()
         val existing = message("m1", "2026-01-02T00:00:00")

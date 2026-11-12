@@ -62,6 +62,12 @@ private fun bindPower(view: android.widget.TextView, message: Message) {
     }
 }
 
+private fun opaqueTextColor(context: android.content.Context): Int =
+    if ((context.resources.configuration.uiMode and
+            android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+        android.content.res.Configuration.UI_MODE_NIGHT_YES
+    ) android.graphics.Color.WHITE else android.graphics.Color.BLACK
+
 private fun bindReactions(
     container: android.widget.LinearLayout,
     message: Message,
@@ -80,6 +86,9 @@ private fun bindReactions(
             textSize = 18f
             includeFontPadding = false
             alpha = 1f
+            // Тема даёт текст с alpha 87 % — из-за этого эмодзи выглядят
+            // полупрозрачными. Для глифов нужен полностью непрозрачный цвет.
+            setTextColor(opaqueTextColor(container.context))
             setPadding((8 * density).toInt(), (2 * density).toInt(), (8 * density).toInt(), (2 * density).toInt())
             setBackgroundResource(
                 if (reaction.mine) com.example.muzea.R.drawable.bg_reaction_mine

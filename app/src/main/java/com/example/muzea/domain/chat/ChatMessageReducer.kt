@@ -61,7 +61,10 @@ class ChatMessageReducer {
         }
         for (message in current) {
             if (message.isDeleted || message.messageUuid in deleted) continue
-            merged[message.messageUuid] = message
+            // Серверные данные важнее локальной копии: так приходят снятые
+            // реакции, повреждения и правки старых сообщений. Локальные
+            // пузыри, которых нет во входящей пачке, остаются.
+            merged.putIfAbsent(message.messageUuid, message)
         }
         return merged.values.sortedWith(MessageComparator())
     }

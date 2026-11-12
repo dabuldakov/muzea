@@ -590,20 +590,12 @@ class ChatConversationViewModel @Inject constructor(
             reconciled.copy(
                 attachments = existing.attachments,
                 power = if (reconciled.power > 0) reconciled.power else existing.power,
-                reactions = if (reconciled.reactions.isNotEmpty()) {
-                    reconciled.reactions
-                } else {
-                    existing.reactions
-                }
+                reactions = reconciled.reactions
             )
         } else {
             reconciled.copy(
                 power = if (reconciled.power > 0) reconciled.power else existing?.power ?: 0,
-                reactions = if (reconciled.reactions.isNotEmpty()) {
-                    reconciled.reactions
-                } else {
-                    existing?.reactions.orEmpty()
-                }
+                reactions = reconciled.reactions
             )
         }
         val messages = reducer.updateMessage(_uiState.value.messages, merged)

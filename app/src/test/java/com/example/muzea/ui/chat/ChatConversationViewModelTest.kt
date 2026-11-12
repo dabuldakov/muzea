@@ -63,7 +63,8 @@ class ChatConversationViewModelTest {
         text: String,
         createdAt: String,
         messageId: Long? = null,
-        sender: String = "me"
+        sender: String = "me",
+        reactions: List<com.example.muzea.domain.model.MessageReaction> = emptyList()
     ) = Message(
         messageUuid = uuid,
         messageId = messageId,
@@ -79,7 +80,8 @@ class ChatConversationViewModelTest {
         isDeleted = false,
         isPinned = false,
         createdAt = createdAt,
-        updatedAt = null
+        updatedAt = null,
+        reactions = reactions
     )
 
     @Before
@@ -968,6 +970,39 @@ class ChatConversationViewModelTest {
         assertEquals(expected, viewModel.downloadAttachment(attachment) { progress += it })
         assertEquals(listOf(100), progress)
         assertNull(viewModel.downloadAttachment(attachment.copy(attachmentUuid = null)))
+    }
+
+    @Test
+    fun `empty reactions from server clear old chips`() {
+        val updates = kotlinx.coroutines.flow.MutableSharedFlow<
+            com.example.muzea.core.Resource<List<com.example.muzea.domain.model.Message>>>(
+            replay = 1
+        )
+        withViewModel(network = updates) { viewModel ->
+            updates.emit(
+                com.example.muzea.core.Resource.Success(
+                    listOf(
+                        message(
+                            "m1", "hi", "2026-01-01T00:00:00", messageId = 1,
+                            reactions = listOf(
+                                com.example.muzea.domain.model.MessageReaction("👍", 1, true)
+                            )
+                        )
+                    )
+                )
+            )
+            (this as kotlinx.coroutines.test.TestScope).testScheduler.runCurrent()
+            assertEquals(1, viewModel.uiState.value.messages.first().reactions.size)
+
+            // Сервер вернул пустой список — реакция снята, старую не оставляем.
+            updates.emit(
+                com.example.muzea.core.Resource.Success(
+                    listOf(message("m1", "hi", "2026-01-01T00:00:00", messageId = 1))
+                )
+            )
+            (this as kotlinx.coroutines.test.TestScope).testScheduler.runCurrent()
+            assertTrue(viewModel.uiState.value.messages.first().reactions.isEmpty())
+        }
     }
 
     @Test

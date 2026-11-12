@@ -405,6 +405,12 @@ class ChatConversationFragment : Fragment(),
         ).show(childFragmentManager, "message_actions")
     }
 
+    private fun opaqueEmojiTextColor(): Int =
+        if ((resources.configuration.uiMode and
+                android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+            android.content.res.Configuration.UI_MODE_NIGHT_YES
+        ) android.graphics.Color.WHITE else android.graphics.Color.BLACK
+
     private fun showReactionPicker(message: Message) {
         val emojis = listOf(
             "👍", "❤️", "😂", "😮", "😢", "🔥", "🎉", "👏",
@@ -421,6 +427,7 @@ class ChatConversationFragment : Fragment(),
                 textSize = 26f
                 includeFontPadding = false
                 gravity = android.view.Gravity.CENTER
+                setTextColor(opaqueEmojiTextColor())
                 layoutParams = android.widget.GridLayout.LayoutParams().apply {
                     width = size
                     height = size
