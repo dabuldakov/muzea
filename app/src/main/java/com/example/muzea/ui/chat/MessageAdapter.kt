@@ -272,6 +272,11 @@ class MessageAdapter(
             binding.tvMessage.setOnClickListener { onClick(message) }
             binding.ivGif.setOnClickListener { onClick(message) }
             // linkPreview сам открывает ссылку — не перекрываем его обработчик.
+            // Долгое нажатие открывает меню действий: иначе у сообщения-ссылки
+            // меню недоступно — тап уходит в ссылку.
+            bindLongPress(binding.tvMessage, message, onClick)
+            bindLongPress(binding.linkPreview, message, onClick)
+            bindLongPress(binding.ivGif, message, onClick)
 
             if (showHeader && !message.senderName.isNullOrEmpty()) {
                 binding.tvSenderName.text = message.senderName
@@ -365,6 +370,11 @@ class MessageAdapter(
             binding.tvMessage.setOnClickListener { onClick(message) }
             binding.ivGif.setOnClickListener { onClick(message) }
             // linkPreview сам открывает ссылку — не перекрываем его обработчик.
+            // Долгое нажатие открывает меню действий: иначе у сообщения-ссылки
+            // меню недоступно — тап уходит в ссылку.
+            bindLongPress(binding.tvMessage, message, onClick)
+            bindLongPress(binding.linkPreview, message, onClick)
+            bindLongPress(binding.ivGif, message, onClick)
             binding.tvTime.text = formatTime(message.createdAt)
             binding.tvEdited.visibility =
                 if (message.isEdited && !message.isDeleted) View.VISIBLE else View.GONE
@@ -864,6 +874,74 @@ private fun renderPreview(
 }
 
 private fun hostOf(url: String): String = Uri.parse(url).host.orEmpty()
+
+/** Состояние долгого нажатия: обычный OnLongClick не срабатывает, если в
+ *  тексте есть кликабельные ссылки (LinkMovementMethod забирает события). */
+private val longPressStates =
+    java.util.WeakHashMap<View, LongPressState>()
+private val longPressHandler = android.os.Handler(android.os.Looper.getMainLooper())
+private const val DEFAULT_TOUCH_SLOP = 24
+
+private class LongPressState(
+    val onLongPress: () -> Unit,
+    val runnable: Runnable
+) {
+    var fired = false
+    var downX = 0f
+    var downY = 0f
+}
+
+/**
+ * Долгое нажатие открывает меню действий, короткое — работает как раньше
+ * (открывает ссылку или меню, в зависимости от вьюхи).
+ */
+internal fun bindLongPress(view: View, message: Message, onClick: (Message) -> Unit) {
+    val slop = runCatching {
+        android.view.ViewConfiguration.get(view.context).scaledTouchSlop
+    }.getOrDefault(DEFAULT_TOUCH_SLOP)
+    val timeout = android.view.ViewConfiguration.getLongPressTimeout().toLong()
+    lateinit var state: LongPressState
+    state = LongPressState(
+        onLongPress = { onClick(message) },
+        runnable = Runnable {
+            state.fired = true
+            view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+            state.onLongPress()
+        }
+    )
+    longPressStates[view]?.let { longPressHandler.removeCallbacks(it.runnable) }
+    longPressStates[view] = state
+    view.setOnTouchListener { v, event ->
+        val current = longPressStates[v] ?: return@setOnTouchListener false
+        when (event.actionMasked) {
+            android.view.MotionEvent.ACTION_DOWN -> {
+                current.fired = false
+                current.downX = event.x
+                current.downY = event.y
+                longPressHandler.postDelayed(current.runnable, timeout)
+                false
+            }
+            android.view.MotionEvent.ACTION_MOVE -> {
+                if (!current.fired &&
+                    (Math.abs(event.x - current.downX) > slop ||
+                        Math.abs(event.y - current.downY) > slop)
+                ) {
+                    longPressHandler.removeCallbacks(current.runnable)
+                }
+                false
+            }
+            android.view.MotionEvent.ACTION_UP -> {
+                longPressHandler.removeCallbacks(current.runnable)
+                current.fired
+            }
+            android.view.MotionEvent.ACTION_CANCEL -> {
+                longPressHandler.removeCallbacks(current.runnable)
+                false
+            }
+            else -> false
+        }
+    }
+}
 
 /**
  * Делает ссылки в тексте кликабельными (открываются внешним приложением).
