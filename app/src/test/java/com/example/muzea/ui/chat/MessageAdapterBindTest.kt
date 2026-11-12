@@ -212,8 +212,8 @@ class MessageAdapterBindTest {
         bindIncoming(message(), onClick = { pressed = it })
 
         val listener = slot<View.OnClickListener>()
-        verify { fx.root.setOnClickListener(capture(listener)) }
-        listener.captured.onClick(fx.root)
+        verify { fx.tvMessage.setOnClickListener(capture(listener)) }
+        listener.captured.onClick(fx.tvMessage)
 
         assertEquals("m1", pressed?.messageUuid)
     }
@@ -684,8 +684,8 @@ class MessageAdapterBindTest {
         bindOutgoing(message(senderUuid = "me"), onClick = { pressed = it })
 
         val listener = slot<View.OnClickListener>()
-        verify { fx.root.setOnClickListener(capture(listener)) }
-        listener.captured.onClick(fx.root)
+        verify { fx.tvMessage.setOnClickListener(capture(listener)) }
+        listener.captured.onClick(fx.tvMessage)
 
         assertEquals("m1", pressed?.messageUuid)
     }

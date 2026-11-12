@@ -107,7 +107,7 @@ class MessageActionsPopup(
             recentRow.addView(emojiView(emoji, size))
         }
         val recent = ReactionHistory.recent(context)
-        val ordered = recent + ReactionHistory.FULL.filterNot { it in recent }
+        val ordered = ReactionOrder.ordered(recent, ReactionHistory.FULL)
         ordered.forEach { emoji ->
             full.addView(emojiView(emoji, size))
         }

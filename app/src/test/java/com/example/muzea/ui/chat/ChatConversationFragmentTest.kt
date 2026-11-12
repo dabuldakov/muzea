@@ -190,7 +190,23 @@ class ChatConversationFragmentTest {
     }
 
     @Test
-    fun `clicking a message opens the actions sheet`() {
+    fun `clicking a message opens the floating actions popup`() {
+        every { messageRepository.cachedMessages("chat-1") } returns listOf(message())
+        val fragment = launch()
+        val list = fragment.requireView().findViewById<RecyclerView>(R.id.recyclerViewMessages)
+        awaitItems(list, 1)
+        layout(list)
+
+        val bubble = list.findViewHolderForAdapterPosition(0)!!
+            .itemView.findViewById<View>(R.id.tvMessage)
+        bubble.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(true, fragment.isActionsPopupShowing())
+    }
+
+    @Test
+    fun `clicking empty row area does not open actions`() {
         every { messageRepository.cachedMessages("chat-1") } returns listOf(message())
         val fragment = launch()
         val list = fragment.requireView().findViewById<RecyclerView>(R.id.recyclerViewMessages)
@@ -200,10 +216,7 @@ class ChatConversationFragmentTest {
         list.findViewHolderForAdapterPosition(0)!!.itemView.performClick()
         shadowOf(Looper.getMainLooper()).idle()
 
-        assertEquals(
-            true,
-            fragment.childFragmentManager.findFragmentByTag("message_actions") != null
-        )
+        assertEquals(false, fragment.isActionsPopupShowing())
     }
 
     @Test

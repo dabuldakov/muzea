@@ -440,6 +440,9 @@ class ChatConversationFragment : Fragment(),
         }
     }
 
+    /** Для тестов: видна ли сейчас плавающая модалка действий. */
+    internal fun isActionsPopupShowing(): Boolean = actionsPopup?.isShowing() == true
+
     private fun opaqueEmojiTextColor(): Int =
         if ((resources.configuration.uiMode and
                 android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
