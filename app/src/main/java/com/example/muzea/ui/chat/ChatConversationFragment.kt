@@ -415,7 +415,13 @@ class ChatConversationFragment : Fragment(),
                 actions = actions,
                 onAction = { actionId -> onMessageAction(message.messageUuid, actionId) },
                 onReaction = { emoji -> viewModel.toggleReaction(message, emoji) }
-            ).also { it.show(anchor) }
+            ).also {
+                it.show(
+                    anchor,
+                    tapX = MessageAdapter.lastTouchX.takeIf { v -> v > 0 },
+                    tapY = MessageAdapter.lastTouchY.takeIf { v -> v > 0 }
+                )
+            }
         } else {
             // Строка ещё не разложена — показываем старую шторку.
             MessageActionsBottomSheet.newInstance(

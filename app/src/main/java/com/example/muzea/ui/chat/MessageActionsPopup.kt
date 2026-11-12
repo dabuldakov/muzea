@@ -44,7 +44,7 @@ class MessageActionsPopup(
 
     private var expanded = false
 
-    fun show(anchor: View) {
+    fun show(anchor: View, tapX: Int? = null, tapY: Int? = null) {
         renderReactions()
         renderActions()
         val width = (300 * density).toInt()
@@ -57,10 +57,13 @@ class MessageActionsPopup(
         anchor.getLocationOnScreen(location)
         val metrics = context.resources.displayMetrics
         val margin = (8 * density).toInt()
-        val x = (location[0] + anchor.width / 2 - width / 2)
+        // Показываем у точки нажатия, а не по центру пузыря.
+        val centerX = tapX ?: (location[0] + anchor.width / 2)
+        val fingerY = tapY ?: location[1]
+        val x = (centerX - width / 2)
             .coerceIn(margin, metrics.widthPixels - width - margin)
-        var y = location[1] - height - margin
-        if (y < margin) y = location[1] + anchor.height + margin
+        var y = fingerY - height - margin
+        if (y < margin) y = fingerY + margin
         popup.showAtLocation(anchor.rootView, Gravity.TOP or Gravity.START, x, y)
     }
 
@@ -98,6 +101,12 @@ class MessageActionsPopup(
             textSize = 22f
             includeFontPadding = false
             gravity = Gravity.CENTER
+            setTextColor(
+                if ((context.resources.configuration.uiMode and
+                        android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+                    android.content.res.Configuration.UI_MODE_NIGHT_YES
+                ) Color.WHITE else Color.BLACK
+            )
             layoutParams = LinearLayout.LayoutParams(size, size)
             setOnClickListener {
                 ReactionHistory.record(context, emoji)

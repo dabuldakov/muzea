@@ -282,6 +282,10 @@ class MessageAdapter(
             bindPower(binding.tvPower, message)
         }
 
+        init {
+            trackTouch(binding.root)
+        }
+
         private var player: ExoPlayer? = null
 
         private fun bindMedia(message: Message) {
@@ -364,6 +368,10 @@ class MessageAdapter(
             bindStatus(message, status, onStatusClick)
         }
 
+        init {
+            trackTouch(binding.root)
+        }
+
         private fun bindStatus(
             message: Message,
             status: MessageDeliveryStatus?,
@@ -410,6 +418,10 @@ class MessageAdapter(
             val openDetails = View.OnClickListener { onStatusClick(message) }
             binding.ivStatus.setOnClickListener(openDetails)
             binding.tvTime.setOnClickListener(openDetails)
+        }
+
+        init {
+            trackTouch(binding.root)
         }
 
         private var player: ExoPlayer? = null
@@ -465,6 +477,23 @@ class MessageAdapter(
     companion object {
         private const val TYPE_INCOMING = 0
         private const val TYPE_OUTGOING = 1
+
+        /** Последняя точка касания: по ней ставим плавающую модалку. */
+        @Volatile
+        var lastTouchX: Int = 0
+
+        @Volatile
+        var lastTouchY: Int = 0
+
+        fun trackTouch(view: android.view.View) {
+            view.setOnTouchListener { _, event ->
+                if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
+                    lastTouchX = event.rawX.toInt()
+                    lastTouchY = event.rawY.toInt()
+                }
+                false
+            }
+        }
 
         private fun formatTime(iso: String?): String {
             return ChatTimeFormatter.format(iso)
