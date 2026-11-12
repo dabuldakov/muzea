@@ -96,7 +96,13 @@ class ChatConversationFragment : Fragment(),
     private var pendingHighlightUuid: String? = null
     private var highlightAttempts = 0
     private var actionsPopup: MessageActionsPopup? = null
-    private var actionsOverlay: View? = null
+    private var actionsBackdrop: android.widget.PopupWindow? = null
+    /** Пока модалка открыта, «назад» закрывает её, а не весь чат. */
+    private val actionsBackCallback = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() {
+            actionsPopup?.dismiss()
+        }
+    }
     /** Точка последнего касания списка — к ней ставим модалку. */
     private var lastTapX = 0
     private var lastTapY = 0
@@ -265,6 +271,9 @@ class ChatConversationFragment : Fragment(),
             navigator.back()
         }
 
+        requireActivity().onBackPressedDispatcher.addCallback(
+            viewLifecycleOwner, actionsBackCallback
+        )
         setupRecyclerView()
         setupScrollButton()
         setupInput()
@@ -430,13 +439,14 @@ class ChatConversationFragment : Fragment(),
                 showStatus = showStatus,
                 onAction = { actionId -> onMessageAction(message.messageUuid, actionId) },
                 onReaction = { emoji -> viewModel.toggleReaction(message, emoji) },
-                onDismissed = { removeActionsOverlay() }
+                onDismissed = { dismissActionsBackdrop() }
             )
             actionsPopup = popup
-            // Прозрачная накладка ловит тапы мимо карточки: они закрывают
+            // Прозрачное окно ловит тапы мимо карточки: они закрывают
             // модалку и не доходят до сообщения, иначе она тут же
-            // открывается заново.
-            addActionsOverlay()
+            // открывается заново. Отдельное окно, а не View в разметке:
+            // добавление/удаление View во время раскладки роняло приложение.
+            showActionsBackdrop()
             popup.show(
                 anchor,
                 tapX = lastTapX.takeIf { v -> v > 0 }
@@ -458,30 +468,37 @@ class ChatConversationFragment : Fragment(),
     /** Для тестов: видна ли сейчас плавающая модалка действий. */
     internal fun isActionsPopupShowing(): Boolean = actionsPopup?.isShowing() == true
 
-    private fun addActionsOverlay() {
-        removeActionsOverlay()
-        val overlay = View(requireContext()).apply {
+    /** Прозрачное окно под карточкой: тап по нему закрывает модалку. */
+    private fun showActionsBackdrop() {
+        dismissActionsBackdrop()
+        val view = View(requireContext()).apply {
             isClickable = true
             setBackgroundColor(Color.TRANSPARENT)
             setOnClickListener { actionsPopup?.dismiss() }
         }
-        val container = requireActivity().findViewById<ViewGroup>(android.R.id.content)
-            ?: return
-        container.addView(
-            overlay,
-            ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
+        actionsBackCallback.isEnabled = true
+        val backdrop = android.widget.PopupWindow(
+            view,
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            false
+        ).apply {
+            isOutsideTouchable = false
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            showAtLocation(
+                binding.root,
+                android.view.Gravity.TOP or android.view.Gravity.START,
+                0,
+                0
             )
-        )
-        actionsOverlay = overlay
+        }
+        actionsBackdrop = backdrop
     }
 
-    private fun removeActionsOverlay() {
-        actionsOverlay?.let { view ->
-            (view.parent as? ViewGroup)?.removeView(view)
-        }
-        actionsOverlay = null
+    private fun dismissActionsBackdrop() {
+        actionsBackdrop?.dismiss()
+        actionsBackdrop = null
+        actionsBackCallback.isEnabled = false
     }
 
     private fun opaqueEmojiTextColor(): Int =
@@ -2100,7 +2117,7 @@ class ChatConversationFragment : Fragment(),
 
     override fun onDestroyView() {
         actionsPopup?.dismiss()
-        removeActionsOverlay()
+        dismissActionsBackdrop()
         audioPlayer?.release()
         audioPlayer = null
         playingAudioUuid = null
