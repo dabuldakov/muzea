@@ -94,6 +94,7 @@ class ChatConversationFragment : Fragment(),
     private var lastMessages: List<Message>? = null
     private var pendingHighlightUuid: String? = null
     private var highlightAttempts = 0
+    private var actionsPopup: MessageActionsPopup? = null
     private var lastPending: List<PendingAttachment> = emptyList()
     private var lastReplyUuid: String? = null
     private var lastEditingUuid: String? = null
@@ -397,12 +398,33 @@ class ChatConversationFragment : Fragment(),
         val showStatus = isMine && message.messageId != null && isGroupChat()
         if (actions.isEmpty() && !showStatus) return
 
-        MessageActionsBottomSheet.newInstance(
-            messageUuid = message.messageUuid,
-            actions = actions,
-            rows = if (showStatus) buildStatusRows(message) else emptyList(),
-            showStatus = showStatus
-        ).show(childFragmentManager, "message_actions")
+        val position = adapter.currentList.indexOfFirst { it.messageUuid == message.messageUuid }
+        val holder = if (position >= 0) {
+            binding.recyclerViewMessages.findViewHolderForAdapterPosition(position)
+        } else {
+            null
+        }
+        val anchor = holder?.itemView?.findViewById<android.view.View>(R.id.tvMessage)
+            ?.takeIf { it.visibility == android.view.View.VISIBLE }
+            ?: holder?.itemView
+        if (anchor != null) {
+            actionsPopup?.dismiss()
+            actionsPopup = MessageActionsPopup(
+                context = requireContext(),
+                messageUuid = message.messageUuid,
+                actions = actions,
+                onAction = { actionId -> onMessageAction(message.messageUuid, actionId) },
+                onReaction = { emoji -> viewModel.toggleReaction(message, emoji) }
+            ).also { it.show(anchor) }
+        } else {
+            // Строка ещё не разложена — показываем старую шторку.
+            MessageActionsBottomSheet.newInstance(
+                messageUuid = message.messageUuid,
+                actions = actions,
+                rows = if (showStatus) buildStatusRows(message) else emptyList(),
+                showStatus = showStatus
+            ).show(childFragmentManager, "message_actions")
+        }
     }
 
     private fun opaqueEmojiTextColor(): Int =
@@ -696,6 +718,7 @@ class ChatConversationFragment : Fragment(),
                     if (dy < 0 && !recyclerView.canScrollVertically(-1)) {
                         requestOlderMessages()
                     }
+                    actionsPopup?.dismiss()
                     updateScrollButton()
                 }
             })
@@ -1871,6 +1894,7 @@ class ChatConversationFragment : Fragment(),
     }
 
     override fun onPause() {
+        actionsPopup?.dismiss()
         if (activeRecorderMode != null) finishRecording(cancel = true)
         // Черновик сохраняем только для обычного ввода: текст редактирования
         // не должен затирать неотправленное сообщение.
