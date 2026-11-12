@@ -454,7 +454,7 @@ class ChatConversationFragmentTest {
         shadowOf(Looper.getMainLooper()).idle()
 
         val started = shadowOf(fragment.requireActivity()).nextStartedActivity
-        assertTrue(started.component?.className!!.endsWith("AttachmentViewerActivity"))
+        assertTrue(started.component?.className!!.endsWith("ImageGalleryActivity"))
     }
 
     private fun touch(action: Int, y: Float = 1000f): android.view.MotionEvent =

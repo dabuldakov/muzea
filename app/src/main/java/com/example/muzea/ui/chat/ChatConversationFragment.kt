@@ -161,6 +161,14 @@ class ChatConversationFragment : Fragment(),
         uri?.let { viewModel.addAttachments(listOf(it)) }
     }
 
+    private val imageGalleryLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode != android.app.Activity.RESULT_OK) return@registerForActivityResult
+        val action = ImageGalleryActivity.actionOf(result.data) ?: return@registerForActivityResult
+        handleImageViewerResult(action.first, action.second)
+    }
+
     private val pickAudio = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { viewModel.addAttachments(listOf(it)) }
     }
@@ -1061,10 +1069,40 @@ class ChatConversationFragment : Fragment(),
     private fun openAttachment(message: Message, attachment: MessageAttachment) {
         when (attachment.type?.uppercase()) {
             "AUDIO" -> toggleAudio(message, attachment)
-            "IMAGE", "VIDEO" -> AttachmentViewerActivity.start(
-                requireContext(), attachment
-            )
+            "IMAGE" -> openImageGallery(message, attachment)
+            "VIDEO" -> AttachmentViewerActivity.start(requireContext(), attachment)
             else -> downloadAndOpen(attachment)
+        }
+    }
+
+    /** Галерея картинок чата: открываем на выбранной, листаем свайпами. */
+    private fun openImageGallery(message: Message, attachment: MessageAttachment) {
+        val images = GalleryItems.from(viewModel.uiState.value.messages) { it ->
+            resolveAttachmentUrl(it)
+        }
+        val startIndex = GalleryItems.startIndex(
+            images, message.messageUuid, attachment.attachmentUuid
+        )
+        if (images.isEmpty()) {
+            AttachmentViewerActivity.start(requireContext(), attachment)
+            return
+        }
+        imageGalleryLauncher.launch(
+            ImageGalleryActivity.intent(requireContext(), images, startIndex)
+        )
+    }
+
+    /** Ответ/пересылка из просмотрщика картинок. */
+    private fun handleImageViewerResult(action: String, messageUuid: String) {
+        val message = viewModel.uiState.value.messages
+            .firstOrNull { it.messageUuid == messageUuid } ?: return
+        when (action) {
+            ImageGalleryActivity.ACTION_REPLY -> viewModel.setReplyTo(message)
+            ImageGalleryActivity.ACTION_FORWARD -> {
+                pendingForwardMessages = listOf(message)
+                ForwardChatPickerBottomSheet.newInstance(chatUuid)
+                    .show(childFragmentManager, "forward_picker")
+            }
         }
     }
 

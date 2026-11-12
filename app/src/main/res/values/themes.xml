@@ -27,6 +27,12 @@
         <item name="cornerSize">20dp</item>
     </style>
 
+    <!-- Просмотр картинок открывается собственной анимацией из центра,
+         поэтому системный переход окна отключаем. -->
+    <style name="Theme.Muzea.Gallery" parent="Theme.Muzea">
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
     <!-- Прозрачная тема для приёмника «Поделиться»: активность сразу
          запускает экран чатов и закрывается, мелькание пустого окна не нужно. -->
     <style name="Theme.Muzea.Transparent" parent="Theme.Muzea">

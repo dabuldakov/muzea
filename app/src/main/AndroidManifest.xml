@@ -102,6 +102,11 @@
             android:name=".ui.chat.AttachmentViewerActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".ui.chat.ImageGalleryActivity"
+            android:theme="@style/Theme.Muzea.Gallery"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
