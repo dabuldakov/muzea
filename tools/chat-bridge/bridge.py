@@ -408,13 +408,31 @@ def poll(chat_uuid: str, bot: dict) -> None:
     forward_continuations(chat_uuid)
 
 
+def connect_with_retry() -> tuple[str, dict]:
+    """Старт не должен падать из-за временного сбоя DNS/сети.
+
+    Раньше единичный URLError при запуске убивал процесс, и мост «замолкал»
+    до перезапуска systemd.
+    """
+    delay = 2.0
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            return resolve_chat(), me()
+        except Exception as error:  # noqa: BLE001
+            print(f"startup: {error} (попытка {attempt}), повтор через {delay:.0f} с",
+                  file=sys.stderr)
+            time.sleep(delay)
+            delay = min(delay * 2, 60.0)
+
+
 def main() -> None:
     # Старый state без поля: начинаем с текущего момента, чтобы не
     # вывалить в чат всю прошлую переписку сессии.
     STATE.setdefault("lastReplyTs", int(time.time() * 1000))
     save_state()
-    chat_uuid = resolve_chat()
-    bot = me()
+    chat_uuid, bot = connect_with_retry()
     print(f"Сессия OpenCode: {SESSION}")
     print(f"Опрос каждые {int(POLL_SECONDS * 1000)} мс. Ctrl+C — остановить.")
     while True:
