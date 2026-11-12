@@ -38,7 +38,9 @@ class MessageActionsPopup(
     private val density = context.resources.displayMetrics.density
     private val width = ActionsPopupWidth.calculate(
         // «Реакция» — это верхняя полоса, в ряду действий её нет.
-        actionsCount = actions.count { it.id != MessageActionsBottomSheet.ACTION_REACT },
+        actionsCount = ActionsPopupWidth.visibleActionsCount(
+            actions, MessageActionsBottomSheet.ACTION_REACT
+        ),
         iconSize = (ICON_DP * density).toInt(),
         padding = (8 * density).toInt(),
         screenWidth = context.resources.displayMetrics.widthPixels,
@@ -73,7 +75,6 @@ class MessageActionsPopup(
     private companion object {
         const val ICON_DP = 38
         const val STATUS_ROW_DP = 32
-        const val STATUS_VISIBLE_ROWS = 4.5f
         const val RESIZE_DURATION_MS = 160L
     }
 
@@ -291,11 +292,9 @@ class MessageActionsPopup(
         scroll.setOnClickListener { setStatusExpanded(false) }
         rows.setOnClickListener { setStatusExpanded(false) }
         // Четыре с половиной строки: половина пятой подсказывает прокрутку.
-        if (statusRows.size > STATUS_VISIBLE_ROWS.toInt()) {
-            val row = (STATUS_ROW_DP * density).toInt()
-            scroll.layoutParams = scroll.layoutParams.apply {
-                height = (row * STATUS_VISIBLE_ROWS).toInt()
-            }
+        val row = (STATUS_ROW_DP * density).toInt()
+        StatusListSize.limitHeightPx(statusRows.size, row)?.let { limit ->
+            scroll.layoutParams = scroll.layoutParams.apply { height = limit }
         }
     }
 
