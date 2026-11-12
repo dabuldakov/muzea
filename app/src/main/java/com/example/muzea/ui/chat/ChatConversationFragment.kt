@@ -86,6 +86,8 @@ class ChatConversationFragment : Fragment(),
     private var chatUuid: String = ""
     private var lastNewestUuid: String? = null
     private var unreadCount = 0L
+    /** Позиция первого непрочитанного: кнопка ведёт туда, пока не нажали. */
+    private var unreadAnchorPosition: Int? = null
     private var initialScrollDone = false
     private var pendingScrollPosition: Int? = null
     private var lastStatuses: Map<String, MessageDeliveryStatus> = emptyMap()
@@ -250,6 +252,7 @@ class ChatConversationFragment : Fragment(),
         }
 
         setupRecyclerView()
+        setupScrollButton()
         setupInput()
         setupAttachments()
         setupReplyBanner()
@@ -681,6 +684,7 @@ class ChatConversationFragment : Fragment(),
                     if (dy < 0 && !recyclerView.canScrollVertically(-1)) {
                         requestOlderMessages()
                     }
+                    updateScrollButton()
                 }
             })
         }
@@ -720,6 +724,31 @@ class ChatConversationFragment : Fragment(),
 
     private fun isAtBottom(): Boolean =
         !binding.recyclerViewMessages.canScrollVertically(1)
+
+    /** Кнопка прокрутки: видна, только когда список не в самом низу. */
+    private fun updateScrollButton() {
+        val hasMessages = adapter.itemCount > 0
+        val visible = hasMessages && !isAtBottom()
+        binding.btnScrollBottom.visibility = if (visible) View.VISIBLE else View.GONE
+        binding.btnScrollBottom.contentDescription = getString(
+            if (unreadAnchorPosition != null) R.string.scroll_to_unread
+            else R.string.scroll_to_latest
+        )
+    }
+
+    private fun setupScrollButton() {
+        binding.btnScrollBottom.setOnClickListener {
+            val last = adapter.itemCount - 1
+            if (last < 0) return@setOnClickListener
+            val target = (unreadAnchorPosition ?: last).coerceIn(0, last)
+            val layoutManager = binding.recyclerViewMessages.layoutManager as? LinearLayoutManager
+            layoutManager?.scrollToPositionWithOffset(target, 0)
+                ?: binding.recyclerViewMessages.scrollToPosition(target)
+            // Первый тап ведёт к непрочитанному, второй — уже в самый низ.
+            unreadAnchorPosition = null
+            updateScrollButton()
+        }
+    }
 
     private fun setupAttachments() {
         binding.btnAdd.setOnClickListener { showAttachmentPicker() }
@@ -1691,6 +1720,7 @@ class ChatConversationFragment : Fragment(),
                         messages.size - 1
                     }
                     pendingScrollPosition = target
+                    if (unreadCount > 0) unreadAnchorPosition = target
                 } else if (messages.isNotEmpty() && messages.last().messageUuid != lastNewestUuid) {
                     // Реагируем только на действительно новое сообщение внизу.
                     // Догрузка истории вверх добавляет сообщения в начало и не
@@ -1701,6 +1731,7 @@ class ChatConversationFragment : Fragment(),
                     }
                 }
                 if (messages.isNotEmpty()) lastNewestUuid = messages.last().messageUuid
+                updateScrollButton()
 
                 val targetUuid = pendingHighlightUuid
                 if (targetUuid != null) {
