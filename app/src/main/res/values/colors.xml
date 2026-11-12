@@ -26,4 +26,6 @@
 
     <!-- Фон под гифками: в светлой теме белый, в тёмной — чёрный (values-night). -->
     <color name="gif_media_background">#FFFFFFFF</color>
+    <color name="pink_text_secondary">#FF5A5145</color>
+    <color name="violet_text_secondary">#FFB9AECF</color>
 </resources>

@@ -120,6 +120,27 @@ class MainActivityTest {
     }
 
     @Test
+    fun `main activity inflates with every color theme`() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        try {
+            listOf(
+                com.example.muzea.utils.ThemeManager.VIOLET,
+                com.example.muzea.utils.ThemeManager.PINK,
+                com.example.muzea.utils.ThemeManager.STANDARD
+            ).forEach { theme ->
+                com.example.muzea.utils.ThemeManager.set(context, theme)
+                val activity = launch()
+                org.junit.Assert.assertNotNull(activity)
+                activity.finish()
+            }
+        } finally {
+            com.example.muzea.utils.ThemeManager.set(
+                context, com.example.muzea.utils.ThemeManager.STANDARD
+            )
+        }
+    }
+
+    @Test
     fun `opens on the news tab`() {
         val activity = launch()
         activity.supportFragmentManager.executePendingTransactions()

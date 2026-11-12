@@ -21,15 +21,28 @@
     <style name="Theme.Muzea.Standard" parent="Theme.Muzea" />
 
     <style name="Theme.Muzea.Violet" parent="Theme.Muzea">
-        <item name="colorPrimary">#FF7C3AED</item>
-        <item name="colorPrimaryVariant">#FF6D28D9</item>
-        <item name="colorSecondary">#FFA78BFA</item>
+        <item name="colorPrimary">#FF8B2CF5</item>
+        <item name="colorPrimaryVariant">#FF6D1FD6</item>
+        <item name="colorSecondary">#FFB388FF</item>
+        <item name="android:colorBackground">#FF1B0F2B</item>
+        <item name="colorSurface">#FF2A2A2E</item>
+        <item name="colorOnSurface">@color/white</item>
+        <item name="android:textColorPrimary">@color/white</item>
+        <item name="android:textColorSecondary">@color/violet_text_secondary</item>
+        <item name="android:statusBarColor">#FF1B0F2B</item>
     </style>
 
     <style name="Theme.Muzea.Pink" parent="Theme.Muzea">
-        <item name="colorPrimary">#FFEC4899</item>
-        <item name="colorPrimaryVariant">#FFDB2777</item>
-        <item name="colorSecondary">#FFF9A8D4</item>
+        <item name="colorPrimary">#FFF5187F</item>
+        <item name="colorPrimaryVariant">#FFD40F6B</item>
+        <item name="colorSecondary">#FFFF6FB0</item>
+        <item name="android:colorBackground">#FFF6E7C6</item>
+        <item name="colorSurface">#FFFFF3D6</item>
+        <item name="colorOnSurface">#FF151515</item>
+        <item name="android:textColorPrimary">#FF151515</item>
+        <item name="android:textColorSecondary">@color/pink_text_secondary</item>
+        <item name="android:statusBarColor">#FFF5187F</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 
     <style name="ThemeOverlay.Muzea.Dialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
