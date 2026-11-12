@@ -20,14 +20,16 @@ import kotlin.random.Random
 class DamagedBubbleDrawable(
     private val outgoing: Boolean,
     damage: Int,
-    seed: Long,
+    seedValue: Long,
     private val incomingColor: Int,
     private val outgoingColor: Int,
-    private val density: Float
+    private val density: Float,
+    private val textures: List<android.graphics.Bitmap> = emptyList()
 ) : Drawable() {
 
     private val level = damage.coerceIn(0, 100) / 100f
-    private val random = Random(seed)
+    private val seed = seedValue
+    private val random = Random(seedValue)
 
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -104,6 +106,39 @@ class DamagedBubbleDrawable(
         val shards = (dmg * 3).toInt().coerceAtMost(3)
         repeat(shards) { drawShard(canvas, rect, dmg, base) }
     }
+
+    /**
+     * Слои трещин: по одному на каждые 20 % урона. Выбор текстуры и её
+     * положение детерминированы uuid — при прокрутке рисунок не меняется.
+     */
+    private fun drawTextureLayers(canvas: Canvas, r: RectF, dmg: Float) {
+        val layers = 1 + (damageValue() / 30).coerceAtMost(4)
+        val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
+        repeat(layers) { index ->
+            val rnd = Random(seedValue() xor (index * 0x9E3779B9L))
+            val pool = if (dmg < 0.35f && textures.size >= 3) {
+                listOf(textures[0], textures[2])
+            } else {
+                textures
+            }
+            val bmp = pool[rnd.nextInt(pool.size)]
+            val matrix = android.graphics.Matrix()
+            val base = maxOf(r.width(), r.height()) / bmp.width
+            val scale = base * (0.55f + rnd.nextFloat() * 0.3f)
+            matrix.postScale(scale, scale)
+            if (rnd.nextBoolean()) matrix.postScale(-scale, scale)
+            matrix.postRotate(rnd.nextFloat() * 360f)
+            matrix.postTranslate(
+                r.left + r.width() * (rnd.nextFloat() * 0.6f - 0.05f) - bmp.width * scale / 2f,
+                r.top + r.height() * (rnd.nextFloat() * 0.6f - 0.05f) - bmp.height * scale / 2f
+            )
+            paint.alpha = (110 + 90 * dmg).toInt().coerceIn(0, 255)
+            canvas.drawBitmap(bmp, matrix, paint)
+        }
+    }
+
+    private fun damageValue(): Int = (level * 100).toInt()
+    private fun seedValue(): Long = seed
 
     /** Точка удара: короткие лучи с ветками — как трещины на стекле. */
     private fun drawImpactCracks(canvas: Canvas, r: RectF, dmg: Float) {

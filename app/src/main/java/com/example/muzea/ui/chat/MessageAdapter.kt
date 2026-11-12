@@ -87,10 +87,11 @@ private fun applyBubbleFx(
         DamagedBubbleDrawable(
             outgoing = !incoming,
             damage = message.damage,
-            seed = message.messageUuid.hashCode().toLong(),
+            seedValue = message.messageUuid.hashCode().toLong(),
             incomingColor = ContextCompat.getColor(context, com.example.muzea.R.color.bubble_incoming),
             outgoingColor = ContextCompat.getColor(context, com.example.muzea.R.color.purple_500),
-            density = context.resources.displayMetrics.density
+            density = context.resources.displayMetrics.density,
+            textures = CrackTextures.get(context)
         )
     } else {
         ContextCompat.getDrawable(
