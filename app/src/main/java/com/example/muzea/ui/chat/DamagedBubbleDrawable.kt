@@ -81,23 +81,24 @@ class DamagedBubbleDrawable(
         canvas.save()
         canvas.clipPath(roundedPath(rect))
 
-        // Стеклянные трещины: 1–4 точки удара с ветвлением.
-        val impacts = if (dmg < 0.25f) 1 else 2 + (dmg * 1.5f).toInt().coerceAtMost(2)
-        repeat(impacts) { drawImpactCracks(canvas, rect, dmg) }
-
-        // Длинные разломы через бабл на сильных уровнях.
-        if (dmg > 0.35f) {
-            val fractures = when { dmg > 0.85f -> 2; dmg > 0.55f -> 1; else -> 0 }
-            repeat(fractures) { drawFracture(canvas, rect, dmg) }
-        }
-
-        // Тлеющие угли вдоль трещин.
-        if (dmg > 0.3f) {
-            repeat(2 + (dmg * 9).toInt()) {
-                val x = rect.left + random.nextFloat() * rect.width()
-                val y = rect.top + random.nextFloat() * rect.height()
-                ember.alpha = (90 + 150 * dmg).toInt().coerceIn(0, 255)
-                canvas.drawCircle(x, y, (0.6f + random.nextFloat() * 1.1f) * density, ember)
+        if (textures.isNotEmpty()) {
+            // Готовые оверлеи из фото-примеров: цветные трещины.
+            drawTextureLayers(canvas, rect, dmg)
+        } else {
+            // Резервный вариант, если текстуры не загрузились (например, в тестах).
+            val impacts = if (dmg < 0.25f) 1 else 2 + (dmg * 1.5f).toInt().coerceAtMost(2)
+            repeat(impacts) { drawImpactCracks(canvas, rect, dmg) }
+            if (dmg > 0.35f) {
+                val fractures = when { dmg > 0.85f -> 2; dmg > 0.55f -> 1; else -> 0 }
+                repeat(fractures) { drawFracture(canvas, rect, dmg) }
+            }
+            if (dmg > 0.3f) {
+                repeat(2 + (dmg * 9).toInt()) {
+                    val x = rect.left + random.nextFloat() * rect.width()
+                    val y = rect.top + random.nextFloat() * rect.height()
+                    ember.alpha = (90 + 150 * dmg).toInt().coerceIn(0, 255)
+                    canvas.drawCircle(x, y, (0.6f + random.nextFloat() * 1.1f) * density, ember)
+                }
             }
         }
         canvas.restore()
@@ -114,6 +115,7 @@ class DamagedBubbleDrawable(
     private fun drawTextureLayers(canvas: Canvas, r: RectF, dmg: Float) {
         val layers = 1 + (damageValue() / 30).coerceAtMost(4)
         val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
+        paint.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.MULTIPLY)
         repeat(layers) { index ->
             val rnd = Random(seedValue() xor (index * 0x9E3779B9L))
             val pool = if (dmg < 0.35f && textures.size >= 3) {
@@ -123,16 +125,17 @@ class DamagedBubbleDrawable(
             }
             val bmp = pool[rnd.nextInt(pool.size)]
             val matrix = android.graphics.Matrix()
-            val base = maxOf(r.width(), r.height()) / bmp.width
-            val scale = base * (0.55f + rnd.nextFloat() * 0.3f)
-            matrix.postScale(scale, scale)
-            if (rnd.nextBoolean()) matrix.postScale(-scale, scale)
-            matrix.postRotate(rnd.nextFloat() * 360f)
-            matrix.postTranslate(
-                r.left + r.width() * (rnd.nextFloat() * 0.6f - 0.05f) - bmp.width * scale / 2f,
-                r.top + r.height() * (rnd.nextFloat() * 0.6f - 0.05f) - bmp.height * scale / 2f
+            // Заполняем бабл с запасом и поворачиваем вокруг центра — так
+            // текстура не уезжает за пределы и не оставляет пустых углов.
+            val dst = RectF(r)
+            dst.inset(-r.width() * 0.18f, -r.height() * 0.18f)
+            matrix.setRectToRect(
+                RectF(0f, 0f, bmp.width.toFloat(), bmp.height.toFloat()),
+                dst,
+                android.graphics.Matrix.ScaleToFit.FILL
             )
-            paint.alpha = (110 + 90 * dmg).toInt().coerceIn(0, 255)
+            matrix.postRotate(rnd.nextFloat() * 360f, r.centerX(), r.centerY())
+            paint.alpha = (170 + 70 * dmg).toInt().coerceIn(0, 255)
             canvas.drawBitmap(bmp, matrix, paint)
         }
     }
