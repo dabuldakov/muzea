@@ -74,8 +74,13 @@ class DamagedBubbleDrawable(
         canvas.drawPath(roundedPath(rect), fill)
         fill.shader = null
 
+        // Всё, что внутри бабла, обрезаем по скруглённому контуру:
+        // иначе трещины у углов выглядят как линии поверх фона.
+        canvas.save()
+        canvas.clipPath(roundedPath(rect))
+
         // Стеклянные трещины: 1–4 точки удара с ветвлением.
-        val impacts = 1 + (dmg * 2.4f).toInt().coerceAtMost(3)
+        val impacts = if (dmg < 0.25f) 1 else 2 + (dmg * 1.5f).toInt().coerceAtMost(2)
         repeat(impacts) { drawImpactCracks(canvas, rect, dmg) }
 
         // Длинные разломы через бабл на сильных уровнях.
@@ -83,10 +88,6 @@ class DamagedBubbleDrawable(
             val fractures = when { dmg > 0.85f -> 2; dmg > 0.55f -> 1; else -> 0 }
             repeat(fractures) { drawFracture(canvas, rect, dmg) }
         }
-
-        // Отломанные куски по кромке.
-        val shards = (dmg * 3).toInt().coerceAtMost(3)
-        repeat(shards) { drawShard(canvas, rect, dmg, base) }
 
         // Тлеющие угли вдоль трещин.
         if (dmg > 0.3f) {
@@ -97,16 +98,25 @@ class DamagedBubbleDrawable(
                 canvas.drawCircle(x, y, (0.6f + random.nextFloat() * 1.1f) * density, ember)
             }
         }
+        canvas.restore()
+
+        // Отломанные куски по кромке рисуем снаружи — их не обрезаем.
+        val shards = (dmg * 3).toInt().coerceAtMost(3)
+        repeat(shards) { drawShard(canvas, rect, dmg, base) }
     }
 
     /** Точка удара: короткие лучи с ветками — как трещины на стекле. */
     private fun drawImpactCracks(canvas: Canvas, r: RectF, dmg: Float) {
         val cx = r.left + r.width() * (0.2f + random.nextFloat() * 0.6f)
         val cy = r.top + r.height() * (0.2f + random.nextFloat() * 0.6f)
-        val rays = 3 + random.nextInt(3)
-        val reach = (9f + 26f * random.nextFloat()) * density * (0.7f + dmg)
-        crack.strokeWidth = (0.8f + 1.1f * dmg) * density
-        crack.alpha = (120 + 110 * dmg).toInt().coerceIn(0, 255)
+        val rays = 3 + (dmg * 3).toInt() + random.nextInt(2)
+        val maxReach = kotlin.math.min(r.width(), r.height()) * (0.28f + 0.22f * dmg)
+        val reach = kotlin.math.min(
+            (6f + 14f * random.nextFloat()) * density * (0.7f + dmg),
+            maxReach
+        )
+        crack.strokeWidth = (1f + 1.3f * dmg) * density
+        crack.alpha = (120 + 120 * dmg).toInt().coerceIn(0, 255)
         highlight.strokeWidth = (0.5f + 0.6f * dmg) * density
         highlight.alpha = (40 + 70 * dmg).toInt().coerceIn(0, 255)
 
@@ -132,6 +142,30 @@ class DamagedBubbleDrawable(
             canvas.translate(0.8f * density, 0.8f * density)
             canvas.drawPath(path, highlight)
             canvas.restore()
+
+            // Концентрические перемычки между лучами — как у настоящего стекла.
+            if (random.nextFloat() < 0.8f) {
+                val ringRadius = reach * (0.32f + random.nextFloat() * 0.25f)
+                path.reset()
+                var first = true
+                val points = 5
+                repeat(points) { i ->
+                    val a = (Math.PI * 2 / points) * i + random.nextFloat() * 0.2f
+                    val rx = cx + kotlin.math.cos(a).toFloat() * ringRadius
+                    val ry = cy + kotlin.math.sin(a).toFloat() * ringRadius
+                    val px = rx.coerceIn(r.left + 3f * density, r.right - 3f * density)
+                    val py = ry.coerceIn(r.top + 3f * density, r.bottom - 3f * density)
+                    if (first) { path.moveTo(px, py); first = false } else path.lineTo(px, py)
+                }
+                canvas.drawPath(path, crack)
+            }
+
+            // Скол в точке удара.
+            if (ray == 0) {
+                ember.color = Color.parseColor("#33000000")
+                canvas.drawCircle(cx, cy, 1.8f * density * (0.6f + dmg), ember)
+                ember.color = Color.parseColor("#FFFF7A18")
+            }
 
             // Ветка от середины луча.
             if (random.nextFloat() < 0.7f) {
