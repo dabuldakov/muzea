@@ -65,12 +65,16 @@ class MessageActionsPopup(
     private var anchorView: View? = null
     private var tapX: Int? = null
     private var tapY: Int? = null
+    private var popupX = 0
+    private var popupY = 0
+    private var popupHeight = 0
+    private var animator: android.animation.ValueAnimator? = null
 
     private companion object {
-        const val MAX_AVATARS = 5
         const val ICON_DP = 38
         const val STATUS_ROW_DP = 32
         const val STATUS_VISIBLE_ROWS = 4.5f
+        const val RESIZE_DURATION_MS = 160L
     }
 
     fun show(anchor: View, tapX: Int? = null, tapY: Int? = null) {
@@ -82,12 +86,17 @@ class MessageActionsPopup(
         renderStatus()
         val height = measureHeight()
         val position = positionFor(anchor, height)
+        popupX = position.x
+        popupY = position.y
+        popupHeight = height
         popup.showAtLocation(
             anchor.rootView, Gravity.TOP or Gravity.START, position.x, position.y
         )
     }
 
     fun dismiss() {
+        animator?.cancel()
+        animator = null
         if (popup.isShowing) popup.dismiss()
     }
 
@@ -119,15 +128,41 @@ class MessageActionsPopup(
     }
 
     /**
-     * Раскрытие меняет высоту карточки. Пересчитываем позицию, иначе
-     * у сообщения внизу экрана список уезжает за край.
+     * Раскрытие меняет высоту карточки. Если места сверху хватает — верх
+     * карточки плавно уезжает вверх одновременно с ростом высоты, чтобы
+     * не было скачка «сначала список, потом перенос».
      */
-    private fun relayout() {
+    private fun animateToContent() {
         val anchor = anchorView ?: return
         if (!popup.isShowing) return
-        val height = measureHeight()
-        val position = positionFor(anchor, height)
-        popup.update(position.x, position.y, width, height)
+        val targetHeight = measureHeight()
+        val target = positionFor(anchor, targetHeight)
+        val startX = popupX
+        val startY = popupY
+        val startHeight = popupHeight
+        animator?.cancel()
+        if (startY == target.y && startHeight == targetHeight) {
+            popup.update(target.x, target.y, width, targetHeight)
+            popupX = target.x
+            popupY = target.y
+            popupHeight = targetHeight
+            return
+        }
+        val animation = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = RESIZE_DURATION_MS
+            interpolator = android.view.animation.DecelerateInterpolator()
+            addUpdateListener { value ->
+                val fraction = value.animatedValue as Float
+                val y = (startY + (target.y - startY) * fraction).toInt()
+                val height = (startHeight + (targetHeight - startHeight) * fraction).toInt()
+                popup.update(target.x, y, width, height)
+                popupX = target.x
+                popupY = y
+                popupHeight = height
+            }
+        }
+        animator = animation
+        animation.start()
     }
 
     private fun renderReactions() {
@@ -154,7 +189,7 @@ class MessageActionsPopup(
             expanded = !expanded
             full.visibility = if (expanded) View.VISIBLE else View.GONE
             arrow.rotation = if (expanded) 90f else 0f
-            content.post { relayout() }
+            content.post { animateToContent() }
         }
     }
 
@@ -193,7 +228,6 @@ class MessageActionsPopup(
         val rows = content.findViewById<LinearLayout>(R.id.statusRows)
         readers.removeAllViews()
         rows.removeAllViews()
-        readers.visibility = View.VISIBLE
         scroll.visibility = View.GONE
         statusExpanded = false
 
@@ -203,25 +237,20 @@ class MessageActionsPopup(
             if (showStatus && readRows.isNotEmpty()) View.VISIBLE else View.GONE
         if (section.visibility != View.VISIBLE) return
 
-        // Свёрнутый вид — только аватарки прочитавших внахлёст.
-        val avatarSize = (32 * density).toInt()
-        val overlap = (-9 * density).toInt()
-        readRows.take(MAX_AVATARS).forEach { row ->
-            readers.addView(ImageView(context).apply {
-                layoutParams = LinearLayout.LayoutParams(avatarSize, avatarSize).apply {
-                    marginEnd = overlap
-                }
-                com.example.muzea.utils.AvatarLoader.load(this, row.avatarUrl)
-            })
-        }
-        if (readRows.size > MAX_AVATARS) {
-            readers.addView(TextView(context).apply {
-                text = "+${readRows.size - MAX_AVATARS}"
-                textSize = 12f
-                setPadding((6 * density).toInt(), 0, 0, 0)
-            })
-        }
-        readers.setOnClickListener { setStatusExpanded(true) }
+        // Свёрнутый вид — текстовый заголовок, а не аватарки: в ряд они
+        // сливаются в кашу, список показываем по тапу.
+        readers.addView(TextView(context).apply {
+            text = context.getString(R.string.message_status_title)
+            textSize = 12f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(
+                com.google.android.material.color.MaterialColors.getColor(
+                    content, com.google.android.material.R.attr.colorPrimary
+                )
+            )
+            setPadding((6 * density).toInt(), (2 * density).toInt(), 0, 0)
+        })
+        readers.setOnClickListener { setStatusExpanded(!statusExpanded) }
 
         // Развёрнутый список: аватарка, имя, статус и время.
         statusRows.forEach { row ->
@@ -273,11 +302,9 @@ class MessageActionsPopup(
     private fun setStatusExpanded(expand: Boolean) {
         if (statusExpanded == expand) return
         statusExpanded = expand
-        val readers = content.findViewById<LinearLayout>(R.id.readersRow)
         val scroll = content.findViewById<ScrollView>(R.id.statusScroll)
-        readers.visibility = if (expand) View.GONE else View.VISIBLE
         scroll.visibility = if (expand) View.VISIBLE else View.GONE
-        content.post { relayout() }
+        animateToContent()
     }
 
     private fun renderActions() {
