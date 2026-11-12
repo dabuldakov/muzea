@@ -30,6 +30,8 @@
         <item name="android:textColorPrimary">@color/white</item>
         <item name="android:textColorSecondary">@color/violet_text_secondary</item>
         <item name="android:statusBarColor">#FF1B0F2B</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="fontFamily">sans-serif-condensed</item>
     </style>
 
     <style name="Theme.Muzea.Pink" parent="Theme.Muzea">
@@ -43,6 +45,8 @@
         <item name="android:textColorSecondary">@color/pink_text_secondary</item>
         <item name="android:statusBarColor">#FFF5187F</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="fontFamily">sans-serif-condensed</item>
     </style>
 
     <style name="ThemeOverlay.Muzea.Dialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">

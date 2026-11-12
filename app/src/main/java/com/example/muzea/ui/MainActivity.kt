@@ -67,6 +67,9 @@ class MainActivity : AppCompatActivity(), Navigator {
         // Нижний отступ не добавляем: BottomNavigationView сам учитывает
         // навигационную панель, иначе получится двойной зазор.
         SystemBars.apply(this, applyBottomInset = false)
+        com.example.muzea.ui.chat.ComicStyle.navBackground(this)?.let {
+            binding.bottomNavigation.background = it
+        }
 
         requestNotificationPermissionIfNeeded()
 

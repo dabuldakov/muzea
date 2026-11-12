@@ -60,6 +60,32 @@ object ComicStyle {
         )
     }
 
+    /** Карточка списка/экрана: острые углы, чёрный контур, без тени. */
+    fun styleCard(card: com.google.android.material.card.MaterialCardView, context: Context) {
+        val palette = palette(context) ?: return
+        val density = context.resources.displayMetrics.density
+        card.radius = 8f * density
+        card.strokeWidth = (3f * density).toInt()
+        card.strokeColor = Color.BLACK
+        card.cardElevation = 0f
+        card.setCardBackgroundColor(palette.surface)
+    }
+
+    fun navBackground(context: Context): Drawable? {
+        val palette = palette(context) ?: return null
+        val line = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            setColor(Color.BLACK)
+        }
+        val background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            setColor(palette.background)
+        }
+        return LayerDrawable(arrayOf(line, background)).apply {
+            setLayerInset(1, 0, dp(context, 3f), 0, 0)
+        }
+    }
+
     fun header(context: Context): Drawable? {
         val palette = palette(context) ?: return null
         return panel(palette.accent, context, bottomRadius = false)
