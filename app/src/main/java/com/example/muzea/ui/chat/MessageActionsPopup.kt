@@ -31,11 +31,18 @@ class MessageActionsPopup(
 ) {
 
     private val density = context.resources.displayMetrics.density
+    private val actionsWidth = ActionsPopupWidth.calculate(
+        actionsCount = actions.size,
+        iconSize = (38 * density).toInt(),
+        padding = (8 * density).toInt(),
+        screenWidth = context.resources.displayMetrics.widthPixels,
+        margin = (8 * density).toInt()
+    )
     private val content: View = LayoutInflater.from(context)
         .inflate(R.layout.popup_message_actions, null, false)
     private val popup = PopupWindow(
         content,
-        (300 * density).toInt(),
+        actionsWidth,
         android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
         false
     ).apply {
@@ -50,7 +57,7 @@ class MessageActionsPopup(
         renderReactions()
         renderActions()
         renderStatus()
-        val width = (300 * density).toInt()
+        val width = actionsWidth
         content.measure(
             View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
@@ -170,7 +177,7 @@ class MessageActionsPopup(
                         )
                     )
                     layoutParams = LinearLayout.LayoutParams(
-                        (44 * density).toInt(), (44 * density).toInt()
+                        (38 * density).toInt(), (38 * density).toInt()
                     )
                     setOnClickListener {
                         onAction(spec.id)

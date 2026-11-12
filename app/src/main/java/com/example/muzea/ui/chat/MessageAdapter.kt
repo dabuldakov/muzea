@@ -264,7 +264,6 @@ class MessageAdapter(
                 binding.ivLinkImage, binding.tvLinkTitle, binding.tvLinkDomain,
                 message, linkPreviews, scope
             )
-            binding.root.setOnClickListener { onClick(message) }
             binding.tvMessage.setOnClickListener { onClick(message) }
             binding.ivGif.setOnClickListener { onClick(message) }
             // linkPreview сам открывает ссылку — не перекрываем его обработчик.
@@ -357,7 +356,6 @@ class MessageAdapter(
                 binding.ivLinkImage, binding.tvLinkTitle, binding.tvLinkDomain,
                 message, linkPreviews, scope
             )
-            binding.root.setOnClickListener { onClick(message) }
             binding.tvMessage.setOnClickListener { onClick(message) }
             binding.ivGif.setOnClickListener { onClick(message) }
             // linkPreview сам открывает ссылку — не перекрываем его обработчик.
