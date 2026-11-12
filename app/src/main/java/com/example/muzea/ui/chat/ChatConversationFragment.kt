@@ -1753,10 +1753,13 @@ class ChatConversationFragment : Fragment(),
                         if (statusesChanged) notifyChangedStatuses()
                         if (anchorUuid == null && wasAtBottom) {
                             // Реакция/правка меняет высоту бабла. Если лента была
-                            // внизу, держим её внизу — иначе чат «скачет».
-                            layoutManager?.scrollToPosition(
-                                (adapter.itemCount - 1).coerceAtLeast(0)
-                            )
+                            // внизу, держим её внизу после раскладки — иначе чат
+                            // «скачет» на высоту нового чипа.
+                            binding.recyclerViewMessages.post {
+                                layoutManager?.scrollToPosition(
+                                    (adapter.itemCount - 1).coerceAtLeast(0)
+                                )
+                            }
                         }
                         if (anchorUuid != null) {
                             val position = adapter.currentList.indexOfFirst {

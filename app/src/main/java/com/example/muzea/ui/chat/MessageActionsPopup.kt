@@ -6,10 +6,12 @@ import android.graphics.drawable.ColorDrawable
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.GridLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.PopupWindow
+import android.widget.ScrollView
 import android.widget.TextView
 import com.example.muzea.R
 
@@ -53,6 +55,10 @@ class MessageActionsPopup(
 
     private var expanded = false
 
+    private companion object {
+        const val MAX_AVATARS = 5
+    }
+
     fun show(anchor: View, tapX: Int? = null, tapY: Int? = null) {
         renderReactions()
         renderActions()
@@ -90,17 +96,19 @@ class MessageActionsPopup(
     fun isShowing(): Boolean = popup.isShowing
 
     private fun renderReactions() {
-        val recent = content.findViewById<LinearLayout>(R.id.recentReactions)
+        val recentRow = content.findViewById<LinearLayout>(R.id.recentReactions)
         val full = content.findViewById<GridLayout>(R.id.fullReactions)
         val arrow = content.findViewById<ImageButton>(R.id.btnExpandReactions)
-        recent.removeAllViews()
+        recentRow.removeAllViews()
         full.removeAllViews()
         val size = (38 * density).toInt()
 
         ReactionHistory.recent(context).forEach { emoji ->
-            recent.addView(emojiView(emoji, size))
+            recentRow.addView(emojiView(emoji, size))
         }
-        ReactionHistory.FULL.forEach { emoji ->
+        val recent = ReactionHistory.recent(context)
+        val ordered = recent + ReactionHistory.FULL.filterNot { it in recent }
+        ordered.forEach { emoji ->
             full.addView(emojiView(emoji, size))
         }
         arrow.setOnClickListener {
@@ -133,30 +141,84 @@ class MessageActionsPopup(
 
     private fun renderStatus() {
         val section = content.findViewById<LinearLayout>(R.id.statusSection)
+        val readers = content.findViewById<LinearLayout>(R.id.readersRow)
+        val scroll = content.findViewById<ScrollView>(R.id.statusScroll)
         val rows = content.findViewById<LinearLayout>(R.id.statusRows)
         section.visibility = if (showStatus && statusRows.isNotEmpty()) View.VISIBLE else View.GONE
+        readers.removeAllViews()
         rows.removeAllViews()
+        scroll.visibility = View.GONE
+
+        val readRows = statusRows.filter { it.status == "READ" }
+        if (readRows.isEmpty()) {
+            readers.addView(TextView(context).apply {
+                text = context.getString(R.string.message_status_none_read)
+                textSize = 12f
+                setTextColor(
+                    com.google.android.material.color.MaterialColors.getColor(
+                        content, com.google.android.material.R.attr.colorOnSurface
+                    )
+                )
+            })
+            return
+        }
+
+        // Свёрнутый вид — только аватарки внахлёст, как было в старой шторке.
+        val avatarSize = (32 * density).toInt()
+        val overlap = (-9 * density).toInt()
+        readRows.take(MAX_AVATARS).forEach { row ->
+            val avatar = android.widget.ImageView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(avatarSize, avatarSize).apply {
+                    marginEnd = overlap
+                }
+                com.example.muzea.utils.AvatarLoader.load(this, row.avatarUrl)
+            }
+            readers.addView(avatar)
+        }
+        if (readRows.size > MAX_AVATARS) {
+            readers.addView(TextView(context).apply {
+                text = "+${readRows.size - MAX_AVATARS}"
+                textSize = 12f
+                setPadding((6 * density).toInt(), 0, 0, 0)
+            })
+        }
+        readers.setOnClickListener {
+            val expand = scroll.visibility != View.VISIBLE
+            scroll.visibility = if (expand) View.VISIBLE else View.GONE
+        }
+
+        // Развёрнутый список: аватарка, имя, статус и время.
         statusRows.forEach { row ->
             val label = when (row.status) {
                 "READ" -> R.string.message_status_read
                 "DELIVERED" -> R.string.message_status_delivered
                 else -> R.string.message_status_sent
             }
-            val time = row.at?.substringAfter('T')?.take(5).orEmpty()
-            val text = TextView(context).apply {
-                text = listOf(row.name, context.getString(label), time)
-                    .filter { it.isNotBlank() }
-                    .joinToString(" · ")
-                textSize = 13f
-                setTextColor(
-                    com.google.android.material.color.MaterialColors.getColor(
-                        content, com.google.android.material.R.attr.colorOnSurface
-                    )
-                )
+            val line = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
                 val pad = (6 * density).toInt()
                 setPadding(pad, pad / 2, pad, pad / 2)
             }
-            rows.addView(text)
+            line.addView(android.widget.ImageView(context).apply {
+                val size = (26 * density).toInt()
+                layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                    marginEnd = (8 * density).toInt()
+                }
+                com.example.muzea.utils.AvatarLoader.load(this, row.avatarUrl)
+            })
+            line.addView(TextView(context).apply {
+                text = row.name
+                textSize = 13f
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            })
+            line.addView(TextView(context).apply {
+                text = listOf(
+                    context.getString(label), StatusTime.format(row.at)
+                ).filter { it.isNotBlank() }.joinToString(" · ")
+                textSize = 12f
+            })
+            rows.addView(line)
         }
     }
 
