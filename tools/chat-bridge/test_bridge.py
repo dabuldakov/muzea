@@ -116,6 +116,15 @@ class ContinuationTest(unittest.TestCase):
                 bridge.assistant_replies(1000),
             )
 
+    def test_duplicate_reply_is_detected(self):
+        self.assertTrue(bridge.is_duplicate_reply(
+            "Поправил — beta4 во вложении. • Убрал контур.",
+            "Поправил — beta4 во вложении. - Убрал контур.",
+        ))
+        self.assertFalse(bridge.is_duplicate_reply(
+            "Совсем другой ответ", "Поправил — beta4 во вложении.",
+        ))
+
     def test_streaming_message_without_finish_is_skipped(self):
         payload = {"data": [self.reply(2000, "part", finish=None)]}
         with mock.patch.object(bridge, "opencode_api", return_value=payload):

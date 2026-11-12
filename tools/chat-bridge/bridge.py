@@ -33,6 +33,7 @@ import urllib.parse
 import base64
 import urllib.request
 import uuid
+import difflib
 from datetime import datetime, timezone
 
 
@@ -89,6 +90,7 @@ def load_state() -> dict:
 
 
 STATE = load_state()
+BOT_USERNAME = ""
 
 
 def save_state() -> None:
@@ -277,12 +279,50 @@ def ask_session(prompt: str, message_uuid: str) -> str:
         raise
 
 
+def _normalized(text: str) -> str:
+    return " ".join((text or "").split())
+
+
+def is_duplicate_reply(last_text: str, new_text: str) -> bool:
+    """Правда, если бот уже отправил этот же текст (с точностью до префикса).
+
+    Так отсекаются дубли, когда ответ продублирован вручную (например,
+    сообщение с файлом и следом финальный текст).
+    """
+    left = _normalized(last_text)
+    right = _normalized(new_text)
+    if not left or not right:
+        return False
+    if left == right:
+        return True
+    # Небольшие различия в маркерах («•» вместо «-») не должны плодить дубли.
+    return difflib.SequenceMatcher(None, left, right).ratio() >= 0.85
+
+
+def last_bot_message(chat_uuid: str) -> dict | None:
+    try:
+        response = api(f"/api/messages/{chat_uuid}?page=0&size=3")
+    except Exception as error:  # noqa: BLE001
+        print(f"dedup: {error}", file=sys.stderr)
+        return None
+    username = (BOT_USERNAME or "").lower()
+    for message in response.get("content") or []:
+        if (message.get("senderName") or "").lower() == username:
+            return message
+    return None
+
+
 def post_to_chat(chat_uuid: str, text: str) -> None:
+    full = REPLY_PREFIX + text
+    last = last_bot_message(chat_uuid)
+    if last is not None and is_duplicate_reply(last.get("text") or "", full):
+        print("↷ дубль ответа пропущен")
+        return
     api(
         f"/api/messages/{chat_uuid}",
         method="POST",
         body={
-            "text": REPLY_PREFIX + text,
+            "text": full,
             "messageType": "TEXT",
             "clientMessageId": str(uuid.uuid4()),
         },
@@ -433,6 +473,8 @@ def main() -> None:
     STATE.setdefault("lastReplyTs", int(time.time() * 1000))
     save_state()
     chat_uuid, bot = connect_with_retry()
+    global BOT_USERNAME
+    BOT_USERNAME = bot.get("username") or ""
     print(f"Сессия OpenCode: {SESSION}")
     print(f"Опрос каждые {int(POLL_SECONDS * 1000)} мс. Ctrl+C — остановить.")
     while True:
