@@ -194,7 +194,7 @@ class ChatConversationFragment : Fragment(),
         private const val HIGHLIGHT_ATTEMPTS = 5
         private const val MENU_DELETE = 1
         private const val MENU_FORWARD = 2
-        private const val HIGHLIGHT_COLOR = 0x55FFEB3B
+        private const val HIGHLIGHT_COLOR = 0x557C3AED
 
         private val DOCUMENT_MIME_TYPES = arrayOf(
             "application/pdf", "text/plain", "text/csv", "application/msword",
@@ -1800,6 +1800,13 @@ class ChatConversationFragment : Fragment(),
         }
     }
 
+    private fun highlightDrawable(): android.graphics.drawable.Drawable =
+        android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+            cornerRadius = dp(16).toFloat()
+            setColor(HIGHLIGHT_COLOR)
+        }
+
     private fun attemptHighlight(
         recyclerView: androidx.recyclerview.widget.RecyclerView,
         position: Int,
@@ -1815,13 +1822,18 @@ class ChatConversationFragment : Fragment(),
                 }
                 return@postDelayed
             }
-            val view = holder.itemView
-            view.tag = uuid
-            view.foreground = android.graphics.drawable.ColorDrawable(HIGHLIGHT_COLOR)
-            view.postDelayed({
-                if (view.tag == uuid) {
-                    view.foreground = null
-                    view.tag = null
+            val row = holder.itemView
+            // Вспышка — по самому пузырю, а не по всей строке: у пузыря
+            // скругления, и цвет остаётся в его границах.
+            val bubble = row.findViewById<android.view.View>(R.id.tvMessage)
+                ?.takeIf { it.visibility == android.view.View.VISIBLE }
+                ?: row
+            bubble.tag = uuid
+            bubble.foreground = highlightDrawable()
+            bubble.postDelayed({
+                if (bubble.tag == uuid) {
+                    bubble.foreground = null
+                    bubble.tag = null
                 }
             }, HIGHLIGHT_MS)
         }, if (attempt == 0) 250L else 120L)
