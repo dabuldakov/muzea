@@ -55,35 +55,37 @@ class DamagedBubbleDrawable(
 
     override fun draw(canvas: Canvas) {
         val b = bounds
-        val shadow = 4f * density
         val dmg = level
         val base = if (outgoing) outgoingColor else incomingColor
 
-        // Тень — как у обычного бабла.
-        rect.set(b.left + shadow, b.top + shadow, b.right.toFloat(), b.bottom.toFloat())
-        fill.color = Color.BLACK
+        // Бабл как в релизе: та же заливка и скругления, без контура и тени.
+        rect.set(b.left.toFloat(), b.top.toFloat(), b.right.toFloat(), b.bottom.toFloat())
+        if (outgoing) {
+            fill.shader = android.graphics.LinearGradient(
+                rect.left, rect.top, rect.right, rect.top,
+                blend(outgoingColor, SOOT, 0.18f * dmg),
+                blend(outgoingColor, SOOT, 0.30f * dmg),
+                android.graphics.Shader.TileMode.CLAMP
+            )
+        } else {
+            fill.shader = null
+            fill.color = blend(incomingColor, SOOT, 0.24f * dmg)
+        }
         canvas.drawPath(roundedPath(rect), fill)
-
-        // Заливка: слегка коптится, но текст должен читаться.
-        rect.set(b.left.toFloat(), b.top.toFloat(), b.right - shadow, b.bottom - shadow)
-        fill.color = blend(base, SOOT, 0.32f * dmg)
-        canvas.drawPath(roundedPath(rect), fill)
-
-        stroke.color = Color.BLACK
-        stroke.strokeWidth = 3f * density
-        canvas.drawPath(roundedPath(rect), stroke)
+        fill.shader = null
 
         // Стеклянные трещины: 1–4 точки удара с ветвлением.
-        val impacts = 1 + (dmg * 3.5f).toInt()
+        val impacts = 1 + (dmg * 2.4f).toInt().coerceAtMost(3)
         repeat(impacts) { drawImpactCracks(canvas, rect, dmg) }
 
         // Длинные разломы через бабл на сильных уровнях.
         if (dmg > 0.35f) {
-            repeat(1 + (dmg * 2).toInt()) { drawFracture(canvas, rect, dmg) }
+            val fractures = when { dmg > 0.85f -> 2; dmg > 0.55f -> 1; else -> 0 }
+            repeat(fractures) { drawFracture(canvas, rect, dmg) }
         }
 
         // Отломанные куски по кромке.
-        val shards = (dmg * 3).toInt().coerceAtMost(4)
+        val shards = (dmg * 3).toInt().coerceAtMost(3)
         repeat(shards) { drawShard(canvas, rect, dmg, base) }
 
         // Тлеющие угли вдоль трещин.
@@ -102,8 +104,8 @@ class DamagedBubbleDrawable(
         val cx = r.left + r.width() * (0.2f + random.nextFloat() * 0.6f)
         val cy = r.top + r.height() * (0.2f + random.nextFloat() * 0.6f)
         val rays = 3 + random.nextInt(3)
-        val reach = (10f + 34f * random.nextFloat()) * density * (0.7f + dmg)
-        crack.strokeWidth = (1f + 1.6f * dmg) * density
+        val reach = (9f + 26f * random.nextFloat()) * density * (0.7f + dmg)
+        crack.strokeWidth = (0.8f + 1.1f * dmg) * density
         crack.alpha = (120 + 110 * dmg).toInt().coerceIn(0, 255)
         highlight.strokeWidth = (0.5f + 0.6f * dmg) * density
         highlight.alpha = (40 + 70 * dmg).toInt().coerceIn(0, 255)
@@ -183,7 +185,7 @@ class DamagedBubbleDrawable(
                 y.coerceIn(r.top + 2, r.bottom - 2)
             )
         }
-        crack.strokeWidth = (1.4f + 2f * dmg) * density
+        crack.strokeWidth = (1f + 1.4f * dmg) * density
         crack.alpha = (150 + 90 * dmg).toInt().coerceIn(0, 255)
         canvas.drawPath(path, crack)
         highlight.strokeWidth = 0.7f * density
@@ -232,13 +234,9 @@ class DamagedBubbleDrawable(
     }
 
     private fun roundedPath(r: RectF): Path {
-        val big = 16f * density
-        val small = 4f * density
-        val radii = if (outgoing) {
-            floatArrayOf(big, big, big, big, small, small, big, big)
-        } else {
-            floatArrayOf(0f, 0f, big, big, big, big, big, big)
-        }
+        // Ровно как bg_bubble_incoming/outgoing в релизной ветке.
+        val radius = 16f * density
+        val radii = floatArrayOf(radius, radius, radius, radius, radius, radius, radius, radius)
         val shape = Path()
         shape.addRoundRect(r, radii, Path.Direction.CW)
         return shape
