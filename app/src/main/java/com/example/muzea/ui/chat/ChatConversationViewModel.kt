@@ -1112,6 +1112,8 @@ class ChatConversationViewModel @Inject constructor(
         } ?: return
         if (latest.messageUuid == lastMarkedReadUuid) return
         lastMarkedReadUuid = latest.messageUuid
+        // Чат прочитан — снимаем пуш этого чата, даже если открыли не из него.
+        com.example.muzea.utils.ChatNotifications.cancel(appContext, chatUuid)
         viewModelScope.launch {
             if (!messageRepository.markMessagesAsRead(chatUuid, latest.messageUuid)) {
                 lastMarkedReadUuid = null

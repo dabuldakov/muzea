@@ -77,8 +77,8 @@ class MuzeaMessagingService : FirebaseMessagingService() {
             }
         }
 
-        val tag = chatUuid?.let { "chat_$it" } ?: "chat"
-        val id = chatUuid?.hashCode() ?: 1
+        val tag = chatUuid?.let(ChatNotifications::tag) ?: "chat"
+        val id = chatUuid?.let(ChatNotifications::id) ?: 1
         showNotification(
             channelId = getString(R.string.chat_channel_id),
             title = title,
