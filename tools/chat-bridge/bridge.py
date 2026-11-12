@@ -312,12 +312,25 @@ def last_bot_message(chat_uuid: str) -> dict | None:
     return None
 
 
+def same_prefix(left: str, right: str, length: int = 20) -> bool:
+    """Одинаковое начало: файл-сообщение и финальный ответ часто так совпадают."""
+    a = _normalized(left)
+    b = _normalized(right)
+    probe = min(length, len(a), len(b))
+    return probe > 0 and a[:probe] == b[:probe]
+
+
 def post_to_chat(chat_uuid: str, text: str) -> None:
     full = REPLY_PREFIX + text
     last = last_bot_message(chat_uuid)
-    if last is not None and is_duplicate_reply(last.get("text") or "", full):
-        print("↷ дубль ответа пропущен")
-        return
+    if last is not None:
+        last_text = last.get("text") or ""
+        has_attachments = bool(last.get("attachments"))
+        if is_duplicate_reply(last_text, full) or (
+            has_attachments and same_prefix(last_text, full)
+        ):
+            print("↷ дубль ответа пропущен")
+            return
     api(
         f"/api/messages/{chat_uuid}",
         method="POST",

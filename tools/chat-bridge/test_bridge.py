@@ -125,6 +125,13 @@ class ContinuationTest(unittest.TestCase):
             "Совсем другой ответ", "Поправил — beta4 во вложении.",
         ))
 
+    def test_file_message_and_final_text_are_recognized_as_duplicate(self):
+        self.assertTrue(bridge.same_prefix(
+            "Нашёл обе причины — beta5 во вложении. Пункт один.",
+            "Нашёл обе причины — beta5 во вложении. 1. Пункт один.",
+        ))
+        self.assertFalse(bridge.same_prefix("Совсем другой ответ", "Нашёл обе причины"))
+
     def test_streaming_message_without_finish_is_skipped(self):
         payload = {"data": [self.reply(2000, "part", finish=None)]}
         with mock.patch.object(bridge, "opencode_api", return_value=payload):
