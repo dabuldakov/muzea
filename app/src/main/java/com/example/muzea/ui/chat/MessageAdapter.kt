@@ -77,8 +77,9 @@ private fun bindReactions(
     message.reactions.forEach { reaction ->
         val chip = android.widget.TextView(container.context).apply {
             text = if (reaction.count > 1) "${reaction.emoji} ${reaction.count}" else reaction.emoji
-            textSize = 16f
+            textSize = 18f
             includeFontPadding = false
+            alpha = 1f
             setPadding((8 * density).toInt(), (2 * density).toInt(), (8 * density).toInt(), (2 * density).toInt())
             setBackgroundResource(
                 if (reaction.mine) com.example.muzea.R.drawable.bg_reaction_mine
