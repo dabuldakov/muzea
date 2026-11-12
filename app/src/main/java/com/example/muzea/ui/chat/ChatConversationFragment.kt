@@ -95,6 +95,9 @@ class ChatConversationFragment : Fragment(),
     private var pendingHighlightUuid: String? = null
     private var highlightAttempts = 0
     private var actionsPopup: MessageActionsPopup? = null
+    /** Точка последнего касания списка — к ней ставим модалку. */
+    private var lastTapX = 0
+    private var lastTapY = 0
     private var lastPending: List<PendingAttachment> = emptyList()
     private var lastReplyUuid: String? = null
     private var lastEditingUuid: String? = null
@@ -418,8 +421,10 @@ class ChatConversationFragment : Fragment(),
             ).also {
                 it.show(
                     anchor,
-                    tapX = MessageAdapter.lastTouchX.takeIf { v -> v > 0 },
-                    tapY = MessageAdapter.lastTouchY.takeIf { v -> v > 0 }
+                    tapX = lastTapX.takeIf { v -> v > 0 }
+                        ?: MessageAdapter.lastTouchX.takeIf { v -> v > 0 },
+                    tapY = lastTapY.takeIf { v -> v > 0 }
+                        ?: MessageAdapter.lastTouchY.takeIf { v -> v > 0 }
                 )
             }
         } else {
@@ -718,6 +723,21 @@ class ChatConversationFragment : Fragment(),
             // должно проходить через crossfade-анимацию: она и выглядит как
             // мигание пузыря. Удаление — «схлопывание» в точку.
             itemAnimator = MessageItemAnimator().apply { supportsChangeAnimations = false }
+            addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
+                override fun onInterceptTouchEvent(
+                    rv: RecyclerView,
+                    event: android.view.MotionEvent
+                ): Boolean {
+                    if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
+                        lastTapX = event.rawX.toInt()
+                        lastTapY = event.rawY.toInt()
+                        // Любое новое касание списка закрывает старую модалку:
+                        // иначе она остаётся на месте прошлого тапа.
+                        actionsPopup?.dismiss()
+                    }
+                    return false
+                }
+            })
             addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                     // Догружаем историю, когда пользователь домотал до самого верха.

@@ -60,11 +60,17 @@ class MessageActionsPopup(
         // Показываем у точки нажатия, а не по центру пузыря.
         val centerX = tapX ?: (location[0] + anchor.width / 2)
         val fingerY = tapY ?: location[1]
-        val x = (centerX - width / 2)
-            .coerceIn(margin, metrics.widthPixels - width - margin)
-        var y = fingerY - height - margin
-        if (y < margin) y = fingerY + margin
-        popup.showAtLocation(anchor.rootView, Gravity.TOP or Gravity.START, x, y)
+        val position = ActionsPopupPosition.calculate(
+            tapX = centerX,
+            tapY = fingerY,
+            popupWidth = width,
+            popupHeight = height,
+            screenWidth = metrics.widthPixels,
+            margin = margin
+        )
+        popup.showAtLocation(
+            anchor.rootView, Gravity.TOP or Gravity.START, position.x, position.y
+        )
     }
 
     fun dismiss() {
