@@ -48,7 +48,8 @@ class EmojiGifBottomSheet : BottomSheetDialogFragment() {
         emojis.forEach { emoji ->
             val cell = TextView(requireContext()).apply {
                 text = emoji
-                textSize = 26f
+                textSize = 28f
+                includeFontPadding = false
                 gravity = android.view.Gravity.CENTER
                 layoutParams = GridLayout.LayoutParams().apply {
                     width = size

@@ -406,15 +406,20 @@ class ChatConversationFragment : Fragment(),
     }
 
     private fun showReactionPicker(message: Message) {
-        val emojis = listOf("👍", "❤️", "😂", "😮", "😢", "🔥")
+        val emojis = listOf(
+            "👍", "❤️", "😂", "😮", "😢", "🔥", "🎉", "👏",
+            "🙏", "💯", "😍", "🤔", "😡", "🥰", "😎", "🤝",
+            "✅", "❌", "👀", "🤯", "😴", "💜", "⚡", "🚀"
+        )
         val density = resources.displayMetrics.density
         val grid = android.widget.GridLayout(requireContext()).apply { columnCount = 6 }
-        val size = (44 * density).toInt()
+        val size = (48 * density).toInt()
         var dialog: androidx.appcompat.app.AlertDialog? = null
         emojis.forEach { emoji ->
             val cell = android.widget.TextView(requireContext()).apply {
                 text = emoji
                 textSize = 26f
+                includeFontPadding = false
                 gravity = android.view.Gravity.CENTER
                 layoutParams = android.widget.GridLayout.LayoutParams().apply {
                     width = size
