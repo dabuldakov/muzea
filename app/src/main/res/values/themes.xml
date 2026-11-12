@@ -17,6 +17,21 @@
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.Muzea.Dialog</item>
     </style>
 
+    <!-- Цветовые темы: дизайн тот же, меняется только акцент. -->
+    <style name="Theme.Muzea.Standard" parent="Theme.Muzea" />
+
+    <style name="Theme.Muzea.Violet" parent="Theme.Muzea">
+        <item name="colorPrimary">#FF7C3AED</item>
+        <item name="colorPrimaryVariant">#FF6D28D9</item>
+        <item name="colorSecondary">#FFA78BFA</item>
+    </style>
+
+    <style name="Theme.Muzea.Pink" parent="Theme.Muzea">
+        <item name="colorPrimary">#FFEC4899</item>
+        <item name="colorPrimaryVariant">#FFDB2777</item>
+        <item name="colorSecondary">#FFF9A8D4</item>
+    </style>
+
     <style name="ThemeOverlay.Muzea.Dialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
         <item name="shapeAppearanceOverlay">@style/ShapeAppearance.Muzea.Dialog</item>
         <item name="colorPrimary">@color/purple_500</item>

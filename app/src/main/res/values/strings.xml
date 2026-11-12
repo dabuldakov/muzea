@@ -332,4 +332,8 @@
     <string name="action_open_pinned">Open pinned message</string>
     <string name="scroll_to_latest">Scroll to latest message</string>
     <string name="scroll_to_unread">Scroll to first unread</string>
+    <string name="theme_title">Accent color</string>
+    <string name="theme_standard">Standard</string>
+    <string name="theme_violet">Violet</string>
+    <string name="theme_pink">Pink</string>
 </resources>

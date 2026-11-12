@@ -318,4 +318,8 @@
     <string name="action_open_pinned">Открыть закреплённое сообщение</string>
     <string name="scroll_to_latest">К последнему сообщению</string>
     <string name="scroll_to_unread">К первому непрочитанному</string>
+    <string name="theme_title">Цветовая тема</string>
+    <string name="theme_standard">Стандартная</string>
+    <string name="theme_violet">Violet</string>
+    <string name="theme_pink">Pink</string>
 </resources>

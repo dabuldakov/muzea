@@ -45,7 +45,7 @@
         <View
             android:layout_width="3dp"
             android:layout_height="match_parent"
-            android:background="@color/purple_700" />
+            android:background="?attr/colorPrimaryVariant" />
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -60,7 +60,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:maxWidth="220dp"
-                android:textColor="@color/purple_700"
+                android:textColor="?attr/colorPrimaryVariant"
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
@@ -158,7 +158,7 @@
         android:paddingEnd="12dp"
         android:paddingBottom="8dp"
         android:textColor="?android:textColorPrimary"
-        android:textColorLink="@color/purple_700"
+        android:textColorLink="?attr/colorPrimaryVariant"
         android:textSize="15sp" />
 
     <LinearLayout

@@ -1303,7 +1303,12 @@ class ChatConversationFragment : Fragment(),
         // Взрыв — цветная иконка, её не тонируем; микрофон/камеру красим в акцент.
         binding.btnSend.imageTintList =
             if (effective == SendMode.TEXT) null
-            else ContextCompat.getColorStateList(requireContext(), R.color.purple_500)
+            else android.content.res.ColorStateList.valueOf(
+                com.google.android.material.color.MaterialColors.getColor(
+                    binding.btnSend,
+                    com.google.android.material.R.attr.colorPrimary
+                )
+            )
         binding.btnSend.contentDescription = getString(description)
     }
 

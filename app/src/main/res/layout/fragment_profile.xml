@@ -112,6 +112,42 @@
             android:textColor="@color/gray"
             android:textSize="12sp" />
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:letterSpacing="0.08"
+            android:text="@string/theme_title"
+            android:textAllCaps="true"
+            android:textColor="@color/gray"
+            android:textSize="12sp" />
+
+        <RadioGroup
+            android:id="@+id/themeGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="vertical">
+
+            <RadioButton
+                android:id="@+id/themeStandard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/theme_standard" />
+
+            <RadioButton
+                android:id="@+id/themeViolet"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/theme_violet" />
+
+            <RadioButton
+                android:id="@+id/themePink"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/theme_pink" />
+        </RadioGroup>
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
@@ -194,7 +230,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:text="@string/language_label"
-                android:textColor="@color/purple_500"
+                android:textColor="?attr/colorPrimary"
                 android:textSize="14sp" />
 
             <TextView

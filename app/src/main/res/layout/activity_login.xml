@@ -32,7 +32,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="@string/login_no_account"
-        android:textColor="@color/purple_500"
+        android:textColor="?attr/colorPrimary"
         android:textSize="14sp" />
 
     <TextView
@@ -51,7 +51,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:text="@string/consent_open_terms"
-        android:textColor="@color/purple_500"
+        android:textColor="?attr/colorPrimary"
         android:textSize="12sp" />
 
     <TextView
@@ -59,7 +59,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/consent_open_policy"
-        android:textColor="@color/purple_500"
+        android:textColor="?attr/colorPrimary"
         android:textSize="12sp" />
 
     <ProgressBar

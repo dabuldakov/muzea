@@ -184,7 +184,7 @@
             android:contentDescription="@string/scroll_to_latest"
             android:src="@drawable/ic_arrow_down"
             android:visibility="gone"
-            app:backgroundTint="@color/purple_500"
+            app:backgroundTint="?attr/colorPrimary"
             app:elevation="4dp"
             app:fabSize="mini" />
 
@@ -438,7 +438,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/selected_count"
-            android:textColor="@color/purple_700"
+            android:textColor="?attr/colorPrimaryVariant"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -450,7 +450,7 @@
             android:contentDescription="@string/action_delete"
             android:padding="12dp"
             android:src="@drawable/ic_action_delete"
-            android:tint="@color/purple_500" />
+            android:tint="?attr/colorPrimary" />
 
         <ImageButton
             android:id="@+id/btnSelectionForward"
@@ -460,7 +460,7 @@
             android:contentDescription="@string/action_forward"
             android:padding="12dp"
             android:src="@drawable/ic_action_forward"
-            android:tint="@color/purple_500" />
+            android:tint="?attr/colorPrimary" />
 
         <ImageButton
             android:id="@+id/btnSelectionClose"

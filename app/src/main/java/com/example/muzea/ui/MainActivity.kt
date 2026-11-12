@@ -59,6 +59,8 @@ class MainActivity : AppCompatActivity(), Navigator {
     private var handledNotificationKey: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Тему задаём до super.onCreate: AppCompat читает её при инициализации.
+        setTheme(com.example.muzea.utils.ThemeManager.themeRes(this))
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)

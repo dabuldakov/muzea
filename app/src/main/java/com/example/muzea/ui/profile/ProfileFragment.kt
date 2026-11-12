@@ -70,9 +70,31 @@ class ProfileFragment : Fragment() {
         return binding.root
     }
 
+    /** Три акцентные темы; дизайн экранов при этом не меняется. */
+    private fun setupThemePicker() {
+        val current = com.example.muzea.utils.ThemeManager.current(requireContext())
+        when (current) {
+            com.example.muzea.utils.ThemeManager.VIOLET -> binding.themeViolet.isChecked = true
+            com.example.muzea.utils.ThemeManager.PINK -> binding.themePink.isChecked = true
+            else -> binding.themeStandard.isChecked = true
+        }
+        binding.themeGroup.setOnCheckedChangeListener { _, checkedId ->
+            val value = when (checkedId) {
+                R.id.themeViolet -> com.example.muzea.utils.ThemeManager.VIOLET
+                R.id.themePink -> com.example.muzea.utils.ThemeManager.PINK
+                else -> com.example.muzea.utils.ThemeManager.STANDARD
+            }
+            if (value != com.example.muzea.utils.ThemeManager.current(requireContext())) {
+                com.example.muzea.utils.ThemeManager.set(requireContext(), value)
+                requireActivity().recreate()
+            }
+        }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        setupThemePicker()
         binding.btnChangeAvatar.setOnClickListener { pickAvatar.launch(arrayOf("image/jpeg", "image/png")) }
         binding.btnDeleteAvatar.setOnClickListener { avatarViewModel.delete() }
         binding.btnRetryAvatar.setOnClickListener { avatarViewModel.load() }
