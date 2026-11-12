@@ -153,11 +153,13 @@ class MessageAdapterBindTest {
         onAttachmentClick: (Message, MessageAttachment) -> Unit = { _, _ -> },
         playingAudioUuid: String? = null,
         audioIsPlaying: Boolean = false,
-        showHeader: Boolean = true
+        showHeader: Boolean = true,
+        onReplyClick: (String) -> Unit = {}
     ) {
         fx.incomingHolder().bind(
             message, replyTo, myUserUuid, linkPreviews, scope, onClick,
-            onAttachmentClick, playingAudioUuid, audioIsPlaying, showHeader
+            onAttachmentClick, playingAudioUuid, audioIsPlaying, showHeader,
+            onReplyClick = onReplyClick
         )
     }
 
@@ -256,6 +258,22 @@ class MessageAdapterBindTest {
         verify { fx.replyQuote.visibility = View.VISIBLE }
         verify { fx.tvReplyName.setText("Bob") }
         verify { fx.tvReplyText.setText("original") }
+    }
+
+    @Test
+    fun `reply quote click jumps to the original message`() {
+        var target: String? = null
+        bindIncoming(
+            message(replyToMessageUuid = "orig"),
+            replyTo = message(uuid = "orig", text = "original"),
+            onReplyClick = { target = it }
+        )
+
+        val listener = slot<View.OnClickListener>()
+        verify { fx.replyQuote.setOnClickListener(capture(listener)) }
+        listener.captured.onClick(fx.replyQuote)
+
+        assertEquals("orig", target)
     }
 
     @Test

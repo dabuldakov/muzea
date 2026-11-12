@@ -15,6 +15,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="2dp"
         android:background="@drawable/bg_reply_quote_outgoing"
+        android:foreground="?attr/selectableItemBackground"
         android:orientation="horizontal"
         android:padding="6dp"
         android:visibility="gone">

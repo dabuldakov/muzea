@@ -116,7 +116,9 @@ class MessageAdapter(
     private val onStatusClick: (Message) -> Unit,
     private val onAttachmentClick: (Message, MessageAttachment) -> Unit,
     private val isGroupChat: Boolean = true,
-    private val onReactionClick: (Message, String) -> Unit = { _, _ -> }
+    private val onReactionClick: (Message, String) -> Unit = { _, _ -> },
+    /** Тап по цитате ответа: переход к оригиналу по uuid. */
+    private val onReplyClick: (String) -> Unit = {}
 ) : ListAdapter<Message, RecyclerView.ViewHolder>(MessageDiffCallback()) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -191,7 +193,8 @@ class MessageAdapter(
             is OutgoingViewHolder -> holder.bind(
                 message, replyTo, myUserUuid, linkPreviews, scope, onMessageClick,
                 statusFor(message), onStatusClick, onAttachmentClick, playingAudioUuid, audioIsPlaying,
-                onReactionClick
+                onReactionClick = onReactionClick,
+                onReplyClick = onReplyClick
             )
             is IncomingViewHolder -> {
                 val previous = if (position > 0) getItem(position - 1) else null
@@ -203,7 +206,8 @@ class MessageAdapter(
                     onAttachmentClick, playingAudioUuid, audioIsPlaying,
                     showHeader = showHeader && isGroupChat,
                     showAvatar = isGroupChat,
-                    onReactionClick = onReactionClick
+                    onReactionClick = onReactionClick,
+                    onReplyClick = onReplyClick
                 )
             }
         }
@@ -240,7 +244,8 @@ class MessageAdapter(
             audioIsPlaying: Boolean,
             showHeader: Boolean,
             showAvatar: Boolean = true,
-            onReactionClick: (Message, String) -> Unit = { _, _ -> }
+            onReactionClick: (Message, String) -> Unit = { _, _ -> },
+            onReplyClick: (String) -> Unit = {}
         ) {
             // В личных чатах аватар не нужен вовсе — освобождаем место баблу.
             binding.ivAvatar.visibility = when {
@@ -251,7 +256,7 @@ class MessageAdapter(
             AvatarLoader.load(binding.ivAvatar, message.senderAvatar)
             bindReplyQuote(
                 binding.replyQuote, binding.tvReplyName, binding.tvReplyText,
-                message, replyTo, myUserUuid
+                message, replyTo, myUserUuid, onReplyClick
             )
             bindReactions(binding.reactionsContainer, message, onReactionClick)
             bindMedia(message)
@@ -339,11 +344,12 @@ class MessageAdapter(
             onAttachmentClick: (Message, MessageAttachment) -> Unit,
             playingAudioUuid: String?,
             audioIsPlaying: Boolean,
-            onReactionClick: (Message, String) -> Unit = { _, _ -> }
+            onReactionClick: (Message, String) -> Unit = { _, _ -> },
+            onReplyClick: (String) -> Unit = {}
         ) {
             bindReplyQuote(
                 binding.replyQuote, binding.tvReplyName, binding.tvReplyText,
-                message, replyTo, myUserUuid
+                message, replyTo, myUserUuid, onReplyClick
             )
             bindReactions(binding.reactionsContainer, message, onReactionClick)
             bindMedia(message)
@@ -519,16 +525,20 @@ private fun bindReplyQuote(
     textView: TextView,
     message: Message,
     replyTo: Message?,
-    myUserUuid: String?
+    myUserUuid: String?,
+    onReplyClick: (String) -> Unit = {}
 ) {
-    if (message.replyToMessageUuid.isNullOrBlank() || message.isDeleted) {
+    val targetUuid = message.replyToMessageUuid
+    if (targetUuid.isNullOrBlank() || message.isDeleted) {
         container.visibility = View.GONE
+        container.setOnClickListener(null)
         return
     }
     container.visibility = View.VISIBLE
     val context = container.context
     nameView.text = replySenderName(context, replyTo, myUserUuid)
     textView.text = replyPreviewText(context, replyTo)
+    container.setOnClickListener { onReplyClick(targetUuid) }
 }
 
 private fun gifUrl(message: Message): String? =

@@ -746,7 +746,8 @@ class ChatConversationFragment : Fragment(),
                 openAttachment(message, attachment)
             },
             isGroupChat = isGroupChat(),
-            onReactionClick = { message, emoji -> viewModel.toggleReaction(message, emoji) }
+            onReactionClick = { message, emoji -> viewModel.toggleReaction(message, emoji) },
+            onReplyClick = { uuid -> jumpToMessage(uuid) }
         )
         adapter.registerAdapterDataObserver(scrollObserver)
         binding.recyclerViewMessages.apply {
@@ -980,16 +981,24 @@ class ChatConversationFragment : Fragment(),
         // Тап по панели ведёт к закреплённому сообщению (подсвечиваем).
         binding.pinnedBarContent.setOnClickListener {
             val target = pinnedMessages.firstOrNull() ?: return@setOnClickListener
-            val position = viewModel.uiState.value.messages
-                .indexOfFirst { it.messageUuid == target.messageUuid }
-            if (position >= 0) {
-                scrollToAndHighlight(position, target.messageUuid)
-            } else {
-                pendingHighlightUuid = target.messageUuid
-                highlightAttempts = 0
-                viewModel.loadOlder()
-            }
+            jumpToMessage(target.messageUuid)
         }
+    }
+
+    /**
+     * Прокручивает к сообщению и подсвечивает его. Если оно не загружено,
+     * поднимает историю и повторит переход, когда оно появится.
+     */
+    private fun jumpToMessage(messageUuid: String) {
+        val position = viewModel.uiState.value.messages
+            .indexOfFirst { it.messageUuid == messageUuid }
+        if (position >= 0) {
+            scrollToAndHighlight(position, messageUuid)
+            return
+        }
+        pendingHighlightUuid = messageUuid
+        highlightAttempts = 0
+        viewModel.loadOlder()
     }
 
     /** Панель закреплённого сообщения сверху чата. */
