@@ -24,6 +24,8 @@ class MessageActionsPopup(
     private val context: Context,
     private val messageUuid: String,
     private val actions: List<MessageActionSpec>,
+    private val statusRows: List<MessageStatusRow> = emptyList(),
+    private val showStatus: Boolean = false,
     private val onAction: (String) -> Unit,
     private val onReaction: (String) -> Unit
 ) {
@@ -47,6 +49,7 @@ class MessageActionsPopup(
     fun show(anchor: View, tapX: Int? = null, tapY: Int? = null) {
         renderReactions()
         renderActions()
+        renderStatus()
         val width = (300 * density).toInt()
         content.measure(
             View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
@@ -120,6 +123,35 @@ class MessageActionsPopup(
                 dismiss()
             }
         }
+
+    private fun renderStatus() {
+        val section = content.findViewById<LinearLayout>(R.id.statusSection)
+        val rows = content.findViewById<LinearLayout>(R.id.statusRows)
+        section.visibility = if (showStatus && statusRows.isNotEmpty()) View.VISIBLE else View.GONE
+        rows.removeAllViews()
+        statusRows.forEach { row ->
+            val label = when (row.status) {
+                "READ" -> R.string.message_status_read
+                "DELIVERED" -> R.string.message_status_delivered
+                else -> R.string.message_status_sent
+            }
+            val time = row.at?.substringAfter('T')?.take(5).orEmpty()
+            val text = TextView(context).apply {
+                text = listOf(row.name, context.getString(label), time)
+                    .filter { it.isNotBlank() }
+                    .joinToString(" · ")
+                textSize = 13f
+                setTextColor(
+                    com.google.android.material.color.MaterialColors.getColor(
+                        content, com.google.android.material.R.attr.colorOnSurface
+                    )
+                )
+                val pad = (6 * density).toInt()
+                setPadding(pad, pad / 2, pad, pad / 2)
+            }
+            rows.addView(text)
+        }
+    }
 
     private fun renderActions() {
         val row = content.findViewById<LinearLayout>(R.id.actionsRow)

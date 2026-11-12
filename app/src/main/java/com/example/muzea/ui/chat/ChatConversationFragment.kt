@@ -416,6 +416,8 @@ class ChatConversationFragment : Fragment(),
                 context = requireContext(),
                 messageUuid = message.messageUuid,
                 actions = actions,
+                statusRows = if (showStatus) buildStatusRows(message) else emptyList(),
+                showStatus = showStatus,
                 onAction = { actionId -> onMessageAction(message.messageUuid, actionId) },
                 onReaction = { emoji -> viewModel.toggleReaction(message, emoji) }
             ).also {

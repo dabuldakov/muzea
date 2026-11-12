@@ -332,4 +332,5 @@
     <string name="action_open_pinned">Open pinned message</string>
     <string name="scroll_to_latest">Scroll to latest message</string>
     <string name="scroll_to_unread">Scroll to first unread</string>
+    <string name="message_status_title">Delivery status</string>
 </resources>
