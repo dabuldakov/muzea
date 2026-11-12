@@ -312,14 +312,29 @@ class ChatConversationViewModelBranchesTest {
     }
 
     @Test
+    fun loadingMessagesDoesNotMarkThemRead() = withViewModel { viewModel ->
+        coEvery { messageRepository.loadMessages(chatUuid) } returns
+            flowOf(Resource.Success(listOf(message("m1", "hi", messageId = 10))))
+
+        viewModel.refresh()
+
+        coVerify(exactly = 0) { messageRepository.markMessagesAsRead(any(), any()) }
+    }
+
+    @Test
     fun failedReadAckResetsTheWatermark() = withViewModel { viewModel ->
         coEvery { messageRepository.markMessagesAsRead(chatUuid, "m1") } returns false
         coEvery { messageRepository.loadMessages(chatUuid) } returns
             flowOf(Resource.Success(listOf(message("m1", "hi", messageId = 10))))
 
         viewModel.refresh()
+        viewModel.markReadUpTo("m1")
 
         coVerify { messageRepository.markMessagesAsRead(chatUuid, "m1") }
+
+        // Ошибка сбросила watermark — повторная отметка снова идёт на сервер.
+        viewModel.markReadUpTo("m1")
+        coVerify(exactly = 2) { messageRepository.markMessagesAsRead(chatUuid, "m1") }
     }
 
     // --- Записанные вложения: ветки загрузки/отправки ---

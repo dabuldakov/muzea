@@ -144,13 +144,18 @@ class ChatListFragment : Fragment() {
     private fun openChat(chatUuid: String) {
         val chat = adapter.currentList.firstOrNull { it.chatUuid == chatUuid }
         val title = chat?.title ?: "Chat"
-        navigationToConversation(chatUuid, title, chat?.avatarUrl)
+        navigationToConversation(chatUuid, title, chat?.avatarUrl, chat?.unreadCount ?: 0L)
     }
 
-    private fun navigationToConversation(chatUuid: String, title: String, avatarUrl: String?) {
+    private fun navigationToConversation(
+        chatUuid: String,
+        title: String,
+        avatarUrl: String?,
+        unreadCount: Long = 0L
+    ) {
         val draft = sharedText
         sharedText = null
-        navigator.openConversation(chatUuid, title, avatarUrl, 0L, draft)
+        navigator.openConversation(chatUuid, title, avatarUrl, unreadCount, draft)
     }
 
     private fun setupSwipeRefresh() {
@@ -295,7 +300,9 @@ class ChatListFragment : Fragment() {
     }
 
     private fun openGroupChat(chat: Chat) {
-        navigationToConversation(chat.chatUuid, chat.title ?: "Group", chat.avatarUrl)
+        navigationToConversation(
+            chat.chatUuid, chat.title ?: "Group", chat.avatarUrl, chat.unreadCount ?: 0L
+        )
     }
 
     /**

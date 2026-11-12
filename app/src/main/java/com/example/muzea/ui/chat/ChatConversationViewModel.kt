@@ -802,7 +802,6 @@ class ChatConversationViewModel @Inject constructor(
                 failedMessages = _uiState.value.failedMessages - localUuid
             )
         )
-        markLatestAsRead()
         markLatestAsDelivered()
     }
 
@@ -848,7 +847,6 @@ class ChatConversationViewModel @Inject constructor(
         _uiState.value = withStatuses(
             _uiState.value.copy(messages = reducer.merge(_uiState.value.messages, incoming))
         )
-        markLatestAsRead()
         markLatestAsDelivered()
     }
 
@@ -1106,14 +1104,17 @@ class ChatConversationViewModel @Inject constructor(
             myUserUuid = myUserUuid
         )
 
-    private fun markLatestAsRead() {
-        val latest = _uiState.value.messages.lastOrNull {
-            it.messageUuid.isNotBlank() && !it.messageUuid.startsWith(LOCAL_PREFIX)
-        } ?: return
-        if (latest.messageUuid == lastMarkedReadUuid) return
-        lastMarkedReadUuid = latest.messageUuid
+    /**
+     * Отмечает прочитанным всё до указанного сообщения. Вызывается по мере
+     * прокрутки — так счётчик непрочитанных уменьшается только на то, что
+     * пользователь реально увидел.
+     */
+    fun markReadUpTo(messageUuid: String) {
+        if (messageUuid.isBlank() || messageUuid.startsWith(LOCAL_PREFIX)) return
+        if (messageUuid == lastMarkedReadUuid) return
+        lastMarkedReadUuid = messageUuid
         viewModelScope.launch {
-            if (!messageRepository.markMessagesAsRead(chatUuid, latest.messageUuid)) {
+            if (!messageRepository.markMessagesAsRead(chatUuid, messageUuid)) {
                 lastMarkedReadUuid = null
             }
         }

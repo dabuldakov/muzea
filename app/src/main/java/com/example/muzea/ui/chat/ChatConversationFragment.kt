@@ -90,6 +90,7 @@ class ChatConversationFragment : Fragment(),
     private var unreadAnchorPosition: Int? = null
     private var initialScrollDone = false
     private var pendingScrollPosition: Int? = null
+    private var pendingScrollToTop = false
     private var lastStatuses: Map<String, MessageDeliveryStatus> = emptyMap()
     private var lastMessages: List<Message>? = null
     private var pendingHighlightUuid: String? = null
@@ -776,6 +777,12 @@ class ChatConversationFragment : Fragment(),
                 }
             })
             addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                    if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                        markVisibleMessagesAsRead()
+                    }
+                }
+
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                     // Догружаем историю, когда пользователь домотал до самого верха.
                     if (dy < 0 && !recyclerView.canScrollVertically(-1)) {
@@ -817,7 +824,48 @@ class ChatConversationFragment : Fragment(),
     private fun performPendingScroll() {
         val position = pendingScrollPosition ?: return
         pendingScrollPosition = null
-        binding.recyclerViewMessages.scrollToPosition(position)
+        if (pendingScrollToTop) {
+            pendingScrollToTop = false
+            // Отметку о прочтении ставим уже после выравнивания, иначе
+            // до прокрутки успеет «прочитаться» низ ленты.
+            scrollToPositionAtTop(position)
+        } else {
+            binding.recyclerViewMessages.scrollToPosition(position)
+            markVisibleMessagesAsRead()
+        }
+    }
+
+    /**
+     * Ставит сообщение к верхнему краю ленты. При stackFromEnd обычный
+     * scrollToPosition прижимает его к низу, поэтому выравниваем по пикселям
+     * после раскладки.
+     */
+    private fun scrollToPositionAtTop(position: Int) {
+        val recycler = binding.recyclerViewMessages
+        val layoutManager = recycler.layoutManager as? LinearLayoutManager ?: return
+        layoutManager.scrollToPositionWithOffset(position, 0)
+        recycler.post {
+            if (_binding == null) return@post
+            val view = layoutManager.findViewByPosition(position)
+            if (view == null) return@post
+            val delta = view.top - recycler.paddingTop
+            if (delta != 0) recycler.scrollBy(0, delta)
+            markVisibleMessagesAsRead()
+        }
+    }
+
+    /**
+     * Отмечает прочитанным всё до последнего видимого сообщения. Счётчик
+     * непрочитанных уменьшается только на то, что пользователь увидел.
+     */
+    private fun markVisibleMessagesAsRead() {
+        if (!::adapter.isInitialized || _binding == null) return
+        val layoutManager = binding.recyclerViewMessages.layoutManager
+            as? LinearLayoutManager ?: return
+        val last = layoutManager.findLastVisibleItemPosition()
+        if (last < 0) return
+        val message = adapter.currentList.getOrNull(last) ?: return
+        viewModel.markReadUpTo(message.messageUuid)
     }
 
     private fun isAtBottom(): Boolean =
@@ -1798,7 +1846,9 @@ class ChatConversationFragment : Fragment(),
                     lastMessages = messages
                     adapter.updateList(messages) {
                         if (statusesChanged) notifyChangedStatuses()
-                        if (anchorUuid == null && wasAtBottom) {
+                        if (initialScrollDone && !pendingScrollToTop &&
+                            anchorUuid == null && wasAtBottom
+                        ) {
                             // Реакция/правка меняет высоту бабла. Если лента была
                             // внизу, держим её внизу после раскладки — иначе чат
                             // «скачет» на высоту нового чипа.
@@ -1806,6 +1856,7 @@ class ChatConversationFragment : Fragment(),
                                 layoutManager?.scrollToPosition(
                                     (adapter.itemCount - 1).coerceAtLeast(0)
                                 )
+                                markVisibleMessagesAsRead()
                             }
                         }
                         if (anchorUuid != null) {
@@ -1834,13 +1885,15 @@ class ChatConversationFragment : Fragment(),
 
                 if (messages.isNotEmpty() && !initialScrollDone) {
                     initialScrollDone = true
-                    val target = if (unreadCount > 0) {
-                        (messages.size - unreadCount).toInt().coerceIn(0, messages.size - 1)
-                    } else {
-                        messages.size - 1
-                    }
+                    val unreadIndex = UnreadAnchor.firstUnreadIndex(
+                        messages, unreadCount, viewModel.myUserUuid
+                    )
+                    val target = if (unreadIndex >= 0) unreadIndex else messages.size - 1
                     pendingScrollPosition = target
-                    if (unreadCount > 0) unreadAnchorPosition = target
+                    if (unreadIndex >= 0) {
+                        unreadAnchorPosition = unreadIndex
+                        pendingScrollToTop = true
+                    }
                 } else if (messages.isNotEmpty() && messages.last().messageUuid != lastNewestUuid) {
                     // Реагируем только на действительно новое сообщение внизу.
                     // Догрузка истории вверх добавляет сообщения в начало и не
@@ -1851,6 +1904,13 @@ class ChatConversationFragment : Fragment(),
                     }
                 }
                 if (messages.isNotEmpty()) lastNewestUuid = messages.last().messageUuid
+                // Позицию запомнили уже после обновления адаптера, поэтому
+                // наблюдатель её не увидит — прокручиваем сами.
+                if (pendingScrollPosition != null) {
+                    binding.recyclerViewMessages.post {
+                        if (_binding != null) performPendingScroll()
+                    }
+                }
                 updateScrollButton()
 
                 val targetUuid = pendingHighlightUuid
