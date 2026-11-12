@@ -839,9 +839,21 @@ class ChatConversationFragment : Fragment(),
             val last = adapter.itemCount - 1
             if (last < 0) return@setOnClickListener
             val target = (unreadAnchorPosition ?: last).coerceIn(0, last)
-            val layoutManager = binding.recyclerViewMessages.layoutManager as? LinearLayoutManager
+            val recycler = binding.recyclerViewMessages
+            // Тап по кнопке не касается списка, поэтому начатый флинг сам
+            // не останавливается и перебивает прокрутку — гасим его явно.
+            recycler.stopScroll()
+            val layoutManager = recycler.layoutManager as? LinearLayoutManager
             layoutManager?.scrollToPositionWithOffset(target, 0)
-                ?: binding.recyclerViewMessages.scrollToPosition(target)
+                ?: recycler.scrollToPosition(target)
+            // Если флинг успел запросить раскладку, повторяем после неё.
+            recycler.post {
+                if (_binding == null) return@post
+                if (isAtBottom()) return@post
+                (recycler.layoutManager as? LinearLayoutManager)
+                    ?.scrollToPositionWithOffset(target, 0)
+                    ?: recycler.scrollToPosition(target)
+            }
             // Первый тап ведёт к непрочитанному, второй — уже в самый низ.
             unreadAnchorPosition = null
             updateScrollButton()
