@@ -94,7 +94,10 @@ class ChatListFragment : Fragment() {
                             com.example.muzea.utils.NetworkQuality.OFFLINE -> OFFLINE_REFRESH_MS
                         }
                     )
-                    if (networkMonitor.status.value.online) loadChats()
+                    // Список чатов живёт в скрытой вкладке, пока открыта
+                    // переписка: hide() не меняет lifecycle, и без этой проверки
+                    // список продолжал бы тянуться каждые 8 секунд за спиной.
+                    if (networkMonitor.status.value.online && !isHidden) loadChats()
                 }
             }
         }

@@ -298,7 +298,9 @@ class ChatConversationViewModel @Inject constructor(
         if (updated.isEmpty()) return true
         cacheNewGifs(updated)
         mergeMessages(updated)
-        refreshReceipts(force = true)
+        // Квитанции не форсируем: /updated приходит и с повторами из окна
+        // перекрытия, а галочки живут в своём ритме (30 с).
+        refreshReceipts()
         return true
     }
 
@@ -1255,7 +1257,7 @@ class ChatConversationViewModel @Inject constructor(
          * не потерять строку, зафиксированную между запросами, но и не
          * пересылать одно и то же слишком много раз.
          */
-        private const val UPDATED_OVERLAP_SECONDS = 30L
+        private const val UPDATED_OVERLAP_SECONDS = 15L
         /** Квитанции прочтения — не чаще раза в 30 секунд. */
         private const val RECEIPTS_REFRESH_INTERVAL_MS = 30_000L
         private const val PAGE_SIZE = 50
