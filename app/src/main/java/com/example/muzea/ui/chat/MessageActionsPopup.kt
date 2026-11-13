@@ -285,26 +285,23 @@ class MessageActionsPopup(
         arrow.setOnClickListener {
             if (expanded) return@setOnClickListener
             expanded = true
-            // Раскрытие без анимации роста: список появляется сразу целиком,
-            // карточка просто встаёт в новом размере — движения не видно.
-            full.layoutParams = full.layoutParams.apply {
-                height = ViewGroup.LayoutParams.WRAP_CONTENT
-            }
+            val stripHeight = (44 * density).toInt()
+            val cell = (ICON_DP * density)
+            val columns = 7
+            val rows = (ReactionOrder.ordered(recent, ReactionHistory.FULL).size +
+                columns - 1) / columns
+            val gridHeight = (rows * cell).toInt()
+            // Значки в сетке стоят на том же отступе от верха, что и в полосе.
+            val topMargin = (full.layoutParams as? ViewGroup.MarginLayoutParams)
+                ?.topMargin ?: 0
+            val startHeight = (stripHeight - topMargin).coerceAtLeast(0)
+            full.layoutParams = full.layoutParams.apply { height = startHeight }
             strip.visibility = View.GONE
             full.visibility = View.VISIBLE
-            val height = measureHeight()
-            val metrics = context.resources.displayMetrics
-            val y = PopupResize.yForHeight(
-                growsUp = growsUp,
-                edgeAnchor = edgeAnchor,
-                height = height,
-                screenHeight = metrics.heightPixels,
-                margin = (8 * density).toInt(),
-                topLimit = topLimit
-            )
-            popupY = y
-            popupHeight = height
-            applyCardGeometry(y, height)
+            animateContent(onFraction = { fraction ->
+                val h = (startHeight + (gridHeight - startHeight) * fraction).toInt()
+                full.layoutParams = full.layoutParams.apply { height = h }
+            })
         }
     }
 
