@@ -76,6 +76,16 @@ class MessageActionsPopup(
     }
 
     init {
+        // Тонкая линия-разделитель между реакциями и действиями: цвет берём
+        // из темы, чтобы читалась и в тёмной теме.
+        content.findViewById<View>(R.id.actionsDivider)?.let { divider ->
+            val onSurface = com.google.android.material.color.MaterialColors.getColor(
+                content, com.google.android.material.R.attr.colorOnSurface
+            )
+            divider.setBackgroundColor(
+                androidx.core.graphics.ColorUtils.setAlphaComponent(onSurface, 0x1F)
+            )
+        }
         content.isClickable = true
         content.elevation = 12f * density
         root.addView(
