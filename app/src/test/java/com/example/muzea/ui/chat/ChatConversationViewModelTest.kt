@@ -9,6 +9,8 @@ import com.example.muzea.domain.model.Gif
 import com.example.muzea.domain.model.Message
 import com.example.muzea.domain.model.MessageAttachment
 import com.example.muzea.domain.model.MessageDeliveryStatus
+import com.example.muzea.domain.model.MessageReaction
+import com.example.muzea.domain.model.ReactionUser
 import com.example.muzea.utils.PreparedAttachment
 import com.example.muzea.data.repository.ChatMessagesCache
 import com.example.muzea.domain.repository.MessageRepository
@@ -403,6 +405,51 @@ class ChatConversationViewModelTest {
         assertEquals(MessageDeliveryStatus.READ, viewModel.deliveryStatus("m1"))
         coVerify { messageRepository.markMessagesAsDelivered(chatUuid, "m1") }
         assertEquals("Anna", viewModel.participantStatuses(viewModel.uiState.value.messages.single()).single().receipt.displayName())
+    }
+
+    @Test
+    fun `reaction authors include users without receipts`() = withViewModel(
+        network = flowOf(
+            Resource.Success(
+                listOf(message("m1", "hi", "2026-01-01T10:00:00", messageId = 10))
+            )
+        )
+    ) { viewModel ->
+        coEvery { messageRepository.loadChatReceipts(chatUuid) } returns listOf(
+            ChatReceipt(
+                userUuid = "other",
+                username = "anna",
+                fullName = "Anna",
+                avatarUrl = null,
+                joinedAt = "2025-01-01T00:00:00",
+                lastDeliveredMessageId = 10,
+                lastDeliveredAt = "2026-01-01T10:01:00",
+                lastReadMessageId = 10,
+                lastReadAt = "2026-01-01T10:02:00"
+            )
+        )
+        viewModel.refresh()
+
+        val message = viewModel.uiState.value.messages.single().copy(
+            reactions = listOf(
+                MessageReaction(
+                    emoji = "👍",
+                    count = 2,
+                    mine = true,
+                    users = listOf(
+                        ReactionUser("me", "2026-01-01T10:03:00"),
+                        ReactionUser("other", "2026-01-01T10:04:00")
+                    )
+                )
+            )
+        )
+
+        val authors = viewModel.reactionAuthors(message)
+
+        assertEquals(listOf("me", "other"), authors.map { it.first })
+        // Своего receipt в списке участников нет — строка остаётся без него.
+        assertNull(authors.first { it.first == "me" }.second)
+        assertEquals("Anna", authors.first { it.first == "other" }.second?.displayName())
     }
 
     @Test
