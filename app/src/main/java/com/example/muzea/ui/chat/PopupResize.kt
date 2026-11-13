@@ -1,28 +1,27 @@
 package com.example.muzea.ui.chat
 
 /**
- * Геометрия анимации раскрытия карточки: двигаем только ту границу, которая
- * дальше от сообщения, вторую оставляем на месте — иначе низ «дёргается».
+ * Геометрия раскрытия карточки. Карточка не меняет положение: край со стороны
+ * сообщения закрепляется, а расти она может только в свободную сторону.
  */
 object PopupResize {
 
-    /** Держать нижний край неподвижным (карточка растёт вверх). */
-    fun keepBottom(targetY: Int, targetHeight: Int, startY: Int, startHeight: Int): Boolean {
-        val bottomDelta = kotlin.math.abs(targetY + targetHeight - (startY + startHeight))
-        val topDelta = kotlin.math.abs(targetY - startY)
-        return bottomDelta <= topDelta
-    }
+    /** Растём вверх, если карточка стоит над точкой касания. */
+    fun growsUp(popupY: Int, popupHeight: Int, tapY: Int): Boolean =
+        popupY + popupHeight <= tapY
 
-    /** Y окна для промежуточной высоты, с прижатием к экрану. */
-    fun frameY(
-        startY: Int,
-        startHeight: Int,
+    /**
+     * Y окна для промежуточной высоты. При росте вверх закреплён нижний край,
+     * вниз — верхний; остальное прижимается к экрану.
+     */
+    fun yForHeight(
+        growsUp: Boolean,
+        edgeAnchor: Int,
         height: Int,
-        keepBottom: Boolean,
         screenHeight: Int,
         margin: Int
     ): Int {
-        val raw = if (keepBottom) startY + startHeight - height else startY
+        val raw = if (growsUp) edgeAnchor - height else edgeAnchor
         val maxY = (screenHeight - height - margin).coerceAtLeast(margin)
         return raw.coerceIn(margin, maxY)
     }

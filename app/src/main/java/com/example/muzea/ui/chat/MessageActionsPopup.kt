@@ -71,13 +71,15 @@ class MessageActionsPopup(
     private var popupX = 0
     private var popupY = 0
     private var popupHeight = 0
+    private var growsUp = false
+    private var edgeAnchor = 0
     private var animator: android.animation.ValueAnimator? = null
 
     private companion object {
         const val ICON_DP = 38
         const val STRIP_LIMIT = 11
         const val STATUS_ROW_DP = 56
-        const val RESIZE_DURATION_MS = 160L
+        const val RESIZE_DURATION_MS = 260L
     }
 
     fun show(anchor: View, tapX: Int? = null, tapY: Int? = null) {
@@ -92,6 +94,9 @@ class MessageActionsPopup(
         popupX = position.x
         popupY = position.y
         popupHeight = height
+        val fingerY = tapY ?: position.y + height
+        growsUp = PopupResize.growsUp(position.y, height, fingerY)
+        edgeAnchor = if (growsUp) position.y + height else position.y
         popup.showAtLocation(
             anchor.rootView, Gravity.TOP or Gravity.START, position.x, position.y
         )
@@ -151,20 +156,18 @@ class MessageActionsPopup(
             popupHeight = targetHeight
             return
         }
-        val keepBottom = PopupResize.keepBottom(target.y, targetHeight, startY, startHeight)
         val metrics = context.resources.displayMetrics
         val margin = (8 * density).toInt()
         val animation = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
             duration = RESIZE_DURATION_MS
-            interpolator = android.view.animation.DecelerateInterpolator()
+            interpolator = androidx.interpolator.view.animation.FastOutSlowInInterpolator()
             addUpdateListener { value ->
                 val fraction = value.animatedValue as Float
                 val height = (startHeight + (targetHeight - startHeight) * fraction).toInt()
-                val y = PopupResize.frameY(
-                    startY = startY,
-                    startHeight = startHeight,
+                val y = PopupResize.yForHeight(
+                    growsUp = growsUp,
+                    edgeAnchor = edgeAnchor,
                     height = height,
-                    keepBottom = keepBottom,
                     screenHeight = metrics.heightPixels,
                     margin = margin
                 )
@@ -173,16 +176,6 @@ class MessageActionsPopup(
                 popupY = y
                 popupHeight = height
             }
-            addListener(object : android.animation.AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: android.animation.Animator) {
-                    // Доводим до точной позиции, если прижатие к экрану
-                    // скорректировало края.
-                    popup.update(target.x, target.y, width, targetHeight)
-                    popupX = target.x
-                    popupY = target.y
-                    popupHeight = targetHeight
-                }
-            })
         }
         animator = animation
         animation.start()

@@ -8,24 +8,22 @@ import org.junit.Test
 class PopupResizeTest {
 
     @Test
-    fun `growing upwards keeps the bottom edge`() {
-        // Карточка была 1000..1300, стала выше и её верх уехал до 700.
-        assertTrue(PopupResize.keepBottom(targetY = 700, targetHeight = 600, startY = 1000, startHeight = 300))
+    fun `card above the finger grows upwards`() {
+        // Карточка 1000..1300, палец ниже — растим вверх, низ стоит.
+        assertTrue(PopupResize.growsUp(popupY = 1000, popupHeight = 300, tapY = 1500))
     }
 
     @Test
-    fun `growing downwards keeps the top edge`() {
-        // Верх остался тем же, низ уехал вниз.
-        assertFalse(PopupResize.keepBottom(targetY = 1000, targetHeight = 800, startY = 1000, startHeight = 300))
+    fun `card under the finger grows downwards`() {
+        assertFalse(PopupResize.growsUp(popupY = 1600, popupHeight = 300, tapY = 1500))
     }
 
     @Test
-    fun `bottom anchored frame keeps the lower edge fixed`() {
-        val y = PopupResize.frameY(
-            startY = 1000,
-            startHeight = 300,
+    fun `growing up keeps the bottom edge fixed`() {
+        val y = PopupResize.yForHeight(
+            growsUp = true,
+            edgeAnchor = 1300,
             height = 600,
-            keepBottom = true,
             screenHeight = 2400,
             margin = 8
         )
@@ -33,12 +31,11 @@ class PopupResizeTest {
     }
 
     @Test
-    fun `top anchored frame keeps the upper edge fixed`() {
-        val y = PopupResize.frameY(
-            startY = 1000,
-            startHeight = 300,
+    fun `growing down keeps the top edge fixed`() {
+        val y = PopupResize.yForHeight(
+            growsUp = false,
+            edgeAnchor = 1000,
             height = 600,
-            keepBottom = false,
             screenHeight = 2400,
             margin = 8
         )
@@ -46,15 +43,26 @@ class PopupResizeTest {
     }
 
     @Test
-    fun `frame does not go above the screen`() {
-        val y = PopupResize.frameY(
-            startY = 1000,
-            startHeight = 300,
+    fun `card does not go above the screen`() {
+        val y = PopupResize.yForHeight(
+            growsUp = true,
+            edgeAnchor = 1300,
             height = 1400,
-            keepBottom = true,
             screenHeight = 2400,
             margin = 8
         )
         assertEquals(8, y)
+    }
+
+    @Test
+    fun `card does not go below the screen`() {
+        val y = PopupResize.yForHeight(
+            growsUp = false,
+            edgeAnchor = 2000,
+            height = 600,
+            screenHeight = 2400,
+            margin = 8
+        )
+        assertEquals(1792, y)
     }
 }
