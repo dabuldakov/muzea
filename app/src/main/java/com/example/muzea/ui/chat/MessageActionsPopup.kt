@@ -429,7 +429,7 @@ class MessageActionsPopup(
                 textSize = 12f
                 setTextColor(onSurfaceVariant)
             })
-            if (row.status != "REACTED") {
+            if (row.status != MessageDetailsRows.STATUS_REACTED) {
                 val (statusIcon, statusColor) = when (row.status) {
                     "READ" -> R.drawable.ic_message_read to R.color.teal_700
                     "DELIVERED" -> R.drawable.ic_message_delivered to R.color.gray
