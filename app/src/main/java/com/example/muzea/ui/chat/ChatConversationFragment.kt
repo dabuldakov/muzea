@@ -99,6 +99,7 @@ class ChatConversationFragment : Fragment(),
     private lateinit var scrollController: ChatScrollController
     private lateinit var composerBanner: ComposerBanner
     private lateinit var pendingAttachmentsView: PendingAttachmentsView
+    private lateinit var chargeMeter: ChargeMeter
     /** Пока модалка открыта, «назад» закрывает её, а не весь чат. */
     private val actionsBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
@@ -275,6 +276,16 @@ class ChatConversationFragment : Fragment(),
             viewLifecycleOwner, actionsBackCallback
         )
         setupRecyclerView()
+        chargeMeter = ChargeMeter(
+            chargeBar = binding.chargeBar,
+            progress = binding.progressCharge,
+            percentText = binding.tvChargePercent,
+            burst = binding.chargeBurst,
+            sendButton = binding.btnSend,
+            chargeFormat = { power -> getString(R.string.charge_format, power) },
+            chargeZero = getString(R.string.charge_zero),
+            onVibrate = { level -> vibrateCharge(level) }
+        )
         pendingAttachmentsView = PendingAttachmentsView(
             inflater = layoutInflater,
             scroll = binding.scrollPending,
@@ -1259,18 +1270,7 @@ class ChatConversationFragment : Fragment(),
     }
 
     private fun renderCharge(heldMs: Long) {
-        val power = ChargeCalculator.power(heldMs)
-        binding.chargeBar.visibility = View.VISIBLE
-        binding.progressCharge.progress = power
-        binding.tvChargePercent.text = getString(R.string.charge_format, power)
-        binding.chargeBurst.updatePower(power)
-        // Кнопка «раздувается» и пульсирует; к концу — сильнее.
-        val level = power / 100f
-        val pulse = 1f + 0.10f * level * (0.5f + 0.5f * kotlin.math.sin(heldMs / 90.0).toFloat())
-        val scale = 1f + 0.55f * level
-        binding.btnSend.scaleX = scale * pulse
-        binding.btnSend.scaleY = scale * pulse
-        vibrateCharge(level)
+        chargeMeter.render(heldMs)
     }
 
     /** Вибрация усиливается и учащается по мере заряда. */
@@ -1305,12 +1305,7 @@ class ChatConversationFragment : Fragment(),
     private fun resetChargeMeter() {
         isCharging = false
         chargeStartedAt = 0L
-        binding.chargeBar.visibility = View.GONE
-        binding.progressCharge.progress = 0
-        binding.tvChargePercent.text = getString(R.string.charge_zero)
-        binding.chargeBurst.clear()
-        binding.btnSend.scaleX = 1f
-        binding.btnSend.scaleY = 1f
+        chargeMeter.reset()
     }
 
     private fun cycleSendMode() {
