@@ -97,6 +97,7 @@ class ChatConversationFragment : Fragment(),
     private var highlightAttempts = 0
     private var actionsPopup: MessageActionsPopup? = null
     private lateinit var scrollController: ChatScrollController
+    private lateinit var composerBanner: ComposerBanner
     /** Пока модалка открыта, «назад» закрывает её, а не весь чат. */
     private val actionsBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
@@ -107,8 +108,6 @@ class ChatConversationFragment : Fragment(),
     private var lastTapX = 0
     private var lastTapY = 0
     private var lastPending: List<PendingAttachment> = emptyList()
-    private var lastReplyUuid: String? = null
-    private var lastEditingUuid: String? = null
     /** Сообщения, ожидающие выбора чата для пересылки (мультивыбор). */
     private var pendingForwardMessages: List<Message> = emptyList()
     private var selectionMode = false
@@ -275,6 +274,16 @@ class ChatConversationFragment : Fragment(),
             viewLifecycleOwner, actionsBackCallback
         )
         setupRecyclerView()
+        composerBanner = ComposerBanner(
+            context = requireContext(),
+            banner = binding.replyBanner,
+            cancelButton = binding.btnCancelReply,
+            titleView = binding.tvReplyBannerTitle,
+            previewView = binding.tvReplyBannerText,
+            input = binding.etMessageInput,
+            myUserUuid = { viewModel.myUserUuid },
+            requestInput = { showKeyboard() }
+        )
         scrollController = ChatScrollController(
             recyclerView = binding.recyclerViewMessages,
             button = binding.btnScrollBottom,
@@ -819,42 +828,7 @@ class ChatConversationFragment : Fragment(),
      * подставляем как цитату; при редактировании ещё и заполняем поле ввода.
      */
     private fun renderComposerBanner(state: ChatConversationUiState) {
-        val editing = state.editing
-        if (editing != null) {
-            binding.replyBanner.visibility = View.VISIBLE
-            binding.btnCancelReply.contentDescription = getString(R.string.action_cancel_edit)
-            binding.tvReplyBannerTitle.text = getString(R.string.edit_message_title)
-            binding.tvReplyBannerText.text = replyPreviewText(requireContext(), editing)
-            if (editing.messageUuid != lastEditingUuid) {
-                lastEditingUuid = editing.messageUuid
-                val text = editing.text.orEmpty()
-                binding.etMessageInput.setText(text)
-                binding.etMessageInput.setSelection(text.length)
-                binding.etMessageInput.requestFocus()
-                showKeyboard()
-            }
-            return
-        }
-        lastEditingUuid = null
-
-        binding.btnCancelReply.contentDescription = getString(R.string.action_cancel_reply)
-        val replyTo = state.replyTo
-        if (replyTo == null) {
-            binding.replyBanner.visibility = View.GONE
-            lastReplyUuid = null
-            return
-        }
-        binding.replyBanner.visibility = View.VISIBLE
-        binding.tvReplyBannerTitle.text = getString(
-            R.string.reply_to_format,
-            replySenderName(requireContext(), replyTo, viewModel.myUserUuid)
-        )
-        binding.tvReplyBannerText.text = replyPreviewText(requireContext(), replyTo)
-        if (replyTo.messageUuid != lastReplyUuid) {
-            lastReplyUuid = replyTo.messageUuid
-            binding.etMessageInput.requestFocus()
-            showKeyboard()
-        }
+        composerBanner.render(replyTo = state.replyTo, editing = state.editing)
     }
 
     private fun showKeyboard() {
