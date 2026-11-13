@@ -15,7 +15,6 @@ import io.mockk.mockkObject
 import io.mockk.unmockkAll
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -95,7 +94,7 @@ class DetailsSectionTest {
     }
 
     @Test
-    fun `details are hidden without reactions and readers`() {
+    fun `details stay visible with an empty state`() {
         val content = content()
         val section = DetailsSection(context, content, 1f, {}, {})
 
@@ -106,8 +105,14 @@ class DetailsSectionTest {
             showStatus = true
         )
 
-        assertFalse(section.isVisible)
-        assertEquals(View.GONE, content.findViewById<View>(R.id.statusSection).visibility)
+        assertTrue(section.isVisible)
+        assertEquals(View.VISIBLE, content.findViewById<View>(R.id.statusSection).visibility)
+        val rows = content.findViewById<LinearLayout>(R.id.statusRows)
+        assertEquals(1, rows.childCount)
+        assertEquals(
+            context.getString(R.string.details_empty_reactions),
+            (rows.getChildAt(0) as android.widget.TextView).text.toString()
+        )
     }
 
     @Test

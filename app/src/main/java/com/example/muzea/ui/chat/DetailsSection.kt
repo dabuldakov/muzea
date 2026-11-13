@@ -47,9 +47,7 @@ class DetailsSection(
         rows.removeAllViews()
         scroll.visibility = View.GONE
 
-        val readRows = statusRows.filter { it.status == "READ" }
-        val hasReactions = reactions.isNotEmpty()
-        val hasReaders = showStatus && readRows.isNotEmpty()
+        // На чужих сообщениях получателей нет — показываем авторов реакций.
         // На чужих сообщениях получателей нет — показываем авторов реакций.
         val detailsRows = if (statusRows.isNotEmpty()) {
             statusRows + reactionRows.filterNot { author ->
@@ -58,9 +56,10 @@ class DetailsSection(
         } else {
             reactionRows
         }
-        isVisible = hasReactions || hasReaders || reactionRows.isNotEmpty()
-        section.visibility = if (isVisible) View.VISIBLE else View.GONE
-        if (!isVisible) return
+        // «Детали» показываем всегда: даже без реакций и читателей блок
+        // остаётся на месте, чтобы карточка не меняла состав.
+        isVisible = true
+        section.visibility = View.VISIBLE
 
         readers.addView(TextView(context).apply {
             text = context.getString(R.string.message_status_title)
@@ -82,8 +81,25 @@ class DetailsSection(
         val onSurfaceVariant = androidx.core.graphics.ColorUtils.setAlphaComponent(
             onSurface, 0x99
         )
-        detailsRows.forEach { row ->
-            rows.addView(buildRow(row, reactionsByUser[row.userUuid].orEmpty(), onSurface, onSurfaceVariant))
+        if (detailsRows.isEmpty()) {
+            rows.addView(TextView(context).apply {
+                text = context.getString(R.string.details_empty_reactions)
+                textSize = 13f
+                setTextColor(onSurfaceVariant)
+                val pad = (6 * density).toInt()
+                setPadding(pad, pad, pad, pad)
+            })
+        } else {
+            detailsRows.forEach { row ->
+                rows.addView(
+                    buildRow(
+                        row,
+                        reactionsByUser[row.userUuid].orEmpty(),
+                        onSurface,
+                        onSurfaceVariant
+                    )
+                )
+            }
         }
         scroll.setOnClickListener { onRowClick() }
         rows.setOnClickListener { onRowClick() }
