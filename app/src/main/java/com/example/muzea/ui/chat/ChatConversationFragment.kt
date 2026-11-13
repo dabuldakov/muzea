@@ -113,8 +113,7 @@ class ChatConversationFragment : Fragment(),
     private var lastPending: List<PendingAttachment> = emptyList()
     /** Сообщения, ожидающие выбора чата для пересылки (мультивыбор). */
     private var pendingForwardMessages: List<Message> = emptyList()
-    private var selectionMode = false
-    private val selectedMessages = LinkedHashSet<String>()
+    private lateinit var selectionController: SelectionController
     private val selectionBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
             exitSelectionMode()
@@ -569,50 +568,38 @@ class ChatConversationFragment : Fragment(),
         requireActivity().onBackPressedDispatcher.addCallback(
             viewLifecycleOwner, selectionBackCallback
         )
-        binding.btnSelectionDelete.setOnClickListener { deleteSelected() }
-        binding.btnSelectionForward.setOnClickListener { forwardSelected() }
-        binding.btnSelectionClose.setOnClickListener { exitSelectionMode() }
+        selectionController = SelectionController(
+            adapter = adapter,
+            selectionBar = binding.selectionBar,
+            composerBar = binding.composerBar,
+            countView = binding.tvSelectionCount,
+            backCallback = selectionBackCallback,
+            messages = { adapter.currentList },
+            countLabel = { count -> getString(R.string.selected_count, count) },
+            onDelete = { deleteSelected() },
+            onForward = { forwardSelected() }
+        ).also {
+            it.setup(
+                deleteButton = binding.btnSelectionDelete,
+                forwardButton = binding.btnSelectionForward,
+                closeButton = binding.btnSelectionClose
+            )
+        }
     }
 
     private fun enterSelectionMode(message: Message) {
-        selectionMode = true
-        selectedMessages.clear()
-        selectedMessages.add(message.messageUuid)
-        adapter.setSelection(selectedMessages)
-        selectionBackCallback.isEnabled = true
-        binding.selectionBar.visibility = View.VISIBLE
-        binding.composerBar.visibility = View.GONE
-        updateSelectionCount()
+        selectionController.enter(message)
     }
 
     private fun toggleSelection(message: Message) {
-        if (!selectedMessages.remove(message.messageUuid)) {
-            selectedMessages.add(message.messageUuid)
-        }
-        adapter.setSelection(selectedMessages)
-        if (selectedMessages.isEmpty()) {
-            exitSelectionMode()
-        } else {
-            updateSelectionCount()
-        }
-    }
-
-    private fun updateSelectionCount() {
-        binding.tvSelectionCount.text =
-            getString(R.string.selected_count, selectedMessages.size)
+        selectionController.toggle(message)
     }
 
     private fun exitSelectionMode() {
-        selectionMode = false
-        selectedMessages.clear()
-        adapter.setSelection(emptySet())
-        selectionBackCallback.isEnabled = false
-        binding.selectionBar.visibility = View.GONE
-        binding.composerBar.visibility = View.VISIBLE
+        if (::selectionController.isInitialized) selectionController.exit()
     }
 
-    private fun selectedItems(): List<Message> =
-        adapter.currentList.filter { it.messageUuid in selectedMessages }
+    private fun selectedItems(): List<Message> = selectionController.selectedItems()
 
     private fun deleteSelected() {
         val deletable = selectedItems().filter {
@@ -699,7 +686,11 @@ class ChatConversationFragment : Fragment(),
             myUserUuid = viewModel.myUserUuid,
             linkPreviews = linkPreviewStore,
             onMessageClick = { message ->
-                if (selectionMode) toggleSelection(message) else showMessageActions(message)
+                if (selectionController.isActive) {
+                    toggleSelection(message)
+                } else {
+                    showMessageActions(message)
+                }
             },
             statusFor = { message -> viewModel.deliveryStatus(message.messageUuid) },
             onStatusClick = { message -> showMessageActions(message) },
