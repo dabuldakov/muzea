@@ -218,15 +218,6 @@ class MessageActionsPopup(
         if (startY == target.y && startHeight == targetHeight) return
         val metrics = context.resources.displayMetrics
         val margin = (8 * density).toInt()
-        if (targetHeight > startHeight) {
-            // Растём вниз, если снизу хватает места. Вверх сдвигаемся только
-            // когда внизу места нет — иначе полоса реакций уезжает за край.
-            val needed = targetHeight - startHeight
-            val spaceBelow = metrics.heightPixels - margin - (popupY + popupHeight)
-            val spaceAbove = popupY - margin
-            growsUp = spaceBelow < needed && spaceAbove > spaceBelow
-            edgeAnchor = if (growsUp) popupY + popupHeight else popupY
-        }
         val animation = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
             duration = RESIZE_DURATION_MS
             interpolator = androidx.interpolator.view.animation.FastOutSlowInInterpolator()
