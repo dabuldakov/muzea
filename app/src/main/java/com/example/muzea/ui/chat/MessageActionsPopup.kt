@@ -98,7 +98,6 @@ class MessageActionsPopup(
         )
     }
 
-    private var expanded = false
     private var statusExpanded = false
     private var anchorView: View? = null
     private var tapX: Int? = null
@@ -106,6 +105,16 @@ class MessageActionsPopup(
     private var popupX = 0
     private var popupY = 0
     private var popupHeight = 0
+    private val reactionsSection = ReactionsSection(
+        context = context,
+        content = content,
+        density = context.resources.displayMetrics.density,
+        onReaction = { emoji ->
+            onReaction(emoji)
+            dismiss()
+        },
+        animate = { onFraction -> animateContent(onFraction = onFraction) }
+    )
     private val details = DetailsSection(
         context = context,
         content = content,
@@ -267,76 +276,12 @@ class MessageActionsPopup(
     }
 
     private fun renderReactions() {
-        val strip = content.findViewById<LinearLayout>(R.id.reactionsStrip)
-        val recentRow = content.findViewById<LinearLayout>(R.id.recentReactions)
-        val full = content.findViewById<GridLayout>(R.id.fullReactions)
-        val arrow = content.findViewById<ImageButton>(R.id.btnExpandReactions)
-        recentRow.removeAllViews()
-        full.removeAllViews()
-        val size = (ICON_DP * density).toInt()
-
         val recent = ReactionHistory.recent(context)
-        // В полосе — только последние 11: короче прокрутка.
-        recent.take(STRIP_LIMIT).forEach { emoji ->
-            recentRow.addView(emojiView(emoji, size, grid = false))
-        }
-
-        // Раскрытие заменяет полосу общим списком: все реакции разом,
-        // без дублей, сверху вниз. Сворачивать нечего — выбор эмодзи или
-        // тап мимо закрывают карточку.
-        ReactionOrder.ordered(recent, ReactionHistory.FULL).forEach { emoji ->
-            full.addView(emojiView(emoji, size, grid = true))
-        }
-        arrow.setOnClickListener {
-            if (expanded) return@setOnClickListener
-            expanded = true
-            val stripHeight = (44 * density).toInt()
-            val cell = (ICON_DP * density)
-            val columns = 7
-            val rows = (ReactionOrder.ordered(recent, ReactionHistory.FULL).size +
-                columns - 1) / columns
-            val gridHeight = (rows * cell).toInt()
-            // Значки в сетке стоят на том же отступе от верха, что и в полосе.
-            val topMargin = (full.layoutParams as? ViewGroup.MarginLayoutParams)
-                ?.topMargin ?: 0
-            val startHeight = (stripHeight - topMargin).coerceAtLeast(0)
-            full.layoutParams = full.layoutParams.apply { height = startHeight }
-            strip.visibility = View.GONE
-            full.visibility = View.VISIBLE
-            animateContent(onFraction = { fraction ->
-                val h = (startHeight + (gridHeight - startHeight) * fraction).toInt()
-                full.layoutParams = full.layoutParams.apply { height = h }
-            })
-        }
+        reactionsSection.render(
+            recent = recent,
+            all = ReactionOrder.ordered(recent, ReactionHistory.FULL)
+        )
     }
-
-    private fun emojiView(emoji: String, size: Int, grid: Boolean): TextView =
-        TextView(context).apply {
-            text = emoji
-            textSize = 22f
-            includeFontPadding = false
-            gravity = Gravity.CENTER
-            setTextColor(
-                if ((context.resources.configuration.uiMode and
-                        android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
-                    android.content.res.Configuration.UI_MODE_NIGHT_YES
-                ) Color.WHITE else Color.BLACK
-            )
-            layoutParams = if (grid) {
-                GridLayout.LayoutParams().apply {
-                    width = size
-                    height = size
-                    setGravity(Gravity.CENTER)
-                }
-            } else {
-                LinearLayout.LayoutParams(size, size)
-            }
-            setOnClickListener {
-                ReactionHistory.record(context, emoji)
-                onReaction(emoji)
-                dismiss()
-            }
-        }
 
     private fun renderStatus() {
         details.render(
