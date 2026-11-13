@@ -437,6 +437,7 @@ class ChatConversationFragment : Fragment(),
                 actions = actions,
                 statusRows = if (showStatus) buildStatusRows(message) else emptyList(),
                 reactions = message.reactions,
+                reactionRows = buildReactionRows(message),
                 showStatus = showStatus,
                 onAction = { actionId -> onMessageAction(message.messageUuid, actionId) },
                 onReaction = { emoji -> viewModel.toggleReaction(message, emoji) },
@@ -548,6 +549,22 @@ class ChatConversationFragment : Fragment(),
             ?.chatType.equals("GROUP", ignoreCase = true)
 
     /** Строки «кто прочитал / кому доставлено» для шторки статуса. */
+    /** Авторы реакций — для «Деталей» на чужих сообщениях. */
+    private fun buildReactionRows(message: Message): List<MessageStatusRow> =
+        viewModel.reactionAuthors(message).map { receipt ->
+            val at = message.reactions
+                .firstNotNullOfOrNull { reaction ->
+                    reaction.users.firstOrNull { it.userUuid == receipt.userUuid }?.at
+                }
+            MessageStatusRow(
+                userUuid = receipt.userUuid,
+                name = receipt.displayName(),
+                avatarUrl = receipt.avatarUrl,
+                status = "REACTED",
+                at = LocalTimeFormatter.format(at).takeIf { it.isNotBlank() }
+            )
+        }
+
     private fun buildStatusRows(message: Message): List<MessageStatusRow> =
         viewModel.participantStatuses(message).map { row ->
             val at = if (row.status == MessageDeliveryStatus.READ) {

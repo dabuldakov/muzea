@@ -1096,6 +1096,19 @@ class ChatConversationViewModel @Inject constructor(
     fun deliveryStatus(messageUuid: String): MessageDeliveryStatus? =
         _uiState.value.statuses[messageUuid]
 
+    /**
+     * Кто поставил реакции — для блока «Детали». Нужен и на чужих сообщениях,
+     * где списка получателей нет.
+     */
+    fun reactionAuthors(message: Message): List<ChatReceipt> {
+        val uuids = message.reactions
+            .flatMap { reaction -> reaction.users.mapNotNull { it.userUuid } }
+            .distinct()
+        if (uuids.isEmpty()) return emptyList()
+        val byUuid = _uiState.value.receipts.associateBy { it.userUuid }
+        return uuids.mapNotNull { byUuid[it] }
+    }
+
     /** Кто прочитал/получил сообщение — для шторки статуса. */
     fun participantStatuses(message: Message): List<ParticipantDeliveryStatus> =
         MessageStatusCalculator.participantStatuses(

@@ -30,6 +30,8 @@ class MessageActionsPopup(
     private val actions: List<MessageActionSpec>,
     private val statusRows: List<MessageStatusRow> = emptyList(),
     private val reactions: List<com.example.muzea.domain.model.MessageReaction> = emptyList(),
+    /** Авторы реакций для чужих сообщений, где нет списка получателей. */
+    private val reactionRows: List<MessageStatusRow> = emptyList(),
     private val showStatus: Boolean = false,
     private val onAction: (String) -> Unit,
     private val onReaction: (String) -> Unit,
@@ -252,9 +254,21 @@ class MessageActionsPopup(
         val readRows = statusRows.filter { it.status == "READ" }
         val hasReactions = reactions.isNotEmpty()
         val hasReaders = showStatus && readRows.isNotEmpty()
+        // На чужих сообщениях получателей нет — показываем авторов реакций.
+        val detailsRows = if (statusRows.isNotEmpty()) {
+            statusRows + reactionRows.filterNot { author ->
+                statusRows.any { it.userUuid == author.userUuid }
+            }
+        } else {
+            reactionRows
+        }
         // Реакции и прочитавшие живут в одном блоке «Детали».
         section.visibility =
-            if (hasReactions || hasReaders) View.VISIBLE else View.GONE
+            if (hasReactions || hasReaders || reactionRows.isNotEmpty()) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
         if (section.visibility != View.VISIBLE) return
 
         // Свёрнутый вид — текстовый заголовок, а не аватарки: в ряд они
@@ -281,7 +295,7 @@ class MessageActionsPopup(
         val onSurfaceVariant = androidx.core.graphics.ColorUtils.setAlphaComponent(
             onSurface, 0x99
         )
-        statusRows.forEach { row ->
+        detailsRows.forEach { row ->
             val line = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
@@ -321,21 +335,23 @@ class MessageActionsPopup(
                 textSize = 12f
                 setTextColor(onSurfaceVariant)
             })
-            val (statusIcon, statusColor) = when (row.status) {
-                "READ" -> R.drawable.ic_message_read to R.color.teal_700
-                "DELIVERED" -> R.drawable.ic_message_delivered to R.color.gray
-                else -> R.drawable.ic_message_sent to R.color.gray
-            }
-            meta.addView(ImageView(context).apply {
-                val size = (14 * density).toInt()
-                layoutParams = LinearLayout.LayoutParams(size, size).apply {
-                    marginStart = (5 * density).toInt()
+            if (row.status != "REACTED") {
+                val (statusIcon, statusColor) = when (row.status) {
+                    "READ" -> R.drawable.ic_message_read to R.color.teal_700
+                    "DELIVERED" -> R.drawable.ic_message_delivered to R.color.gray
+                    else -> R.drawable.ic_message_sent to R.color.gray
                 }
-                setImageResource(statusIcon)
-                setColorFilter(
-                    androidx.core.content.ContextCompat.getColor(context, statusColor)
-                )
-            })
+                meta.addView(ImageView(context).apply {
+                    val size = (14 * density).toInt()
+                    layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                        marginStart = (5 * density).toInt()
+                    }
+                    setImageResource(statusIcon)
+                    setColorFilter(
+                        androidx.core.content.ContextCompat.getColor(context, statusColor)
+                    )
+                })
+            }
             column.addView(meta)
             line.addView(column)
 
