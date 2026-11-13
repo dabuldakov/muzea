@@ -1019,15 +1019,8 @@ class ChatConversationFragment : Fragment(),
         adapter.setAudioState(null, playing = false)
     }
 
-    private fun resolveAttachmentUrl(attachment: MessageAttachment): String? {
-        val uuid = attachment.attachmentUuid
-        return when {
-            !uuid.isNullOrBlank() -> MediaUrl.chat("/api/attachments/$uuid")
-            attachment.fileUrl.startsWith("/") || attachment.fileUrl.startsWith("http") ->
-                attachment.fileUrl
-            else -> MediaUrl.chat(attachment.fileUrl)
-        }
-    }
+    private fun resolveAttachmentUrl(attachment: MessageAttachment): String? =
+        AttachmentUrlResolver.resolve(attachment)
 
     private fun downloadAndOpen(attachment: MessageAttachment) {
         // Повторные нажатия не должны запускать параллельные загрузки.
