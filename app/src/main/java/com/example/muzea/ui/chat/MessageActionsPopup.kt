@@ -32,6 +32,8 @@ class MessageActionsPopup(
     private val reactions: List<com.example.muzea.domain.model.MessageReaction> = emptyList(),
     /** Авторы реакций для чужих сообщений, где нет списка получателей. */
     private val reactionRows: List<MessageStatusRow> = emptyList(),
+    /** Ниже какого Y карточка не должна подниматься (низ шапки чата). */
+    private val topLimit: Int = 0,
     private val showStatus: Boolean = false,
     private val onAction: (String) -> Unit,
     private val onReaction: (String) -> Unit,
@@ -192,16 +194,18 @@ class MessageActionsPopup(
         // в верхней половине экрана карточку ставим строго под пальцем:
         // иначе её верх уезжает под строку состояния.
         val fingerY = tapY ?: location[1]
+        val minY = topLimit.coerceAtLeast(margin)
         if (fingerY < metrics.heightPixels / 2) {
             val below = (fingerY + margin)
-                .coerceAtMost((metrics.heightPixels - height - margin).coerceAtLeast(margin))
+                .coerceAtMost((metrics.heightPixels - height - margin).coerceAtLeast(minY))
+                .coerceAtLeast(minY)
             return ActionsPopupPosition.Point(
                 x = (tapX ?: (location[0] + anchor.width / 2) - width / 2)
                     .coerceIn(margin, (metrics.widthPixels - width - margin).coerceAtLeast(margin)),
                 y = below
             )
         }
-        return ActionsPopupPosition.calculate(
+        val position = ActionsPopupPosition.calculate(
             tapX = tapX ?: (location[0] + anchor.width / 2),
             tapY = fingerY,
             popupWidth = width,
@@ -210,6 +214,7 @@ class MessageActionsPopup(
             margin = margin,
             screenHeight = metrics.heightPixels
         )
+        return position.copy(y = position.y.coerceAtLeast(minY))
     }
 
     /**
@@ -239,7 +244,8 @@ class MessageActionsPopup(
                     edgeAnchor = edgeAnchor,
                     height = height,
                     screenHeight = metrics.heightPixels,
-                    margin = margin
+                    margin = margin,
+                    topLimit = topLimit
                 )
                 popupY = y
                 popupHeight = height
@@ -284,11 +290,14 @@ class MessageActionsPopup(
             val columns = 7
             val rows = (ReactionOrder.ordered(recent, ReactionHistory.FULL).size + columns - 1) / columns
             val gridHeight = (rows * cell).toInt()
-            full.layoutParams = full.layoutParams.apply { height = stripHeight }
+            val topMargin = (full.layoutParams as? ViewGroup.MarginLayoutParams)
+                ?.topMargin ?: 0
+            val startHeight = (stripHeight - topMargin).coerceAtLeast(0)
+            full.layoutParams = full.layoutParams.apply { height = startHeight }
             strip.visibility = View.GONE
             full.visibility = View.VISIBLE
             animateContent(onFraction = { fraction ->
-                val h = (stripHeight + (gridHeight - stripHeight) * fraction).toInt()
+                val h = (startHeight + (gridHeight - startHeight) * fraction).toInt()
                 full.layoutParams = full.layoutParams.apply { height = h }
             })
         }

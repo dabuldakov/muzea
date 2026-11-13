@@ -19,10 +19,12 @@ object PopupResize {
         edgeAnchor: Int,
         height: Int,
         screenHeight: Int,
-        margin: Int
+        margin: Int,
+        topLimit: Int = margin
     ): Int {
         val raw = if (growsUp) edgeAnchor - height else edgeAnchor
-        val maxY = (screenHeight - height - margin).coerceAtLeast(margin)
-        return raw.coerceIn(margin, maxY)
+        val minY = topLimit.coerceAtLeast(margin)
+        val maxY = (screenHeight - height - margin).coerceAtLeast(minY)
+        return raw.coerceIn(minY, maxY)
     }
 }

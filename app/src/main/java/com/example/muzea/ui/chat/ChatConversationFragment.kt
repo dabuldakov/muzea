@@ -437,6 +437,7 @@ class ChatConversationFragment : Fragment(),
                 statusRows = if (showStatus) buildStatusRows(message) else emptyList(),
                 reactions = message.reactions,
                 reactionRows = buildReactionRows(message),
+                topLimit = actionsTopLimit(),
                 showStatus = showStatus,
                 onAction = { actionId -> onMessageAction(message.messageUuid, actionId) },
                 onReaction = { emoji -> viewModel.toggleReaction(message, emoji) },
@@ -511,6 +512,14 @@ class ChatConversationFragment : Fragment(),
             ?.chatType.equals("GROUP", ignoreCase = true)
 
     /** Строки «кто прочитал / кому доставлено» для шторки статуса. */
+    /** Ниже шапки чата с небольшим отступом — верхняя граница модалки. */
+    private fun actionsTopLimit(): Int {
+        val header = binding.chatHeader ?: return 0
+        val location = IntArray(2)
+        header.getLocationOnScreen(location)
+        return location[1] + header.height + (8 * resources.displayMetrics.density).toInt()
+    }
+
     /** Авторы реакций — для «Деталей» на чужих сообщениях. */
     private fun buildReactionRows(message: Message): List<MessageStatusRow> =
         viewModel.reactionAuthors(message).map { receipt ->
