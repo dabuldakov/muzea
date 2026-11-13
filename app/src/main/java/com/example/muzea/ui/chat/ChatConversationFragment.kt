@@ -145,8 +145,7 @@ class ChatConversationFragment : Fragment(),
     private var finishingRecording = false
     private var voiceRecorder: VoiceRecorder? = null
     private var videoRecorder: VideoNoteRecorder? = null
-    private var audioPlayer: ChatAudioPlayer? = null
-    private var playingAudioUuid: String? = null
+    private lateinit var audioController: ChatAudioController
 
     private val micPermission = registerForActivityResult(RequestPermission()) { granted ->
         if (!granted) {
@@ -295,6 +294,23 @@ class ChatConversationFragment : Fragment(),
             chargeFormat = { power -> getString(R.string.charge_format, power) },
             chargeZero = getString(R.string.charge_zero),
             onVibrate = { level -> vibrateCharge(level) }
+        )
+        audioController = ChatAudioController(
+            adapter = adapter,
+            createPlayer = {
+                ChatAudioPlayer(
+                    context = requireContext(),
+                    token = tokenManager.getToken().orEmpty(),
+                    onFinished = { audioController.finish() },
+                    onError = { audioController.fail() }
+                )
+            },
+            onFinished = {},
+            onError = {
+                Toast.makeText(
+                    requireContext(), R.string.attachment_open_failed, Toast.LENGTH_SHORT
+                ).show()
+            }
         )
         pendingAttachmentsView = PendingAttachmentsView(
             inflater = layoutInflater,
@@ -944,32 +960,7 @@ class ChatConversationFragment : Fragment(),
     /** Воспроизведение голосового/аудио прямо в чате, без отдельного экрана. */
     private fun toggleAudio(message: Message, attachment: MessageAttachment) {
         val url = resolveAttachmentUrl(attachment) ?: return
-        val uuid = message.messageUuid
-        val player = audioPlayer ?: ChatAudioPlayer(
-            context = requireContext(),
-            token = tokenManager.getToken().orEmpty(),
-            onFinished = { resetAudioState() },
-            onError = {
-                resetAudioState()
-                Toast.makeText(requireContext(), R.string.attachment_open_failed, Toast.LENGTH_SHORT)
-                    .show()
-            }
-        ).also { audioPlayer = it }
-
-        if (playingAudioUuid == uuid) {
-            if (player.isPlaying) player.pause() else player.resume()
-            adapter.setAudioState(uuid, player.isPlaying)
-            return
-        }
-
-        playingAudioUuid = uuid
-        adapter.setAudioState(uuid, playing = true)
-        player.play(url)
-    }
-
-    private fun resetAudioState() {
-        playingAudioUuid = null
-        adapter.setAudioState(null, playing = false)
+        audioController.toggle(message.messageUuid, url)
     }
 
     private fun resolveAttachmentUrl(attachment: MessageAttachment): String? =
@@ -1913,9 +1904,7 @@ class ChatConversationFragment : Fragment(),
     override fun onDestroyView() {
         actionsPopup?.dismiss()
         actionsBackCallback.isEnabled = false
-        audioPlayer?.release()
-        audioPlayer = null
-        playingAudioUuid = null
+        if (::audioController.isInitialized) audioController.release()
         if (::adapter.isInitialized) {
             adapter.unregisterAdapterDataObserver(scrollObserver)
             adapter.release()
