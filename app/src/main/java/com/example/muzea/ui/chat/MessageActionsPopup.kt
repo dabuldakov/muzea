@@ -136,13 +136,24 @@ class MessageActionsPopup(
         }
     }
 
-    /** Ставит карточку внутри полноэкранного окна по экранным координатам. */
+    /**
+     * Ставит карточку внутри полноэкранного окна по экранным координатам.
+     * Раскладку применяем сразу: иначе кадр рисуется со старой высотой, но
+     * новым сдвигом, и нижний край подрагивает.
+     */
     private fun applyCardGeometry(screenY: Int, height: Int) {
         val params = content.layoutParams as android.widget.FrameLayout.LayoutParams
-        params.height = height
-        content.layoutParams = params
+        if (params.height != height) {
+            params.height = height
+            content.layoutParams = params
+        }
         content.x = (popupX - windowOffsetX).toFloat()
         content.y = (screenY - windowOffsetY).toFloat()
+        content.measure(
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+        )
+        content.layout(0, 0, width, height)
     }
 
     fun dismiss() {
