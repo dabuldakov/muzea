@@ -29,6 +29,7 @@ class MessageActionsPopup(
     private val messageUuid: String,
     private val actions: List<MessageActionSpec>,
     private val statusRows: List<MessageStatusRow> = emptyList(),
+    private val reactions: List<com.example.muzea.domain.model.MessageReaction> = emptyList(),
     private val showStatus: Boolean = false,
     private val onAction: (String) -> Unit,
     private val onReaction: (String) -> Unit,
@@ -74,6 +75,7 @@ class MessageActionsPopup(
 
     private companion object {
         const val ICON_DP = 38
+        const val STRIP_LIMIT = 11
         const val STATUS_ROW_DP = 32
         const val RESIZE_DURATION_MS = 160L
     }
@@ -149,18 +151,38 @@ class MessageActionsPopup(
             popupHeight = targetHeight
             return
         }
+        val keepBottom = PopupResize.keepBottom(target.y, targetHeight, startY, startHeight)
+        val metrics = context.resources.displayMetrics
+        val margin = (8 * density).toInt()
         val animation = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
             duration = RESIZE_DURATION_MS
             interpolator = android.view.animation.DecelerateInterpolator()
             addUpdateListener { value ->
                 val fraction = value.animatedValue as Float
-                val y = (startY + (target.y - startY) * fraction).toInt()
                 val height = (startHeight + (targetHeight - startHeight) * fraction).toInt()
+                val y = PopupResize.frameY(
+                    startY = startY,
+                    startHeight = startHeight,
+                    height = height,
+                    keepBottom = keepBottom,
+                    screenHeight = metrics.heightPixels,
+                    margin = margin
+                )
                 popup.update(target.x, y, width, height)
                 popupX = target.x
                 popupY = y
                 popupHeight = height
             }
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    // Доводим до точной позиции, если прижатие к экрану
+                    // скорректировало края.
+                    popup.update(target.x, target.y, width, targetHeight)
+                    popupX = target.x
+                    popupY = target.y
+                    popupHeight = targetHeight
+                }
+            })
         }
         animator = animation
         animation.start()
@@ -176,7 +198,8 @@ class MessageActionsPopup(
         val size = (ICON_DP * density).toInt()
 
         val recent = ReactionHistory.recent(context)
-        recent.forEach { emoji ->
+        // В полосе — только последние 11: короче прокрутка.
+        recent.take(STRIP_LIMIT).forEach { emoji ->
             recentRow.addView(emojiView(emoji, size, grid = false))
         }
 
@@ -234,9 +257,11 @@ class MessageActionsPopup(
         statusExpanded = false
 
         val readRows = statusRows.filter { it.status == "READ" }
-        // Пока никто не прочитал — секции нет вовсе.
+        val hasReactions = reactions.isNotEmpty()
+        val hasReaders = showStatus && readRows.isNotEmpty()
+        // Реакции и прочитавшие живут в одном блоке «Детали».
         section.visibility =
-            if (showStatus && readRows.isNotEmpty()) View.VISIBLE else View.GONE
+            if (hasReactions || hasReaders) View.VISIBLE else View.GONE
         if (section.visibility != View.VISIBLE) return
 
         // Свёрнутый вид — текстовый заголовок, а не аватарки: в ряд они
@@ -253,6 +278,23 @@ class MessageActionsPopup(
             setPadding((6 * density).toInt(), (2 * density).toInt(), 0, 0)
         })
         readers.setOnClickListener { setStatusExpanded(!statusExpanded) }
+
+        // Реакции, которые уже поставили на сообщение.
+        if (hasReactions) {
+            val chips = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                val pad = (6 * density).toInt()
+                setPadding(pad, pad / 2, pad, pad / 2)
+            }
+            reactions.forEach { reaction ->
+                chips.addView(TextView(context).apply {
+                    text = "${reaction.emoji} ${reaction.count}"
+                    textSize = 13f
+                    setPadding((6 * density).toInt(), 0, (6 * density).toInt(), 0)
+                })
+            }
+            rows.addView(chips)
+        }
 
         // Развёрнутый список: аватарка, имя, статус и время.
         statusRows.forEach { row ->
@@ -294,7 +336,7 @@ class MessageActionsPopup(
         rows.setOnClickListener { setStatusExpanded(false) }
         // Четыре с половиной строки: половина пятой подсказывает прокрутку.
         val row = (STATUS_ROW_DP * density).toInt()
-        StatusListSize.limitHeightPx(statusRows.size, row)?.let { limit ->
+        StatusListSize.limitHeightPx(rows.childCount, row)?.let { limit ->
             scroll.layoutParams = scroll.layoutParams.apply { height = limit }
         }
     }

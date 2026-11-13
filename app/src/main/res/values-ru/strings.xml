@@ -318,6 +318,6 @@
     <string name="action_open_pinned">Открыть закреплённое сообщение</string>
     <string name="scroll_to_latest">К последнему сообщению</string>
     <string name="scroll_to_unread">К первому непрочитанному</string>
-    <string name="message_status_title">Статус доставки</string>
+    <string name="message_status_title">Детали</string>
     <string name="message_status_none_read">Пока никто не прочитал</string>
 </resources>
