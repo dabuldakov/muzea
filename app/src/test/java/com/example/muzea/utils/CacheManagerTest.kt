@@ -172,12 +172,16 @@ class CacheManagerTest {
     @Test
     fun `downloaded documents are counted and cleared`() = runTest {
         val downloads = File(filesDir, Constants.CHAT_DOWNLOADS_DIR).apply { mkdirs() }
-        writeFile(File(downloads, "document.pdf"), 2048)
+        // Новые загрузки лежат в подкаталоге вложения, старые — прямо в корне.
+        val perAttachment = File(downloads, "a-1").apply { mkdirs() }
+        writeFile(File(perAttachment, "document.pdf"), 1024)
+        writeFile(File(downloads, "legacy.pdf"), 1024)
 
         assertTrue(CacheManager.totalSizeBytes(context) >= 2048L)
 
         CacheManager.clear(context)
 
-        assertFalse(File(downloads, "document.pdf").exists())
+        assertFalse(File(perAttachment, "document.pdf").exists())
+        assertFalse(File(downloads, "legacy.pdf").exists())
     }
 }

@@ -552,6 +552,24 @@ class MessageRepositoryImpl @Inject constructor(
     ): File? = withContext(Dispatchers.IO) {
         var part: File? = null
         try {
+            val safeName = (fileName ?: "file").replace(Regex("""[\\/:*?"<>|]"""), "_")
+            // Каталог на вложение, а не общий: одинаковые имена у разных файлов
+            // («photo.jpg») не перемешиваются, а повторное открытие берёт
+            // уже скачанную копию — без второй загрузки из сети.
+            val safeDir = attachmentUuid.replace(Regex("""[\\/:*?"<>|]"""), "_")
+            val targetDir = File(
+                File(
+                    context.filesDir,
+                    com.example.muzea.utils.Constants.CHAT_DOWNLOADS_DIR
+                ),
+                safeDir
+            ).apply { mkdirs() }
+            val target = File(targetDir, safeName)
+            if (target.isFile && target.length() > 0) {
+                onProgress(100)
+                return@withContext target
+            }
+
             val response = chatAuthManager.authenticatedRequest {
                 apiService.downloadAttachment(attachmentUuid)
             }
@@ -567,12 +585,6 @@ class MessageRepositoryImpl @Inject constructor(
                 }
                 null
             } else {
-                val targetDir = File(
-                    context.filesDir,
-                    com.example.muzea.utils.Constants.CHAT_DOWNLOADS_DIR
-                ).apply { mkdirs() }
-                val safeName = (fileName ?: "file").replace(Regex("""[\\/:*?"<>|]"""), "_")
-                val target = File(targetDir, safeName)
                 val temp = File(targetDir, "$safeName.part")
                 part = temp
                 val total = body.contentLength().takeIf { it > 0 } ?: -1L

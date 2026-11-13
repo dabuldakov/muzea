@@ -60,7 +60,9 @@ class AttachmentDownloadIntegrationTest {
 
         assertNotNull(file)
         assertEquals("muzea-beta.apk", file!!.name)
-        assertEquals("chat_downloads", file.parentFile!!.name)
+        // У каждого вложения свой каталог: файлы с одинаковыми именами не спорят.
+        assertEquals("a-1", file.parentFile!!.name)
+        assertEquals("chat_downloads", file.parentFile!!.parentFile!!.name)
         assertEquals(100, progress.last())
         assertTrue(file.readBytes().contentEquals(byteArrayOf(0x50, 0x4B, 0x03, 0x04, 0x01, 0x02)))
 
@@ -78,7 +80,8 @@ class AttachmentDownloadIntegrationTest {
 
         assertNotNull(file)
         assertEquals(".._evil_name.apk", file!!.name)
-        assertEquals(temp.root, file.parentFile!!.parentFile)
+        assertEquals(temp.root, file.parentFile!!.parentFile!!.parentFile)
+        assertTrue(file.canonicalPath.startsWith(temp.root.canonicalPath))
     }
 
     @Test
@@ -87,5 +90,38 @@ class AttachmentDownloadIntegrationTest {
         server.enqueue(MockResponse().setResponseCode(404))
 
         assertNull(repository().downloadAttachment("missing", "x.apk"))
+    }
+
+    @Test
+    fun `already downloaded attachment is returned without a second request`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        server.enqueue(MockResponse().setResponseCode(200).setBody("data"))
+        val repository = repository()
+
+        val first = repository.downloadAttachment("a-3", "beta.apk")
+        val cachedProgress = mutableListOf<Int>()
+        val second = repository.downloadAttachment("a-3", "beta.apk") { cachedProgress += it }
+
+        assertNotNull(first)
+        assertEquals(first, second)
+        assertEquals(100, cachedProgress.last())
+        // Второй раз файл берём с диска: в сеть ушёл только один запрос.
+        server.takeRequest()
+        assertEquals(0, server.requestCount - 1)
+    }
+
+    @Test
+    fun `same file name in different attachments does not clash`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        server.enqueue(MockResponse().setResponseCode(200).setBody("first"))
+        server.enqueue(MockResponse().setResponseCode(200).setBody("second"))
+        val repository = repository()
+
+        val first = repository.downloadAttachment("a-4", "photo.jpg")
+        val second = repository.downloadAttachment("a-5", "photo.jpg")
+
+        assertEquals("first", first!!.readText())
+        assertEquals("second", second!!.readText())
+        assertTrue(first.parentFile != second.parentFile)
     }
 }

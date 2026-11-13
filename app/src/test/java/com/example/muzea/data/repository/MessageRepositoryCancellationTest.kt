@@ -40,6 +40,10 @@ class MessageRepositoryCancellationTest {
         gifCache = GifCache(File.createTempFile("gif-cache", ".json").apply { delete() })
         repository = MessageRepositoryImpl(api, auth, gifCache, context)
         coEvery { auth.isAuthenticated() } returns true
+        // Скачивание сначала смотрит на диск: файлам нужен реальный каталог.
+        every { context.filesDir } returns File.createTempFile("files", "").apply {
+            delete(); mkdirs(); deleteOnExit()
+        }
     }
 
     /** Возвращает true, если блок пробросил CancellationException наружу. */
