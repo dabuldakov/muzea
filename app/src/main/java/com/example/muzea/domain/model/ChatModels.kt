@@ -55,7 +55,15 @@ data class Message(
 data class MessageReaction(
     val emoji: String,
     val count: Int,
-    val mine: Boolean
+    val mine: Boolean,
+    /** Кто поставил реакцию и когда — по времени, от старых к новым. */
+    val users: List<ReactionUser> = emptyList()
+)
+
+/** Автор реакции: uuid пользователя и время. */
+data class ReactionUser(
+    val userUuid: String?,
+    val at: String?
 )
 
 /** Вложение сообщения: для GIF — ссылка на гифку, превью и наш ключ гифки. */

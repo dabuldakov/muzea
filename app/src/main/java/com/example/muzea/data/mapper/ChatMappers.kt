@@ -59,7 +59,13 @@ fun com.example.muzea.data.model.MessageResponse.toDomain(): Message = Message(
         com.example.muzea.domain.model.MessageReaction(
             emoji = it.emoji,
             count = it.count,
-            mine = it.mine
+            mine = it.mine,
+            users = it.users.orEmpty().map { user ->
+                com.example.muzea.domain.model.ReactionUser(
+                    userUuid = user.userUuid,
+                    at = user.at
+                )
+            }
         )
     }
 )

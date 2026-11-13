@@ -17,6 +17,7 @@ import java.io.Serializable
 
 /** Строка шторки «кто прочитал»: имя, аватар, статус и время. */
 data class MessageStatusRow(
+    val userUuid: String?,
     val name: String,
     val avatarUrl: String?,
     /** Имя константы [com.example.muzea.domain.model.MessageDeliveryStatus]. */

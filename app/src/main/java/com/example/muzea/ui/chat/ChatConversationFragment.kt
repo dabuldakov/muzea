@@ -556,6 +556,7 @@ class ChatConversationFragment : Fragment(),
                 row.receipt.lastDeliveredAt
             }
             MessageStatusRow(
+                userUuid = row.receipt.userUuid,
                 name = row.receipt.displayName(),
                 avatarUrl = row.receipt.avatarUrl,
                 status = row.status.name,

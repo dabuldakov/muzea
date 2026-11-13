@@ -142,11 +142,11 @@ class MessageActionsBottomSheetTest {
     @Test
     fun `status rows are rendered with label and time`() {
         val rows = listOf(
-            MessageStatusRow("Anna", null, "READ", "2026-01-01T10:00:00"),
-            MessageStatusRow("Bob", null, "DELIVERED", null),
-            MessageStatusRow("Carl", null, "FAILED", "2026-01-01T10:01:00"),
-            MessageStatusRow("Dan", null, "SENDING", "2026-01-01T10:02:00"),
-            MessageStatusRow("Eve", null, "SENT", "2026-01-01T10:03:00")
+            MessageStatusRow("u1", "Anna", null, "READ", "2026-01-01T10:00:00"),
+            MessageStatusRow("u2", "Bob", null, "DELIVERED", null),
+            MessageStatusRow("u3", "Carl", null, "FAILED", "2026-01-01T10:01:00"),
+            MessageStatusRow("u4", "Dan", null, "SENDING", "2026-01-01T10:02:00"),
+            MessageStatusRow("u5", "Eve", null, "SENT", "2026-01-01T10:03:00")
         )
         val (_, sheet) = showSheet(
             actions = listOf(actionSpec(MessageActionsBottomSheet.ACTION_COPY)),

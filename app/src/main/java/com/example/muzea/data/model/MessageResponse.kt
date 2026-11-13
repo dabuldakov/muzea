@@ -46,7 +46,14 @@ data class MessageResponse(
 data class ReactionResponse(
     @SerializedName("emoji") val emoji: String,
     @SerializedName("count") val count: Int,
-    @SerializedName("mine") val mine: Boolean
+    @SerializedName("mine") val mine: Boolean,
+    @SerializedName("users") val users: List<ReactionUserResponse>? = null
+)
+
+/** Кто поставил реакцию и когда. */
+data class ReactionUserResponse(
+    @SerializedName("userUuid") val userUuid: String?,
+    @SerializedName("at") val at: String?
 )
 
 /** Вложение сообщения (в т.ч. GIF). */
