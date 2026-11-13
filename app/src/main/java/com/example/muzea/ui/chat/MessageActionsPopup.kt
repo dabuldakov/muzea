@@ -204,10 +204,13 @@ class MessageActionsPopup(
      * карточки плавно уезжает вверх одновременно с ростом высоты, чтобы
      * не было скачка «сначала список, потом перенос».
      */
-    private fun animateToContent() {
+    private fun animateToContent(
+        targetHeightOverride: Int? = null,
+        onFinished: (() -> Unit)? = null
+    ) {
         val anchor = anchorView ?: return
         if (!popup.isShowing) return
-        val targetHeight = measureHeight()
+        val targetHeight = targetHeightOverride ?: measureHeight()
         val target = positionFor(anchor, targetHeight)
         val startY = popupY
         val startHeight = popupHeight
@@ -242,6 +245,11 @@ class MessageActionsPopup(
                 popupHeight = height
                 applyCardGeometry(y, height)
             }
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    onFinished?.invoke()
+                }
+            })
         }
         animator = animation
         animation.start()
