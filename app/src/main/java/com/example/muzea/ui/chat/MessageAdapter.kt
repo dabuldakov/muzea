@@ -126,6 +126,11 @@ class MessageAdapter(
     private var selectionMode = false
     private var selectedUuids: Set<String> = emptySet()
 
+    // Индекс по uuid для цитат ответов: без него каждый биндинг сканировал
+    // весь список целиком. Пересчитываем один раз на новую версию списка.
+    private var indexedList: List<Message>? = null
+    private var indexedByUuid: Map<String, Message> = emptyMap()
+
     /** Перерисовать видимые элементы: повторная попытка загрузки медиа. */
     fun refreshMedia() {
         if (itemCount > 0) notifyItemRangeChanged(0, itemCount)
@@ -186,9 +191,7 @@ class MessageAdapter(
         val message = getItem(position)
         // Цитату ответа сервер отдаёт только uuid'ом — оригинал ищем в уже
         // загруженном списке. Если его нет (история не догружена), покажем заглушку.
-        val replyTo = message.replyToMessageUuid?.let { uuid ->
-            currentList.firstOrNull { it.messageUuid == uuid }
-        }
+        val replyTo = message.replyToMessageUuid?.let { uuid -> messageByUuid(uuid) }
         when (holder) {
             is OutgoingViewHolder -> holder.bind(
                 message, replyTo, myUserUuid, linkPreviews, scope, onMessageClick,
@@ -216,6 +219,15 @@ class MessageAdapter(
             if (selected) ContextCompat.getColor(holder.itemView.context, R.color.selected_message)
             else Color.TRANSPARENT
         )
+    }
+
+    private fun messageByUuid(uuid: String): Message? {
+        val list = currentList
+        if (list !== indexedList) {
+            indexedList = list
+            indexedByUuid = list.associateBy { it.messageUuid }
+        }
+        return indexedByUuid[uuid]
     }
 
     private fun sameDay(first: String?, second: String?): Boolean {

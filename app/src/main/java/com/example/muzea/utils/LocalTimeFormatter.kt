@@ -10,6 +10,9 @@ import java.util.TimeZone
  *
  * Серверы хранят дату/время как LocalDateTime без смещения (таймзона контейнера = UTC,
  * а время пишется в UTC), поэтому строку без зоны трактуем как UTC.
+ *
+ * SimpleDateFormat не потокобезопасен и дорог в создании, поэтому держим по
+ * экземпляру на поток: лента форматирует время на каждом биндинге.
  */
 object LocalTimeFormatter {
 
@@ -17,23 +20,39 @@ object LocalTimeFormatter {
     private const val OUT_DATETIME_PATTERN = "yyyy-MM-dd HH:mm"
     private const val OUT_DATE_PATTERN = "yyyy-MM-dd"
 
+    private val utcFormatter = ThreadLocal.withInitial {
+        SimpleDateFormat(SERVER_PATTERN, Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
+    }
+
+    private val localDateTimeFormatter = ThreadLocal.withInitial {
+        SimpleDateFormat(OUT_DATETIME_PATTERN, Locale.US).apply {
+            timeZone = TimeZone.getDefault()
+        }
+    }
+
+    private val localDateFormatter = ThreadLocal.withInitial {
+        SimpleDateFormat(OUT_DATE_PATTERN, Locale.US).apply {
+            timeZone = TimeZone.getDefault()
+        }
+    }
+
     /** Полное время, например «2026-09-22 12:00» в поясе устройства. */
-    fun format(iso: String?): String = format(iso, OUT_DATETIME_PATTERN)
+    fun format(iso: String?): String = format(iso, dateTime = true)
 
     /** Только дата, например «2026-09-22» в поясе устройства. */
-    fun formatDate(iso: String?): String = format(iso, OUT_DATE_PATTERN)
+    fun formatDate(iso: String?): String = format(iso, dateTime = false)
 
-    private fun format(iso: String?, outPattern: String): String {
+    private fun format(iso: String?, dateTime: Boolean): String {
         if (iso.isNullOrEmpty()) return ""
         return try {
-            val utcFormat = SimpleDateFormat(SERVER_PATTERN, Locale.US).apply {
-                timeZone = TimeZone.getTimeZone("UTC")
-            }
-            val localFormat = SimpleDateFormat(outPattern, Locale.US).apply {
-                timeZone = TimeZone.getDefault()
-            }
-            val date: Date = utcFormat.parse(iso.substring(0, 19))
-            localFormat.format(date)
+            val date: Date = utcFormatter.get()!!.parse(iso.substring(0, 19))
+            val out = (if (dateTime) localDateTimeFormatter.get() else localDateFormatter.get())!!
+            // Пояс устройства мог смениться после создания форматтера.
+            val zone = TimeZone.getDefault()
+            if (out.timeZone != zone) out.timeZone = zone
+            out.format(date)
         } catch (e: Exception) {
             iso
         }
