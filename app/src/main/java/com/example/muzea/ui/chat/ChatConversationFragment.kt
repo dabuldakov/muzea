@@ -101,6 +101,7 @@ class ChatConversationFragment : Fragment(),
     private lateinit var pendingAttachmentsView: PendingAttachmentsView
     private lateinit var chargeMeter: ChargeMeter
     private lateinit var pinnedBarView: PinnedBarView
+    private lateinit var downloadController: AttachmentDownloadController
     /** Пока модалка открыта, «назад» закрывает её, а не весь чат. */
     private val actionsBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
@@ -122,7 +123,6 @@ class ChatConversationFragment : Fragment(),
     /** Текущий список закреплённых (для клика по панели и открепления). */
     private var pinnedMessages: List<Message> = emptyList()
     private var mentionPopup: ListPopupWindow? = null
-    private var downloadJob: kotlinx.coroutines.Job? = null
     private var chargeJob: Job? = null
     private var chargeStartedAt = 0L
     private var isCharging = false
@@ -294,6 +294,20 @@ class ChatConversationFragment : Fragment(),
             chargeFormat = { power -> getString(R.string.charge_format, power) },
             chargeZero = getString(R.string.charge_zero),
             onVibrate = { level -> vibrateCharge(level) }
+        )
+        downloadController = AttachmentDownloadController(
+            scope = viewLifecycleOwner.lifecycleScope,
+            createProgress = { onCancel ->
+                AttachmentDownloadDialog(requireContext(), layoutInflater, onCancel)
+            },
+            download = { attachment, onProgress ->
+                viewModel.downloadAttachment(attachment, onProgress)
+            },
+            publish = { file, name, mime ->
+                viewModel.publishDownloadedAttachment(file, name, mime)
+            },
+            open = { uri, file, attachment -> openDownloadedFile(uri, file, attachment) },
+            toast = { res -> Toast.makeText(requireContext(), res, Toast.LENGTH_SHORT).show() }
         )
         audioController = ChatAudioController(
             adapter = adapter,
@@ -967,48 +981,7 @@ class ChatConversationFragment : Fragment(),
         AttachmentUrlResolver.resolve(attachment)
 
     private fun downloadAndOpen(attachment: MessageAttachment) {
-        // Повторные нажатия не должны запускать параллельные загрузки.
-        if (downloadJob?.isActive == true) return
-        val content = layoutInflater.inflate(R.layout.dialog_download_progress, null)
-        val progressBar = content.findViewById<android.widget.ProgressBar>(R.id.downloadProgress)
-        val percentText = content.findViewById<android.widget.TextView>(R.id.downloadPercent)
-        val dialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.attachment_downloading)
-            .setView(content)
-            .setNegativeButton(android.R.string.cancel) { _, _ -> downloadJob?.cancel() }
-            .setCancelable(false)
-            .create()
-        dialog.show()
-        downloadJob = viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val file = viewModel.downloadAttachment(attachment) { value ->
-                    content.post {
-                        progressBar.progress = value
-                        percentText.text = "$value%"
-                    }
-                }
-                if (dialog.isShowing) dialog.dismiss()
-                if (file == null) {
-                    Toast.makeText(
-                        requireContext(), R.string.attachment_download_failed, Toast.LENGTH_SHORT
-                    ).show()
-                    return@launch
-                }
-                val publicUri = viewModel.publishDownloadedAttachment(
-                    file, attachment.fileName, attachment.mimeType
-                )
-                Toast.makeText(
-                    requireContext(),
-                    if (publicUri != null) R.string.attachment_saved_downloads
-                    else R.string.attachment_saved_private,
-                    Toast.LENGTH_SHORT
-                ).show()
-                openDownloadedFile(publicUri, file, attachment)
-            } finally {
-                if (dialog.isShowing) dialog.dismiss()
-                downloadJob = null
-            }
-        }
+        downloadController.start(attachment)
     }
 
     private fun openDownloadedFile(
