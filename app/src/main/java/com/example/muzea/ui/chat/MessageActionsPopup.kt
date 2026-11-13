@@ -106,17 +106,22 @@ class MessageActionsPopup(
     private var popupX = 0
     private var popupY = 0
     private var popupHeight = 0
+    private val details = DetailsSection(
+        context = context,
+        content = content,
+        density = context.resources.displayMetrics.density,
+        onHeaderClick = { setStatusExpanded(!statusExpanded) },
+        onRowClick = { if (statusExpanded) setStatusExpanded(false) }
+    )
     private var growsUp = false
     private var edgeAnchor = 0
     private var windowOffsetX = 0
     private var windowOffsetY = 0
-    private var statusListHeight = 0
     private var animator: android.animation.ValueAnimator? = null
 
     private companion object {
         const val ICON_DP = 38
         const val STRIP_LIMIT = 11
-        const val STATUS_ROW_DP = 56
         const val RESIZE_DURATION_MS = 260L
     }
 
@@ -334,172 +339,19 @@ class MessageActionsPopup(
         }
 
     private fun renderStatus() {
-        val section = content.findViewById<LinearLayout>(R.id.statusSection)
-        val readers = content.findViewById<LinearLayout>(R.id.readersRow)
-        val scroll = content.findViewById<ScrollView>(R.id.statusScroll).apply {
-            isVerticalScrollBarEnabled = false
-        }
-        val rows = content.findViewById<LinearLayout>(R.id.statusRows)
-        readers.removeAllViews()
-        rows.removeAllViews()
-        scroll.visibility = View.GONE
-        statusExpanded = false
-
-        val readRows = statusRows.filter { it.status == "READ" }
-        val hasReactions = reactions.isNotEmpty()
-        val hasReaders = showStatus && readRows.isNotEmpty()
-        // На чужих сообщениях получателей нет — показываем авторов реакций.
-        val detailsRows = if (statusRows.isNotEmpty()) {
-            statusRows + reactionRows.filterNot { author ->
-                statusRows.any { it.userUuid == author.userUuid }
-            }
-        } else {
-            reactionRows
-        }
-        // Реакции и прочитавшие живут в одном блоке «Детали».
-        section.visibility =
-            if (hasReactions || hasReaders || reactionRows.isNotEmpty()) {
-                View.VISIBLE
-            } else {
-                View.GONE
-            }
-        if (section.visibility != View.VISIBLE) return
-
-        // Свёрнутый вид — текстовый заголовок, а не аватарки: в ряд они
-        // сливаются в кашу, список показываем по тапу.
-        readers.addView(TextView(context).apply {
-            text = context.getString(R.string.message_status_title)
-            textSize = 12f
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
-            setTextColor(
-                com.google.android.material.color.MaterialColors.getColor(
-                    content, com.google.android.material.R.attr.colorPrimary
-                )
-            )
-            setPadding((6 * density).toInt(), (2 * density).toInt(), 0, 0)
-        })
-        readers.setOnClickListener { setStatusExpanded(!statusExpanded) }
-
-        // Строки получателей: аватар, имя и под ним время со значком статуса;
-        // справа — реакции, которые поставил именно этот человек.
-        val reactionsByUser = ReactionsByUser.map(reactions)
-        val onSurface = com.google.android.material.color.MaterialColors.getColor(
-            content, com.google.android.material.R.attr.colorOnSurface
+        details.render(
+            statusRows = statusRows,
+            reactions = reactions,
+            reactionRows = reactionRows,
+            showStatus = showStatus
         )
-        val onSurfaceVariant = androidx.core.graphics.ColorUtils.setAlphaComponent(
-            onSurface, 0x99
-        )
-        detailsRows.forEach { row ->
-            val line = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                val pad = (6 * density).toInt()
-                setPadding(pad, pad, pad, pad)
-                setOnClickListener { setStatusExpanded(false) }
-            }
-            line.addView(ImageView(context).apply {
-                val size = (34 * density).toInt()
-                layoutParams = LinearLayout.LayoutParams(size, size).apply {
-                    marginEnd = (9 * density).toInt()
-                }
-                com.example.muzea.utils.AvatarLoader.load(this, row.avatarUrl)
-            })
-
-            val column = LinearLayout(context).apply {
-                orientation = LinearLayout.VERTICAL
-                layoutParams = LinearLayout.LayoutParams(
-                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
-                )
-            }
-            column.addView(TextView(context).apply {
-                text = row.name
-                textSize = 15f
-                setTextColor(onSurface)
-                maxLines = 1
-                ellipsize = android.text.TextUtils.TruncateAt.END
-            })
-            val meta = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                val top = (2 * density).toInt()
-                setPadding(0, top, 0, 0)
-            }
-            meta.addView(TextView(context).apply {
-                text = StatusTime.format(row.at)
-                textSize = 12f
-                setTextColor(onSurfaceVariant)
-            })
-            if (row.status != MessageDetailsRows.STATUS_REACTED) {
-                val (statusIcon, statusColor) = when (row.status) {
-                    "READ" -> R.drawable.ic_message_read to R.color.teal_700
-                    "DELIVERED" -> R.drawable.ic_message_delivered to R.color.gray
-                    else -> R.drawable.ic_message_sent to R.color.gray
-                }
-                meta.addView(ImageView(context).apply {
-                    val size = (14 * density).toInt()
-                    layoutParams = LinearLayout.LayoutParams(size, size).apply {
-                        marginStart = (5 * density).toInt()
-                    }
-                    setImageResource(statusIcon)
-                    setColorFilter(
-                        androidx.core.content.ContextCompat.getColor(context, statusColor)
-                    )
-                })
-            }
-            column.addView(meta)
-            line.addView(column)
-
-            val (shown, hidden) = ReactionsByUser.visible(
-                reactionsByUser[row.userUuid].orEmpty()
-            )
-            if (shown.isNotEmpty()) {
-                val reactionRow = LinearLayout(context).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    gravity = Gravity.CENTER_VERTICAL
-                    val start = (8 * density).toInt()
-                    setPadding(start, 0, 0, 0)
-                }
-                shown.forEach { emoji ->
-                    reactionRow.addView(TextView(context).apply {
-                        text = emoji
-                        textSize = 17f
-                        includeFontPadding = false
-                        val gap = (2 * density).toInt()
-                        setPadding(gap, 0, gap, 0)
-                    })
-                }
-                if (hidden > 0) {
-                    reactionRow.addView(TextView(context).apply {
-                        text = "+$hidden"
-                        textSize = 12f
-                        setTextColor(onSurfaceVariant)
-                        val start = (3 * density).toInt()
-                        setPadding(start, 0, 0, 0)
-                    })
-                }
-                line.addView(reactionRow)
-            }
-            rows.addView(line)
-        }
-        scroll.setOnClickListener { setStatusExpanded(false) }
-        rows.setOnClickListener { setStatusExpanded(false) }
-        // Четыре с половиной строки: половина пятой подсказывает прокрутку.
-        val row = (STATUS_ROW_DP * density).toInt()
-        val natural = rows.childCount * row
-        val limit = StatusListSize.limitHeightPx(rows.childCount, row)
-        statusListHeight = limit ?: natural
-        if (limit != null) {
-            scroll.layoutParams = scroll.layoutParams.apply { height = limit }
-        }
     }
 
     private fun setStatusExpanded(expand: Boolean) {
         if (statusExpanded == expand) return
         statusExpanded = expand
-        val scroll = content.findViewById<ScrollView>(R.id.statusScroll).apply {
-            isVerticalScrollBarEnabled = false
-        }
-        val listHeight = statusListHeight.coerceAtLeast(0)
+        val scroll = details.scrollView()
+        val listHeight = details.listHeight.coerceAtLeast(0)
         if (expand) {
             scroll.layoutParams = scroll.layoutParams.apply { height = 0 }
             scroll.visibility = View.VISIBLE
