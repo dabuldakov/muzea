@@ -108,6 +108,7 @@ class MessageActionsPopup(
     private var edgeAnchor = 0
     private var windowOffsetX = 0
     private var windowOffsetY = 0
+    private var statusListHeight = 0
     private var animator: android.animation.ValueAnimator? = null
 
     private companion object {
@@ -187,10 +188,22 @@ class MessageActionsPopup(
         anchor.getLocationOnScreen(location)
         val metrics = context.resources.displayMetrics
         val margin = (8 * density).toInt()
-        // Показываем у точки нажатия, а не по центру пузыря.
+        // Показываем у точки нажатия, а не по центру пузыря. Для сообщений
+        // в верхней половине экрана карточку ставим строго под пальцем:
+        // иначе её верх уезжает под строку состояния.
+        val fingerY = tapY ?: location[1]
+        if (fingerY < metrics.heightPixels / 2) {
+            val below = (fingerY + margin)
+                .coerceAtMost((metrics.heightPixels - height - margin).coerceAtLeast(margin))
+            return ActionsPopupPosition.Point(
+                x = (tapX ?: (location[0] + anchor.width / 2) - width / 2)
+                    .coerceIn(margin, (metrics.widthPixels - width - margin).coerceAtLeast(margin)),
+                y = below
+            )
+        }
         return ActionsPopupPosition.calculate(
             tapX = tapX ?: (location[0] + anchor.width / 2),
-            tapY = tapY ?: location[1],
+            tapY = fingerY,
             popupWidth = width,
             popupHeight = height,
             screenWidth = metrics.widthPixels,
@@ -204,26 +217,23 @@ class MessageActionsPopup(
      * карточки плавно уезжает вверх одновременно с ростом высоты, чтобы
      * не было скачка «сначала список, потом перенос».
      */
-    private fun animateToContent(
-        targetHeightOverride: Int? = null,
-        onFinished: (() -> Unit)? = null
-    ) {
-        val anchor = anchorView ?: return
+    /**
+     * Анимирует изменение содержимого карточки. На каждом кадре вызывается
+     * [onFraction], который меняет высоту внутреннего блока (список, сетка),
+     * затем карточка пересчитывается по фактической высоте. Край, закреплённый
+     * при показе, не двигается.
+     */
+    private fun animateContent(onFraction: (Float) -> Unit, onEnd: (() -> Unit)? = null) {
         if (!popup.isShowing) return
-        val targetHeight = targetHeightOverride ?: measureHeight()
-        val target = positionFor(anchor, targetHeight)
-        val startY = popupY
-        val startHeight = popupHeight
         animator?.cancel()
-        if (startY == target.y && startHeight == targetHeight) return
         val metrics = context.resources.displayMetrics
         val margin = (8 * density).toInt()
         val animation = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
             duration = RESIZE_DURATION_MS
             interpolator = androidx.interpolator.view.animation.FastOutSlowInInterpolator()
             addUpdateListener { value ->
-                val fraction = value.animatedValue as Float
-                val height = (startHeight + (targetHeight - startHeight) * fraction).toInt()
+                onFraction(value.animatedFraction)
+                val height = measureHeight()
                 val y = PopupResize.yForHeight(
                     growsUp = growsUp,
                     edgeAnchor = edgeAnchor,
@@ -231,14 +241,13 @@ class MessageActionsPopup(
                     screenHeight = metrics.heightPixels,
                     margin = margin
                 )
-                popupX = target.x
                 popupY = y
                 popupHeight = height
                 applyCardGeometry(y, height)
             }
             addListener(object : android.animation.AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: android.animation.Animator) {
-                    onFinished?.invoke()
+                    onEnd?.invoke()
                 }
             })
         }
@@ -270,9 +279,18 @@ class MessageActionsPopup(
         arrow.setOnClickListener {
             if (expanded) return@setOnClickListener
             expanded = true
+            val stripHeight = (44 * density).toInt()
+            val cell = (ICON_DP * density)
+            val columns = 7
+            val rows = (ReactionOrder.ordered(recent, ReactionHistory.FULL).size + columns - 1) / columns
+            val gridHeight = (rows * cell).toInt()
+            full.layoutParams = full.layoutParams.apply { height = stripHeight }
             strip.visibility = View.GONE
             full.visibility = View.VISIBLE
-            animateToContent()
+            animateContent(onFraction = { fraction ->
+                val h = (stripHeight + (gridHeight - stripHeight) * fraction).toInt()
+                full.layoutParams = full.layoutParams.apply { height = h }
+            })
         }
     }
 
@@ -456,7 +474,10 @@ class MessageActionsPopup(
         rows.setOnClickListener { setStatusExpanded(false) }
         // Четыре с половиной строки: половина пятой подсказывает прокрутку.
         val row = (STATUS_ROW_DP * density).toInt()
-        StatusListSize.limitHeightPx(rows.childCount, row)?.let { limit ->
+        val natural = rows.childCount * row
+        val limit = StatusListSize.limitHeightPx(rows.childCount, row)
+        statusListHeight = limit ?: natural
+        if (limit != null) {
             scroll.layoutParams = scroll.layoutParams.apply { height = limit }
         }
     }
@@ -467,8 +488,28 @@ class MessageActionsPopup(
         val scroll = content.findViewById<ScrollView>(R.id.statusScroll).apply {
             isVerticalScrollBarEnabled = false
         }
-        scroll.visibility = if (expand) View.VISIBLE else View.GONE
-        animateToContent()
+        val listHeight = statusListHeight.coerceAtLeast(0)
+        if (expand) {
+            scroll.layoutParams = scroll.layoutParams.apply { height = 0 }
+            scroll.visibility = View.VISIBLE
+            animateContent(onFraction = { fraction ->
+                scroll.layoutParams = scroll.layoutParams.apply {
+                    height = (listHeight * fraction).toInt()
+                }
+            })
+            return
+        }
+        // Сворачивание: список остаётся видимым, пока карточка уменьшается,
+        // и скрываем его только в самом конце.
+        val startHeight = scroll.height.takeIf { it > 0 } ?: listHeight
+        animateContent(
+            onFraction = { fraction ->
+                scroll.layoutParams = scroll.layoutParams.apply {
+                    height = (startHeight * (1f - fraction)).toInt()
+                }
+            },
+            onEnd = { scroll.visibility = View.GONE }
+        )
     }
 
     private fun renderActions() {
