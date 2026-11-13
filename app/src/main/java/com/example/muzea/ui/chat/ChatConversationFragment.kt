@@ -52,6 +52,7 @@ import com.example.muzea.databinding.ItemPendingAttachmentBinding
 import com.example.muzea.ui.common.ReportDialog
 import com.example.muzea.ui.navigation.navigator
 import com.example.muzea.utils.ActiveChatTracker
+import com.example.muzea.utils.ChatNotifications
 import com.example.muzea.utils.AvatarLoader
 import com.example.muzea.utils.LocalTimeFormatter
 import dagger.hilt.android.AndroidEntryPoint
@@ -1812,7 +1813,7 @@ class ChatConversationFragment : Fragment(),
         super.onStart()
         viewModel.resumePolling()
         // Внутри onStart lifecycle ещё CREATED, поэтому смотрим только на hidden.
-        if (!isHidden) ActiveChatTracker.chatUuid = chatUuid
+        if (!isHidden) markChatVisible()
     }
 
     override fun onStop() {
@@ -1831,8 +1832,17 @@ class ChatConversationFragment : Fragment(),
         if (hidden) {
             clearActiveChat()
         } else if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
-            ActiveChatTracker.chatUuid = chatUuid
+            markChatVisible()
         }
+    }
+
+    /**
+     * Чат на экране: подавляем пуши по нему и снимаем уже показанное
+     * уведомление — оно больше не актуально, сообщения видно в ленте.
+     */
+    private fun markChatVisible() {
+        ActiveChatTracker.chatUuid = chatUuid
+        ChatNotifications.cancel(requireContext().applicationContext, chatUuid)
     }
 
     private fun clearActiveChat() {

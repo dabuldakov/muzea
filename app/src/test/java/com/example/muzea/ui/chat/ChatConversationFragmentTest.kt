@@ -4,6 +4,8 @@ import android.os.Looper
 import android.view.View
 import androidx.recyclerview.widget.RecyclerView
 import com.example.muzea.HiltTestActivity
+import com.example.muzea.utils.ChatNotifications
+import com.example.muzea.utils.NotificationChannels
 import com.example.muzea.R
 import com.example.muzea.core.Resource
 import com.example.muzea.di.ChatRepositoryModule
@@ -29,6 +31,8 @@ import io.mockk.verify
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -642,5 +646,39 @@ class ChatConversationFragmentTest {
 
         assertEquals("", input.text.toString())
         verify { outboxSender.enqueue(any()) }
+    }
+
+    @Test
+    fun `opening the chat clears its push notification`() {
+        val context =
+            androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        val manager = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE)
+            as android.app.NotificationManager
+        NotificationChannels.ensureAll(context)
+        val notification = androidx.core.app.NotificationCompat.Builder(
+            context,
+            context.getString(R.string.chat_channel_id)
+        ).setSmallIcon(R.mipmap.ic_launcher).setContentTitle("Баги").build()
+        manager.notify(
+            ChatNotifications.tag("chat-1"),
+            ChatNotifications.id("chat-1"),
+            notification
+        )
+        assertNotNull(
+            shadowOf(manager).getNotification(
+                ChatNotifications.tag("chat-1"),
+                ChatNotifications.id("chat-1")
+            )
+        )
+
+        launch()
+
+        // Сообщения уже видно в ленте — уведомление из шторки убираем.
+        assertNull(
+            shadowOf(manager).getNotification(
+                ChatNotifications.tag("chat-1"),
+                ChatNotifications.id("chat-1")
+            )
+        )
     }
 }
