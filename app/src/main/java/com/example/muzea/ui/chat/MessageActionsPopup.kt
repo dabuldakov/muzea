@@ -51,18 +51,39 @@ class MessageActionsPopup(
     )
     private val content: View = LayoutInflater.from(context)
         .inflate(R.layout.popup_message_actions, null, false)
+    /**
+     * Карточка живёт в прозрачном окне на весь экран. Окно не меняет размеров —
+     * при раскрытии анимируется только сама карточка, поэтому нет рывков от
+     * пересоздания окна.
+     */
+    private val root = android.widget.FrameLayout(context).apply {
+        layoutParams = ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        )
+        isClickable = true
+        setOnClickListener { dismiss() }
+    }
     private val popup = PopupWindow(
-        content,
-        width,
-        ViewGroup.LayoutParams.WRAP_CONTENT,
+        root,
+        ViewGroup.LayoutParams.MATCH_PARENT,
+        ViewGroup.LayoutParams.MATCH_PARENT,
         false
     ).apply {
-        // Тапы мимо карточки перехватывает прозрачная накладка фрагмента:
-        // окно само их не ловит, иначе тап «протекает» до сообщения.
         isOutsideTouchable = false
         setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        elevation = 12f * density
         setOnDismissListener { onDismissed() }
+    }
+
+    init {
+        content.isClickable = true
+        content.elevation = 12f * density
+        root.addView(
+            content,
+            android.widget.FrameLayout.LayoutParams(
+                width, ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        )
     }
 
     private var expanded = false
@@ -75,6 +96,8 @@ class MessageActionsPopup(
     private var popupHeight = 0
     private var growsUp = false
     private var edgeAnchor = 0
+    private var windowOffsetX = 0
+    private var windowOffsetY = 0
     private var animator: android.animation.ValueAnimator? = null
 
     private companion object {
@@ -99,9 +122,27 @@ class MessageActionsPopup(
         val fingerY = tapY ?: position.y + height
         growsUp = PopupResize.growsUp(position.y, height, fingerY)
         edgeAnchor = if (growsUp) position.y + height else position.y
-        popup.showAtLocation(
-            anchor.rootView, Gravity.TOP or Gravity.START, position.x, position.y
-        )
+        applyCardGeometry(popupY, popupHeight)
+        content.visibility = View.INVISIBLE
+        popup.showAtLocation(anchor.rootView, Gravity.TOP or Gravity.START, 0, 0)
+        root.post {
+            if (!popup.isShowing) return@post
+            val location = IntArray(2)
+            root.getLocationOnScreen(location)
+            windowOffsetX = location[0]
+            windowOffsetY = location[1]
+            applyCardGeometry(popupY, popupHeight)
+            content.visibility = View.VISIBLE
+        }
+    }
+
+    /** Ставит карточку внутри полноэкранного окна по экранным координатам. */
+    private fun applyCardGeometry(screenY: Int, height: Int) {
+        val params = content.layoutParams as android.widget.FrameLayout.LayoutParams
+        params.height = height
+        content.layoutParams = params
+        content.x = (popupX - windowOffsetX).toFloat()
+        content.y = (screenY - windowOffsetY).toFloat()
     }
 
     fun dismiss() {
@@ -147,17 +188,10 @@ class MessageActionsPopup(
         if (!popup.isShowing) return
         val targetHeight = measureHeight()
         val target = positionFor(anchor, targetHeight)
-        val startX = popupX
         val startY = popupY
         val startHeight = popupHeight
         animator?.cancel()
-        if (startY == target.y && startHeight == targetHeight) {
-            popup.update(target.x, target.y, width, targetHeight)
-            popupX = target.x
-            popupY = target.y
-            popupHeight = targetHeight
-            return
-        }
+        if (startY == target.y && startHeight == targetHeight) return
         val metrics = context.resources.displayMetrics
         val margin = (8 * density).toInt()
         val animation = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
@@ -173,10 +207,10 @@ class MessageActionsPopup(
                     screenHeight = metrics.heightPixels,
                     margin = margin
                 )
-                popup.update(target.x, y, width, height)
                 popupX = target.x
                 popupY = y
                 popupHeight = height
+                applyCardGeometry(y, height)
             }
         }
         animator = animation
@@ -244,7 +278,9 @@ class MessageActionsPopup(
     private fun renderStatus() {
         val section = content.findViewById<LinearLayout>(R.id.statusSection)
         val readers = content.findViewById<LinearLayout>(R.id.readersRow)
-        val scroll = content.findViewById<ScrollView>(R.id.statusScroll)
+        val scroll = content.findViewById<ScrollView>(R.id.statusScroll).apply {
+            isVerticalScrollBarEnabled = false
+        }
         val rows = content.findViewById<LinearLayout>(R.id.statusRows)
         readers.removeAllViews()
         rows.removeAllViews()
@@ -399,7 +435,9 @@ class MessageActionsPopup(
     private fun setStatusExpanded(expand: Boolean) {
         if (statusExpanded == expand) return
         statusExpanded = expand
-        val scroll = content.findViewById<ScrollView>(R.id.statusScroll)
+        val scroll = content.findViewById<ScrollView>(R.id.statusScroll).apply {
+            isVerticalScrollBarEnabled = false
+        }
         scroll.visibility = if (expand) View.VISIBLE else View.GONE
         animateToContent()
     }

@@ -96,7 +96,6 @@ class ChatConversationFragment : Fragment(),
     private var pendingHighlightUuid: String? = null
     private var highlightAttempts = 0
     private var actionsPopup: MessageActionsPopup? = null
-    private var actionsBackdrop: android.widget.PopupWindow? = null
     /** Пока модалка открыта, «назад» закрывает её, а не весь чат. */
     private val actionsBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
@@ -441,14 +440,9 @@ class ChatConversationFragment : Fragment(),
                 showStatus = showStatus,
                 onAction = { actionId -> onMessageAction(message.messageUuid, actionId) },
                 onReaction = { emoji -> viewModel.toggleReaction(message, emoji) },
-                onDismissed = { dismissActionsBackdrop() }
+                onDismissed = { actionsBackCallback.isEnabled = false }
             )
             actionsPopup = popup
-            // Прозрачное окно ловит тапы мимо карточки: они закрывают
-            // модалку и не доходят до сообщения, иначе она тут же
-            // открывается заново. Отдельное окно, а не View в разметке:
-            // добавление/удаление View во время раскладки роняло приложение.
-            showActionsBackdrop()
             popup.show(
                 anchor,
                 tapX = lastTapX.takeIf { v -> v > 0 }
@@ -470,38 +464,6 @@ class ChatConversationFragment : Fragment(),
     /** Для тестов: видна ли сейчас плавающая модалка действий. */
     internal fun isActionsPopupShowing(): Boolean = actionsPopup?.isShowing() == true
 
-    /** Прозрачное окно под карточкой: тап по нему закрывает модалку. */
-    private fun showActionsBackdrop() {
-        dismissActionsBackdrop()
-        val view = View(requireContext()).apply {
-            isClickable = true
-            setBackgroundColor(Color.TRANSPARENT)
-            setOnClickListener { actionsPopup?.dismiss() }
-        }
-        actionsBackCallback.isEnabled = true
-        val backdrop = android.widget.PopupWindow(
-            view,
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            false
-        ).apply {
-            isOutsideTouchable = false
-            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            showAtLocation(
-                binding.root,
-                android.view.Gravity.TOP or android.view.Gravity.START,
-                0,
-                0
-            )
-        }
-        actionsBackdrop = backdrop
-    }
-
-    private fun dismissActionsBackdrop() {
-        actionsBackdrop?.dismiss()
-        actionsBackdrop = null
-        actionsBackCallback.isEnabled = false
-    }
 
     private fun opaqueEmojiTextColor(): Int =
         if ((resources.configuration.uiMode and
@@ -2136,7 +2098,7 @@ class ChatConversationFragment : Fragment(),
 
     override fun onDestroyView() {
         actionsPopup?.dismiss()
-        dismissActionsBackdrop()
+        actionsBackCallback.isEnabled = false
         audioPlayer?.release()
         audioPlayer = null
         playingAudioUuid = null
