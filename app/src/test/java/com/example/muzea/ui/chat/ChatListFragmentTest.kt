@@ -14,6 +14,9 @@ import com.example.muzea.domain.repository.ChatSessionRepository
 import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.domain.repository.GifRepository
 import com.example.muzea.domain.repository.MessageRepository
+import com.example.muzea.utils.NetworkMonitor
+import com.example.muzea.utils.NetworkQuality
+import com.example.muzea.utils.NetworkStatus
 import dagger.hilt.android.testing.BindValue
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -24,6 +27,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -33,6 +37,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowDialog
+import java.time.Duration
 
 /**
  * Robolectric+Hilt тесты списка чатов: реальные fragment/VM, репозитории —
@@ -71,12 +76,21 @@ class ChatListFragmentTest {
     @JvmField
     val chatSessionRepository: ChatSessionRepository = mockk(relaxed = true)
 
+    @BindValue
+    @JvmField
+    val networkMonitor: NetworkMonitor = mockk(relaxed = true)
+
+    private val networkStatus = kotlinx.coroutines.flow.MutableStateFlow(
+        NetworkStatus(NetworkQuality.GOOD, metered = false)
+    )
+
     @Before
     fun setUp() {
         hiltRule.inject()
         every { chatRepository.cachedChats() } returns emptyList()
         coEvery { chatRepository.loadChats() } returns flowOf(Resource.Success(emptyList()))
         coEvery { contactRepository.loadContacts() } returns flowOf(Resource.Success(emptyList()))
+        every { networkMonitor.status } returns networkStatus
     }
 
     private fun chat(uuid: String = "chat-1", title: String = "Баги") = Chat(
@@ -210,5 +224,30 @@ class ChatListFragmentTest {
         shadowOf(Looper.getMainLooper()).idle()
 
         assertEquals(true, ShadowDialog.getLatestDialog()?.isShowing)
+    }
+
+    @Test
+    fun `hidden list stops polling chats and resumes when shown again`() {
+        val loads = mutableListOf<Unit>()
+        coEvery { chatRepository.loadChats() } answers {
+            loads += Unit
+            flowOf(Resource.Success(emptyList()))
+        }
+
+        val (activity, fragment) = launch()
+        shadowOf(Looper.getMainLooper()).idle()
+        val afterLaunch = loads.size
+        assertTrue(afterLaunch >= 1)
+
+        // Открыли переписку — вкладка списка скрыта. Раньше она продолжала
+        // тянуть список каждые 8 секунд за спиной.
+        activity.supportFragmentManager.beginTransaction().hide(fragment).commitNow()
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(20))
+        assertEquals(afterLaunch, loads.size)
+
+        // Вернулись назад — опрос возобновляется.
+        activity.supportFragmentManager.beginTransaction().show(fragment).commitNow()
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(10))
+        assertTrue(loads.size > afterLaunch)
     }
 }

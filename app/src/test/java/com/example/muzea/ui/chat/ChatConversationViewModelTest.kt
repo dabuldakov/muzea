@@ -1193,4 +1193,114 @@ class ChatConversationViewModelTest {
         viewModel.refreshReceiptsNow()
         coVerify(exactly = 2) { messageRepository.loadChatReceipts(chatUuid) }
     }
+
+    @Test
+    fun `updated sync runs every fifth poll, not on each one`() = withViewModel(
+        network = flowOf(
+            Resource.Success(
+                listOf(message("m1", "hi", "2026-01-01T00:00:00", messageId = 10, sender = "other"))
+            )
+        )
+    ) { _ ->
+        val scheduler = (this as kotlinx.coroutines.test.TestScope).testScheduler
+        scheduler.runCurrent()
+        scheduler.advanceTimeBy(15_500)
+        scheduler.runCurrent()
+
+        coVerify(exactly = 1) { messageRepository.loadUpdatedMessages(chatUuid, any()) }
+
+        scheduler.advanceTimeBy(15_500)
+        scheduler.runCurrent()
+
+        coVerify(exactly = 2) { messageRepository.loadUpdatedMessages(chatUuid, any()) }
+    }
+
+    @Test
+    fun `failed delta skips the updated sync`() = withViewModel(
+        network = flowOf(
+            Resource.Success(
+                listOf(message("m1", "hi", "2026-01-01T00:00:00", messageId = 10, sender = "other"))
+            )
+        )
+    ) { _ ->
+        coEvery { messageRepository.loadMessagesAfter(chatUuid, any()) } returns
+            flowOf(Resource.Error("offline"))
+
+        val scheduler = (this as kotlinx.coroutines.test.TestScope).testScheduler
+        scheduler.runCurrent()
+        scheduler.advanceTimeBy(20_000)
+        scheduler.runCurrent()
+
+        // После ошибки идём в бэкофф и не тратим второй запрос на сверку.
+        coVerify(exactly = 0) { messageRepository.loadUpdatedMessages(chatUuid, any()) }
+    }
+
+    @Test
+    fun `new delta message refreshes receipts without waiting for the throttle`() = withViewModel(
+        network = flowOf(
+            Resource.Success(
+                listOf(message("m1", "hi", "2026-01-01T00:00:00", messageId = 10, sender = "other"))
+            )
+        )
+    ) { viewModel ->
+        val scheduler = (this as kotlinx.coroutines.test.TestScope).testScheduler
+        scheduler.runCurrent()
+        coVerify(exactly = 1) { messageRepository.loadChatReceipts(chatUuid) }
+
+        coEvery { messageRepository.loadMessagesAfter(chatUuid, any()) } returns flowOf(
+            Resource.Success(
+                listOf(message("m2", "new", "2026-01-01T00:00:05", messageId = 11, sender = "other"))
+            )
+        )
+        scheduler.advanceTimeBy(3_500)
+        scheduler.runCurrent()
+
+        assertEquals(2, viewModel.uiState.value.messages.size)
+        // Новое сообщение — повод показать свежие галочки, интервал не ждём.
+        coVerify(exactly = 2) { messageRepository.loadChatReceipts(chatUuid) }
+    }
+
+    @Test
+    fun `refresh receipts on demand updates the state`() = withViewModel { viewModel ->
+        coEvery { messageRepository.loadChatReceipts(chatUuid) } returns listOf(
+            ChatReceipt(
+                userUuid = "other",
+                username = "anna",
+                fullName = "Anna",
+                avatarUrl = null,
+                joinedAt = "2025-01-01T00:00:00",
+                lastDeliveredMessageId = 10,
+                lastDeliveredAt = "2026-01-01T10:01:00",
+                lastReadMessageId = 10,
+                lastReadAt = "2026-01-01T10:02:00"
+            )
+        )
+
+        viewModel.refreshReceiptsNow()
+
+        assertTrue(viewModel.uiState.value.receiptsLoaded)
+        assertEquals("Anna", viewModel.uiState.value.receipts.single().displayName())
+    }
+
+    @Test
+    fun `updated sync keeps working after returning to the screen`() = withViewModel(
+        network = flowOf(
+            Resource.Success(
+                listOf(message("m1", "hi", "2026-01-01T00:00:00", messageId = 10, sender = "other"))
+            )
+        )
+    ) { viewModel ->
+        val scheduler = (this as kotlinx.coroutines.test.TestScope).testScheduler
+        scheduler.runCurrent()
+
+        viewModel.pausePolling()
+        viewModel.resumePolling()
+        scheduler.runCurrent()
+        // Возврат на экран сначала сверяется полной страницей.
+        coVerify(atLeast = 2) { messageRepository.loadMessages(chatUuid) }
+
+        scheduler.advanceTimeBy(15_500)
+        scheduler.runCurrent()
+        coVerify(atLeast = 1) { messageRepository.loadUpdatedMessages(chatUuid, any()) }
+    }
 }

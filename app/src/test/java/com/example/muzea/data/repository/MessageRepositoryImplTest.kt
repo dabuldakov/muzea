@@ -574,4 +574,44 @@ class MessageRepositoryImplTest {
 
         assertTrue((last as Resource.Error).message!!.contains("Chat auth failed"))
     }
+
+    @Test
+    fun `loadUpdatedMessages returns only changed messages`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.getUpdatedMessages("chat-1", "2026-01-01T00:00:00") } returns
+            httpOk(listOf(message("m1", "edited"), message("m2")))
+
+        val updated = repository.loadUpdatedMessages("chat-1", "2026-01-01T00:00:00")
+
+        assertEquals(listOf("m1", "m2"), updated?.map { it.messageUuid })
+        assertEquals("edited", updated?.first()?.text)
+        coVerify(exactly = 1) { api.getUpdatedMessages("chat-1", "2026-01-01T00:00:00") }
+    }
+
+    @Test
+    fun `loadUpdatedMessages retries once after 401`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.getUpdatedMessages("chat-1", any()) } returnsMany listOf(
+            httpError(401),
+            httpOk(listOf(message("m1", "edited")))
+        )
+
+        val updated = repository.loadUpdatedMessages("chat-1", "2026-01-01T00:00:00")
+
+        assertEquals("edited", updated?.single()?.text)
+        coVerify(exactly = 2) { api.getUpdatedMessages("chat-1", any()) }
+        verify(exactly = 1) { auth.invalidate() }
+    }
+
+    @Test
+    fun `loadUpdatedMessages returns null on error or exception`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.getUpdatedMessages("chat-1", any()) } returns httpError(500)
+
+        assertNull(repository.loadUpdatedMessages("chat-1", "2026-01-01T00:00:00"))
+
+        coEvery { api.getUpdatedMessages("chat-1", any()) } throws IOException("offline")
+
+        assertNull(repository.loadUpdatedMessages("chat-1", "2026-01-01T00:00:00"))
+    }
 }
