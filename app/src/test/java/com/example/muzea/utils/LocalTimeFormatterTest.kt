@@ -2,6 +2,7 @@ package com.example.muzea.utils
 
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import java.util.TimeZone
 
@@ -39,5 +40,20 @@ class LocalTimeFormatterTest {
     fun `format full datetime in local zone`() {
         TimeZone.setDefault(TimeZone.getTimeZone("Europe/Moscow"))
         assertEquals("2026-09-22 15:00", LocalTimeFormatter.format("2026-09-22T12:00:00"))
+    }
+
+    @Test
+    fun `next server second advances the watermark by one`() {
+        assertEquals(
+            "2026-09-22T12:00:01",
+            LocalTimeFormatter.nextServerSecond("2026-09-22T12:00:00")
+        )
+    }
+
+    @Test
+    fun `next server second ignores missing or broken values`() {
+        assertNull(LocalTimeFormatter.nextServerSecond(null))
+        assertNull(LocalTimeFormatter.nextServerSecond(""))
+        assertNull(LocalTimeFormatter.nextServerSecond("not-a-date"))
     }
 }

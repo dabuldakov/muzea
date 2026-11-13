@@ -53,6 +53,22 @@ object LocalTimeFormatter {
         return utcFormatter.get()!!.format(Date(millis)).substring(0, 19)
     }
 
+    /**
+     * Следующая секунда в серверном формате — водяной знак «всё до этого уже
+     * видели». Сервер отдаёт время без дробной части, поэтому дельта
+     * `created_at > водяной знак` иначе возвращала бы последнее сообщение
+     * на каждом опросе.
+     */
+    fun nextServerSecond(iso: String?): String? {
+        if (iso.isNullOrEmpty()) return null
+        return try {
+            val date: Date = utcFormatter.get()!!.parse(iso.substring(0, 19))
+            utcFormatter.get()!!.format(Date(date.time + 1_000))
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private fun format(iso: String?, dateTime: Boolean): String {
         if (iso.isNullOrEmpty()) return ""
         return try {

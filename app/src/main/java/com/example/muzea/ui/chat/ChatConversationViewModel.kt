@@ -1221,7 +1221,11 @@ class ChatConversationViewModel @Inject constructor(
             .filter { it.messageId != null }
             .mapNotNull { it.createdAt }
             .maxOrNull()
-        if (latest != null) lastServerCreatedAt = latest
+        // +1 секунда: сервер сравнивает `created_at > since` без дробной части,
+        // поэтому иначе последнее сообщение приходило бы в каждой дельте.
+        // Сообщение, пришедшее в ту же секунду уже после запроса, подхватит
+        // сверка /updated — она идёт раз в 15 секунд.
+        LocalTimeFormatter.nextServerSecond(latest)?.let { lastServerCreatedAt = it }
     }
 
     override fun onCleared() {

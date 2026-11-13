@@ -1074,8 +1074,10 @@ class ChatConversationViewModelTest {
         (this as kotlinx.coroutines.test.TestScope).testScheduler.advanceTimeBy(3_500)
         (this as kotlinx.coroutines.test.TestScope).testScheduler.runCurrent()
 
+        // Водяной знак уходит на секунду вперёд: иначе последнее сообщение
+        // возвращалось бы в каждой дельте (сервер сравнивает без дробной части).
         coVerify {
-            messageRepository.loadMessagesAfter(chatUuid, "2026-01-01T00:00:00")
+            messageRepository.loadMessagesAfter(chatUuid, "2026-01-01T00:00:01")
         }
     }
 
