@@ -85,7 +85,7 @@ class MessageActionsPopup(
                 content, com.google.android.material.R.attr.colorOnSurface
             )
             divider.setBackgroundColor(
-                androidx.core.graphics.ColorUtils.setAlphaComponent(onSurface, 0x33)
+                androidx.core.graphics.ColorUtils.setAlphaComponent(onSurface, 0x1F)
             )
         }
         content.isClickable = true

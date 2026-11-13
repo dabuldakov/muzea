@@ -1100,13 +1100,14 @@ class ChatConversationViewModel @Inject constructor(
      * Кто поставил реакции — для блока «Детали». Нужен и на чужих сообщениях,
      * где списка получателей нет.
      */
-    fun reactionAuthors(message: Message): List<ChatReceipt> {
+    fun reactionAuthors(message: Message): List<Pair<String, ChatReceipt?>> {
         val uuids = message.reactions
             .flatMap { reaction -> reaction.users.mapNotNull { it.userUuid } }
             .distinct()
         if (uuids.isEmpty()) return emptyList()
         val byUuid = _uiState.value.receipts.associateBy { it.userUuid }
-        return uuids.mapNotNull { byUuid[it] }
+        // Реакцию мог поставить и я сам — моего receipt в списке участников нет.
+        return uuids.map { uuid -> uuid to byUuid[uuid] }
     }
 
     /** Кто прочитал/получил сообщение — для шторки статуса. */

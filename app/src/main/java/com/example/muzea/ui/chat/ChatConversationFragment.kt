@@ -522,15 +522,20 @@ class ChatConversationFragment : Fragment(),
 
     /** Авторы реакций — для «Деталей» на чужих сообщениях. */
     private fun buildReactionRows(message: Message): List<MessageStatusRow> =
-        viewModel.reactionAuthors(message).map { receipt ->
+        viewModel.reactionAuthors(message).map { (uuid, receipt) ->
             val at = message.reactions
                 .firstNotNullOfOrNull { reaction ->
-                    reaction.users.firstOrNull { it.userUuid == receipt.userUuid }?.at
+                    reaction.users.firstOrNull { it.userUuid == uuid }?.at
                 }
             MessageStatusRow(
-                userUuid = receipt.userUuid,
-                name = receipt.displayName(),
-                avatarUrl = receipt.avatarUrl,
+                userUuid = uuid,
+                name = receipt?.displayName()
+                    ?: if (uuid == viewModel.myUserUuid) {
+                        getString(R.string.reply_you)
+                    } else {
+                        getString(R.string.reply_unknown_sender)
+                    },
+                avatarUrl = receipt?.avatarUrl,
                 status = "REACTED",
                 at = LocalTimeFormatter.format(at).takeIf { it.isNotBlank() }
             )

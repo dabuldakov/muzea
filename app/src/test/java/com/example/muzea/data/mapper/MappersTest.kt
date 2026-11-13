@@ -10,6 +10,8 @@ import com.example.muzea.data.model.MessagePreview
 import com.example.muzea.data.model.MessageResponse
 import com.example.muzea.data.model.NewsResponse
 import com.example.muzea.data.model.PresenceResponse
+import com.example.muzea.data.model.ReactionResponse
+import com.example.muzea.data.model.ReactionUserResponse
 import com.example.muzea.data.model.UserResponse
 import com.example.muzea.data.model.VideoResponse
 import org.junit.Assert.assertEquals
@@ -186,6 +188,26 @@ class MappersTest {
             height = 200,
             gifKey = gifKey
         )
+
+    @Test
+    fun `reaction authors and time are mapped`() {
+        val message = message(attachments = null).copy(
+            reactions = listOf(
+                ReactionResponse(
+                    emoji = "👍",
+                    count = 1,
+                    mine = true,
+                    users = listOf(ReactionUserResponse("u2", "2026-11-13T10:00:00"))
+                )
+            )
+        ).toDomain()
+
+        val reaction = message.reactions.single()
+        assertEquals("👍", reaction.emoji)
+        assertEquals(1, reaction.users.size)
+        assertEquals("u2", reaction.users.single().userUuid)
+        assertEquals("2026-11-13T10:00:00", reaction.users.single().at)
+    }
 
     @Test
     fun `message id is preserved for status comparisons`() {
