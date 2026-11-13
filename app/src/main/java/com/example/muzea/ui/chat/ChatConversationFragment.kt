@@ -104,6 +104,7 @@ class ChatConversationFragment : Fragment(),
     private lateinit var downloadController: AttachmentDownloadController
     private lateinit var recordingTimer: RecordingTimer
     private lateinit var conversationStateView: ConversationStateView
+    private lateinit var recordingOverlay: RecordingOverlayView
     private lateinit var networkBannerView: NetworkBannerView
     /** Пока модалка открыта, «назад» закрывает её, а не весь чат. */
     private val actionsBackCallback = object : OnBackPressedCallback(false) {
@@ -296,6 +297,13 @@ class ChatConversationFragment : Fragment(),
             chargeFormat = { power -> getString(R.string.charge_format, power) },
             chargeZero = getString(R.string.charge_zero),
             onVibrate = { level -> vibrateCharge(level) }
+        )
+        recordingOverlay = RecordingOverlayView(
+            overlay = binding.recordingOverlay,
+            timer = binding.tvRecordingTimer,
+            hint = binding.tvRecordingHint,
+            previewCard = binding.videoNotePreviewCard,
+            preview = binding.videoNotePreview
         )
         conversationStateView = ConversationStateView(
             progress = binding.progressBar,
@@ -1387,10 +1395,7 @@ class ChatConversationFragment : Fragment(),
 
         activeRecorderMode = mode
         cancelArmed = false
-        binding.recordingOverlay.visibility = View.VISIBLE
-        binding.tvRecordingTimer.text = "0:00"
-        binding.videoNotePreviewCard.visibility =
-            if (mode == SendMode.VIDEO) View.VISIBLE else View.GONE
+        recordingOverlay.show(video = mode == SendMode.VIDEO)
         updateRecordingHint()
 
         when (mode) {
@@ -1415,7 +1420,7 @@ class ChatConversationFragment : Fragment(),
         val recorder = VideoNoteRecorder(requireContext())
         videoRecorder = recorder
         videoReady = false
-        binding.tvRecordingHint.setText(R.string.recording_starting_camera)
+        recordingOverlay.setStartingCamera()
         val start = {
             recorder.start(
                 texture,
@@ -1436,27 +1441,7 @@ class ChatConversationFragment : Fragment(),
                 onError = { abortRecording(R.string.recording_failed) }
             )
         }
-        if (texture.isAvailable) {
-            texture.post(start)
-        } else {
-            texture.surfaceTextureListener = object : android.view.TextureView.SurfaceTextureListener {
-                override fun onSurfaceTextureAvailable(
-                    surface: android.graphics.SurfaceTexture,
-                    width: Int,
-                    height: Int
-                ) = start()
-
-                override fun onSurfaceTextureSizeChanged(
-                    surface: android.graphics.SurfaceTexture,
-                    width: Int,
-                    height: Int
-                ) = Unit
-
-                override fun onSurfaceTextureDestroyed(surface: android.graphics.SurfaceTexture) = true
-
-                override fun onSurfaceTextureUpdated(surface: android.graphics.SurfaceTexture) = Unit
-            }
-        }
+        recordingOverlay.whenSurfaceReady(start)
     }
 
     private fun startRecordingTimer(maxMs: Long) {
@@ -1465,10 +1450,7 @@ class ChatConversationFragment : Fragment(),
     }
 
     private fun updateRecordingHint() {
-        binding.tvRecordingHint.setText(
-            if (cancelArmed) R.string.recording_release_to_cancel
-            else R.string.recording_release_to_send
-        )
+        recordingOverlay.setHint(cancelArmed)
     }
 
     private fun finishRecording(cancel: Boolean) {
@@ -1520,9 +1502,7 @@ class ChatConversationFragment : Fragment(),
     }
 
     private fun hideRecordingOverlay() {
-        binding.recordingOverlay.visibility = View.GONE
-        binding.videoNotePreviewCard.visibility = View.GONE
-        binding.videoNotePreview.surfaceTextureListener = null
+        recordingOverlay.hide()
     }
 
     private fun RecordedAudio.toPrepared() = PreparedAttachment(
