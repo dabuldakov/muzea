@@ -96,6 +96,7 @@ class ChatConversationFragment : Fragment(),
     private var pendingHighlightUuid: String? = null
     private var highlightAttempts = 0
     private var actionsPopup: MessageActionsPopup? = null
+    private lateinit var scrollController: ChatScrollController
     /** Пока модалка открыта, «назад» закрывает её, а не весь чат. */
     private val actionsBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
@@ -274,7 +275,17 @@ class ChatConversationFragment : Fragment(),
             viewLifecycleOwner, actionsBackCallback
         )
         setupRecyclerView()
-        setupScrollButton()
+        scrollController = ChatScrollController(
+            recyclerView = binding.recyclerViewMessages,
+            button = binding.btnScrollBottom,
+            messageCount = { adapter.itemCount },
+            unreadAnchor = { unreadAnchorPosition },
+            clearUnreadAnchor = { unreadAnchorPosition = null },
+            labelRes = { hasUnread ->
+                if (hasUnread) R.string.scroll_to_unread else R.string.scroll_to_latest
+            },
+            label = { res -> getString(res) }
+        ).also { it.setup() }
         setupInput()
         setupAttachments()
         setupReplyBanner()
@@ -881,44 +892,11 @@ class ChatConversationFragment : Fragment(),
         viewModel.markReadUpTo(message.messageUuid)
     }
 
-    private fun isAtBottom(): Boolean =
-        !binding.recyclerViewMessages.canScrollVertically(1)
+    private fun isAtBottom(): Boolean = scrollController.isAtBottom()
 
     /** Кнопка прокрутки: видна, только когда список не в самом низу. */
     private fun updateScrollButton() {
-        val hasMessages = adapter.itemCount > 0
-        val visible = hasMessages && !isAtBottom()
-        binding.btnScrollBottom.visibility = if (visible) View.VISIBLE else View.GONE
-        binding.btnScrollBottom.contentDescription = getString(
-            if (unreadAnchorPosition != null) R.string.scroll_to_unread
-            else R.string.scroll_to_latest
-        )
-    }
-
-    private fun setupScrollButton() {
-        binding.btnScrollBottom.setOnClickListener {
-            val last = adapter.itemCount - 1
-            if (last < 0) return@setOnClickListener
-            val target = (unreadAnchorPosition ?: last).coerceIn(0, last)
-            val recycler = binding.recyclerViewMessages
-            // Тап по кнопке не касается списка, поэтому начатый флинг сам
-            // не останавливается и перебивает прокрутку — гасим его явно.
-            recycler.stopScroll()
-            val layoutManager = recycler.layoutManager as? LinearLayoutManager
-            layoutManager?.scrollToPositionWithOffset(target, 0)
-                ?: recycler.scrollToPosition(target)
-            // Если флинг успел запросить раскладку, повторяем после неё.
-            recycler.post {
-                if (_binding == null) return@post
-                if (isAtBottom()) return@post
-                (recycler.layoutManager as? LinearLayoutManager)
-                    ?.scrollToPositionWithOffset(target, 0)
-                    ?: recycler.scrollToPosition(target)
-            }
-            // Первый тап ведёт к непрочитанному, второй — уже в самый низ.
-            unreadAnchorPosition = null
-            updateScrollButton()
-        }
+        if (::scrollController.isInitialized) scrollController.update()
     }
 
     private fun setupAttachments() {
