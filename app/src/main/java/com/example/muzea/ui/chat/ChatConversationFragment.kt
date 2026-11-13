@@ -98,6 +98,7 @@ class ChatConversationFragment : Fragment(),
     private var actionsPopup: MessageActionsPopup? = null
     private lateinit var scrollController: ChatScrollController
     private lateinit var composerBanner: ComposerBanner
+    private lateinit var pendingAttachmentsView: PendingAttachmentsView
     /** Пока модалка открыта, «назад» закрывает её, а не весь чат. */
     private val actionsBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
@@ -274,6 +275,13 @@ class ChatConversationFragment : Fragment(),
             viewLifecycleOwner, actionsBackCallback
         )
         setupRecyclerView()
+        pendingAttachmentsView = PendingAttachmentsView(
+            inflater = layoutInflater,
+            scroll = binding.scrollPending,
+            container = binding.pendingAttachments,
+            onRemove = { id -> viewModel.removePendingAttachment(id) },
+            onRetry = { id -> viewModel.retryPendingAttachment(id) }
+        )
         composerBanner = ComposerBanner(
             context = requireContext(),
             banner = binding.replyBanner,
@@ -901,25 +909,7 @@ class ChatConversationFragment : Fragment(),
     }
 
     private fun renderPendingAttachments(pending: List<PendingAttachment>) {
-        binding.scrollPending.visibility = if (pending.isEmpty()) View.GONE else View.VISIBLE
-        binding.pendingAttachments.removeAllViews()
-        pending.forEach { item ->
-            val row = ItemPendingAttachmentBinding.inflate(
-                layoutInflater, binding.pendingAttachments, false
-            )
-            row.tvName.text = item.name
-            row.pbUploading.visibility =
-                if (item.isUploaded || item.error != null) View.GONE else View.VISIBLE
-            row.pbUploading.isIndeterminate = item.progress <= 0
-            row.pbUploading.progress = item.progress
-            row.tvError.visibility = if (item.error != null) View.VISIBLE else View.GONE
-            row.tvError.text = item.error
-            row.ivRemove.setOnClickListener { viewModel.removePendingAttachment(item.id) }
-            if (item.error != null) {
-                row.root.setOnClickListener { viewModel.retryPendingAttachment(item.id) }
-            }
-            binding.pendingAttachments.addView(row.root)
-        }
+        pendingAttachmentsView.render(pending)
     }
 
     private fun openAttachment(message: Message, attachment: MessageAttachment) {
