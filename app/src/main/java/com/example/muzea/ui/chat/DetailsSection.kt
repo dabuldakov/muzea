@@ -61,16 +61,14 @@ class DetailsSection(
         isVisible = true
         section.visibility = View.VISIBLE
 
-        readers.addView(TextView(context).apply {
-            text = context.getString(R.string.message_status_title)
-            textSize = 12f
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
-            setTextColor(
-                com.google.android.material.color.MaterialColors.getColor(
-                    content, com.google.android.material.R.attr.colorPrimary
-                )
-            )
-            setPadding((6 * density).toInt(), (2 * density).toInt(), 0, 0)
+        // Значок информации вместо текста: серый контур, меньше иконок
+        // реакций и действий, без заливки. Высота строки не меняется.
+        readers.addView(ImageView(context).apply {
+            val size = (18 * density).toInt()
+            layoutParams = LinearLayout.LayoutParams(size, size)
+            setImageResource(R.drawable.ic_details_info)
+            contentDescription = context.getString(R.string.message_status_title)
+            scaleType = ImageView.ScaleType.FIT_CENTER
         })
         readers.setOnClickListener { onHeaderClick() }
 
@@ -81,25 +79,15 @@ class DetailsSection(
         val onSurfaceVariant = androidx.core.graphics.ColorUtils.setAlphaComponent(
             onSurface, 0x99
         )
-        if (detailsRows.isEmpty()) {
-            rows.addView(TextView(context).apply {
-                text = context.getString(R.string.details_empty_reactions)
-                textSize = 13f
-                setTextColor(onSurfaceVariant)
-                val pad = (6 * density).toInt()
-                setPadding(pad, pad, pad, pad)
-            })
-        } else {
-            detailsRows.forEach { row ->
-                rows.addView(
-                    buildRow(
-                        row,
-                        reactionsByUser[row.userUuid].orEmpty(),
-                        onSurface,
-                        onSurfaceVariant
-                    )
+        detailsRows.forEach { row ->
+            rows.addView(
+                buildRow(
+                    row,
+                    reactionsByUser[row.userUuid].orEmpty(),
+                    onSurface,
+                    onSurfaceVariant
                 )
-            }
+            )
         }
         scroll.setOnClickListener { onRowClick() }
         rows.setOnClickListener { onRowClick() }

@@ -334,5 +334,4 @@
     <string name="scroll_to_unread">Scroll to first unread</string>
     <string name="message_status_title">Details</string>
     <string name="message_status_none_read">No one has read it yet</string>
-    <string name="details_empty_reactions">No reactions yet</string>
 </resources>

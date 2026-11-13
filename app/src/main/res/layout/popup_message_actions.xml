@@ -72,7 +72,7 @@
             android:id="@+id/readersRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
+            android:gravity="end|center_vertical"
             android:orientation="horizontal"
             android:paddingStart="6dp"
             android:paddingTop="4dp"

@@ -107,12 +107,7 @@ class DetailsSectionTest {
 
         assertTrue(section.isVisible)
         assertEquals(View.VISIBLE, content.findViewById<View>(R.id.statusSection).visibility)
-        val rows = content.findViewById<LinearLayout>(R.id.statusRows)
-        assertEquals(1, rows.childCount)
-        assertEquals(
-            context.getString(R.string.details_empty_reactions),
-            (rows.getChildAt(0) as android.widget.TextView).text.toString()
-        )
+        assertEquals(0, content.findViewById<LinearLayout>(R.id.statusRows).childCount)
     }
 
     @Test

@@ -320,5 +320,4 @@
     <string name="scroll_to_unread">К первому непрочитанному</string>
     <string name="message_status_title">Детали</string>
     <string name="message_status_none_read">Пока никто не прочитал</string>
-    <string name="details_empty_reactions">Пока нет реакций</string>
 </resources>
