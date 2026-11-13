@@ -44,6 +44,15 @@ object LocalTimeFormatter {
     /** Только дата, например «2026-09-22» в поясе устройства. */
     fun formatDate(iso: String?): String = format(iso, dateTime = false)
 
+    /**
+     * Время в том виде, в каком его ждёт сервер: UTC без зоны,
+     * `2026-09-22T12:00:00`. [secondsAgo] сдвигает момент в прошлое.
+     */
+    fun serverTimestamp(secondsAgo: Long = 0): String {
+        val millis = System.currentTimeMillis() - secondsAgo * 1000
+        return utcFormatter.get()!!.format(Date(millis)).substring(0, 19)
+    }
+
     private fun format(iso: String?, dateTime: Boolean): String {
         if (iso.isNullOrEmpty()) return ""
         return try {

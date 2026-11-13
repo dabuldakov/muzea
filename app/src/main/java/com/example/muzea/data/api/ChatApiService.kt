@@ -133,6 +133,13 @@ interface ChatApiService {
         @Query("size") size: Int = 50
     ): Response<PageResponse<MessageResponse>>
 
+    /** Изменённые сообщения (правки, удаления) после указанного времени. */
+    @GET("/api/messages/{chatUuid}/updated/{timestamp}")
+    suspend fun getUpdatedMessages(
+        @Path("chatUuid") chatUuid: String,
+        @Path("timestamp") timestamp: String
+    ): Response<List<MessageResponse>>
+
     /** Сообщения старше указанного — для догрузки истории вверх. */
     /** Новые сообщения после указанного времени (ISO-8601): дешёвый поллинг. */
     @GET("/api/messages/{chatUuid}/after/{timestamp}")

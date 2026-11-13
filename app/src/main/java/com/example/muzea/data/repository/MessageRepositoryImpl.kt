@@ -60,6 +60,27 @@ class MessageRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun loadUpdatedMessages(
+        chatUuid: String,
+        timestamp: String
+    ): List<Message>? {
+        return try {
+            val response = chatAuthManager.retryOnceAfterUnauthorized {
+                apiService.getUpdatedMessages(chatUuid, timestamp)
+            }
+            if (response.isSuccessful) {
+                response.body()?.map { it.toDomain() }
+            } else {
+                null
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            com.example.muzea.utils.ErrorReporter.logCaught("MessageRepository", e)
+            null
+        }
+    }
+
     override suspend fun loadMessagesAfter(
         chatUuid: String,
         timestamp: String

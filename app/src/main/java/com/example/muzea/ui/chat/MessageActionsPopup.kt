@@ -28,16 +28,18 @@ class MessageActionsPopup(
     private val context: Context,
     private val messageUuid: String,
     private val actions: List<MessageActionSpec>,
-    private val statusRows: List<MessageStatusRow> = emptyList(),
+    private var statusRows: List<MessageStatusRow> = emptyList(),
     private val reactions: List<com.example.muzea.domain.model.MessageReaction> = emptyList(),
     /** Авторы реакций для чужих сообщений, где нет списка получателей. */
-    private val reactionRows: List<MessageStatusRow> = emptyList(),
+    private var reactionRows: List<MessageStatusRow> = emptyList(),
     /** Ниже какого Y карточка не должна подниматься (низ шапки чата). */
     private val topLimit: Int = 0,
     private val showStatus: Boolean = false,
     private val onAction: (String) -> Unit,
     private val onReaction: (String) -> Unit,
-    private val onDismissed: () -> Unit = {}
+    private val onDismissed: () -> Unit = {},
+    /** Раскрыли «Детали» — просим свежие квитанции, пока карточка открыта. */
+    private val onDetailsExpanded: () -> Unit = {}
 ) {
 
     private val density = context.resources.displayMetrics.density
@@ -292,6 +294,26 @@ class MessageActionsPopup(
         )
     }
 
+    /**
+     * Подменяет содержимое «Деталей» свежими данными, не закрывая карточку.
+     * Нужно после того, как подтянулись актуальные квитанции прочтения.
+     */
+    fun refreshDetails(
+        statusRows: List<MessageStatusRow>,
+        reactionRows: List<MessageStatusRow>
+    ) {
+        this.statusRows = statusRows
+        this.reactionRows = reactionRows
+        val expanded = statusExpanded
+        renderStatus()
+        if (!expanded) return
+        val scroll = details.scrollView()
+        scroll.layoutParams = scroll.layoutParams.apply {
+            height = details.listHeight.coerceAtLeast(0)
+        }
+        scroll.visibility = View.VISIBLE
+    }
+
     private fun setStatusExpanded(expand: Boolean) {
         if (statusExpanded == expand) return
         statusExpanded = expand
@@ -300,6 +322,7 @@ class MessageActionsPopup(
         if (expand) {
             scroll.layoutParams = scroll.layoutParams.apply { height = 0 }
             scroll.visibility = View.VISIBLE
+            onDetailsExpanded()
             animateContent(onFraction = { fraction ->
                 scroll.layoutParams = scroll.layoutParams.apply {
                     height = (listHeight * fraction).toInt()

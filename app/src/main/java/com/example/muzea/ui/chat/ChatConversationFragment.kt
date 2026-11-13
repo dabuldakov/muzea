@@ -443,7 +443,20 @@ class ChatConversationFragment : Fragment(),
                 showStatus = showStatus,
                 onAction = { actionId -> onMessageAction(message.messageUuid, actionId) },
                 onReaction = { emoji -> viewModel.toggleReaction(message, emoji) },
-                onDismissed = { actionsBackCallback.isEnabled = false }
+                onDismissed = { actionsBackCallback.isEnabled = false },
+                // Квитанции обновляются раз в 30 секунд; на раскрытие «Деталей»
+                // тянем их сразу, иначе список читателей отстаёт.
+                onDetailsExpanded = {
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        viewModel.refreshReceiptsNow()
+                        if (actionsPopup?.isShowing() == true) {
+                            actionsPopup?.refreshDetails(
+                                statusRows = if (showStatus) buildStatusRows(message) else emptyList(),
+                                reactionRows = buildReactionRows(message)
+                            )
+                        }
+                    }
+                }
             )
             actionsPopup = popup
             popup.show(

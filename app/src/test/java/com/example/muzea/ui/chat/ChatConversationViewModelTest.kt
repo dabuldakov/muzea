@@ -94,6 +94,8 @@ class ChatConversationViewModelTest {
         coEvery { messageRepository.markMessagesAsRead(any(), any()) } returns true
         coEvery { messageRepository.markMessagesAsDelivered(any(), any()) } returns true
         coEvery { messageRepository.loadChatReceipts(any()) } returns emptyList()
+        // Периодическая сверка правок: по умолчанию изменений нет.
+        coEvery { messageRepository.loadUpdatedMessages(any(), any()) } returns emptyList()
         // init подтягивает закреплённые; строгий mockk требует заглушку.
         coEvery { messageRepository.loadPinned(any()) } returns emptyList()
         every { appContext.getString(any()) } returns "error"
@@ -1125,5 +1127,68 @@ class ChatConversationViewModelTest {
 
         // Повторный вход на экран (onStart) не должен ждать следующего тика.
         coVerify(atLeast = 2) { messageRepository.loadMessages(chatUuid) }
+    }
+
+    @Test
+    fun `periodic sync asks only for updated messages instead of the full page`() =
+        withViewModel(
+            network = flowOf(
+                Resource.Success(
+                    listOf(
+                        message("m1", "hi", "2026-01-01T00:00:00", messageId = 10, sender = "other")
+                    )
+                )
+            )
+        ) { _ ->
+            val scheduler = (this as kotlinx.coroutines.test.TestScope).testScheduler
+            scheduler.runCurrent()
+            // Пять опросов вперёд: полная страница остаётся только одна — на входе.
+            scheduler.advanceTimeBy(20_000)
+            scheduler.runCurrent()
+
+            coVerify(exactly = 1) { messageRepository.loadMessages(chatUuid) }
+            coVerify(atLeast = 1) { messageRepository.loadUpdatedMessages(chatUuid, any()) }
+        }
+
+    @Test
+    fun `updated message replaces the text in the conversation`() = withViewModel(
+        network = flowOf(
+            Resource.Success(
+                listOf(message("m1", "hi", "2026-01-01T00:00:00", messageId = 10, sender = "other"))
+            )
+        )
+    ) { viewModel ->
+        val scheduler = (this as kotlinx.coroutines.test.TestScope).testScheduler
+        scheduler.runCurrent()
+        // Правка приходит только через сверку изменённых: в дельте after её нет.
+        coEvery { messageRepository.loadUpdatedMessages(chatUuid, any()) } returns listOf(
+            message("m1", "edited", "2026-01-01T00:00:00", messageId = 10, sender = "other")
+        )
+        scheduler.advanceTimeBy(20_000)
+        scheduler.runCurrent()
+
+        assertEquals("edited", viewModel.uiState.value.messages.single().text)
+    }
+
+    @Test
+    fun `receipts are not requested on every poll`() = withViewModel { _ ->
+        val scheduler = (this as kotlinx.coroutines.test.TestScope).testScheduler
+        scheduler.runCurrent()
+        scheduler.advanceTimeBy(9_000)
+        scheduler.runCurrent()
+
+        // Несколько опросов за 9 секунд, а квитанции — один раз.
+        coVerify(exactly = 1) { messageRepository.loadChatReceipts(chatUuid) }
+    }
+
+    @Test
+    fun `receipts refresh on demand even inside the throttle window`() = withViewModel { viewModel ->
+        val scheduler = (this as kotlinx.coroutines.test.TestScope).testScheduler
+        scheduler.runCurrent()
+        coVerify(exactly = 1) { messageRepository.loadChatReceipts(chatUuid) }
+
+        // Открыли «Детали» — галочки нужны свежие, интервал не ждём.
+        viewModel.refreshReceiptsNow()
+        coVerify(exactly = 2) { messageRepository.loadChatReceipts(chatUuid) }
     }
 }

@@ -113,6 +113,7 @@ class ChatConversationViewModelBranchesTest {
         coEvery { messageRepository.markMessagesAsRead(any(), any()) } returns true
         coEvery { messageRepository.markMessagesAsDelivered(any(), any()) } returns true
         coEvery { messageRepository.loadChatReceipts(any()) } returns emptyList()
+        coEvery { messageRepository.loadUpdatedMessages(any(), any()) } returns emptyList()
         coEvery { messageRepository.loadPinned(any()) } returns emptyList()
         every { appContext.getString(any()) } returns "error"
         every { appContext.filesDir } returns
@@ -476,5 +477,23 @@ class ChatConversationViewModelBranchesTest {
         viewModel.retryMessage(failed)
 
         assertTrue(viewModel.uiState.value.messages.single().messageUuid.startsWith("local-"))
+    }
+
+    @Test
+    fun `failed updated sync keeps the conversation and retries later`() = withViewModel(
+        network = flowOf(
+            Resource.Success(listOf(message("m1", "hi", messageId = 1, sender = "other")))
+        )
+    ) { viewModel ->
+        val scheduler = (this as kotlinx.coroutines.test.TestScope).testScheduler
+        scheduler.runCurrent()
+
+        coEvery { messageRepository.loadUpdatedMessages(chatUuid, any()) } returns null
+        scheduler.advanceTimeBy(20_000)
+        scheduler.runCurrent()
+
+        // Сбой сверки правок ничего не ломает: лента остаётся как была.
+        assertEquals("hi", viewModel.uiState.value.messages.single().text)
+        coVerify(atLeast = 1) { messageRepository.loadUpdatedMessages(chatUuid, any()) }
     }
 }

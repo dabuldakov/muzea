@@ -94,6 +94,7 @@ class ChatConversationFragmentTest {
         coEvery { messageRepository.loadMessagesAfter(any(), any()) } returns
             flowOf(Resource.Success(emptyList()))
         coEvery { messageRepository.loadChatReceipts(any()) } returns emptyList()
+        coEvery { messageRepository.loadUpdatedMessages(any(), any()) } returns emptyList()
         coEvery { messageRepository.loadPinned(any()) } returns emptyList()
         coEvery { messageRepository.markMessagesAsRead(any(), any()) } returns true
         coEvery { messageRepository.markMessagesAsDelivered(any(), any()) } returns true

@@ -13,6 +13,7 @@ import com.example.muzea.domain.model.MessageDeliveryStatus
 import com.example.muzea.domain.model.MessagePreview
 import com.example.muzea.data.repository.ChatListCache
 import com.example.muzea.data.repository.ChatMessagesCache
+import com.example.muzea.utils.LocalTimeFormatter
 import com.example.muzea.utils.MediaFileReader
 import com.example.muzea.utils.NetworkMonitor
 import com.example.muzea.utils.NetworkQuality
@@ -145,6 +146,7 @@ class ChatConversationViewModel @Inject constructor(
             networkMonitor.status.collect { status ->
                 if (status.online && !wasOnline && !pollingPaused) {
                     pollingJob?.cancel()
+                    pendingFullSync = true
                     startPolling()
                     retryQueuedUploads()
                 }
@@ -265,7 +267,7 @@ class ChatConversationViewModel @Inject constructor(
                     rememberServerTime(incoming)
                     cacheNewGifs(incoming)
                     mergeMessages(incoming)
-                    refreshReceipts()
+                    refreshReceipts(force = incoming.isNotEmpty())
                 }
 
                 is Resource.Error -> {
@@ -277,6 +279,27 @@ class ChatConversationViewModel @Inject constructor(
             }
         }
         return success
+    }
+
+    /**
+     * Сверка правок без полной страницы: запрашиваем только сообщения,
+     * изменённые с прошлой проверки. Полная страница на 50 сообщений весит
+     * ~67 КБ, а изменений обычно нет вовсе — ответ пустой, ~2 байта.
+     *
+     * @return true, если запрос завершился успешно.
+     */
+    private suspend fun loadUpdatedOnce(): Boolean {
+        // Сдвиг в прошлое страхует от разницы часов и от строк, зафиксированных
+        // уже после запроса: повторная обработка тех же сообщений безвредна.
+        val since = lastUpdatedCheckAt
+            ?: LocalTimeFormatter.serverTimestamp(UPDATED_OVERLAP_SECONDS)
+        val updated = messageRepository.loadUpdatedMessages(chatUuid, since) ?: return false
+        lastUpdatedCheckAt = LocalTimeFormatter.serverTimestamp(UPDATED_OVERLAP_SECONDS)
+        if (updated.isEmpty()) return true
+        cacheNewGifs(updated)
+        mergeMessages(updated)
+        refreshReceipts(force = true)
+        return true
     }
 
     /** Пауза опроса, когда экран не виден: не тратим сеть и батарею. */
@@ -291,6 +314,9 @@ class ChatConversationViewModel @Inject constructor(
     fun resumePolling() {
         pollingPaused = false
         pollingJob?.cancel()
+        // Вернулись на экран — один раз сверяемся полной страницей: дельта
+        // и правки за это время могли выпасть из окна сверки.
+        pendingFullSync = true
         startPolling()
     }
 
@@ -869,14 +895,24 @@ class ChatConversationViewModel @Inject constructor(
     }
 
     /**
-     * Подтягивает квитанции участников вместе с очередным опросом сообщений.
+     * Подтягивает квитанции участников, но не чаще [RECEIPTS_REFRESH_INTERVAL_MS]:
+     * галочки не обязаны обновляться каждые 3 секунды, а каждый такой запрос —
+     * это ~1,25 КБ (в большой группе — десятки килобайт).
      * Ошибку не показываем: галочки просто останутся на прошлом значении.
      */
-    private suspend fun refreshReceipts() {
+    private suspend fun refreshReceipts(force: Boolean = false) {
+        val now = System.currentTimeMillis()
+        if (!force && now - lastReceiptsRefreshAt < RECEIPTS_REFRESH_INTERVAL_MS) return
         val receipts = messageRepository.loadChatReceipts(chatUuid) ?: return
+        lastReceiptsRefreshAt = now
         _uiState.value = withStatuses(
             _uiState.value.copy(receipts = receipts, receiptsLoaded = true)
         )
+    }
+
+    /** Свежие квитанции вне общего ритма — например, при открытии «Деталей». */
+    suspend fun refreshReceiptsNow() {
+        refreshReceipts(force = true)
     }
 
     private fun withStatuses(state: ChatConversationUiState): ChatConversationUiState =
@@ -1146,12 +1182,16 @@ class ChatConversationViewModel @Inject constructor(
                     continue
                 }
 
-                // Раз в FULL_SYNC_EVERY итераций делаем полную сверку: так
-                // подхватываем правки/удаления старых сообщений, которые
-                // инкрементальная выборка не видит.
-                val incremental = lastServerCreatedAt != null &&
-                    iteration % FULL_SYNC_EVERY != 0
-                val success = loadOnce(incremental)
+                // Полная страница — только когда показать ещё нечего или после
+                // возврата на экран; в остальное время хватает дельты.
+                val fullSync = lastServerCreatedAt == null || pendingFullSync
+                if (fullSync) pendingFullSync = false
+                val success = loadOnce(incremental = !fullSync)
+                if (success && !fullSync && iteration % UPDATED_SYNC_EVERY == 0) {
+                    // Раз в UPDATED_SYNC_EVERY опросов подтягиваем только
+                    // изменённые сообщения: правки, закреп, снятые реакции.
+                    loadUpdatedOnce()
+                }
                 iteration++
 
                 val delayMs = when (quality) {
@@ -1166,6 +1206,15 @@ class ChatConversationViewModel @Inject constructor(
     }
 
     private var lastServerCreatedAt: String? = null
+    /**
+     * До какого времени (UTC, формат сервера) уже сверены правки. Хранится
+     * строкой: ровно в таком виде его ждёт эндпоинт /updated.
+     */
+    private var lastUpdatedCheckAt: String? = null
+    /** Когда последний раз тянули квитанции — чтобы не делать это на каждом опросе. */
+    private var lastReceiptsRefreshAt = 0L
+    /** Нужна полная сверка на ближайшей итерации (возврат на экран, сеть). */
+    private var pendingFullSync = false
 
     private fun rememberServerTime(messages: List<Message>) {
         val latest = messages.asSequence()
@@ -1195,7 +1244,16 @@ class ChatConversationViewModel @Inject constructor(
         private const val ERROR_POLL_INTERVAL_MS = 15_000L
         private const val WEAK_POLL_INTERVAL_MS = 15_000L
         private const val OFFLINE_POLL_INTERVAL_MS = 60_000L
-        private const val FULL_SYNC_EVERY = 10
+        /** Каждая пятая итерация опроса (≈15 с) — сверка только изменённых. */
+        private const val UPDATED_SYNC_EVERY = 5
+        /**
+         * Перекрытие окна сверки правок, секунды. Больше шага сверки, чтобы
+         * не потерять строку, зафиксированную между запросами, но и не
+         * пересылать одно и то же слишком много раз.
+         */
+        private const val UPDATED_OVERLAP_SECONDS = 30L
+        /** Квитанции прочтения — не чаще раза в 30 секунд. */
+        private const val RECEIPTS_REFRESH_INTERVAL_MS = 30_000L
         private const val PAGE_SIZE = 50
     }
 }
