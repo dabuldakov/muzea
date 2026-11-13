@@ -102,6 +102,9 @@ class ChatConversationFragment : Fragment(),
     private lateinit var chargeMeter: ChargeMeter
     private lateinit var pinnedBarView: PinnedBarView
     private lateinit var downloadController: AttachmentDownloadController
+    private lateinit var recordingTimer: RecordingTimer
+    private lateinit var conversationStateView: ConversationStateView
+    private lateinit var networkBannerView: NetworkBannerView
     /** Пока модалка открыта, «назад» закрывает её, а не весь чат. */
     private val actionsBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
@@ -136,7 +139,6 @@ class ChatConversationFragment : Fragment(),
     private var sendMode = SendMode.TEXT
     private var activeRecorderMode: SendMode? = null
     private var recordingStartJob: Job? = null
-    private var recordTimerJob: Job? = null
     private var recordStartMs = 0L
     private var pressStartY = 0f
     private var cancelArmed = false
@@ -294,6 +296,20 @@ class ChatConversationFragment : Fragment(),
             chargeFormat = { power -> getString(R.string.charge_format, power) },
             chargeZero = getString(R.string.charge_zero),
             onVibrate = { level -> vibrateCharge(level) }
+        )
+        conversationStateView = ConversationStateView(
+            progress = binding.progressBar,
+            error = binding.tvError,
+            list = binding.recyclerViewMessages
+        )
+        networkBannerView = NetworkBannerView(binding.tvNetworkBanner) {
+            adapter.refreshMedia()
+        }
+        recordingTimer = RecordingTimer(
+            scope = viewLifecycleOwner.lifecycleScope,
+            format = { ms -> formatRecordingTime(ms) },
+            onTick = { text -> binding.tvRecordingTimer.text = text },
+            onLimit = { finishRecording(cancel = false) }
         )
         downloadController = AttachmentDownloadController(
             scope = viewLifecycleOwner.lifecycleScope,
@@ -1445,18 +1461,7 @@ class ChatConversationFragment : Fragment(),
 
     private fun startRecordingTimer(maxMs: Long) {
         recordStartMs = System.currentTimeMillis()
-        recordTimerJob?.cancel()
-        recordTimerJob = viewLifecycleOwner.lifecycleScope.launch {
-            while (isActive) {
-                val elapsed = System.currentTimeMillis() - recordStartMs
-                binding.tvRecordingTimer.text = formatRecordingTime(elapsed)
-                if (elapsed >= maxMs) {
-                    finishRecording(cancel = false)
-                    break
-                }
-                delay(200)
-            }
-        }
+        recordingTimer.start(maxMs)
     }
 
     private fun updateRecordingHint() {
@@ -1471,8 +1476,7 @@ class ChatConversationFragment : Fragment(),
         finishingRecording = true
         val mode = activeRecorderMode
         activeRecorderMode = null
-        recordTimerJob?.cancel()
-        recordTimerJob = null
+        recordingTimer.stop()
         val cancelEffective = cancel || (mode == SendMode.VIDEO && !videoReady)
         videoReady = false
 
@@ -1506,7 +1510,7 @@ class ChatConversationFragment : Fragment(),
 
     private fun abortRecording(messageRes: Int) {
         activeRecorderMode = null
-        recordTimerJob?.cancel()
+        recordingTimer.stop()
         voiceRecorder?.cancel()
         videoRecorder?.cancel()
         voiceRecorder = null
@@ -1579,37 +1583,18 @@ class ChatConversationFragment : Fragment(),
      * submitList() считали бы экран пустым и спрятали бы переписку.
      */
     private fun renderConversationState(state: ChatConversationUiState) {
-        val hasMessages = state.messages.isNotEmpty()
-
-        binding.progressBar.visibility = if (state.isLoading && !hasMessages) View.VISIBLE else View.GONE
-
-        if (state.error != null && !hasMessages) {
-            binding.tvError.text = state.error
-            binding.tvError.visibility = View.VISIBLE
-            binding.recyclerViewMessages.visibility = View.GONE
-        } else {
-            binding.tvError.visibility = View.GONE
-            binding.recyclerViewMessages.visibility =
-                if (hasMessages) View.VISIBLE else View.GONE
-        }
+        conversationStateView.render(
+            isLoading = state.isLoading,
+            hasMessages = state.messages.isNotEmpty(),
+            errorText = state.error
+        )
     }
 
     private fun observeNetwork() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 networkMonitor.status.collect { status ->
-                    val show = status.quality != com.example.muzea.utils.NetworkQuality.GOOD
-                    binding.tvNetworkBanner.visibility = if (show) View.VISIBLE else View.GONE
-                    if (show) {
-                        binding.tvNetworkBanner.setText(
-                            if (status.quality == com.example.muzea.utils.NetworkQuality.OFFLINE)
-                                R.string.network_offline_banner
-                            else R.string.network_slow_banner
-                        )
-                    } else {
-                        // Сеть вернулась — пробуем догрузить то, что отложили.
-                        adapter.refreshMedia()
-                    }
+                    networkBannerView.render(status.quality)
                 }
             }
         }
