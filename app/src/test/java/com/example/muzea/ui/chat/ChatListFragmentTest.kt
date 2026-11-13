@@ -250,4 +250,26 @@ class ChatListFragmentTest {
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(10))
         assertTrue(loads.size > afterLaunch)
     }
+
+    @Test
+    fun `returning from a chat refreshes the list immediately`() {
+        val loads = mutableListOf<Unit>()
+        coEvery { chatRepository.loadChats() } answers {
+            loads += Unit
+            flowOf(Resource.Success(emptyList()))
+        }
+
+        val (activity, fragment) = launch()
+        shadowOf(Looper.getMainLooper()).idle()
+        val beforeReturn = loads.size
+
+        // Ушли в переписку и сразу вернулись: тик автообновления (8 с) ещё
+        // не наступил, а бейдж непрочитанных уже должен быть актуальным.
+        activity.supportFragmentManager.beginTransaction().hide(fragment).commitNow()
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(200))
+        activity.supportFragmentManager.beginTransaction().show(fragment).commitNow()
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(300))
+
+        assertTrue(loads.size > beforeReturn)
+    }
 }

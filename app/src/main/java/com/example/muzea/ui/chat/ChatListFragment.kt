@@ -392,6 +392,16 @@ class ChatListFragment : Fragment() {
     private fun dp(value: Int): Int =
         (value * resources.displayMetrics.density).toInt()
 
+    /**
+     * Возврат из переписки не переводит вкладку в RESUMED — она была скрыта
+     * через hide(), поэтому onResume не срабатывает. Без этого счётчик
+     * непрочитанных оставался старым до следующего тика автообновления.
+     */
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        if (!hidden && isResumed) viewModel.refreshChats()
+    }
+
     override fun onResume() {
         super.onResume()
         viewModel.refreshChats()
