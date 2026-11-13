@@ -100,6 +100,7 @@ class ChatConversationFragment : Fragment(),
     private lateinit var composerBanner: ComposerBanner
     private lateinit var pendingAttachmentsView: PendingAttachmentsView
     private lateinit var chargeMeter: ChargeMeter
+    private lateinit var pinnedBarView: PinnedBarView
     /** Пока модалка открыта, «назад» закрывает её, а не весь чат. */
     private val actionsBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
@@ -276,6 +277,16 @@ class ChatConversationFragment : Fragment(),
             viewLifecycleOwner, actionsBackCallback
         )
         setupRecyclerView()
+        pinnedBarView = PinnedBarView(
+            context = requireContext(),
+            bar = binding.pinnedBar,
+            content = binding.pinnedBarContent,
+            unpin = binding.btnUnpin,
+            title = binding.tvPinnedTitle,
+            preview = binding.tvPinnedText,
+            onUnpin = { pinnedMessages.firstOrNull()?.let { viewModel.unpinMessage(it) } },
+            onOpen = { uuid -> jumpToMessage(uuid) }
+        ).also { it.setup() }
         chargeMeter = ChargeMeter(
             chargeBar = binding.chargeBar,
             progress = binding.progressCharge,
@@ -317,7 +328,6 @@ class ChatConversationFragment : Fragment(),
         setupInput()
         setupAttachments()
         setupReplyBanner()
-        setupPinnedBar()
         setupSelectionBar()
         prefillDraft()
         observeViewModel()
@@ -856,18 +866,6 @@ class ChatConversationFragment : Fragment(),
         imm.showSoftInput(binding.etMessageInput, InputMethodManager.SHOW_IMPLICIT)
     }
 
-    private fun setupPinnedBar() {
-        // Крестик открепляет верхнее закреплённое сообщение.
-        binding.btnUnpin.setOnClickListener {
-            pinnedMessages.firstOrNull()?.let { viewModel.unpinMessage(it) }
-        }
-        // Тап по панели ведёт к закреплённому сообщению (подсвечиваем).
-        binding.pinnedBarContent.setOnClickListener {
-            val target = pinnedMessages.firstOrNull() ?: return@setOnClickListener
-            jumpToMessage(target.messageUuid)
-        }
-    }
-
     /**
      * Прокручивает к сообщению и подсвечивает его. Если оно не загружено,
      * поднимает историю и повторит переход, когда оно появится.
@@ -886,19 +884,8 @@ class ChatConversationFragment : Fragment(),
 
     /** Панель закреплённого сообщения сверху чата. */
     private fun renderPinnedBar(state: ChatConversationUiState) {
-        val pinned = state.pinnedMessages
-        pinnedMessages = pinned
-        if (pinned.isEmpty()) {
-            binding.pinnedBar.visibility = View.GONE
-            return
-        }
-        binding.pinnedBar.visibility = View.VISIBLE
-        binding.tvPinnedTitle.text = if (pinned.size > 1) {
-            getString(R.string.pinned_messages_count, pinned.size)
-        } else {
-            getString(R.string.pinned_message_title)
-        }
-        binding.tvPinnedText.text = replyPreviewText(requireContext(), pinned.first())
+        pinnedMessages = state.pinnedMessages
+        pinnedBarView.render(state.pinnedMessages)
     }
 
     private fun showAttachmentPicker() {
