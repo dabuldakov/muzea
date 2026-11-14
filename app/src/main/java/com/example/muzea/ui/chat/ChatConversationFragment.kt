@@ -449,6 +449,7 @@ class ChatConversationFragment : Fragment(),
                 // тянем их сразу, иначе список читателей отстаёт.
                 onDetailsExpanded = {
                     viewLifecycleOwner.lifecycleScope.launch {
+                        viewModel.loadMessageReceiptTimes(message)
                         viewModel.refreshReceiptsNow()
                         if (actionsPopup?.isShowing() == true) {
                             actionsPopup?.refreshDetails(
@@ -551,10 +552,14 @@ class ChatConversationFragment : Fragment(),
 
     private fun buildStatusRows(message: Message): List<MessageStatusRow> =
         viewModel.participantStatuses(message).map { row ->
+            // Время — только из отметки по этому сообщению. Водяной знак
+            // квитанции показывает последнее прочтение чата и для старых
+            // сообщений дал бы неверную дату, поэтому fallback нет.
+            val exact = row.receipt.userUuid?.let { viewModel.receiptTime(message, it) }
             val at = if (row.status == MessageDeliveryStatus.READ) {
-                row.receipt.lastReadAt
+                exact?.readAt
             } else {
-                row.receipt.lastDeliveredAt
+                exact?.deliveredAt
             }
             MessageStatusRow(
                 userUuid = row.receipt.userUuid,

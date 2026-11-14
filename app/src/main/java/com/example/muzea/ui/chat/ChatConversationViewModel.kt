@@ -11,6 +11,7 @@ import com.example.muzea.domain.model.Message
 import com.example.muzea.domain.model.MessageAttachment
 import com.example.muzea.domain.model.MessageDeliveryStatus
 import com.example.muzea.domain.model.MessagePreview
+import com.example.muzea.domain.model.MessageReceiptTime
 import com.example.muzea.data.repository.ChatListCache
 import com.example.muzea.data.repository.ChatMessagesCache
 import com.example.muzea.utils.LocalTimeFormatter
@@ -1147,6 +1148,29 @@ class ChatConversationViewModel @Inject constructor(
         // Реакцию мог поставить и я сам — моего receipt в списке участников нет.
         return uuids.map { uuid -> uuid to byUuid[uuid] }
     }
+
+    /**
+     * Точное время доставки и прочтения конкретного сообщения.
+     *
+     * Водарки в квитанциях знают только «последнее прочтение чата», поэтому
+     * время в «Деталях» берём из отметок по сообщению. Для истории, до
+     * появления отметок, времени нет — строку показываем без него.
+     */
+    private val receiptTimes = mutableMapOf<String, Map<String, MessageReceiptTime>>()
+
+    /** Загружает отметки сообщения; ошибку не показываем — время просто не появится. */
+    suspend fun loadMessageReceiptTimes(message: Message) {
+        if (message.messageId == null) return
+        val times = messageRepository.loadMessageReceiptTimes(chatUuid, message.messageUuid)
+            ?: return
+        receiptTimes[message.messageUuid] = times
+            .mapNotNull { time -> time.userUuid?.let { it to time } }
+            .toMap()
+    }
+
+    /** Время конкретного участника по сообщению или null, если его ещё нет. */
+    fun receiptTime(message: Message, userUuid: String): MessageReceiptTime? =
+        receiptTimes[message.messageUuid]?.get(userUuid)
 
     /** Кто прочитал/получил сообщение — для шторки статуса. */
     fun participantStatuses(message: Message): List<ParticipantDeliveryStatus> =

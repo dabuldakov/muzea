@@ -438,6 +438,33 @@ class MessageRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun loadMessageReceiptTimes(
+        chatUuid: String,
+        messageUuid: String
+    ): List<com.example.muzea.domain.model.MessageReceiptTime>? {
+        return try {
+            val response = chatAuthManager.authenticatedRequest {
+                apiService.getMessageReceiptTimes(chatUuid, messageUuid)
+            }
+            if (response.isSuccessful) {
+                response.body()?.map {
+                    com.example.muzea.domain.model.MessageReceiptTime(
+                        userUuid = it.userUuid,
+                        deliveredAt = it.deliveredAt,
+                        readAt = it.readAt
+                    )
+                }.orEmpty()
+            } else {
+                null
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            com.example.muzea.utils.ErrorReporter.logCaught("MessageRepository", e)
+            null
+        }
+    }
+
     override suspend fun reportMessage(messageUuid: String, reason: String): Boolean {
         return try {
             chatAuthManager.authenticatedRequest {

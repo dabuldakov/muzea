@@ -14,6 +14,7 @@ import com.example.muzea.data.model.ContactResponse
 import com.example.muzea.data.model.CreateGroupChatRequest
 import com.example.muzea.data.model.CreatePrivateChatRequest
 import com.example.muzea.data.model.GifResponse
+import com.example.muzea.data.model.MessageReceiptTimeResponse
 import com.example.muzea.data.model.MessageResponse
 import com.example.muzea.data.model.PageResponse
 import com.example.muzea.data.model.PresenceResponse
@@ -225,6 +226,13 @@ interface ChatApiService {
         @Path("chatUuid") chatUuid: String,
         @Query("upToMessageUuid") upToMessageUuid: String
     ): Response<Unit>
+
+    /** Точные отметки доставки и прочтения одного сообщения по участникам. */
+    @GET("/api/messages/{chatUuid}/status/{messageUuid}")
+    suspend fun getMessageReceiptTimes(
+        @Path("chatUuid") chatUuid: String,
+        @Path("messageUuid") messageUuid: String
+    ): Response<List<MessageReceiptTimeResponse>>
 
     /** Квитанции участников: докуда доставлено и докуда прочитано. */
     @GET("/api/chats/{chatUuid}/receipts")

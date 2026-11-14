@@ -12,6 +12,7 @@ import com.example.muzea.data.model.ForwardMessageRequest
 import com.example.muzea.data.model.PageResponse
 import com.example.muzea.data.model.SendMessageRequest
 import com.example.muzea.data.mapper.toDomain
+import com.example.muzea.data.model.MessageReceiptTimeResponse
 import com.example.muzea.data.model.MessageResponse
 import com.example.muzea.domain.model.Gif
 import com.example.muzea.utils.PreparedAttachment
@@ -613,5 +614,38 @@ class MessageRepositoryImplTest {
         coEvery { api.getUpdatedMessages("chat-1", any()) } throws IOException("offline")
 
         assertNull(repository.loadUpdatedMessages("chat-1", "2026-01-01T00:00:00"))
+    }
+
+    @Test
+    fun `loadMessageReceiptTimes maps exact times`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.getMessageReceiptTimes("chat-1", "m1") } returns httpOk(
+            listOf(
+                MessageReceiptTimeResponse(
+                    userUuid = "u1",
+                    deliveredAt = "2026-01-01T10:05:00",
+                    readAt = "2026-01-01T10:06:00"
+                )
+            )
+        )
+
+        val times = repository.loadMessageReceiptTimes("chat-1", "m1")
+
+        assertEquals("u1", times?.single()?.userUuid)
+        assertEquals("2026-01-01T10:05:00", times?.single()?.deliveredAt)
+        assertEquals("2026-01-01T10:06:00", times?.single()?.readAt)
+        coVerify(exactly = 1) { api.getMessageReceiptTimes("chat-1", "m1") }
+    }
+
+    @Test
+    fun `loadMessageReceiptTimes returns null on error or exception`() = runTest {
+        coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.getMessageReceiptTimes("chat-1", "m1") } returns httpError(500)
+
+        assertNull(repository.loadMessageReceiptTimes("chat-1", "m1"))
+
+        coEvery { api.getMessageReceiptTimes("chat-1", "m1") } throws IOException("offline")
+
+        assertNull(repository.loadMessageReceiptTimes("chat-1", "m1"))
     }
 }

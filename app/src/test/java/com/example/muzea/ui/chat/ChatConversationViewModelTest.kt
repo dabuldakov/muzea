@@ -10,6 +10,7 @@ import com.example.muzea.domain.model.Message
 import com.example.muzea.domain.model.MessageAttachment
 import com.example.muzea.domain.model.MessageDeliveryStatus
 import com.example.muzea.domain.model.MessageReaction
+import com.example.muzea.domain.model.MessageReceiptTime
 import com.example.muzea.domain.model.ReactionUser
 import com.example.muzea.utils.PreparedAttachment
 import com.example.muzea.data.repository.ChatMessagesCache
@@ -1302,5 +1303,34 @@ class ChatConversationViewModelTest {
         scheduler.advanceTimeBy(15_500)
         scheduler.runCurrent()
         coVerify(atLeast = 1) { messageRepository.loadUpdatedMessages(chatUuid, any()) }
+    }
+
+    @Test
+    fun `receipt times for a message feed the details`() = withViewModel { viewModel ->
+        coEvery { messageRepository.loadMessageReceiptTimes(chatUuid, "m1") } returns listOf(
+            MessageReceiptTime(
+                userUuid = "other",
+                deliveredAt = "2026-01-01T10:05:00",
+                readAt = "2026-01-01T10:06:00"
+            )
+        )
+        val message = message("m1", "hi", "2026-01-01T00:00:00", messageId = 10)
+
+        viewModel.loadMessageReceiptTimes(message)
+
+        assertEquals("2026-01-01T10:05:00", viewModel.receiptTime(message, "other")?.deliveredAt)
+        assertEquals("2026-01-01T10:06:00", viewModel.receiptTime(message, "other")?.readAt)
+        // Участнику без отметки время не придумываем.
+        assertNull(viewModel.receiptTime(message, "unknown"))
+    }
+
+    @Test
+    fun `failed receipt times load leaves the details without time`() = withViewModel { viewModel ->
+        coEvery { messageRepository.loadMessageReceiptTimes(chatUuid, "m1") } returns null
+        val message = message("m1", "hi", "2026-01-01T00:00:00", messageId = 10)
+
+        viewModel.loadMessageReceiptTimes(message)
+
+        assertNull(viewModel.receiptTime(message, "other"))
     }
 }

@@ -128,6 +128,12 @@ interface MessageRepository {
     /** Квитанции участников чата; null — если загрузить не удалось. */
     suspend fun loadChatReceipts(chatUuid: String): List<com.example.muzea.domain.model.ChatReceipt>?
 
+    /** Точные отметки одного сообщения по участникам; null — если не удалось. */
+    suspend fun loadMessageReceiptTimes(
+        chatUuid: String,
+        messageUuid: String
+    ): List<com.example.muzea.domain.model.MessageReceiptTime>?
+
     /** Живое обновление кэша гифок: добавить гифку из переписки без сети. */
     fun cacheSentGif(chatUuid: String, gif: Gif, mine: Boolean)
 
