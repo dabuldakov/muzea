@@ -39,7 +39,10 @@ data class MessageResponse(
     @SerializedName("reactions")
     val reactions: List<ReactionResponse>? = null,
     @SerializedName("power")
-    val power: Int = 0
+    val power: Int = 0,
+    /** Автор удалён: показываем «Удалённый пользователь». */
+    @SerializedName("senderDeleted")
+    val senderDeleted: Boolean = false
 )
 
 /** Реакция на сообщение: эмодзи произвольный (в пределах лимита сервера). */

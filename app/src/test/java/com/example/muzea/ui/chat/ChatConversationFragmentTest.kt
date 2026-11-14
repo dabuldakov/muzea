@@ -16,6 +16,7 @@ import com.example.muzea.domain.repository.ChatSessionRepository
 import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.domain.repository.GifRepository
 import com.example.muzea.domain.repository.MessageRepository
+import com.example.muzea.data.repository.ChatListCache
 import com.example.muzea.data.repository.ChatMessagesCache
 import com.example.muzea.data.repository.OutboxEvent
 import com.example.muzea.data.repository.OutboxSender
@@ -31,6 +32,7 @@ import io.mockk.verify
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -93,6 +95,7 @@ class ChatConversationFragmentTest {
             .getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
             .edit().putString("chat_user_uuid", "me").commit()
         ChatMessagesCache.clear()
+        ChatListCache.clear()
         every { messageRepository.cachedMessages(any()) } returns emptyList()
         coEvery { messageRepository.loadMessages(any()) } returns flowOf(Resource.Success(emptyList()))
         coEvery { messageRepository.loadMessagesAfter(any(), any()) } returns
@@ -680,5 +683,33 @@ class ChatConversationFragmentTest {
                 ChatNotifications.id("chat-1")
             )
         )
+    }
+
+    @Test
+    fun `deleted peer disables the composer`() {
+        ChatListCache.put(
+            listOf(
+                com.example.muzea.domain.model.Chat(
+                    chatUuid = "chat-1",
+                    chatType = "PRIVATE",
+                    title = null,
+                    avatarUrl = null,
+                    createdAt = null,
+                    updatedAt = null,
+                    participantCount = 2,
+                    lastMessage = null,
+                    unreadCount = 0,
+                    peerDeleted = true
+                )
+            )
+        )
+
+        val fragment = launch()
+
+        val input = fragment.requireView()
+            .findViewById<android.widget.EditText>(R.id.etMessageInput)
+        assertFalse(input.isEnabled)
+        assertEquals(View.GONE, fragment.requireView().findViewById<View>(R.id.btnSend).visibility)
+        assertEquals(View.GONE, fragment.requireView().findViewById<View>(R.id.btnAdd).visibility)
     }
 }

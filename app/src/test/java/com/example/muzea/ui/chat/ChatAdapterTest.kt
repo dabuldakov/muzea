@@ -103,7 +103,8 @@ class ChatAdapterTest {
         title: String? = "Title",
         avatarUrl: String? = "/a.png",
         lastMessage: MessagePreview? = null,
-        unreadCount: Long? = null
+        unreadCount: Long? = null,
+        peerDeleted: Boolean = false
     ) = Chat(
         chatUuid = uuid,
         chatType = null,
@@ -113,7 +114,8 @@ class ChatAdapterTest {
         updatedAt = null,
         participantCount = null,
         lastMessage = lastMessage,
-        unreadCount = unreadCount
+        unreadCount = unreadCount,
+        peerDeleted = peerDeleted
     )
 
     private fun preview(
@@ -279,5 +281,14 @@ class ChatAdapterTest {
         assertFalse(callback.areItemsTheSame(a, b))
         assertTrue(callback.areContentsTheSame(a, chat(uuid = "a")))
         assertFalse(callback.areContentsTheSame(a, changed))
+    }
+
+    @Test
+    fun `chat with a deleted peer shows the deleted user title`() {
+        every { context.getString(R.string.deleted_user) } returns "Deleted user"
+
+        holder().bind(chat(title = null, peerDeleted = true))
+
+        verify { title.setText("Deleted user") }
     }
 }

@@ -31,10 +31,10 @@
 
     <string name="delete_account">Удалить аккаунт</string>
     <string name="delete_account_title">Удалить аккаунт?</string>
-    <string name="delete_account_message">Профиль, сообщения, публикации и видео будут удалены, обработка персональных данных прекратится. Отменить удаление нельзя.</string>
-    <string name="delete_account_done">Аккаунт и данные удалены</string>
-    <string name="delete_account_failed">Не удалось удалить данные на сервере. Напишите на %1$s, и мы удалим их вручную в течение 10 рабочих дней.</string>
-    <string name="delete_account_chat_failed">Не удалось удалить переписку на сервере чата. Проверьте подключение и повторите попытку.</string>
+    <string name="delete_account_message">Аккаунт будет деактивирован: войти в него больше нельзя. Профиль будет помечен как удалённый, сообщения в чатах останутся, из групп вы выйдете. Вернуть аккаунт сможет поддержка.</string>
+    <string name="delete_account_done">Аккаунт деактивирован</string>
+    <string name="delete_account_failed">Не удалось деактивировать аккаунт на сервере. Напишите на %1$s, и поддержка сделает это вручную.</string>
+    <string name="delete_account_chat_failed">Не удалось отключить аккаунт на сервере чата. Проверьте подключение и повторите попытку.</string>
     <string name="delete_account_logout">Выйти из приложения</string>
     <string name="action_cancel">Отмена</string>
     <string name="action_delete">Удалить</string>
@@ -320,4 +320,6 @@
     <string name="scroll_to_unread">К первому непрочитанному</string>
     <string name="message_status_title">Детали</string>
     <string name="message_status_none_read">Пока никто не прочитал</string>
+    <string name="deleted_user">Удалённый пользователь</string>
+    <string name="deleted_user_chat_disabled">Пользователь удалён</string>
 </resources>

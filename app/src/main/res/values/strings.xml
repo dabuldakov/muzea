@@ -32,10 +32,10 @@
 
     <string name="delete_account">Delete account</string>
     <string name="delete_account_title">Delete account?</string>
-    <string name="delete_account_message">Your profile, messages, posts and videos will be deleted and personal data processing will stop. This cannot be undone.</string>
-    <string name="delete_account_done">Account and data deleted</string>
-    <string name="delete_account_failed">Could not delete data on the server. Write to %1$s and we will delete it manually within 10 business days.</string>
-    <string name="delete_account_chat_failed">Could not delete the chat history on the chat server. Check your connection and try again.</string>
+    <string name="delete_account_message">The account will be deactivated: you will not be able to sign in. Your profile will be shown as deleted, messages in chats will stay, and you will leave groups. Support can restore the account later.</string>
+    <string name="delete_account_done">Account deactivated</string>
+    <string name="delete_account_failed">Could not deactivate the account on the server. Write to %1$s and support will do it manually.</string>
+    <string name="delete_account_chat_failed">Could not deactivate the account on the chat server. Check your connection and try again.</string>
     <string name="delete_account_logout">Log out</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_delete">Delete</string>
@@ -334,4 +334,6 @@
     <string name="scroll_to_unread">Scroll to first unread</string>
     <string name="message_status_title">Details</string>
     <string name="message_status_none_read">No one has read it yet</string>
+    <string name="deleted_user">Deleted user</string>
+    <string name="deleted_user_chat_disabled">Пользователь удалён</string>
 </resources>

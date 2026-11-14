@@ -20,5 +20,7 @@ data class ChatResponse(
     @SerializedName("lastMessage")
     val lastMessage: MessagePreview?,
     @SerializedName("unreadCount")
-    val unreadCount: Long?
+    val unreadCount: Long?,
+    @SerializedName("peerDeleted")
+    val peerDeleted: Boolean = false
 )

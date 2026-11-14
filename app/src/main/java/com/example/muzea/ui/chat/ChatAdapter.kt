@@ -31,7 +31,11 @@ class ChatAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(chat: Chat) {
-            binding.tvChatTitle.text = chat.title ?: "Chat"
+            binding.tvChatTitle.text = when {
+                !chat.title.isNullOrBlank() -> chat.title
+                chat.peerDeleted -> binding.root.context.getString(R.string.deleted_user)
+                else -> "Chat"
+            }
 
             val lastMessage = chat.lastMessage
             if (lastMessage != null && !lastMessage.text.isNullOrEmpty()) {

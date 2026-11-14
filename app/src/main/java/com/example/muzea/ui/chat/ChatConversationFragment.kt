@@ -524,6 +524,23 @@ class ChatConversationFragment : Fragment(),
             .show()
     }
 
+    /**
+     * Личный чат с удалённым пользователем: история видна, но отправка
+     * запрещена. Сервер тоже отклонит сообщение.
+     */
+    private fun isPeerDeleted(): Boolean = !isGroupChat() &&
+        ChatListCache.get().firstOrNull { it.chatUuid == chatUuid }?.peerDeleted == true
+
+    private fun applyDeletedPeerState() {
+        if (!isPeerDeleted()) return
+        binding.etMessageInput.isEnabled = false
+        binding.etMessageInput.hint = getString(R.string.deleted_user_chat_disabled)
+        binding.etMessageInput.setText("")
+        binding.btnSend.visibility = View.GONE
+        binding.btnAdd.visibility = View.GONE
+        binding.btnGif.visibility = View.GONE
+    }
+
     private fun isGroupChat(): Boolean =
         ChatListCache.get().firstOrNull { it.chatUuid == chatUuid }
             ?.chatType.equals("GROUP", ignoreCase = true)
@@ -1613,7 +1630,8 @@ class ChatConversationFragment : Fragment(),
 
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.uiState.collect { state ->
+            applyDeletedPeerState()
+        viewModel.uiState.collect { state ->
                 val messages = state.messages
                 val wasAtBottom = isAtBottom()
                 binding.progressHistory.visibility =

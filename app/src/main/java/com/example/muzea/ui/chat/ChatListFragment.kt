@@ -146,7 +146,8 @@ class ChatListFragment : Fragment() {
 
     private fun openChat(chatUuid: String) {
         val chat = adapter.currentList.firstOrNull { it.chatUuid == chatUuid }
-        val title = chat?.title ?: "Chat"
+        val title = chat?.title?.takeIf { it.isNotBlank() }
+            ?: if (chat?.peerDeleted == true) getString(R.string.deleted_user) else "Chat"
         navigationToConversation(chatUuid, title, chat?.avatarUrl, chat?.unreadCount ?: 0L)
     }
 

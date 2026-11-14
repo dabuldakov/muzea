@@ -17,7 +17,9 @@ data class Chat(
     val updatedAt: String?,
     val participantCount: Long?,
     val lastMessage: MessagePreview?,
-    val unreadCount: Long?
+    val unreadCount: Long?,
+    /** Личный чат с удалённым пользователем: писать нельзя. */
+    val peerDeleted: Boolean = false
 )
 
 data class MessagePreview(
@@ -48,7 +50,9 @@ data class Message(
     val attachments: List<MessageAttachment> = emptyList(),
     /** Сила «заряда» отправителя, 0..100 (0 — обычное сообщение). */
     val power: Int = 0,
-    val reactions: List<MessageReaction> = emptyList()
+    val reactions: List<MessageReaction> = emptyList(),
+    /** Автор удалён: показываем «Удалённый пользователь». */
+    val senderDeleted: Boolean = false
 )
 
 /** Сводка реакций: эмодзи, сколько раз поставили и поставил ли текущий пользователь. */

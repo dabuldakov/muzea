@@ -13,6 +13,7 @@ fun replySenderName(context: Context, message: Message?, myUserUuid: String?): S
     if (message.senderUuid != null && message.senderUuid == myUserUuid) {
         return context.getString(R.string.reply_you)
     }
+    if (message.senderDeleted) return context.getString(R.string.deleted_user)
     return message.senderName?.takeIf { it.isNotBlank() }
         ?: context.getString(R.string.reply_unknown_sender)
 }

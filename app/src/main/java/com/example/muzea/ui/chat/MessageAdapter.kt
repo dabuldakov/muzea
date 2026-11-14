@@ -290,8 +290,13 @@ class MessageAdapter(
             bindLongPress(binding.linkPreview, message, onClick)
             bindLongPress(binding.ivGif, message, onClick)
 
-            if (showHeader && !message.senderName.isNullOrEmpty()) {
-                binding.tvSenderName.text = message.senderName
+            val senderLabel = when {
+                !message.senderName.isNullOrEmpty() -> message.senderName
+                message.senderDeleted -> itemView.context.getString(R.string.deleted_user)
+                else -> null
+            }
+            if (showHeader && !senderLabel.isNullOrEmpty()) {
+                binding.tvSenderName.text = senderLabel
                 binding.tvSenderName.visibility = View.VISIBLE
             } else {
                 binding.tvSenderName.visibility = View.GONE

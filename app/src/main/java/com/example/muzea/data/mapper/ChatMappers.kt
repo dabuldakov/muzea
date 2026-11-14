@@ -26,7 +26,8 @@ fun com.example.muzea.data.model.ChatResponse.toDomain(): Chat = Chat(
     updatedAt = updatedAt,
     participantCount = participantCount,
     lastMessage = lastMessage?.toDomain(),
-    unreadCount = unreadCount
+    unreadCount = unreadCount,
+    peerDeleted = peerDeleted
 )
 
 fun MessagePreviewDto.toDomain(): MessagePreview = MessagePreview(
@@ -55,6 +56,7 @@ fun com.example.muzea.data.model.MessageResponse.toDomain(): Message = Message(
     updatedAt = updatedAt,
     attachments = attachments.orEmpty().mapNotNull { it.toDomainAttachment() },
     power = power,
+    senderDeleted = senderDeleted,
     reactions = reactions.orEmpty().map {
         com.example.muzea.domain.model.MessageReaction(
             emoji = it.emoji,

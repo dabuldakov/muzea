@@ -22,7 +22,8 @@ class MessageReplyTest {
         R.string.reply_quote_placeholder to "PLACEHOLDER",
         R.string.reply_quote_deleted to "DELETED",
         R.string.reply_quote_gif to "GIF",
-        R.string.reply_quote_attachment to "ATTACHMENT"
+        R.string.reply_quote_attachment to "ATTACHMENT",
+        R.string.deleted_user to "DELETED USER"
     )
 
     private val context: Context = mockk {
@@ -36,6 +37,7 @@ class MessageReplyTest {
         text: String? = null,
         messageType: String? = "TEXT",
         isDeleted: Boolean = false,
+        senderDeleted: Boolean = false,
         attachments: List<MessageAttachment> = emptyList()
     ) = Message(
         messageUuid = uuid,
@@ -52,7 +54,8 @@ class MessageReplyTest {
         isPinned = false,
         createdAt = null,
         updatedAt = null,
-        attachments = attachments
+        attachments = attachments,
+        senderDeleted = senderDeleted
     )
 
     private fun attachment(type: String) = MessageAttachment(
@@ -134,6 +137,14 @@ class MessageReplyTest {
         assertEquals(
             "PLACEHOLDER",
             replyPreviewText(context, message(text = "   ", messageType = "TEXT"))
+        )
+    }
+
+    @Test
+    fun `deleted sender is labelled as deleted user`() {
+        assertEquals(
+            "DELETED USER",
+            replySenderName(context, message(senderName = null, senderDeleted = true), "me")
         )
     }
 }
