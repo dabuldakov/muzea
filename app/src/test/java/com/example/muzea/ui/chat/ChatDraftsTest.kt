@@ -31,4 +31,15 @@ class ChatDraftsTest {
 
         assertNull(ChatDrafts.get(context, "chat-1"))
     }
+
+    @Test
+    fun `clearAll removes drafts of every chat`() {
+        ChatDrafts.save(context, "chat-1", "один")
+        ChatDrafts.save(context, "chat-2", "два")
+
+        ChatDrafts.clearAll(context)
+
+        assertNull(ChatDrafts.get(context, "chat-1"))
+        assertNull(ChatDrafts.get(context, "chat-2"))
+    }
 }

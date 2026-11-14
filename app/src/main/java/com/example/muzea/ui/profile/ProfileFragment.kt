@@ -437,8 +437,17 @@ class ProfileFragment : Fragment() {
         com.example.muzea.data.repository.ChatListCache.clear()
         com.example.muzea.data.repository.VideoListCache.clear()
         com.example.muzea.data.repository.PrivateChatCache.clear()
+        com.example.muzea.ui.chat.ChatDrafts.clearAll(requireContext())
         outboxSender.clear()
         gifCache.clear()
+        // Картинки, видео и скачанные файлы прошлого аккаунта тоже убираем:
+        // после удаления аккаунта персональные данные не должны лежать на диске.
+        val appContext = requireContext().applicationContext
+        kotlinx.coroutines.CoroutineScope(
+            kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO
+        ).launch {
+            com.example.muzea.utils.CacheManager.clear(appContext)
+        }
         val intent = android.content.Intent(requireContext(), LoginActivity::class.java)
         intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)

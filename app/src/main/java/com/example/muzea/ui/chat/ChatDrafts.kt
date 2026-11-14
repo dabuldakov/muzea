@@ -35,4 +35,9 @@ object ChatDrafts {
             .remove(chatUuid)
             .apply()
     }
+
+    /** Удаляет все черновики: после выхода или удаления аккаунта чужих текстов быть не должно. */
+    fun clearAll(context: Context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().clear().apply()
+    }
 }

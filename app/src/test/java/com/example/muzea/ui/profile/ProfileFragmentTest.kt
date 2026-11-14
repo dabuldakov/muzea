@@ -154,6 +154,8 @@ class ProfileFragmentTest {
     @Test
     fun `delete account confirms and calls both servers`() {
         val activity = launch()
+        // Черновик прошлого аккаунта не должен пережить удаление.
+        com.example.muzea.ui.chat.ChatDrafts.save(activity, "chat-1", "секрет")
 
         activity.findViewById<View>(R.id.btnDeleteAccount).performClick()
         shadowOf(Looper.getMainLooper()).idle()
@@ -164,6 +166,9 @@ class ProfileFragmentTest {
 
         coVerify { chatSessionRepository.deleteAccount() }
         coVerify { userRepository.deleteAccount(1L) }
+        org.junit.Assert.assertNull(
+            com.example.muzea.ui.chat.ChatDrafts.get(activity, "chat-1")
+        )
     }
 
     @Test
