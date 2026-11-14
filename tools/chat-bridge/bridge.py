@@ -449,15 +449,34 @@ def handle_message(chat_uuid: str, bot: dict, message: dict) -> bool:
         save_state()
 
 
+def mark_read(chat_uuid: str, up_to_message_uuid: str) -> None:
+    """Отмечает доставленным и прочитанным всё до последнего обработанного.
+
+    Бот — не клиент: без этого у собеседника навсегда «отправлено», и он не
+    видит ни время доставки, ни время прочтения. Ошибки не должны ронять
+    опрос: отметка не важнее ответа.
+    """
+    quoted = urllib.parse.quote(up_to_message_uuid, safe="")
+    try:
+        api(f"/api/messages/{chat_uuid}/delivered?upToMessageUuid={quoted}", method="POST")
+        api(f"/api/messages/{chat_uuid}/read?upToMessageUuid={quoted}", method="POST")
+    except Exception as error:  # noqa: BLE001
+        print(f"mark_read: {error}", file=sys.stderr)
+
+
 def poll(chat_uuid: str, bot: dict) -> None:
     since = urllib.parse.quote(STATE["lastTs"], safe="")
     messages = api(f"/api/messages/{chat_uuid}/after/{since}")
+    last_processed = None
     for message in sorted(messages, key=lambda m: m.get("createdAt") or ""):
         # lastTs двигаем только после успешной обработки: иначе сообщение,
         # на котором OpenCode был занят/упал, потеряется.
         if not handle_message(chat_uuid, bot, message):
             return
         STATE["lastTs"] = message.get("createdAt") or STATE["lastTs"]
+        last_processed = message
+    if last_processed is not None:
+        mark_read(chat_uuid, last_processed["messageUuid"])
     forward_continuations(chat_uuid)
 
 

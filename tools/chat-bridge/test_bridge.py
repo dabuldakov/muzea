@@ -168,5 +168,44 @@ class ContinuationTest(unittest.TestCase):
             self.assertEqual((1234, "hi"), bridge.wait_for_reply(1000))
 
 
+
+
+class PollMarkReadTest(unittest.TestCase):
+
+    def test_poll_marks_delivered_and_read_up_to_last_processed(self):
+        items = [
+            {"messageUuid": "m1", "senderName": "Morris", "createdAt": "2026-01-01T10:00:00"},
+            {"messageUuid": "m2", "senderName": "Morris", "createdAt": "2026-01-01T10:01:00"},
+        ]
+        calls = []
+
+        def fake_api(path, method="GET", body=None):
+            calls.append((path, method))
+            return items if "/after/" in path else None
+
+        bridge.STATE["lastTs"] = "2026-01-01T09:00:00"
+        with mock.patch.object(bridge, "api", side_effect=fake_api), \
+                mock.patch.object(bridge, "handle_message", return_value=True), \
+                mock.patch.object(bridge, "forward_continuations"):
+            bridge.poll("chat-1", {"username": "opencode"})
+
+        self.assertIn(("/api/messages/chat-1/delivered?upToMessageUuid=m2", "POST"), calls)
+        self.assertIn(("/api/messages/chat-1/read?upToMessageUuid=m2", "POST"), calls)
+
+    def test_mark_read_failure_does_not_break_poll(self):
+        items = [{"messageUuid": "m1", "senderName": "Morris", "createdAt": "2026-01-01T10:00:00"}]
+
+        def fake_api(path, method="GET", body=None):
+            if "/after/" in path:
+                return items
+            raise RuntimeError("boom")
+
+        bridge.STATE["lastTs"] = "2026-01-01T09:00:00"
+        with mock.patch.object(bridge, "api", side_effect=fake_api), \
+                mock.patch.object(bridge, "handle_message", return_value=True), \
+                mock.patch.object(bridge, "forward_continuations"):
+            bridge.poll("chat-1", {"username": "opencode"})
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
