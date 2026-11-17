@@ -1,0 +1,24 @@
+[
+  {
+    "userUuid": "u-alice",
+    "username": "alice",
+    "fullName": "Alice",
+    "avatarUrl": "/api/avatars/a.png",
+    "joinedAt": "2026-01-01T09:00:00",
+    "lastDeliveredMessageId": 102,
+    "lastDeliveredAt": "2026-01-01T10:08:00",
+    "lastReadMessageId": 101,
+    "lastReadAt": "2026-01-01T10:07:00"
+  },
+  {
+    "userUuid": "u-bob",
+    "username": "bob",
+    "fullName": "Bob",
+    "avatarUrl": null,
+    "joinedAt": "2026-01-01T09:00:00",
+    "lastDeliveredMessageId": 102,
+    "lastDeliveredAt": "2026-01-01T10:08:00",
+    "lastReadMessageId": 102,
+    "lastReadAt": "2026-01-01T10:08:30"
+  }
+]

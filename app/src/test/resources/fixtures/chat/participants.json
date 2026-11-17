@@ -1,0 +1,30 @@
+[
+  {
+    "userUuid": "u-alice",
+    "userId": 7,
+    "username": "alice",
+    "firstName": "Alice",
+    "lastName": null,
+    "fullName": "Alice",
+    "nickname": null,
+    "avatarUrl": "/api/avatars/a.png",
+    "role": "OWNER",
+    "online": true,
+    "lastSeenAt": "2026-01-01T10:09:00",
+    "joinedAt": "2026-01-01T09:00:00"
+  },
+  {
+    "userUuid": "u-bob",
+    "userId": 8,
+    "username": "bob",
+    "firstName": "Bob",
+    "lastName": null,
+    "fullName": "Bob",
+    "nickname": null,
+    "avatarUrl": null,
+    "role": "MEMBER",
+    "online": false,
+    "lastSeenAt": null,
+    "joinedAt": "2026-01-01T09:01:00"
+  }
+]

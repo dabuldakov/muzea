@@ -1,0 +1,16 @@
+[
+  {
+    "userId": 7,
+    "userUuid": "u-alice",
+    "status": "READ",
+    "deliveredAt": "2026-01-01T10:08:00",
+    "readAt": "2026-01-01T10:08:30"
+  },
+  {
+    "userId": 8,
+    "userUuid": "u-bob",
+    "status": "DELIVERED",
+    "deliveredAt": "2026-01-01T10:08:00",
+    "readAt": null
+  }
+]

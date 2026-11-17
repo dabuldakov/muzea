@@ -1,0 +1,24 @@
+{
+  "result": true,
+  "data": {
+    "data": [
+      {
+        "id": 42,
+        "slug": "party-cat",
+        "title": "Party cat",
+        "file": {
+          "hd": {
+            "webp": {"url": "https://cdn/hd.webp", "width": 480, "height": 270},
+            "mp4": {"url": "https://cdn/hd.mp4", "width": 480, "height": 270}
+          },
+          "sm": {
+            "jpg": {"url": "https://cdn/sm.jpg", "width": 120, "height": 68}
+          }
+        }
+      }
+    ],
+    "current_page": 1,
+    "per_page": 24,
+    "has_next": false
+  }
+}

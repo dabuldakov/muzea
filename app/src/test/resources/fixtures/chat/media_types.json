@@ -1,0 +1,11 @@
+{
+  "cases": [
+    {"fileName": "photo.jpg", "kind": "IMAGE", "messageType": "IMAGE", "maxBytes": 52428800},
+    {"fileName": "photo.png", "kind": "IMAGE", "messageType": "IMAGE", "maxBytes": 52428800},
+    {"fileName": "clip.mp4", "kind": "VIDEO", "messageType": "VIDEO", "maxBytes": 209715200},
+    {"fileName": "clip.mov", "kind": "VIDEO", "messageType": "VIDEO", "maxBytes": 209715200},
+    {"fileName": "voice.m4a", "kind": "AUDIO", "messageType": "AUDIO", "maxBytes": 52428800},
+    {"fileName": "doc.pdf", "kind": "DOCUMENT", "messageType": "FILE", "maxBytes": 104857600},
+    {"fileName": "table.xlsx", "kind": "DOCUMENT", "messageType": "FILE", "maxBytes": 104857600}
+  ]
+}
