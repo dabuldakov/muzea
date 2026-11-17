@@ -1,0 +1,14 @@
+{
+  "attachmentUuid": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+  "fileName": "cat.jpg",
+  "fileUrl": "stored-key",
+  "thumbnailUrl": "thumb-key",
+  "mp4Url": null,
+  "fileSize": 12345,
+  "mimeType": "image/jpeg",
+  "type": "IMAGE",
+  "width": 100,
+  "height": 80,
+  "duration": null,
+  "gifKey": null
+}
