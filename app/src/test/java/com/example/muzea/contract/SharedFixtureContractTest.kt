@@ -7,10 +7,10 @@ import com.example.muzea.data.model.ChatParticipantResponse
 import com.example.muzea.data.model.ChatReceiptResponse
 import com.example.muzea.data.model.ChatResponse
 import com.example.muzea.data.model.KlipyGifsResponse
-import com.example.muzea.data.model.MessageReceiptTimeResponse
 import com.example.muzea.data.model.MessageResponse
 import com.example.muzea.data.model.PageResponse
 import com.google.gson.Gson
+import com.google.gson.JsonParser
 import com.google.gson.reflect.TypeToken
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -59,7 +59,13 @@ class SharedFixtureContractTest {
         assertEquals("TEXT", text.messageType)
         assertTrue(text.isPinned)
         assertEquals("👍", text.reactions.first().emoji)
-        assertEquals("u-bob", text.reactions.first().users.first().userUuid)
+        val reactions = JsonParser.parseString(text("messages_page.json"))
+            .asJsonObject["content"].asJsonArray[0].asJsonObject["reactions"].asJsonArray
+        assertEquals(
+            "u-bob",
+            reactions[0].asJsonObject["users"].asJsonArray[0]
+                .asJsonObject["userUuid"].asString
+        )
 
         val media = messages[1]
         assertEquals("IMAGE", media.messageType)
@@ -78,12 +84,10 @@ class SharedFixtureContractTest {
         assertEquals(2, receipts.size)
         assertEquals(102L, receipts[1].toDomain().lastReadMessageId ?: -1L)
 
-        val statusesType = object : TypeToken<List<MessageReceiptTimeResponse>>() {}.type
-        val statuses: List<MessageReceiptTimeResponse> =
-            gson.fromJson(text("message_statuses.json"), statusesType)
-        assertEquals("u-alice", statuses[0].userUuid)
-        assertEquals("2026-01-01T10:08:30", statuses[0].readAt)
-        assertEquals("u-bob", statuses[1].userUuid)
+        val statuses = JsonParser.parseString(text("message_statuses.json")).asJsonArray
+        assertEquals("u-alice", statuses[0].asJsonObject["userUuid"].asString)
+        assertEquals("2026-01-01T10:08:30", statuses[0].asJsonObject["readAt"].asString)
+        assertEquals("u-bob", statuses[1].asJsonObject["userUuid"].asString)
     }
 
     @Test

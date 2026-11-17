@@ -1,0 +1,9 @@
+{
+  "id": 7,
+  "userName": "dabuldakov",
+  "fullName": "Дмитрий",
+  "avatarUrl": "/api/users/avatar/a.png",
+  "role": "USER",
+  "createdAt": "2025-01-01T10:00:00",
+  "enabled": true
+}

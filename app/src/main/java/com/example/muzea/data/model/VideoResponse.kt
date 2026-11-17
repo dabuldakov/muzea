@@ -17,6 +17,8 @@ data class VideoResponse(
     val fileSize: Long?,
     @SerializedName("duration")
     val duration: String?,
+    @SerializedName("durationSeconds")
+    val durationSeconds: Double? = null,
     @SerializedName("views")
     val views: Int,
     @SerializedName("likes")

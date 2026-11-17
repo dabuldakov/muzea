@@ -13,6 +13,7 @@ fun com.example.muzea.data.model.VideoResponse.toDomain(): Video = Video(
     thumbnailUrl = thumbnailUrl,
     fileSize = fileSize,
     duration = duration,
+    durationSeconds = durationSeconds,
     views = views,
     likes = likes,
     uploadedBy = uploadedBy,

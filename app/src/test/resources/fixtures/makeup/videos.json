@@ -1,0 +1,16 @@
+[
+  {
+    "id": 18,
+    "title": "Backstage",
+    "description": "Видео",
+    "url": "/api/videos/stream/video.mp4",
+    "thumbnailUrl": "https://api-muzea.su/api/videos/thumbnail/video.jpeg",
+    "fileSize": 9478047,
+    "durationSeconds": 12.5,
+    "views": 19,
+    "likes": 3,
+    "likedByMe": true,
+    "uploadedBy": "dabuldakov",
+    "uploadedAt": "2026-05-03T12:05:36.065212"
+  }
+]

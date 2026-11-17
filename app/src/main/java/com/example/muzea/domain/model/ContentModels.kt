@@ -22,6 +22,7 @@ data class Video(
     val thumbnailUrl: String?,
     val fileSize: Long?,
     val duration: String?,
+    val durationSeconds: Double? = null,
     val views: Int,
     val likes: Int?,
     val uploadedBy: String,

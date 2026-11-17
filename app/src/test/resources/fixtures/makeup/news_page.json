@@ -1,0 +1,34 @@
+{
+  "content": [
+    {
+      "id": 54,
+      "title": "Новая коллекция",
+      "content": "Текст новости",
+      "imageUrl": "https://api-muzea.su/api/news/image/news.jpeg",
+      "relatedVideo": {
+        "id": 18,
+        "title": "Backstage",
+        "description": "Видео",
+        "url": "/api/videos/stream/video.mp4",
+        "thumbnailUrl": "https://api-muzea.su/api/videos/thumbnail/video.jpeg",
+        "fileSize": 9478047,
+        "durationSeconds": null,
+        "views": 19,
+        "likes": 3,
+        "likedByMe": true,
+        "uploadedBy": "dabuldakov",
+        "uploadedAt": "2026-05-03T12:05:36.065212"
+      },
+      "author": "dabuldakov",
+      "publishedAt": "2026-05-03T12:05:36.065212"
+    }
+  ],
+  "empty": false,
+  "first": true,
+  "last": true,
+  "number": 0,
+  "numberOfElements": 1,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1
+}
