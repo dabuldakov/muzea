@@ -59,7 +59,7 @@ class MakeupFixtureContractTest {
         assertEquals(1, domain.size)
         assertEquals(18L, domain[0].id)
         assertEquals(3, domain[0].likes)
-        assertEquals(12, domain[0].durationSeconds!!)
+        assertEquals(12.0, domain[0].durationSeconds!!, 0.001)
         assertTrue(
             domain[0].getFullVideoUrl("https://api-muzea.su")
                 .endsWith("/api/videos/stream/video.mp4")
