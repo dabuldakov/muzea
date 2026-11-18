@@ -11,7 +11,10 @@
     "role": "OWNER",
     "online": true,
     "lastSeenAt": "2026-01-01T10:09:00",
-    "joinedAt": "2026-01-01T09:00:00"
+    "joinedAt": "2026-01-01T09:00:00",
+    "isMuted": false,
+    "mutedUntil": null,
+    "isPinned": true
   },
   {
     "userUuid": "u-bob",
@@ -25,6 +28,9 @@
     "role": "MEMBER",
     "online": false,
     "lastSeenAt": null,
-    "joinedAt": "2026-01-01T09:01:00"
+    "joinedAt": "2026-01-01T09:01:00",
+    "isMuted": true,
+    "mutedUntil": "2026-01-02T09:01:00",
+    "isPinned": false
   }
 ]

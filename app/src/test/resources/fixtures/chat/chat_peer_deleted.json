@@ -1,0 +1,17 @@
+{
+  "chatUuid": "33333333-3333-3333-3333-333333333333",
+  "chatType": "PRIVATE",
+  "title": "Deleted user",
+  "avatarUrl": null,
+  "createdAt": "2026-01-01T08:00:00",
+  "updatedAt": "2026-01-01T09:00:00",
+  "participantIds": [
+    "u-deleted",
+    "u-me"
+  ],
+  "participantCount": 2,
+  "isArchived": false,
+  "peerDeleted": true,
+  "lastMessage": null,
+  "unreadCount": 0
+}

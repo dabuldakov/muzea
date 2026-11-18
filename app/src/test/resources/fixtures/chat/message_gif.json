@@ -1,0 +1,39 @@
+{
+  "messageUuid": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+  "messageId": 103,
+  "chatUuid": null,
+  "senderId": 7,
+  "senderUuid": "u-alice",
+  "senderName": "Alice",
+  "senderAvatar": null,
+  "text": "",
+  "messageType": "GIF",
+  "replyToMessageUuid": null,
+  "forwardedFromMessageUuid": null,
+  "forwardedFromUserUuid": null,
+  "isEdited": false,
+  "isDeleted": false,
+  "isPinned": false,
+  "createdAt": "2026-01-01T10:10:00",
+  "updatedAt": "2026-01-01T10:10:00",
+  "reactions": [],
+  "power": 0,
+  "senderDeleted": false,
+  "damage": 0,
+  "attachments": [
+    {
+      "attachmentUuid": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+      "fileName": "Party cat",
+      "fileUrl": "https://cdn/hd.webp",
+      "thumbnailUrl": "https://cdn/sm.jpg",
+      "mp4Url": "https://cdn/hd.mp4",
+      "fileSize": 2048,
+      "mimeType": "image/webp",
+      "type": "GIF",
+      "width": 480,
+      "height": 270,
+      "duration": null,
+      "gifKey": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
+    }
+  ]
+}

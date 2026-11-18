@@ -29,6 +29,8 @@
         }
       ],
       "power": 0,
+      "senderDeleted": false,
+      "damage": 0,
       "attachments": null
     },
     {
@@ -51,6 +53,8 @@
       "updatedAt": "2026-01-01T10:08:00",
       "reactions": [],
       "power": 42,
+      "senderDeleted": true,
+      "damage": 5,
       "attachments": [
         {
           "attachmentUuid": "cccccccc-cccc-cccc-cccc-cccccccccccc",

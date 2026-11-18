@@ -6,7 +6,13 @@
     "avatarUrl": "/api/avatars/a.png",
     "createdAt": "2026-01-01T10:00:00",
     "updatedAt": "2026-01-01T10:05:00",
+    "participantIds": [
+      "u-alice",
+      "u-me"
+    ],
     "participantCount": 2,
+    "isArchived": false,
+    "peerDeleted": false,
     "lastMessage": {
       "messageUuid": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
       "text": "hello",
@@ -22,7 +28,15 @@
     "title": "Team",
     "createdAt": "2026-01-01T09:00:00",
     "updatedAt": "2026-01-01T09:30:00",
+    "participantIds": [
+      "u-alice",
+      "u-bob",
+      "u-carol",
+      "u-me"
+    ],
     "participantCount": 4,
+    "isArchived": false,
+    "peerDeleted": false,
     "lastMessage": null,
     "unreadCount": 0
   }

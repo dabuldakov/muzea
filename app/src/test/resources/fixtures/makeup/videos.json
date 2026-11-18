@@ -6,7 +6,7 @@
     "url": "/api/videos/stream/video.mp4",
     "thumbnailUrl": "https://api-muzea.su/api/videos/thumbnail/video.jpeg",
     "fileSize": 9478047,
-    "durationSeconds": 12.5,
+    "durationSeconds": 12,
     "views": 19,
     "likes": 3,
     "likedByMe": true,

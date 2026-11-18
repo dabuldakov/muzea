@@ -45,6 +45,17 @@ class SharedFixtureContractTest {
         assertEquals("hello", domain[0].lastMessage?.text)
         assertEquals(3L, domain[0].unreadCount ?: -1L)
         assertEquals("GROUP", domain[1].chatType)
+        assertEquals(false, domain[0].peerDeleted)
+    }
+
+    @Test
+    fun `peer deleted chat fixture maps to domain`() {
+        val chat: ChatResponse = gson.fromJson(text("chat_peer_deleted.json"), ChatResponse::class.java)
+        val domain = chat.toDomain()
+
+        assertEquals("PRIVATE", domain.chatType)
+        assertTrue(domain.peerDeleted)
+        assertEquals(null, domain.lastMessage)
     }
 
     @Test
@@ -75,6 +86,21 @@ class SharedFixtureContractTest {
             "cccccccc-cccc-cccc-cccc-cccccccccccc",
             media.attachments.first().attachmentUuid
         )
+        assertEquals(false, text.senderDeleted)
+        assertTrue(media.senderDeleted)
+    }
+
+    @Test
+    fun `gif message fixture keeps provider urls and gif key`() {
+        val message: MessageResponse = gson.fromJson(text("message_gif.json"), MessageResponse::class.java)
+        val domain = message.toDomain()
+        val attachment = domain.attachments.first()
+
+        assertEquals("GIF", domain.messageType)
+        assertEquals("GIF", attachment.type)
+        assertEquals("https://cdn/hd.mp4", attachment.mp4Url)
+        assertEquals("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee", attachment.gifKey)
+        assertEquals(480, attachment.width)
     }
 
     @Test
