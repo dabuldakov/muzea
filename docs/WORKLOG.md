@@ -23,6 +23,8 @@
 | 19.11 | feat | OBS.03 | Auth: логирование HTTP-запросов и ключевых событий входа; makeup: псевдоним вместо username; chat: удаление мёртвых FCM-токенов | — |
 | 19.11 | feat | OBS.03 | SLOW-логи на всех бэкендах: HTTP > 1 с и методы сервисов > 500 мс; аргументы не логируются | — |
 | 19.11 | perf | OBS.03 | Сервис-токен: `last_used_at` пишется не чаще раза в минуту, а не на каждый запрос | — |
+| 20.11 | fix | MEDIA.14 | makeup: убраны мёртвые presigned-ссылки `/api/videos/url` и `/thumbnail/url`, `MINIO_EXTERNAL_URL` и старый host-gateway; `APP_PUBLIC_BASE_URL` → `https://api-muzea.su` | — |
+| 20.11 | fix | OBS.03 | Неизвестный путь в chat/makeup отдаёт 404, а не 500 | — |
 
 ## 1.7.40 — 2026-11-14
 
