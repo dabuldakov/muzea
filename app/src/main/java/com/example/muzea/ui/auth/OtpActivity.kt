@@ -10,6 +10,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.muzea.R
 import com.example.muzea.databinding.ActivityOtpBinding
 import com.example.muzea.ui.MainActivity
+import com.example.muzea.utils.PendingPush
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import com.example.muzea.ui.common.SystemBars
@@ -94,7 +95,11 @@ class OtpActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             viewModel.authenticated.collect {
-                startActivity(Intent(this@OtpActivity, MainActivity::class.java))
+                // Если вход начался с тапа по push, после авторизации сразу
+                // открываем нужный чат/новость.
+                val next = Intent(this@OtpActivity, MainActivity::class.java)
+                PendingPush.applyTo(next)
+                startActivity(next)
                 finishAffinity()
             }
         }

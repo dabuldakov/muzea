@@ -31,18 +31,20 @@ class ChatNotificationsTest {
         NotificationChannels.ensureAll(context)
     }
 
-    private fun post(chatUuid: String) {
-        val notification = NotificationCompat.Builder(
+    private fun buildNotification(title: String) =
+        NotificationCompat.Builder(
             context,
             context.getString(R.string.chat_channel_id)
         )
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(chatUuid)
+            .setContentTitle(title)
             .build()
+
+    private fun post(chatUuid: String) {
         manager.notify(
             ChatNotifications.tag(chatUuid),
             ChatNotifications.id(chatUuid),
-            notification
+            buildNotification(chatUuid)
         )
     }
 
@@ -62,6 +64,19 @@ class ChatNotificationsTest {
 
         assertNull(posted("chat-a"))
         assertNotNull(posted("chat-b"))
+    }
+
+    @Test
+    fun `cancel removes system notification with same tag but unknown id`() {
+        val tag = ChatNotifications.tag("chat-a")
+        val systemId = 424242
+        manager.notify(tag, systemId, buildNotification("system"))
+
+        assertNotNull(shadowOf(manager).getNotification(tag, systemId))
+
+        ChatNotifications.cancel(context, "chat-a")
+
+        assertNull(shadowOf(manager).getNotification(tag, systemId))
     }
 
     @Test

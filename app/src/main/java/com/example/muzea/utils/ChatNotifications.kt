@@ -23,6 +23,16 @@ object ChatNotifications {
         if (chatUuid.isBlank()) return
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE)
             as? NotificationManager ?: return
-        manager.cancel(tag(chatUuid), id(chatUuid))
+        val chatTag = tag(chatUuid)
+
+        // Системное FCM-уведомление (notification+data) создаёт сама ОС:
+        // tag наш, а id назначает система. Поэтому снимаем по тегу все
+        // активные уведомления, а не только локально созданные с нашим id.
+        manager.activeNotifications
+            .filter { it.tag == chatTag }
+            .forEach { manager.cancel(it.tag, it.id) }
+
+        // Локально созданное приложение уведомление (data-only/foreground).
+        manager.cancel(chatTag, id(chatUuid))
     }
 }

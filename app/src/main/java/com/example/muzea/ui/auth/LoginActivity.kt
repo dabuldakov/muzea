@@ -12,6 +12,7 @@ import com.example.muzea.R
 import com.example.muzea.databinding.ActivityLoginBinding
 import com.example.muzea.ui.MainActivity
 import com.example.muzea.utils.ConsentManager
+import com.example.muzea.utils.PendingPush
 import com.example.muzea.utils.TokenManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
@@ -40,6 +41,10 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Тап по системному FCM-уведомлению запускает launcher (LoginActivity).
+        // Сохраняем data-extras и передадим их в MainActivity после входа.
+        PendingPush.capture(intent)
+
         // Без согласия на обработку персональных данных приложение не запускается (ст. 9 ФЗ-152).
         if (!ConsentManager.isAccepted(this)) {
             startActivity(Intent(this, ConsentActivity::class.java))
@@ -49,8 +54,7 @@ class LoginActivity : AppCompatActivity() {
 
         // Сессия нового образца (есть access+refresh) → сразу на главный.
         if (isUpToDateSession()) {
-            startActivity(Intent(this, MainActivity::class.java))
-            finish()
+            startMain()
             return
         }
         // Старая сессия (legacy-токен без refresh) не заведётся в новом входе —
@@ -66,6 +70,22 @@ class LoginActivity : AppCompatActivity() {
         setupClickListeners()
         observeViewModel()
         showReauthNoticeIfNeeded()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        PendingPush.capture(intent)
+    }
+
+    private fun startMain() {
+        val next = Intent(this, MainActivity::class.java).apply {
+            // Если MainActivity уже в задаче — доставит onNewIntent с extras.
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        PendingPush.applyTo(next)
+        startActivity(next)
+        finish()
     }
 
     private fun isUpToDateSession(): Boolean =

@@ -41,7 +41,13 @@ class MuzeaMessagingService : FirebaseMessagingService() {
     private fun handleChatMessage(data: Map<String, String>, message: RemoteMessage) {
         val chatUuid = firstNonBlank(data["chatUuid"], data["chat_uuid"])
         // Пользователь уже смотрит этот чат — сообщение и так появится в ленте.
-        if (chatUuid != null && ActiveChatTracker.chatUuid == chatUuid) return
+        // Заодно снимаем уже показанное уведомление этого чата: system-FCM
+        // notification имеет наш tag, но системный id, поэтому cancel по id
+        // его не удаляет.
+        if (chatUuid != null && ActiveChatTracker.chatUuid == chatUuid) {
+            ChatNotifications.cancel(this, chatUuid)
+            return
+        }
 
         val senderName = firstNonBlank(
             data["senderName"], data["sender_name"], data["sender"],
