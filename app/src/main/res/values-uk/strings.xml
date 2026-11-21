@@ -189,6 +189,7 @@
     <string name="group_chat_default">Груповий чат</string>
     <string name="video_selected_format">Вибрано: %1$s (%2$d КБ)</string>
     <string name="video_copy_failed">Не вдалося скопіювати відео</string>
+    <string name="video_copy_truncated">Відео пошкоджено або недовантажено. Збережіть його на пристрій (наприклад, у Google Фото) і виберіть знову.</string>
     <string name="video_select_required">Виберіть відео</string>
     <string name="video_uploading">Завантаження…</string>
     <string name="video_upload_success">Завантаження завершено!</string>

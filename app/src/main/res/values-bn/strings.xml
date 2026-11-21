@@ -189,6 +189,7 @@
     <string name="group_chat_default">গ্রুপ চ্যাট</string>
     <string name="video_selected_format">নির্বাচিত: %1$s (%2$d KB)</string>
     <string name="video_copy_failed">ভিডিও কপি করা যায়নি</string>
+    <string name="video_copy_truncated">ভিডিওটি ক্ষতিগ্রস্ত বা আংশিক ডাউনলোড করা। এটি ডিভাইসে সংরক্ষণ করুন (যেমন Google Photos-এ) এবং আবার নির্বাচন করুন।</string>
     <string name="video_select_required">ভিডিও নির্বাচন করুন</string>
     <string name="video_uploading">আপলোড হচ্ছে…</string>
     <string name="video_upload_success">আপলোড সফল!</string>

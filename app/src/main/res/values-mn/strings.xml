@@ -189,6 +189,7 @@
     <string name="group_chat_default">Бүлгийн чат</string>
     <string name="video_selected_format">Сонгосон: %1$s (%2$d КБ)</string>
     <string name="video_copy_failed">Видеог хуулж чадсангүй</string>
+    <string name="video_copy_truncated">Видео гэмтсэн эсвэл бүрэн татагдаагүй байна. Үүнийг төхөөрөмж дээр хадгалаад (жишээ нь Google Фото) дахин сонгоно уу.</string>
     <string name="video_select_required">Видео сонгоно уу</string>
     <string name="video_uploading">Оруулж байна…</string>
     <string name="video_upload_success">Оруулалт амжилттай!</string>

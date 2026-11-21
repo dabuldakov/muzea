@@ -38,7 +38,7 @@ class VideoUploadActivity : AppCompatActivity() {
     }
 
     /** Результат копирования выбранного видео во временный файл. */
-    private data class VideoCopyResult(val file: File?, val error: String?)
+    private data class VideoCopyResult(val file: File?, val errorRes: Int? = null)
 
     private lateinit var binding: ActivityVideoUploadBinding
     private val viewModel: VideoViewModel by viewModels()
@@ -95,12 +95,10 @@ class VideoUploadActivity : AppCompatActivity() {
 
             val file = result.file
             if (file == null) {
+                val message = getString(result.errorRes ?: R.string.video_copy_failed)
                 Toast.makeText(
                     this@VideoUploadActivity,
-                    getString(
-                        R.string.error_prefix,
-                        result.error ?: getString(R.string.video_copy_failed)
-                    ),
+                    getString(R.string.error_prefix, message),
                     Toast.LENGTH_LONG
                 ).show()
                 return@launch
@@ -148,24 +146,45 @@ class VideoUploadActivity : AppCompatActivity() {
             }
 
             lastCopied = copied ?: -1L
+            val atomTruncated = copied != null && copied > 0 &&
+                VideoFileValidator.isTruncated(draft)
+            val shortCopy = copied != null && copied > 0 &&
+                declaredSize > 0 && copied < declaredSize
+
+            // Провайдер отдал ровно столько, сколько заявил, но внутри MP4
+            // оборван (облачный Google Фото иногда отдаёт половину файла).
+            // Повтор ничего не изменит — сразу объясняем, что делать.
+            if (atomTruncated && !shortCopy) {
+                draft.delete()
+                reportCopyFailure("truncated", declaredSize, lastCopied)
+                return VideoCopyResult(null, R.string.video_copy_truncated)
+            }
+
+            if (copied != null && copied > 0 && !atomTruncated && !shortCopy) {
+                return VideoCopyResult(draft, null)
+            }
+
             lastReason = when {
                 copied == null -> "unreadable"
                 copied <= 0 -> "empty"
-                VideoFileValidator.isTruncated(draft) -> "truncated"
-                declaredSize > 0 && copied < declaredSize -> "short"
-                else -> return VideoCopyResult(draft, null)
+                atomTruncated -> "truncated-short"
+                else -> "short"
             }
             draft.delete()
         }
 
         // Частота обрывов у провайдеров: по этому отчёту видно, где именно рвётся.
+        reportCopyFailure(lastReason, declaredSize, lastCopied)
+        return VideoCopyResult(null, R.string.video_copy_failed)
+    }
+
+    private fun reportCopyFailure(reason: String, declaredSize: Long, copied: Long) {
         ErrorReporter.logCaught(
             "VideoCopy",
             IllegalStateException(
-                "copy failed: reason=$lastReason declared=$declaredSize copied=$lastCopied"
+                "copy failed: reason=$reason declared=$declaredSize copied=$copied"
             )
         )
-        return VideoCopyResult(null, getString(R.string.video_copy_failed))
     }
 
     /** Имя и заявленный размер файла у провайдера; размер может быть неизвестен. */

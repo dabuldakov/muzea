@@ -189,6 +189,7 @@
     <string name="group_chat_default">Chat de groupe</string>
     <string name="video_selected_format">Sélectionné : %1$s (%2$d Ko)</string>
     <string name="video_copy_failed">Impossible de copier la vidéo</string>
+    <string name="video_copy_truncated">La vidéo est endommagée ou partiellement téléchargée. Enregistrez-la sur l\'appareil (par exemple dans Google Photos), puis sélectionnez-la à nouveau.</string>
     <string name="video_select_required">Choisissez une vidéo</string>
     <string name="video_uploading">Téléversement…</string>
     <string name="video_upload_success">Téléversement réussi !</string>
