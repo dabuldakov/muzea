@@ -98,13 +98,23 @@ class VideoScreensTest {
             .getDeclaredMethod("copyVideoToCache", android.net.Uri::class.java)
         method.isAccessible = true
         method.invoke(activity, uri)
-        shadowOf(Looper.getMainLooper()).idle()
+        awaitUploadReady(activity)
 
         assertTrue(
             activity.findViewById<android.widget.TextView>(R.id.tvSelectedFile)
                 .text.toString().contains(".mp4")
         )
         assertTrue(activity.findViewById<View>(R.id.btnUpload).isEnabled)
+    }
+
+    /** Копирование идёт в фоне; прокручиваем main looper, пока кнопка не включится. */
+    private fun awaitUploadReady(activity: VideoUploadActivity) {
+        val deadline = System.currentTimeMillis() + 5_000
+        while (System.currentTimeMillis() < deadline) {
+            shadowOf(Looper.getMainLooper()).idle()
+            if (activity.findViewById<View>(R.id.btnUpload).isEnabled) return
+            Thread.sleep(10)
+        }
     }
 
     @Test

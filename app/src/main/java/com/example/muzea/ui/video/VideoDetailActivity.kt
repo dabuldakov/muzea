@@ -21,7 +21,9 @@ import com.example.muzea.utils.LocalTimeFormatter
 import com.example.muzea.core.Resource
 import com.example.muzea.ui.common.ReportDialog
 import com.example.muzea.ui.common.SystemBars
+import com.example.muzea.utils.ErrorReporter
 import com.example.muzea.utils.TokenManager
+import com.example.muzea.utils.VideoCache
 import com.example.muzea.utils.VideoPlayerHelper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -41,6 +43,7 @@ class VideoDetailActivity : AppCompatActivity() {
     private var videoId: Long = 0
     private var isFullscreen = false
     private var originalPlayerHeight = 0
+    private var retryAttempted = false
 
     @UnstableApi override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -221,7 +224,7 @@ class VideoDetailActivity : AppCompatActivity() {
         initializePlayer(fullVideoUrl)
     }
 
-    @UnstableApi private fun initializePlayer(videoUrl: String) {
+    @UnstableApi private fun initializePlayer(videoUrl: String, useCache: Boolean = true) {
         val token = tokenManager.getToken()
 
         if (token == null) {
@@ -230,10 +233,22 @@ class VideoDetailActivity : AppCompatActivity() {
             return
         }
 
-        val newPlayer = VideoPlayerHelper.createPlayerWithAuth(this, videoUrl, token)
+        val newPlayer = VideoPlayerHelper.createPlayerWithAuth(this, videoUrl, token, useCache)
         // Без этого сбой воспроизведения выглядел бы как молчаливый чёрный экран.
         newPlayer.addListener(object : Player.Listener {
             override fun onPlayerError(error: PlaybackException) {
+                // В телеметрию уходит вся цепочка причин: по одному коду
+                // CODE_IO_UNSPECIFIED не понять, сеть это, ответ сервера или кэш.
+                ErrorReporter.logCaught("VideoPlayer", error)
+
+                // Один повтор без дискового кэша: обрыв сети/битый фрагмент
+                // кэша чаще всего лечатся именно так.
+                if (!retryAttempted && VideoPlayerHelper.isRetryableIoError(error)) {
+                    retryAttempted = true
+                    retryPlayback(videoUrl)
+                    return
+                }
+
                 Toast.makeText(
                     this@VideoDetailActivity,
                     getString(R.string.video_play_failed, error.errorCodeName),
@@ -243,6 +258,16 @@ class VideoDetailActivity : AppCompatActivity() {
         })
         player = newPlayer
         binding.playerView.player = newPlayer
+    }
+
+    /** Пересоздаёт плеер без кэша, чтобы исключить битый скачанный фрагмент. */
+    @UnstableApi private fun retryPlayback(videoUrl: String) {
+        val oldPlayer = player
+        player = null
+        binding.playerView.player = null
+        VideoPlayerHelper.releasePlayer(oldPlayer)
+        VideoCache.remove(videoUrl)
+        initializePlayer(videoUrl, useCache = false)
     }
 
     override fun onPause() {

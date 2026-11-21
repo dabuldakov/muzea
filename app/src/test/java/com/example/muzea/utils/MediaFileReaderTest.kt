@@ -17,6 +17,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.DataOutputStream
 import java.io.File
 import java.lang.reflect.InvocationTargetException
 
@@ -90,6 +92,26 @@ class MediaFileReaderTest {
         val uri = mockk<Uri>()
         every { uri.lastPathSegment } returns name
         return uri
+    }
+
+    /** Минимальный валидный MP4: ftyp + moov + mdat, чтобы проверка атомов прошла. */
+    private fun minimalMp4(): ByteArray {
+        val out = ByteArrayOutputStream()
+        val data = DataOutputStream(out)
+        data.writeInt(24)
+        data.writeBytes("ftyp")
+        data.writeBytes("isom")
+        data.writeInt(0x200)
+        data.writeBytes("isom")
+        data.writeBytes("mp41")
+        data.writeInt(16)
+        data.writeBytes("moov")
+        data.writeInt(0)
+        data.writeInt(0)
+        data.writeInt(24)
+        data.writeBytes("mdat")
+        data.write(ByteArray(16))
+        return out.toByteArray()
     }
 
     // --- чистые хелперы ------------------------------------------------------------------------
@@ -275,9 +297,10 @@ class MediaFileReaderTest {
     @Test
     fun `prepare handles a video and reports null metadata without a real decoder`() = runTest {
         val uri = imageUri("clip.mp4")
+        val movie = minimalMp4()
         every { resolver.getType(uri) } returns "video/mp4"
-        every { resolver.query(uri, null, null, null, null) } returns cursor("clip.mp4", 10L)
-        every { resolver.openInputStream(uri) } returns ByteArrayInputStream(byteArrayOf(1, 2, 3))
+        every { resolver.query(uri, null, null, null, null) } returns cursor("clip.mp4", movie.size.toLong())
+        every { resolver.openInputStream(uri) } returns ByteArrayInputStream(movie)
 
         val prepared = reader.prepare(uri)
 

@@ -68,6 +68,15 @@ class MediaFileReader @Inject constructor(
             target.outputStream().use { output -> input.copyTo(output) }
         } ?: throw IllegalArgumentException(context.getString(R.string.attachment_cannot_read))
 
+        // Провайдер может отдать поток короче файла (облачная галерея, кэш
+        // мессенджера). Для MP4/MOV это видно по атомам: такой файл уедет
+        // в MinIO половинкой и не проиграется, поэтому не пускаем его дальше.
+        val copied = target.length()
+        if (copied <= 0 || (type == "VIDEO" && VideoFileValidator.isTruncated(target))) {
+            target.delete()
+            throw IllegalArgumentException(context.getString(R.string.attachment_cannot_read))
+        }
+
         var width: Int? = null
         var height: Int? = null
         var duration: Int? = null

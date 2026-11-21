@@ -17,6 +17,8 @@ import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.muzea.databinding.ActivityVideoUploadBinding
 import com.example.muzea.core.Resource
+import com.example.muzea.utils.ErrorReporter
+import com.example.muzea.utils.VideoFileValidator
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -31,7 +33,12 @@ class VideoUploadActivity : AppCompatActivity() {
 
     private companion object {
         const val DEFAULT_VIDEO_TYPE = "video/mp4"
+        const val COPY_ATTEMPTS = 2
+        const val COPY_BUFFER_BYTES = 64 * 1024
     }
+
+    /** Результат копирования выбранного видео во временный файл. */
+    private data class VideoCopyResult(val file: File?, val error: String?)
 
     private lateinit var binding: ActivityVideoUploadBinding
     private val viewModel: VideoViewModel by viewModels()
@@ -69,41 +76,116 @@ class VideoUploadActivity : AppCompatActivity() {
         binding.btnUpload.setOnClickListener { uploadVideo() }
     }
 
+    /**
+     * Копирует выбранное видео во временный файл. Провайдер (облачная галерея,
+     * кэш мессенджера) иногда отдаёт поток короче файла, поэтому копию сверяем
+     * с заявленным размером и структурой MP4; при обрыве пробуем ещё раз.
+     */
     private fun copyVideoToCache(uri: Uri) {
-        try {
-            val fileName = getFileName(uri)
-            // filesDir, а не cacheDir: cacheDir вычищается системой и кнопкой
-            // «Очистить кэш», из-за чего выбранное видео пропадало до отправки.
-            val uploadDir = File(filesDir, "video_draft").apply { mkdirs() }
-            val cacheFile = File(uploadDir, "video_${System.currentTimeMillis()}_$fileName")
+        binding.btnUpload.isEnabled = false
+        binding.progressBar.visibility = View.VISIBLE
+        binding.progressBar.isIndeterminate = true
+        binding.tvProgress.text = getString(R.string.video_uploading)
 
-            contentResolver.openInputStream(uri)?.use { input ->
-                FileOutputStream(cacheFile).use { output -> input.copyTo(output) }
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) { copyToDraft(uri) }
+
+            binding.progressBar.visibility = View.GONE
+            binding.tvProgress.text = ""
+
+            val file = result.file
+            if (file == null) {
+                Toast.makeText(
+                    this@VideoUploadActivity,
+                    getString(
+                        R.string.error_prefix,
+                        result.error ?: getString(R.string.video_copy_failed)
+                    ),
+                    Toast.LENGTH_LONG
+                ).show()
+                return@launch
             }
 
-            if (cacheFile.exists() && cacheFile.length() > 0) {
-                selectedVideoFile = cacheFile
-                selectedContentType = resolveContentType(uri, fileName)
-                binding.tvSelectedFile.text = getString(R.string.video_selected_format, cacheFile.name, cacheFile.length() / 1024)
-                binding.btnUpload.isEnabled = true
-                extractThumbnail(cacheFile)
-            } else {
-                Toast.makeText(this, R.string.video_copy_failed, Toast.LENGTH_SHORT).show()
-            }
-        } catch (e: Exception) {
-            Toast.makeText(this, getString(R.string.error_prefix, e.message ?: ""), Toast.LENGTH_SHORT).show()
+            selectedVideoFile = file
+            selectedContentType = resolveContentType(uri, file.name)
+            binding.tvSelectedFile.text =
+                getString(R.string.video_selected_format, file.name, file.length() / 1024)
+            binding.btnUpload.isEnabled = true
+            extractThumbnail(file)
         }
     }
 
-    private fun getFileName(uri: Uri): String {
+    private fun copyToDraft(uri: Uri): VideoCopyResult {
+        val (fileName, declaredSize) = queryVideoMeta(uri)
+        // filesDir, а не cacheDir: cacheDir вычищается системой и кнопкой
+        // «Очистить кэш», из-за чего выбранное видео пропадало до отправки.
+        val uploadDir = File(filesDir, "video_draft").apply { mkdirs() }
+        val draft = File(uploadDir, "video_${System.currentTimeMillis()}_$fileName")
+
+        var lastCopied = -1L
+        var lastReason = "unknown"
+
+        repeat(COPY_ATTEMPTS) {
+            val copied = try {
+                contentResolver.openInputStream(uri)?.use { input ->
+                    FileOutputStream(draft).use { output ->
+                        // Крупный буфер: облачные провайдеры отдают поток через
+                        // pipe и могут оборвать его, если читать слишком медленно.
+                        val buffer = ByteArray(COPY_BUFFER_BYTES)
+                        while (true) {
+                            val read = input.read(buffer)
+                            if (read < 0) break
+                            output.write(buffer, 0, read)
+                        }
+                    }
+                    draft.length()
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                draft.delete()
+                throw e
+            } catch (e: Exception) {
+                null
+            }
+
+            lastCopied = copied ?: -1L
+            lastReason = when {
+                copied == null -> "unreadable"
+                copied <= 0 -> "empty"
+                VideoFileValidator.isTruncated(draft) -> "truncated"
+                declaredSize > 0 && copied < declaredSize -> "short"
+                else -> return VideoCopyResult(draft, null)
+            }
+            draft.delete()
+        }
+
+        // Частота обрывов у провайдеров: по этому отчёту видно, где именно рвётся.
+        ErrorReporter.logCaught(
+            "VideoCopy",
+            IllegalStateException(
+                "copy failed: reason=$lastReason declared=$declaredSize copied=$lastCopied"
+            )
+        )
+        return VideoCopyResult(null, getString(R.string.video_copy_failed))
+    }
+
+    /** Имя и заявленный размер файла у провайдера; размер может быть неизвестен. */
+    private fun queryVideoMeta(uri: Uri): Pair<String, Long> {
         var fileName = "video_${System.currentTimeMillis()}.mp4"
-        contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+        var size = -1L
+        val columns = arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE)
+        contentResolver.query(uri, columns, null, null, null)?.use { cursor ->
             if (cursor.moveToFirst()) {
                 val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                if (nameIndex >= 0) fileName = cursor.getString(nameIndex)
+                if (nameIndex >= 0 && !cursor.isNull(nameIndex)) {
+                    fileName = cursor.getString(nameIndex)
+                }
+                val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) {
+                    size = cursor.getLong(sizeIndex)
+                }
             }
         }
-        return fileName
+        return fileName to size
     }
 
     /**

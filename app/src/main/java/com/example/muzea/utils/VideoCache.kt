@@ -47,6 +47,15 @@ object VideoCache {
     /** Сколько байт сейчас занято в видеокэше. */
     fun sizeBytes(): Long = instance?.cacheSpace ?: 0L
 
+    /**
+     * Удаляет кэш конкретного видео. Нужен после ошибки воспроизведения:
+     * недописанный или битый фрагмент иначе будет ломать каждый следующий
+     * запуск того же ролика.
+     */
+    fun remove(url: String) {
+        runCatching { instance?.removeResource(url) }
+    }
+
     /** Удаляет все скачанные видеофрагменты, не трогая сам объект кэша. */
     fun clear() {
         val cache = instance ?: return
