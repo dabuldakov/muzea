@@ -38,8 +38,8 @@ android {
         applicationId = "com.cyber.muzea"
         minSdk = 24
         targetSdk = 36
-        versionCode = 175
-        versionName = "1.7.46"
+        versionCode = 176
+        versionName = "1.7.47"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
