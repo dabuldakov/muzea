@@ -282,6 +282,7 @@ class MessageRepositoryImplTest {
     @Test
     fun `uploadAttachment returns the server attachment`() = runTest {
         coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.presignAttachmentUpload(any()) } returns httpError(503)
         coEvery { api.uploadAttachment(any(), any(), any(), any(), any(), any()) } returns httpOk(
             AttachmentResponse(
                 attachmentUuid = "a-1",
@@ -317,6 +318,7 @@ class MessageRepositoryImplTest {
     @Test
     fun `uploadAttachment reports a rejected file`() = runTest {
         coEvery { auth.isAuthenticated() } returns true
+        coEvery { api.presignAttachmentUpload(any()) } returns httpError(503)
         coEvery { api.uploadAttachment(any(), any(), any(), any(), any(), any()) } returns httpError(400)
         val prepared = PreparedAttachment(
             file = File.createTempFile("bad", ".exe"),

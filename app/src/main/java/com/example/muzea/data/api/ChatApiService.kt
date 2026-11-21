@@ -13,11 +13,14 @@ import com.example.muzea.data.model.ChatUserResponse
 import com.example.muzea.data.model.ContactResponse
 import com.example.muzea.data.model.CreateGroupChatRequest
 import com.example.muzea.data.model.CreatePrivateChatRequest
+import com.example.muzea.data.model.FinalizeAttachmentRequest
 import com.example.muzea.data.model.GifResponse
 import com.example.muzea.data.model.MessageReceiptTimeResponse
 import com.example.muzea.data.model.MessageResponse
 import com.example.muzea.data.model.PageResponse
 import com.example.muzea.data.model.PresenceResponse
+import com.example.muzea.data.model.PresignAttachmentRequest
+import com.example.muzea.data.model.PresignAttachmentResponse
 import com.example.muzea.data.model.SendMessageRequest
 import retrofit2.Response
 import retrofit2.http.Body
@@ -249,6 +252,18 @@ interface ChatApiService {
         @Part("width") width: RequestBody?,
         @Part("height") height: RequestBody?,
         @Part("duration") duration: RequestBody?
+    ): Response<AttachmentResponse>
+
+    /** Шаг 1 прямой загрузки: presigned PUT в MinIO. */
+    @POST("/api/attachments/presign-upload")
+    suspend fun presignAttachmentUpload(
+        @Body request: PresignAttachmentRequest
+    ): Response<PresignAttachmentResponse>
+
+    /** Шаг 2: создаём вложение после загрузки файла в MinIO. */
+    @POST("/api/attachments")
+    suspend fun finalizeAttachment(
+        @Body request: FinalizeAttachmentRequest
     ): Response<AttachmentResponse>
 
     @Streaming

@@ -2,6 +2,7 @@ package com.example.muzea.data.repository
 
 import com.example.muzea.core.Resource
 import com.example.muzea.data.api.ChatApiService
+import com.example.muzea.data.httpError
 import com.example.muzea.data.httpOk
 import com.example.muzea.data.model.AttachmentResponse
 import com.example.muzea.domain.model.Gif
@@ -138,7 +139,7 @@ class MessageRepositoryCancellationTest {
 
     @Test
     fun `uploadAttachment propagates cancellation`() = runTest {
-        coEvery { api.uploadAttachment(any(), any(), any(), any(), any(), any()) } throws
+        coEvery { api.presignAttachmentUpload(any()) } throws
             CancellationException("stop")
         assertTrue(cancellationThrown { repository.uploadAttachment("chat-1", prepared()) })
     }
@@ -162,6 +163,7 @@ class MessageRepositoryCancellationTest {
     @Test
     fun `uploadAttachment sends the optional thumbnail`() = runTest {
         val thumb = File.createTempFile("thumb", ".jpg").apply { deleteOnExit() }
+        coEvery { api.presignAttachmentUpload(any()) } returns httpError(503)
         coEvery { api.uploadAttachment(any(), any(), any(), any(), any(), any()) } returns httpOk(
             AttachmentResponse(
                 attachmentUuid = "a-1", fileUrl = "/api/attachments/a-1", thumbnailUrl = null,
@@ -177,6 +179,7 @@ class MessageRepositoryCancellationTest {
 
     @Test
     fun `uploadAttachment reports an empty body as an error`() = runTest {
+        coEvery { api.presignAttachmentUpload(any()) } returns httpError(503)
         coEvery { api.uploadAttachment(any(), any(), any(), any(), any(), any()) } returns httpOk(
             AttachmentResponse(
                 attachmentUuid = null, fileUrl = null, thumbnailUrl = null,

@@ -3,9 +3,11 @@ package com.example.muzea.data.repository
 import com.example.muzea.data.api.ChatApiService
 import com.example.muzea.data.mapper.toDomain
 import com.example.muzea.data.mapper.toDomainAttachment
+import com.example.muzea.data.model.FinalizeAttachmentRequest
 import com.example.muzea.data.model.GifRequest
 import com.example.muzea.data.model.EditMessageRequest
 import com.example.muzea.data.model.ForwardMessageRequest
+import com.example.muzea.data.model.PresignAttachmentRequest
 import com.example.muzea.data.model.SendMessageRequest
 import com.example.muzea.domain.model.Gif
 import com.example.muzea.domain.model.Message
@@ -19,6 +21,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
+import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
@@ -31,8 +34,20 @@ class MessageRepositoryImpl @Inject constructor(
     private val apiService: ChatApiService,
     private val chatAuthManager: ChatAuthManager,
     private val gifCache: GifCache,
-    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
+    private val presignedUploader: PresignedUploader
 ) : com.example.muzea.domain.repository.MessageRepository {
+
+    /** Удобный конструктор для тестов: клиент S3 без интерцепторов. */
+    constructor(
+        apiService: ChatApiService,
+        chatAuthManager: ChatAuthManager,
+        gifCache: GifCache,
+        context: android.content.Context
+    ) : this(
+        apiService, chatAuthManager, gifCache, context,
+        PresignedUploader(OkHttpClient())
+    )
 
     override suspend fun loadMessages(chatUuid: String): Flow<Resource<List<Message>>> = flow {
         emit(Resource.Loading())
@@ -507,50 +522,143 @@ class MessageRepositoryImpl @Inject constructor(
                 return Resource.Error(chatAuthManager.authFailureMessage())
             }
 
-            val filePart = MultipartBody.Part.createFormData(
-                "file",
-                prepared.name,
-                ProgressRequestBody(
-                    prepared.file,
-                    prepared.mimeType.toMediaTypeOrNull(),
-                    onProgress
-                )
-            )
-            val thumbPart = prepared.thumbnail?.let { thumb ->
-                MultipartBody.Part.createFormData(
-                    "thumbnail",
-                    thumb.name,
-                    thumb.asRequestBody("image/jpeg".toMediaTypeOrNull())
+            val presign = chatAuthManager.authenticatedRequest {
+                apiService.presignAttachmentUpload(
+                    PresignAttachmentRequest(
+                        chatUuid = chatUuid,
+                        fileName = prepared.name,
+                        contentType = prepared.mimeType,
+                        size = prepared.size,
+                        kind = "ATTACHMENT"
+                    )
                 )
             }
 
-            val response = chatAuthManager.authenticatedRequest {
-                apiService.uploadAttachment(
-                    file = filePart,
-                    chatUuid = chatUuid.toRequestBody("text/plain".toMediaTypeOrNull()),
-                    thumbnail = thumbPart,
-                    width = prepared.width?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull()),
-                    height = prepared.height?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull()),
-                    duration = prepared.duration?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
+            // На сервере не настроен публичный MinIO — старый multipart.
+            if (presign.code() == 503) {
+                return uploadAttachmentMultipart(chatUuid, prepared, onProgress)
+            }
+
+            val ticket = presign.body()
+            if (!presign.isSuccessful || ticket == null) {
+                return Resource.Error("Upload failed: ${presign.message()}")
+            }
+
+            presignedUploader.put(ticket.uploadUrl, prepared.file, prepared.mimeType, onProgress)
+            val thumbnailKey = uploadThumbnail(chatUuid, prepared)
+
+            val finalized = chatAuthManager.authenticatedRequest {
+                apiService.finalizeAttachment(
+                    FinalizeAttachmentRequest(
+                        chatUuid = chatUuid,
+                        objectKey = ticket.objectKey,
+                        thumbnailKey = thumbnailKey,
+                        fileName = prepared.name,
+                        width = prepared.width,
+                        height = prepared.height,
+                        duration = prepared.duration
+                    )
                 )
             }
 
-            if (response.isSuccessful && response.body() != null) {
-                val attachment = response.body()!!.toDomainAttachment()
+            if (finalized.isSuccessful && finalized.body() != null) {
+                val attachment = finalized.body()!!.toDomainAttachment()
                 if (attachment != null) {
                     Resource.Success(attachment)
                 } else {
                     Resource.Error("Server returned an empty attachment")
                 }
-            } else if (response.code() == 400) {
+            } else if (finalized.code() == 400) {
                 Resource.Error("File was rejected by the server")
             } else {
-                Resource.Error("Upload failed: ${response.message()}")
+                Resource.Error("Upload failed: ${finalized.message()}")
             }
+        } catch (e: UploadFailedException) {
+            Resource.Error(e.message ?: "Upload failed")
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Resource.Error("Network error: ${e.message}")
+        }
+    }
+
+    /** Превью необязательно: без него сообщение всё равно отправится. */
+    private suspend fun uploadThumbnail(
+        chatUuid: String,
+        prepared: PreparedAttachment
+    ): String? {
+        val thumbnail = prepared.thumbnail ?: return null
+        val presign = chatAuthManager.authenticatedRequest {
+            apiService.presignAttachmentUpload(
+                PresignAttachmentRequest(
+                    chatUuid = chatUuid,
+                    fileName = "thumb.jpg",
+                    contentType = "image/jpeg",
+                    size = thumbnail.length(),
+                    kind = "THUMBNAIL"
+                )
+            )
+        }
+        val ticket = presign.body()
+        if (!presign.isSuccessful || ticket == null) return null
+
+        return try {
+            presignedUploader.put(ticket.uploadUrl, thumbnail, "image/jpeg") {}
+            ticket.objectKey
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            com.example.muzea.utils.ErrorReporter.logCaught("AttachmentThumbnail", e)
+            null
+        }
+    }
+
+    /** Запасной путь для серверов без публичного MinIO. */
+    private suspend fun uploadAttachmentMultipart(
+        chatUuid: String,
+        prepared: PreparedAttachment,
+        onProgress: (Int) -> Unit
+    ): Resource<MessageAttachment> {
+        val filePart = MultipartBody.Part.createFormData(
+            "file",
+            prepared.name,
+            ProgressRequestBody(
+                prepared.file,
+                prepared.mimeType.toMediaTypeOrNull(),
+                onProgress
+            )
+        )
+        val thumbPart = prepared.thumbnail?.let { thumb ->
+            MultipartBody.Part.createFormData(
+                "thumbnail",
+                thumb.name,
+                thumb.asRequestBody("image/jpeg".toMediaTypeOrNull())
+            )
+        }
+
+        val response = chatAuthManager.authenticatedRequest {
+            apiService.uploadAttachment(
+                file = filePart,
+                chatUuid = chatUuid.toRequestBody("text/plain".toMediaTypeOrNull()),
+                thumbnail = thumbPart,
+                width = prepared.width?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull()),
+                height = prepared.height?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull()),
+                duration = prepared.duration?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
+            )
+        }
+
+        if (response.isSuccessful && response.body() != null) {
+            val attachment = response.body()!!.toDomainAttachment()
+            return if (attachment != null) {
+                Resource.Success(attachment)
+            } else {
+                Resource.Error("Server returned an empty attachment")
+            }
+        }
+        return if (response.code() == 400) {
+            Resource.Error("File was rejected by the server")
+        } else {
+            Resource.Error("Upload failed: ${response.message()}")
         }
     }
 
