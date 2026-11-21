@@ -406,6 +406,87 @@ class MessageAdapterBindTest {
     }
 
     @Test
+    fun `incoming audio voice note renders as a voice bubble`() {
+        // iOS шлёт голосовые типом AUDIO: на приёмной стороне должна быть
+        // волна с длительностью, а не карточка с именем файла.
+        bindIncoming(
+            message(
+                messageType = "AUDIO",
+                text = null,
+                attachments = listOf(
+                    attachment("AUDIO", fileName = "voice_1D4050D6-F01E.m4a", duration = 13)
+                )
+            )
+        )
+
+        verify { fx.tvVoiceDuration.setText("0:13") }
+        verify { fx.ivVoicePlay.setImageResource(R.drawable.ic_play_circle) }
+        verify { fx.attachmentsContainer.addView(fx.voiceCard) }
+        verify(exactly = 0) { fx.attachmentsContainer.addView(fx.audioCard) }
+    }
+
+    @Test
+    fun `incoming audio voice note without duration keeps the voice bubble`() {
+        bindIncoming(
+            message(
+                messageType = "AUDIO",
+                text = null,
+                attachments = listOf(attachment("AUDIO", fileName = "VOICE_42.m4a"))
+            )
+        )
+
+        verify { fx.attachmentsContainer.addView(fx.voiceCard) }
+        verify(exactly = 0) { fx.attachmentsContainer.addView(fx.audioCard) }
+    }
+
+    @Test
+    fun `audio file with duration stays a file card`() {
+        bindIncoming(
+            message(
+                messageType = "AUDIO",
+                text = null,
+                attachments = listOf(attachment("AUDIO", fileName = "track.m4a", duration = 180))
+            )
+        )
+
+        verify { fx.tvAudioName.setText("track.m4a") }
+        verify { fx.attachmentsContainer.addView(fx.audioCard) }
+        verify(exactly = 0) { fx.attachmentsContainer.addView(fx.voiceCard) }
+    }
+
+    @Test
+    fun `several recorded attachments stay cards`() {
+        bindIncoming(
+            message(
+                messageType = "AUDIO",
+                text = null,
+                attachments = listOf(
+                    attachment("AUDIO", fileName = "voice_1.m4a", duration = 5),
+                    attachment("AUDIO", fileName = "voice_2.m4a", duration = 7)
+                )
+            )
+        )
+
+        verify(exactly = 0) { fx.attachmentsContainer.addView(fx.voiceCard) }
+        verify(atLeast = 1) { fx.attachmentsContainer.addView(fx.audioCard) }
+    }
+
+    @Test
+    fun `voice bubble and file card stay distinct for file type messages`() {
+        // Файл с аудио, отправленный из меню вложений, остаётся карточкой.
+        bindIncoming(
+            message(
+                messageType = "FILE",
+                text = null,
+                attachments = listOf(attachment("AUDIO", fileName = "voice_note.m4a", duration = 9))
+            )
+        )
+
+        verify { fx.attachmentsContainer.addView(fx.audioCard) }
+        verify(exactly = 0) { fx.attachmentsContainer.addView(fx.voiceCard) }
+    }
+
+    @Test
     fun `video note message binds its thumbnail row`() {
         bindIncoming(
             message(

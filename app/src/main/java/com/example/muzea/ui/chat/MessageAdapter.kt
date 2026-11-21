@@ -639,21 +639,26 @@ private fun bindAttachments(
 
     val inflater = LayoutInflater.from(container.context)
 
-    if (message.messageType == "VOICE") {
-        val audio = attachments.firstOrNull { it.type.equals("AUDIO", ignoreCase = true) }
-        if (audio != null) {
-            val item = ItemAttachmentVoiceBinding.inflate(inflater, container, false)
-            item.tvDuration.text = formatDuration(audio.duration)
-            item.ivPlay.setImageResource(
-                if (playingAudioUuid == message.messageUuid && audioIsPlaying) R.drawable.ic_pause
-                else R.drawable.ic_play_circle
-            )
-            item.root.setOnClickListener { onClick(message, audio) }
-            item.root.setOnLongClickListener { onLongClick(message); true }
-            container.addView(item.root)
-        }
+    // Голосовые рисуем пузырём с волной и длительностью. Свой клиент шлёт их
+    // типом VOICE, другие (iOS) — AUDIO с единственной записью и длительностью.
+    // Раньше второй вариант попадал в карточку аудиофайла: на приёмной стороне
+    // было видно только имя файла без волны.
+    val voice = voiceAttachmentFor(message, attachments)
+    if (voice != null) {
+        val item = ItemAttachmentVoiceBinding.inflate(inflater, container, false)
+        item.tvDuration.text = formatDuration(voice.duration)
+        item.ivPlay.setImageResource(
+            if (playingAudioUuid == message.messageUuid && audioIsPlaying) R.drawable.ic_pause
+            else R.drawable.ic_play_circle
+        )
+        item.root.setOnClickListener { onClick(message, voice) }
+        item.root.setOnLongClickListener { onLongClick(message); true }
+        container.addView(item.root)
         return
     }
+    // Тип VOICE без аудио-вложения: пузырь не рисуем, но и карточку файла не
+    // показываем — раньше такое сообщение оставалось пустым.
+    if (message.messageType.equals("VOICE", ignoreCase = true)) return
 
     if (message.messageType == "VIDEO_NOTE") {
         val video = attachments.firstOrNull { it.type.equals("VIDEO", ignoreCase = true) }
@@ -740,6 +745,34 @@ private fun bindAttachments(
         }
     }
 }
+
+/**
+ * Аудио-вложение, которое рисуем голосовым пузырём, либо null.
+ *
+ * Свой клиент помечает записи типом VOICE. Другие клиенты (iOS) отправляют
+ * голосовые типом AUDIO с единственной записью `voice_*.m4a`: раньше такие
+ * сообщения попадали в карточку аудиофайла, и на приёмной стороне было видно
+ * только имя файла. Аудиофайлы из меню вложений (имя не `voice_*`) остаются
+ * карточкой с именем и размером.
+ */
+internal fun voiceAttachmentFor(
+    message: Message,
+    attachments: List<MessageAttachment>
+): MessageAttachment? {
+    if (message.messageType.equals("VOICE", ignoreCase = true)) {
+        return attachments.firstOrNull { it.type.equals("AUDIO", ignoreCase = true) }
+    }
+    if (message.messageType.equals("AUDIO", ignoreCase = true) && attachments.size == 1) {
+        val only = attachments.single()
+        val isAudio = only.type.equals("AUDIO", ignoreCase = true)
+        val isRecording = only.fileName?.startsWith(VOICE_FILE_PREFIX, ignoreCase = true) == true
+        if (isAudio && isRecording) return only
+    }
+    return null
+}
+
+/** Так клиенты называют файлы записанных голосовых. */
+private const val VOICE_FILE_PREFIX = "voice_"
 
 private fun dpToPx(context: android.content.Context, dp: Int): Int =
     (dp * context.resources.displayMetrics.density).toInt()
