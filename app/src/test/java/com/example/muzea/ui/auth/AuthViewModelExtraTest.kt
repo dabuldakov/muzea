@@ -92,11 +92,11 @@ class AuthViewModelExtraTest {
     @Test
     fun `loading state is exposed and the previous error is cleared`() = runTest {
         val gate = CompletableDeferred<Unit>()
-        val first: Flow<Resource<Unit>> = flowOf(Resource.Error("boom"))
-        val second: Flow<Resource<Unit>> = flow {
+        val first: Flow<Resource<String?>> = flowOf(Resource.Error("boom"))
+        val second: Flow<Resource<String?>> = flow {
             emit(Resource.Loading())
             gate.await()
-            emit(Resource.Success(Unit))
+            emit(Resource.Success("SENT"))
         }
         coEvery { authRepository.requestLoginCode("a@b.c") } returnsMany listOf(first, second)
         val viewModel = AuthViewModel(authRepository)

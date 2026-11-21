@@ -307,4 +307,14 @@ class AuthRepositoryTest {
             emailVerified = true
         )
     )
+
+    @Test
+    fun `request code returns the server status`() = runTest {
+        coEvery { api.requestLoginCode(any()) } returns
+            httpOk(com.example.muzea.data.model.AuthServiceMessage("ok", "UNVERIFIED"))
+
+        val last = repository.requestLoginCode("a@b.c").toList().last()
+
+        assertEquals("UNVERIFIED", (last as Resource.Success).data)
+    }
 }

@@ -162,7 +162,7 @@ class RegisterAndOtpTest {
     @Test
     fun `login resend requests a new code`() {
         coEvery { authRepository.requestLoginCode(any()) } returns
-            flowOf(Resource.Success(Unit))
+            flowOf(Resource.Success("SENT"))
         val activity = otp(OtpActivity.MODE_LOGIN)
 
         activity.findViewById<View>(R.id.btnResend).performClick()

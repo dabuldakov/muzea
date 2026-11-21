@@ -52,7 +52,9 @@ data class AuthServiceTokenResponse(
 )
 
 data class AuthServiceMessage(
-    @SerializedName("message") val message: String?
+    @SerializedName("message") val message: String?,
+    /** SENT, UNVERIFIED, DELETED, NOT_FOUND — что сервер сделал с кодом. */
+    @SerializedName("status") val status: String? = null
 )
 
 data class AuthServiceError(

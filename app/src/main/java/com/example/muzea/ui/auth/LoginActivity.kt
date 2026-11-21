@@ -157,5 +157,14 @@ class LoginActivity : AppCompatActivity() {
                 startActivity(OtpActivity.intent(this@LoginActivity, pendingEmail, OtpActivity.MODE_LOGIN))
             }
         }
+
+        lifecycleScope.launch {
+            viewModel.registrationCodeSent.collect {
+                Toast.makeText(
+                    this@LoginActivity, R.string.registration_code_resent, Toast.LENGTH_LONG
+                ).show()
+                startActivity(OtpActivity.intent(this@LoginActivity, pendingEmail, OtpActivity.MODE_REGISTER))
+            }
+        }
     }
 }

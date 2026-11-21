@@ -33,6 +33,10 @@ class AuthViewModel @Inject constructor(
     private val _codeSent = MutableSharedFlow<Unit>()
     val codeSent: SharedFlow<Unit> = _codeSent.asSharedFlow()
 
+    /** Аккаунт не подтверждён: ушёл код регистрации, открываем экран подтверждения. */
+    private val _registrationCodeSent = MutableSharedFlow<Unit>()
+    val registrationCodeSent: SharedFlow<Unit> = _registrationCodeSent.asSharedFlow()
+
     /** Успешный вход/подтверждение → на главный экран. */
     private val _authenticated = MutableSharedFlow<Unit>()
     val authenticated: SharedFlow<Unit> = _authenticated.asSharedFlow()
@@ -40,8 +44,42 @@ class AuthViewModel @Inject constructor(
     fun register(email: String, username: String, fullName: String) =
         run({ authRepository.register(email, username, fullName.ifBlank { null }) }, sendsCode = true)
 
-    fun requestLoginCode(email: String) =
-        run({ authRepository.requestLoginCode(email) }, sendsCode = true)
+    fun requestLoginCode(email: String) {
+        viewModelScope.launch {
+            authRepository.requestLoginCode(email).collect { result ->
+                when (result) {
+                    is Resource.Loading -> _uiState.value = AuthUiState(isLoading = true)
+                    is Resource.Error -> _uiState.value =
+                        AuthUiState(isLoading = false, error = result.message)
+                    is Resource.Success -> {
+                        if (result.data == "UNVERIFIED") {
+                            // Пароль не нужен, но email не подтверждён: вместо
+                            // «код отправлен» шлём код регистрации и ведём на
+                            // экран подтверждения.
+                            resendRegistrationCode(email)
+                        } else {
+                            _uiState.value = AuthUiState(isLoading = false)
+                            _codeSent.emit(Unit)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun resendRegistrationCode(email: String) {
+        authRepository.resendVerification(email).collect { result ->
+            when (result) {
+                is Resource.Loading -> _uiState.value = AuthUiState(isLoading = true)
+                is Resource.Error -> _uiState.value =
+                    AuthUiState(isLoading = false, error = result.message)
+                is Resource.Success -> {
+                    _uiState.value = AuthUiState(isLoading = false)
+                    _registrationCodeSent.emit(Unit)
+                }
+            }
+        }
+    }
 
     fun resendVerification(email: String) =
         run({ authRepository.resendVerification(email) }, sendsCode = true)

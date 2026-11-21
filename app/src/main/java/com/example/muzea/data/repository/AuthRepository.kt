@@ -48,9 +48,29 @@ class AuthRepository @Inject constructor(
             authServiceApi.verifyEmail(AuthServiceVerifyEmailRequest(email, code, deviceId()))
         }
 
-    /** Запрос кода для входа (passwordless). */
-    suspend fun requestLoginCode(email: String): Flow<Resource<Unit>> =
-        request { authServiceApi.requestLoginCode(AuthServiceOtpRequest(email)) }
+    /**
+     * Запрос кода для входа (passwordless).
+     *
+     * Возвращает статус сервера: SENT, UNVERIFIED (аккаунт не подтверждён),
+     * DELETED, NOT_FOUND. Для UNVERIFIED UI отправляет код подтверждения
+     * регистрации, иначе человек попадает на экран кода без письма.
+     */
+    suspend fun requestLoginCode(email: String): Flow<Resource<String?>> = flow {
+        emit(Resource.Loading())
+        try {
+            val response = authServiceApi.requestLoginCode(AuthServiceOtpRequest(email))
+            if (response.isSuccessful) {
+                emit(Resource.Success(response.body()?.status))
+            } else {
+                emit(Resource.Error(errorMessage(response)))
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            com.example.muzea.utils.ErrorReporter.logCaught("AuthRepository", e)
+            emit(Resource.Error(context.getString(R.string.error_no_connection)))
+        }
+    }
 
     /** Вход по коду из письма. */
     suspend fun verifyLoginCode(email: String, code: String): Flow<Resource<Unit>> =

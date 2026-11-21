@@ -92,7 +92,7 @@ class LoginActivityTest {
     fun `valid email requests a login code and opens OTP`() {
         ConsentManager.accept(context)
         coEvery { authRepository.requestLoginCode("morris@muzea.test") } returns
-            flowOf(Resource.Success(Unit))
+            flowOf(Resource.Success("SENT"))
         val activity = launch()
 
         activity.findViewById<android.widget.EditText>(R.id.etEmail)

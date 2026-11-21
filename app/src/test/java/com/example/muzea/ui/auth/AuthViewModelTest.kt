@@ -4,6 +4,7 @@ import com.example.muzea.core.Resource
 import com.example.muzea.data.repository.AuthRepository
 import com.example.muzea.ui.news.MainDispatcherRule
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +29,7 @@ class AuthViewModelTest {
 
     @Test
     fun `requesting login code emits codeSent event`() = runTest {
-        coEvery { authRepository.requestLoginCode("a@b.c") } returns flowOf(Resource.Success(Unit))
+        coEvery { authRepository.requestLoginCode("a@b.c") } returns flowOf(Resource.Success("SENT"))
         val viewModel = AuthViewModel(authRepository)
 
         var codeSent = false
@@ -85,5 +86,26 @@ class AuthViewModelTest {
 
         viewModel.consumeError()
         assertNull(viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `unverified login requests a fresh registration code`() = runTest {
+        coEvery { authRepository.requestLoginCode("a@b.c") } returns
+            flowOf(Resource.Success("UNVERIFIED"))
+        coEvery { authRepository.resendVerification("a@b.c") } returns
+            flowOf(Resource.Success(Unit))
+        val viewModel = AuthViewModel(authRepository)
+
+        var registrationCodeSent = false
+        val collector = launch(Dispatchers.Unconfined, start = CoroutineStart.UNDISPATCHED) {
+            viewModel.registrationCodeSent.collect { registrationCodeSent = true }
+        }
+
+        viewModel.requestLoginCode("a@b.c")
+        collector.cancel()
+
+        coVerify { authRepository.resendVerification("a@b.c") }
+        assertTrue(registrationCodeSent)
+        assertFalse(viewModel.uiState.value.isLoading)
     }
 }
