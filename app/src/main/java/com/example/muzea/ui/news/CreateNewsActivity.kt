@@ -9,6 +9,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.TooltipCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
@@ -82,6 +83,10 @@ class CreateNewsActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
+        TooltipCompat.setTooltipText(
+            binding.btnSelectImage,
+            getString(R.string.create_news_select_image)
+        )
         binding.btnSubmit.setOnClickListener { createNews() }
         binding.btnSelectImage.setOnClickListener {
             pickImageLauncher.launch(

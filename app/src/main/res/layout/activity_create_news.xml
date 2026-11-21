@@ -81,14 +81,18 @@
 
             </androidx.cardview.widget.CardView>
 
-            <Button
+            <ImageButton
                 android:id="@+id/btnSelectImage"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_gravity="center_horizontal"
                 android:layout_marginTop="8dp"
-                android:text="@string/create_news_select_image"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:textAllCaps="false" />
+                android:background="@drawable/bg_source_button"
+                android:contentDescription="@string/create_news_select_image"
+                android:padding="18dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_add_photo"
+                app:tint="@color/icon_tint" />
 
             <TextView
                 android:id="@+id/tvImageFileName"

@@ -65,11 +65,11 @@
                     android:id="@+id/btnSelectVideo"
                     android:layout_width="64dp"
                     android:layout_height="64dp"
-                    android:background="@drawable/bg_video_source_button"
+                    android:background="@drawable/bg_source_button"
                     android:contentDescription="@string/video_upload_select"
                     android:padding="18dp"
                     android:scaleType="centerInside"
-                    android:src="@drawable/ic_photo_library"
+                    android:src="@drawable/ic_video_call"
                     app:tint="@color/icon_tint" />
 
                 <Space
@@ -81,7 +81,7 @@
                     android:id="@+id/btnSelectFile"
                     android:layout_width="64dp"
                     android:layout_height="64dp"
-                    android:background="@drawable/bg_video_source_button"
+                    android:background="@drawable/bg_source_button"
                     android:contentDescription="@string/video_select_from_device"
                     android:padding="18dp"
                     android:scaleType="centerInside"
