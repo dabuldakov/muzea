@@ -3,6 +3,7 @@ package com.example.muzea.ui.chat
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import androidx.appcompat.widget.TooltipCompat
 import android.view.ViewGroup
 import com.example.muzea.databinding.BottomSheetAttachmentsBinding
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -13,7 +14,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
  */
 class AttachmentsBottomSheet : BottomSheetDialogFragment() {
 
-    enum class Kind { PHOTO, VIDEO, AUDIO, FILE }
+    enum class Kind { PHOTO, VIDEO, FILE }
 
     interface Listener {
         fun onAttachmentKind(kind: Kind)
@@ -33,9 +34,14 @@ class AttachmentsBottomSheet : BottomSheetDialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // Иконки без подписей: долгое нажатие показывает подсказку.
+        TooltipCompat.setTooltipText(binding.btnPhoto, getString(com.example.muzea.R.string.attach_photo))
+        TooltipCompat.setTooltipText(binding.btnVideo, getString(com.example.muzea.R.string.attach_video))
+        TooltipCompat.setTooltipText(binding.btnFile, getString(com.example.muzea.R.string.attach_file))
+
         binding.btnPhoto.setOnClickListener { pick(Kind.PHOTO) }
         binding.btnVideo.setOnClickListener { pick(Kind.VIDEO) }
-        binding.btnAudio.setOnClickListener { pick(Kind.AUDIO) }
+        // Один пикер на аудио, видео и документы из хранилища телефона.
         binding.btnFile.setOnClickListener { pick(Kind.FILE) }
     }
 

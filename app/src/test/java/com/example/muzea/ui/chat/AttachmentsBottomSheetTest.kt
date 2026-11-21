@@ -59,10 +59,9 @@ class AttachmentsBottomSheetTest {
     }
 
     @Test
-    fun `video audio and file icons report their kinds`() {
+    fun `video and file icons report their kinds`() {
         val kinds = listOf(
             com.example.muzea.R.id.btnVideo to AttachmentsBottomSheet.Kind.VIDEO,
-            com.example.muzea.R.id.btnAudio to AttachmentsBottomSheet.Kind.AUDIO,
             com.example.muzea.R.id.btnFile to AttachmentsBottomSheet.Kind.FILE
         )
         for ((id, expected) in kinds) {

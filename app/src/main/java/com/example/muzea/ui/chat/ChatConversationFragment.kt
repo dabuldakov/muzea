@@ -179,10 +179,6 @@ class ChatConversationFragment : Fragment(),
         handleImageViewerResult(action.first, action.second)
     }
 
-    private val pickAudio = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let { viewModel.addAttachments(listOf(it)) }
-    }
-
     private val pickFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { viewModel.addAttachments(listOf(it)) }
     }
@@ -220,7 +216,8 @@ class ChatConversationFragment : Fragment(),
         private const val MENU_FORWARD = 2
         private const val HIGHLIGHT_COLOR = 0x557C3AED
 
-        private val DOCUMENT_MIME_TYPES = arrayOf(
+        private val ATTACHMENT_FILE_MIME_TYPES = arrayOf(
+            "audio/*", "video/*",
             "application/pdf", "text/plain", "text/csv", "application/msword",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             "application/vnd.ms-excel",
@@ -982,8 +979,7 @@ class ChatConversationFragment : Fragment(),
             AttachmentsBottomSheet.Kind.VIDEO -> pickVideo.launch(
                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
             )
-            AttachmentsBottomSheet.Kind.AUDIO -> pickAudio.launch(arrayOf("audio/*"))
-            AttachmentsBottomSheet.Kind.FILE -> pickFile.launch(DOCUMENT_MIME_TYPES)
+            AttachmentsBottomSheet.Kind.FILE -> pickFile.launch(ATTACHMENT_FILE_MIME_TYPES)
         }
     }
 
