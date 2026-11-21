@@ -15,6 +15,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.TooltipCompat
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.muzea.databinding.ActivityVideoUploadBinding
@@ -87,6 +88,16 @@ class VideoUploadActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
+        // Иконки без подписей: длинное нажатие показывает подсказку.
+        TooltipCompat.setTooltipText(
+            binding.btnSelectVideo,
+            getString(R.string.video_upload_select)
+        )
+        TooltipCompat.setTooltipText(
+            binding.btnSelectFile,
+            getString(R.string.video_select_from_device)
+        )
+
         binding.btnSelectVideo.setOnClickListener {
             pickVideoLauncher.launch(
                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
