@@ -199,6 +199,7 @@
     <string name="video_selected_format">Selected: %1$s (%2$d KB)</string>
     <string name="video_copy_failed">Failed to copy video</string>
     <string name="video_copy_truncated">The video is damaged or only partially downloaded. Save it to your device (for example, in Google Photos) and select it again.</string>
+    <string name="video_select_from_device">Choose a file on device</string>
     <string name="video_select_required">Select a video</string>
     <string name="video_uploading">Uploading…</string>
     <string name="video_upload_success">Upload successful!</string>

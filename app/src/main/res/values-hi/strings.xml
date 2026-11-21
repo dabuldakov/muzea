@@ -190,6 +190,7 @@
     <string name="video_selected_format">चयनित: %1$s (%2$d KB)</string>
     <string name="video_copy_failed">वीडियो कॉपी नहीं हो सका</string>
     <string name="video_copy_truncated">वीडियो खराब है या आधा ही डाउनलोड हुआ है। इसे डिवाइस पर सहेजें (जैसे Google Photos में) और फिर से चुनें।</string>
+    <string name="video_select_from_device">डिवाइस से फ़ाइल चुनें</string>
     <string name="video_select_required">वीडियो चुनें</string>
     <string name="video_uploading">अपलोड हो रहा है…</string>
     <string name="video_upload_success">अपलोड सफल!</string>

@@ -190,6 +190,7 @@
     <string name="video_selected_format">Seleccionado: %1$s (%2$d KB)</string>
     <string name="video_copy_failed">No se pudo copiar el vídeo</string>
     <string name="video_copy_truncated">El vídeo está dañado o descargado solo en parte. Guárdalo en el dispositivo (por ejemplo, en Google Fotos) y vuelve a seleccionarlo.</string>
+    <string name="video_select_from_device">Elegir un archivo del dispositivo</string>
     <string name="video_select_required">Selecciona un vídeo</string>
     <string name="video_uploading">Subiendo…</string>
     <string name="video_upload_success">¡Subida correcta!</string>

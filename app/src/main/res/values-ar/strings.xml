@@ -190,6 +190,7 @@
     <string name="video_selected_format">المحدد: %1$s (%2$d كيلوبايت)</string>
     <string name="video_copy_failed">تعذر نسخ الفيديو</string>
     <string name="video_copy_truncated">الفيديو تالف أو تم تنزيله جزئيًا. احفظه على جهازك (مثل Google Photos) ثم اختره مرة أخرى.</string>
+    <string name="video_select_from_device">اختيار ملف من الجهاز</string>
     <string name="video_select_required">اختر فيديو</string>
     <string name="video_uploading">جارٍ الرفع…</string>
     <string name="video_upload_success">تم الرفع بنجاح!</string>

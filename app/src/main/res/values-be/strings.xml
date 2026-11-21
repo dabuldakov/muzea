@@ -190,6 +190,7 @@
     <string name="video_selected_format">Выбрана: %1$s (%2$d КБ)</string>
     <string name="video_copy_failed">Не ўдалося скапіяваць відэа</string>
     <string name="video_copy_truncated">Відэа пашкоджана або недакачана. Захавайце яго на прыладу (напрыклад, у Google Фота) і выберыце зноў.</string>
+    <string name="video_select_from_device">Выбраць файл на прыладзе</string>
     <string name="video_select_required">Выберыце відэа</string>
     <string name="video_uploading">Загрузка…</string>
     <string name="video_upload_success">Загрузка завершана!</string>

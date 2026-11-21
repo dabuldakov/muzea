@@ -22,6 +22,28 @@ object VideoFileValidator {
         return runCatching { walkAtoms(file) }.getOrDefault(false)
     }
 
+    /**
+     * Короткая диагностика для телеметрии: первые атомы и реальный размер.
+     * Пример: `ftyp=24,moov=12769,mdat=35403379 file=17713139`.
+     */
+    fun describe(file: File): String = runCatching {
+        RandomAccessFile(file, "r").use { raf ->
+            val length = raf.length()
+            val parts = mutableListOf<String>()
+            var offset = 0L
+            while (offset + 8 <= length && parts.size < MAX_DESCRIBED_ATOMS) {
+                raf.seek(offset)
+                var size = readSize(raf)
+                val type = readType(raf)
+                if (size == 1L) size = raf.readLong()
+                parts += "$type=$size"
+                if (size < 8) break
+                offset += size
+            }
+            parts.joinToString(",") + " file=$length"
+        }
+    }.getOrDefault("n/a")
+
     private fun walkAtoms(file: File): Boolean {
         RandomAccessFile(file, "r").use { raf ->
             val length = raf.length()
@@ -64,4 +86,5 @@ object VideoFileValidator {
     }
 
     private const val MIN_HEADER_BYTES = 16L
+    private const val MAX_DESCRIBED_ATOMS = 6
 }

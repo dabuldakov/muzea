@@ -62,6 +62,15 @@
                 android:textAllCaps="false"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
+            <Button
+                android:id="@+id/btnSelectFile"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="8dp"
+                android:text="@string/video_select_from_device"
+                android:textAllCaps="false"
+                style="@style/Widget.MaterialComponents.Button.TextButton" />
+
             <ImageView
                 android:id="@+id/ivPreview"
                 android:layout_width="match_parent"

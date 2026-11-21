@@ -190,6 +190,7 @@
     <string name="video_selected_format">已选择：%1$s（%2$d KB）</string>
     <string name="video_copy_failed">无法复制视频</string>
     <string name="video_copy_truncated">视频已损坏或仅下载了一部分。请将其保存到设备（例如 Google 相册），然后重新选择。</string>
+    <string name="video_select_from_device">从设备选择文件</string>
     <string name="video_select_required">请选择视频</string>
     <string name="video_uploading">上传中…</string>
     <string name="video_upload_success">上传成功！</string>

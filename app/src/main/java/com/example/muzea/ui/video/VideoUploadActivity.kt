@@ -27,6 +27,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import com.example.muzea.ui.common.SystemBars
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 @AndroidEntryPoint
 class VideoUploadActivity : AppCompatActivity() {
@@ -48,6 +49,15 @@ class VideoUploadActivity : AppCompatActivity() {
 
     private val pickVideoLauncher = registerForActivityResult(
         ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? -> uri?.let { copyVideoToCache(it) } }
+
+    /**
+     * Запасной выбор файла через системный «Файлы». Фотопикер по умолчанию
+     * подмешивает облако Google Фото, а не все видео там целые — здесь можно
+     * взять файл из «Загрузок», Telegram, Movies и т.п.
+     */
+    private val pickFileLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
     ) { uri: Uri? -> uri?.let { copyVideoToCache(it) } }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,7 +83,12 @@ class VideoUploadActivity : AppCompatActivity() {
                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
             )
         }
+        binding.btnSelectFile.setOnClickListener { openDevicePicker() }
         binding.btnUpload.setOnClickListener { uploadVideo() }
+    }
+
+    private fun openDevicePicker() {
+        runCatching { pickFileLauncher.launch(arrayOf("video/*")) }
     }
 
     /**
@@ -95,12 +110,16 @@ class VideoUploadActivity : AppCompatActivity() {
 
             val file = result.file
             if (file == null) {
-                val message = getString(result.errorRes ?: R.string.video_copy_failed)
-                Toast.makeText(
-                    this@VideoUploadActivity,
-                    getString(R.string.error_prefix, message),
-                    Toast.LENGTH_LONG
-                ).show()
+                if (result.errorRes == R.string.video_copy_truncated) {
+                    showTruncatedDialog()
+                } else {
+                    val message = getString(result.errorRes ?: R.string.video_copy_failed)
+                    Toast.makeText(
+                        this@VideoUploadActivity,
+                        getString(R.string.error_prefix, message),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
                 return@launch
             }
 
@@ -111,6 +130,14 @@ class VideoUploadActivity : AppCompatActivity() {
             binding.btnUpload.isEnabled = true
             extractThumbnail(file)
         }
+    }
+
+    private fun showTruncatedDialog() {
+        MaterialAlertDialogBuilder(this)
+            .setMessage(R.string.video_copy_truncated)
+            .setPositiveButton(R.string.video_select_from_device) { _, _ -> openDevicePicker() }
+            .setNegativeButton(R.string.action_cancel, null)
+            .show()
     }
 
     private fun copyToDraft(uri: Uri): VideoCopyResult {
@@ -155,8 +182,9 @@ class VideoUploadActivity : AppCompatActivity() {
             // оборван (облачный Google Фото иногда отдаёт половину файла).
             // Повтор ничего не изменит — сразу объясняем, что делать.
             if (atomTruncated && !shortCopy) {
+                val atoms = VideoFileValidator.describe(draft)
                 draft.delete()
-                reportCopyFailure("truncated", declaredSize, lastCopied)
+                reportCopyFailure("truncated", declaredSize, lastCopied, atoms)
                 return VideoCopyResult(null, R.string.video_copy_truncated)
             }
 
@@ -178,11 +206,17 @@ class VideoUploadActivity : AppCompatActivity() {
         return VideoCopyResult(null, R.string.video_copy_failed)
     }
 
-    private fun reportCopyFailure(reason: String, declaredSize: Long, copied: Long) {
+    private fun reportCopyFailure(
+        reason: String,
+        declaredSize: Long,
+        copied: Long,
+        details: String? = null
+    ) {
+        val suffix = details?.let { " atoms=$it" } ?: ""
         ErrorReporter.logCaught(
             "VideoCopy",
             IllegalStateException(
-                "copy failed: reason=$reason declared=$declaredSize copied=$copied"
+                "copy failed: reason=$reason declared=$declaredSize copied=$copied$suffix"
             )
         )
     }

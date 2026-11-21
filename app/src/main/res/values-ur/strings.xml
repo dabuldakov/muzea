@@ -190,6 +190,7 @@
     <string name="video_selected_format">منتخب: %1$s (%2$d KB)</string>
     <string name="video_copy_failed">ویڈیو کاپی نہیں ہو سکی</string>
     <string name="video_copy_truncated">ویڈیو خراب ہے یا ادھی ڈاؤن لوڈ ہوئی ہے۔ اسے ڈیوائس پر محفوظ کریں (مثلاً Google Photos میں) اور دوبارہ منتخب کریں۔</string>
+    <string name="video_select_from_device">ڈیوائس سے فائل منتخب کریں</string>
     <string name="video_select_required">ویڈیو منتخب کریں</string>
     <string name="video_uploading">اپ لوڈ ہو رہا ہے…</string>
     <string name="video_upload_success">اپ لوڈ کامیاب!</string>

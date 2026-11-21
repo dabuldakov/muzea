@@ -190,6 +190,7 @@
     <string name="video_selected_format">Таңдалды: %1$s (%2$d КБ)</string>
     <string name="video_copy_failed">Бейнені көшіру мүмкін болмады</string>
     <string name="video_copy_truncated">Бейне бүлінген немесе толық жүктелмеген. Оны құрылғыға сақтап (мысалы, Google Фотоға), қайта таңдаңыз.</string>
+    <string name="video_select_from_device">Құрылғыдан файл таңдау</string>
     <string name="video_select_required">Бейне таңдаңыз</string>
     <string name="video_uploading">Жүктелуде…</string>
     <string name="video_upload_success">Жүктеу аяқталды!</string>
