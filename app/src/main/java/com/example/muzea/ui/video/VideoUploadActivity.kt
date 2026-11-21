@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.view.View
+import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,10 +21,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -32,9 +29,14 @@ import com.example.muzea.ui.common.SystemBars
 @AndroidEntryPoint
 class VideoUploadActivity : AppCompatActivity() {
 
+    private companion object {
+        const val DEFAULT_VIDEO_TYPE = "video/mp4"
+    }
+
     private lateinit var binding: ActivityVideoUploadBinding
     private val viewModel: VideoViewModel by viewModels()
     private var selectedVideoFile: File? = null
+    private var selectedContentType: String = DEFAULT_VIDEO_TYPE
     private var thumbnailBytes: ByteArray? = null
 
     private val pickVideoLauncher = registerForActivityResult(
@@ -81,6 +83,7 @@ class VideoUploadActivity : AppCompatActivity() {
 
             if (cacheFile.exists() && cacheFile.length() > 0) {
                 selectedVideoFile = cacheFile
+                selectedContentType = resolveContentType(uri, fileName)
                 binding.tvSelectedFile.text = getString(R.string.video_selected_format, cacheFile.name, cacheFile.length() / 1024)
                 binding.btnUpload.isEnabled = true
                 extractThumbnail(cacheFile)
@@ -101,6 +104,23 @@ class VideoUploadActivity : AppCompatActivity() {
             }
         }
         return fileName
+    }
+
+    /**
+     * MIME для presigned PUT: сервер принимает только видео-типы и по нему же
+     * выбирает расширение объекта. ContentResolver точнее расширения, но для
+     * content:// из некоторых галерей тип бывает пустым — тогда смотрим имя.
+     */
+    private fun resolveContentType(uri: Uri, fileName: String): String {
+        val fromResolver = contentResolver.getType(uri)
+            ?.takeIf { it.startsWith("video/") }
+        if (fromResolver != null) return fromResolver
+
+        val extension = fileName.substringAfterLast('.', "").lowercase()
+        return MimeTypeMap.getSingleton()
+            .getMimeTypeFromExtension(extension)
+            ?.takeIf { it.startsWith("video/") }
+            ?: DEFAULT_VIDEO_TYPE
     }
 
     private fun extractThumbnail(file: File) {
@@ -158,20 +178,13 @@ class VideoUploadActivity : AppCompatActivity() {
             title.isEmpty() -> binding.etTitle.error = getString(R.string.error_title_required)
             selectedVideoFile == null -> Toast.makeText(this, R.string.video_select_required, Toast.LENGTH_SHORT).show()
             else -> {
-                selectedVideoFile = video
-                val body = MultipartBody.Part.createFormData(
-                    "file",
-                    selectedVideoFile!!.name,
-                    selectedVideoFile!!.asRequestBody("video/mp4".toMediaTypeOrNull())
+                viewModel.uploadVideo(
+                    title = title,
+                    description = description.takeIf { it.isNotEmpty() },
+                    file = video!!,
+                    contentType = selectedContentType,
+                    thumbnail = thumbnailBytes
                 )
-                val thumbnailPart = thumbnailBytes?.let {
-                    MultipartBody.Part.createFormData(
-                        "thumbnail",
-                        "thumbnail.jpeg",
-                        it.toRequestBody("image/jpeg".toMediaTypeOrNull())
-                    )
-                }
-                viewModel.uploadVideo(title, description.takeIf { it.isNotEmpty() }, body, thumbnailPart)
             }
         }
     }
@@ -184,16 +197,30 @@ class VideoUploadActivity : AppCompatActivity() {
 
     private fun observeViewModel() {
         lifecycleScope.launch {
+            viewModel.uploadProgress.collect { percent ->
+                if (percent == null) return@collect
+                binding.progressBar.isIndeterminate = false
+                binding.progressBar.max = 100
+                binding.progressBar.progress = percent
+                binding.tvProgress.text = "${getString(R.string.video_uploading)} $percent%"
+            }
+        }
+
+        lifecycleScope.launch {
             viewModel.uploadResult.collect { result ->
                 when (result) {
                     is Resource.Loading -> {
                         binding.btnUpload.isEnabled = false
                         binding.progressBar.visibility = android.view.View.VISIBLE
+                        binding.progressBar.isIndeterminate = false
+                        binding.progressBar.max = 100
+                        binding.progressBar.progress = 0
                         binding.tvProgress.text = getString(R.string.video_uploading)
                     }
                     is Resource.Success -> {
                         binding.btnUpload.isEnabled = true
                         binding.progressBar.visibility = android.view.View.GONE
+                        binding.tvProgress.text = ""
                         Toast.makeText(this@VideoUploadActivity, R.string.video_upload_success, Toast.LENGTH_SHORT).show()
                         setResult(RESULT_OK)
                         finish()
@@ -201,6 +228,7 @@ class VideoUploadActivity : AppCompatActivity() {
                     is Resource.Error -> {
                         binding.btnUpload.isEnabled = true
                         binding.progressBar.visibility = android.view.View.GONE
+                        binding.tvProgress.text = ""
                         Toast.makeText(this@VideoUploadActivity, getString(R.string.video_upload_failed_format, result.message ?: ""), Toast.LENGTH_LONG).show()
                     }
                 }

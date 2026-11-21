@@ -8,7 +8,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
-import okhttp3.MultipartBody
+import okhttp3.OkHttpClient
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.IOException
@@ -153,7 +153,7 @@ class BackendRepositoryErrorPathsTest {
     // ============================ VideoRepositoryImpl ===========================
 
     private val videoApi = mockk<ApiService>()
-    private val videos = VideoRepositoryImpl(videoApi)
+    private val videos = VideoRepositoryImpl(videoApi, PresignedUploader(okhttp3.OkHttpClient()))
 
     @Test
     fun getVideosPropagatesCancellation() = runTest {
@@ -190,21 +190,29 @@ class BackendRepositoryErrorPathsTest {
 
     @Test
     fun uploadVideoPropagatesCancellation() = runTest {
-        coEvery { videoApi.uploadVideo(any(), any(), any(), any()) } throws
+        coEvery { videoApi.presignVideoUpload(any()) } throws
             CancellationException("stop")
 
         assertTrue(
             cancels {
-                videos.uploadVideo("t", null, mockk<MultipartBody.Part>(), null).toList()
+                videos.uploadVideo(
+                    "t", null,
+                    java.io.File.createTempFile("clip", ".mp4").apply { writeBytes(ByteArray(8)) },
+                    "video/mp4", null
+                ) {}.toList()
             }
         )
     }
 
     @Test
     fun uploadVideoReportsANetworkError() = runTest {
-        coEvery { videoApi.uploadVideo(any(), any(), any(), any()) } throws IOException("offline")
+        coEvery { videoApi.presignVideoUpload(any()) } throws IOException("offline")
 
-        val last = videos.uploadVideo("t", null, mockk<MultipartBody.Part>(), null).toList().last()
+        val last = videos.uploadVideo(
+            "t", null,
+            java.io.File.createTempFile("clip", ".mp4").apply { writeBytes(ByteArray(8)) },
+            "video/mp4", null
+        ) {}.toList().last()
 
         assertTrue((last as Resource.Error).message!!.startsWith("Network error"))
     }

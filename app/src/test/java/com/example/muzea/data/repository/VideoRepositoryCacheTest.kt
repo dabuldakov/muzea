@@ -20,7 +20,10 @@ class VideoRepositoryCacheTest {
     @get:Rule
     val server = MockWebServer()
 
-    private val repository get() = VideoRepositoryImpl(IntegrationTestClient.mainApi(server))
+    private val repository get() = VideoRepositoryImpl(
+        IntegrationTestClient.mainApi(server),
+        PresignedUploader(okhttp3.OkHttpClient())
+    )
 
     private val videosJson = """
         [{"id":29,"title":"tomsk","description":null,

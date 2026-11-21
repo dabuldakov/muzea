@@ -100,6 +100,19 @@ class NetworkModuleTest {
         assertNotNull(NetworkModule.provideKlipyApi())
     }
 
+    @Test
+    fun `s3 upload client skips auth interceptors and pins the storage host`() {
+        val client = NetworkModule.provideS3UploadClient()
+
+        // Ни одного интерцептора: AuthInterceptor добавил бы Authorization
+        // и сломал SigV4, а логирование — подпись из URL.
+        assertTrue(client.interceptors.isEmpty())
+        assertEquals(0, client.writeTimeoutMillis)
+        assertEquals(60_000, client.readTimeoutMillis)
+        assertEquals(30_000, client.connectTimeoutMillis)
+        assertTrue(client.certificatePinner.pins.any { it.pattern == "s3.muzea.su" })
+    }
+
     private fun createTempDir(prefix: String): File =
         File.createTempFile(prefix, "").let {
             it.delete()

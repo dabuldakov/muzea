@@ -12,6 +12,15 @@ annotation class MainHttpClient
 @Retention(AnnotationRetention.BINARY)
 annotation class ChatHttpClient
 
+/**
+ * HTTP-клиент для presigned PUT в объектное хранилище (s3.muzea.su).
+ * Без интерцепторов авторизации: URL уже подписан, лишний Authorization
+ * ломает проверку SigV4.
+ */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class S3UploadClient
+
 /** Долгоживущий scope для очереди исходящих сообщений. */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)

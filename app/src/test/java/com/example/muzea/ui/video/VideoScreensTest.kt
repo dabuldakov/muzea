@@ -69,7 +69,7 @@ class VideoScreensTest {
         ApplicationProvider.getApplicationContext<Context>()
             .getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
             .edit().putString("username", "Morris").commit()
-        coEvery { videoRepository.uploadVideo(any(), any(), any(), any()) } returns
+        coEvery { videoRepository.uploadVideo(any(), any(), any(), any(), any(), any()) } returns
             flowOf(Resource.Success(video()))
     }
 
@@ -109,7 +109,7 @@ class VideoScreensTest {
 
     @Test
     fun `upload failure keeps the screen open`() {
-        coEvery { videoRepository.uploadVideo(any(), any(), any(), any()) } returns
+        coEvery { videoRepository.uploadVideo(any(), any(), any(), any(), any(), any()) } returns
             flowOf(Resource.Error("offline"))
         val context = ApplicationProvider.getApplicationContext<Context>()
         val file = File(context.cacheDir, "clip.mp4").apply { writeBytes(ByteArray(16)) }

@@ -26,6 +26,18 @@ interface ApiService {
         @Part thumbnail: MultipartBody.Part?
     ): Response<VideoResponse>
 
+    /** Шаг 1 прямой загрузки: presigned PUT в MinIO. */
+    @POST("/api/videos/presign-upload")
+    suspend fun presignVideoUpload(
+        @Body request: PresignUploadRequest
+    ): Response<PresignUploadResponse>
+
+    /** Шаг 2: сообщаем objectKey после успешной загрузки в MinIO. */
+    @POST("/api/videos")
+    suspend fun finalizeVideoUpload(
+        @Body request: FinalizeVideoUploadRequest
+    ): Response<VideoResponse>
+
     @GET("/api/videos/stream/{fileName}")
     @Streaming
     suspend fun streamVideo(

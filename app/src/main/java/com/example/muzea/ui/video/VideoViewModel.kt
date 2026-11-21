@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import okhttp3.MultipartBody
+import java.io.File
 import javax.inject.Inject
 
 /** Единое состояние ленты видео для экрана. */
@@ -37,6 +37,10 @@ class VideoViewModel @Inject constructor(
 
     private val _uploadResult = MutableSharedFlow<Resource<Video>>()
     val uploadResult: SharedFlow<Resource<Video>> = _uploadResult.asSharedFlow()
+
+    /** Процент прямой загрузки в MinIO; null — загрузка не идёт. */
+    private val _uploadProgress = MutableStateFlow<Int?>(null)
+    val uploadProgress: StateFlow<Int?> = _uploadProgress.asStateFlow()
 
     private val _deleteResult = MutableSharedFlow<Resource<Unit>>()
     val deleteResult: SharedFlow<Resource<Unit>> = _deleteResult.asSharedFlow()
@@ -96,11 +100,22 @@ class VideoViewModel @Inject constructor(
     fun uploadVideo(
         title: String,
         description: String?,
-        filePart: MultipartBody.Part,
-        thumbnailPart: MultipartBody.Part?
+        file: File,
+        contentType: String,
+        thumbnail: ByteArray?
     ) {
         viewModelScope.launch {
-            videoRepository.uploadVideo(title, description, filePart, thumbnailPart).collect { result ->
+            _uploadProgress.value = 0
+            videoRepository.uploadVideo(
+                title = title,
+                description = description,
+                file = file,
+                contentType = contentType,
+                thumbnail = thumbnail
+            ) { percent ->
+                _uploadProgress.value = percent
+            }.collect { result ->
+                if (result !is Resource.Loading) _uploadProgress.value = null
                 _uploadResult.emit(result)
             }
         }

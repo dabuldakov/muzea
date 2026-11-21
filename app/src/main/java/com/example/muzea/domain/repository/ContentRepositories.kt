@@ -28,11 +28,18 @@ interface VideoRepository {
     suspend fun getVideos(): Flow<Resource<List<Video>>>
     fun cachedVideos(): List<Video>
     suspend fun getVideoById(id: Long): Flow<Resource<Video>>
+
+    /**
+     * Загружает видео напрямую в объектное хранилище по presigned URL.
+     * [onProgress] вызывается с процентом 0..100 из фонового потока.
+     */
     suspend fun uploadVideo(
         title: String,
         description: String?,
-        filePart: MultipartBody.Part,
-        thumbnailPart: MultipartBody.Part?
+        file: File,
+        contentType: String,
+        thumbnail: ByteArray?,
+        onProgress: (Int) -> Unit
     ): Flow<Resource<Video>>
     suspend fun deleteVideo(id: Long): Flow<Resource<Unit>>
 

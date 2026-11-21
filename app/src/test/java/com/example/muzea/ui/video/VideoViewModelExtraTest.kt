@@ -14,15 +14,14 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import java.io.File
 
 /**
  * Дополнительные тесты VideoViewModel: покрывают детальную карточку,
@@ -55,11 +54,8 @@ class VideoViewModelExtraTest {
         uploadedAt = "2026-01-01T00:00:00"
     )
 
-    private fun filePart(): MultipartBody.Part = MultipartBody.Part.createFormData(
-        "file",
-        "video.mp4",
-        "bytes".toRequestBody("video/mp4".toMediaTypeOrNull())
-    )
+    private fun videoFile(): File =
+        File.createTempFile("video", ".mp4").apply { writeBytes(ByteArray(8)) }
 
     @Test
     fun `loadVideoById forwards repository results`() = runTest {
@@ -83,7 +79,7 @@ class VideoViewModelExtraTest {
     @Test
     fun `uploadVideo forwards repository results`() = runTest {
         coEvery {
-            videoRepository.uploadVideo(any(), any(), any(), any())
+            videoRepository.uploadVideo(any(), any(), any(), any(), any(), any())
         } returns flowOf(Resource.Success(video(9, "vovan")))
 
         val viewModel = VideoViewModel(videoRepository)
@@ -92,13 +88,34 @@ class VideoViewModelExtraTest {
             viewModel.uploadResult.collect { results += it }
         }
 
-        viewModel.uploadVideo("My video", "desc", filePart(), null)
+        viewModel.uploadVideo("My video", "desc", videoFile(), "video/mp4", null)
 
         val last = results.last()
         assertTrue(last is Resource.Success)
         assertEquals(9L, (last as Resource.Success).data!!.id)
-        coVerify(exactly = 1) { videoRepository.uploadVideo("My video", "desc", any(), null) }
+        coVerify(exactly = 1) {
+            videoRepository.uploadVideo("My video", "desc", any(), "video/mp4", null, any())
+        }
         collector.cancel()
+    }
+
+    @Test
+    fun `uploadVideo publishes download progress and resets it at the end`() = runTest {
+        val progressSlot = mutableListOf<(Int) -> Unit>()
+        val viewModel = VideoViewModel(videoRepository)
+        var progressDuringUpload: Int? = null
+        coEvery {
+            videoRepository.uploadVideo(any(), any(), any(), any(), any(), capture(progressSlot))
+        } coAnswers {
+            progressSlot.last()(42)
+            progressDuringUpload = viewModel.uploadProgress.value
+            flowOf(Resource.Success(video(9, "vovan")))
+        }
+
+        viewModel.uploadVideo("My video", null, videoFile(), "video/mp4", null)
+
+        assertEquals(42, progressDuringUpload)
+        assertNull(viewModel.uploadProgress.value)
     }
 
     @Test

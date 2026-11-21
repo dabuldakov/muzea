@@ -121,6 +121,26 @@ object NetworkModule {
     fun provideApiService(@MainHttpClient client: OkHttpClient): ApiService =
         retrofit(Constants.BASE_URL, client).create(ApiService::class.java)
 
+    /**
+     * Клиент для прямой загрузки в MinIO по presigned URL.
+     *
+     * Без AuthInterceptor/TokenRefreshInterceptor: S3 проверяет SigV4 и отвергает
+     * запрос с чужим Authorization. Логирование выключено совсем — URL содержит
+     * подпись, а BODY вычитывал бы в logcat весь видеофайл.
+     */
+    @Provides
+    @Singleton
+    @S3UploadClient
+    fun provideS3UploadClient(): OkHttpClient =
+        OkHttpClient.Builder()
+            .certificatePinner(certificatePinner())
+            .connectTimeout(30, TimeUnit.SECONDS)
+            // Прямая загрузка большого файла на мобильной сети: не рвём
+            // соединение из-за паузы между записями, но не ждём вечно ответ.
+            .writeTimeout(0, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .build()
+
     @Provides
     @Singleton
     fun provideChatApiService(@ChatHttpClient client: OkHttpClient): ChatApiService =
@@ -219,5 +239,8 @@ object NetworkModule {
             .add("api-muzea.su", PIN_INTERMEDIATE_CA, PIN_ROOT_CA)
             .add("chat-muzea.su", PIN_INTERMEDIATE_CA, PIN_ROOT_CA)
             .add("auth.muzea.su", PIN_INTERMEDIATE_CA, PIN_ROOT_CA)
+            // s3.muzea.su выпущен другим промежуточным CA (Let's Encrypt YE2),
+            // но цепочка сходится к тому же корню — пиним только корень.
+            .add("s3.muzea.su", PIN_ROOT_CA)
             .build()
 }
