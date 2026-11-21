@@ -54,12 +54,10 @@
     <string name="action_back">رجوع</string>
     <string name="action_send">إرسال</string>
     <string name="cd_video_preview">معاينة الفيديو</string>
-    <string name="hint_confirm_password">تأكيد كلمة المرور</string>
     <string name="hint_content">المحتوى</string>
     <string name="hint_description_optional">الوصف (اختياري)</string>
     <string name="hint_email">البريد الإلكتروني</string>
     <string name="hint_full_name">الاسم الكامل</string>
-    <string name="hint_password">كلمة المرور</string>
     <string name="hint_related_video">فيديو مرتبط (اختياري)</string>
     <string name="hint_title">العنوان</string>
     <string name="hint_message">اكتب رسالة…</string>

@@ -54,12 +54,10 @@
     <string name="action_back">Retour</string>
     <string name="action_send">Envoyer</string>
     <string name="cd_video_preview">Aperçu de la vidéo</string>
-    <string name="hint_confirm_password">Confirmer le mot de passe</string>
     <string name="hint_content">Contenu</string>
     <string name="hint_description_optional">Description (facultatif)</string>
     <string name="hint_email">E-mail</string>
     <string name="hint_full_name">Nom complet</string>
-    <string name="hint_password">Mot de passe</string>
     <string name="hint_related_video">Vidéo associée (facultatif)</string>
     <string name="hint_title">Titre</string>
     <string name="hint_message">Écrivez un message…</string>

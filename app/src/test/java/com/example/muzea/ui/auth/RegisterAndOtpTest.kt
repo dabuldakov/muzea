@@ -16,6 +16,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -149,6 +150,7 @@ class RegisterAndOtpTest {
         coEvery { authRepository.resendVerification(any()) } returns
             flowOf(Resource.Success(Unit))
         val activity = otp(OtpActivity.MODE_REGISTER)
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(61))
 
         activity.findViewById<View>(R.id.btnResend).performClick()
         activity.findViewById<android.widget.EditText>(R.id.etCode).setText("9876")
@@ -164,9 +166,24 @@ class RegisterAndOtpTest {
         coEvery { authRepository.requestLoginCode(any()) } returns
             flowOf(Resource.Success("SENT"))
         val activity = otp(OtpActivity.MODE_LOGIN)
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(61))
 
         activity.findViewById<View>(R.id.btnResend).performClick()
 
         coVerify { authRepository.requestLoginCode("morris@muzea.test") }
+    }
+
+    @Test
+    fun `resend is blocked during the cooldown`() {
+        val activity = otp(OtpActivity.MODE_LOGIN)
+        val resend = activity.findViewById<View>(R.id.btnResend)
+
+        assertFalse(resend.isEnabled)
+
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(61))
+
+        assertTrue(resend.isEnabled)
+        activity.findViewById<View>(R.id.btnResend).performClick()
+        coVerify(exactly = 1) { authRepository.requestLoginCode("morris@muzea.test") }
     }
 }

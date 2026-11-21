@@ -54,12 +54,10 @@
     <string name="action_back">Назад</string>
     <string name="action_send">Адправіць</string>
     <string name="cd_video_preview">Прагляд відэа</string>
-    <string name="hint_confirm_password">Пацвердзіце пароль</string>
     <string name="hint_content">Змест</string>
     <string name="hint_description_optional">Апісанне (неабавязкова)</string>
     <string name="hint_email">Email</string>
     <string name="hint_full_name">Імя і прозвішча</string>
-    <string name="hint_password">Пароль</string>
     <string name="hint_related_video">Звязанае відэа (неабавязкова)</string>
     <string name="hint_title">Загаловак</string>
     <string name="hint_message">Увядзіце паведамленне…</string>

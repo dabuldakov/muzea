@@ -54,12 +54,10 @@
     <string name="action_back">Буцах</string>
     <string name="action_send">Илгээх</string>
     <string name="cd_video_preview">Видео урьдчилан харах</string>
-    <string name="hint_confirm_password">Нууц үгээ баталгаажуулна уу</string>
     <string name="hint_content">Агуулга</string>
     <string name="hint_description_optional">Тайлбар (заавал биш)</string>
     <string name="hint_email">Email</string>
     <string name="hint_full_name">Овог нэр</string>
-    <string name="hint_password">Нууц үг</string>
     <string name="hint_related_video">Холбоотой видео (заавал биш)</string>
     <string name="hint_title">Гарчиг</string>
     <string name="hint_message">Зурвас бичнэ үү…</string>

@@ -12,6 +12,9 @@ import com.example.muzea.databinding.ActivityOtpBinding
 import com.example.muzea.ui.MainActivity
 import com.example.muzea.utils.PendingPush
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import com.example.muzea.ui.common.SystemBars
 
@@ -41,6 +44,10 @@ class OtpActivity : AppCompatActivity() {
     private lateinit var email: String
     private lateinit var mode: String
 
+    private val cooldown = ResendCooldown()
+    private var cooldownJob: Job? = null
+    private var loading = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityOtpBinding.inflate(layoutInflater)
@@ -66,18 +73,26 @@ class OtpActivity : AppCompatActivity() {
         }
 
         binding.btnResend.setOnClickListener {
+            // Сервер не даст новый код раньше, чем через минуту: не тратим
+            // запрос и не показываем 429.
+            if (cooldown.active || loading) return@setOnClickListener
+            startCooldown()
             if (mode == MODE_LOGIN) viewModel.requestLoginCode(email)
             else viewModel.resendVerification(email)
         }
 
         observeViewModel()
+        // Код только что отправлен предыдущим экраном — сразу показываем
+        // обратный отсчёт, а не активную кнопку.
+        startCooldown()
     }
 
     private fun observeViewModel() {
         lifecycleScope.launch {
             viewModel.uiState.collect { state ->
+                loading = state.isLoading
                 binding.btnVerify.isEnabled = !state.isLoading
-                binding.btnResend.isEnabled = !state.isLoading
+                renderResend()
                 binding.progressBar.visibility =
                     if (state.isLoading) android.view.View.VISIBLE else android.view.View.GONE
                 state.error?.let {
@@ -90,6 +105,7 @@ class OtpActivity : AppCompatActivity() {
         lifecycleScope.launch {
             viewModel.codeSent.collect {
                 Toast.makeText(this@OtpActivity, R.string.otp_code_resent, Toast.LENGTH_SHORT).show()
+                startCooldown()
             }
         }
 
@@ -103,5 +119,32 @@ class OtpActivity : AppCompatActivity() {
                 finishAffinity()
             }
         }
+    }
+
+    private fun startCooldown() {
+        cooldown.start()
+        renderResend()
+        cooldownJob?.cancel()
+        cooldownJob = lifecycleScope.launch {
+            while (isActive && cooldown.active) {
+                delay(1_000)
+                cooldown.tick()
+                renderResend()
+            }
+        }
+    }
+
+    private fun renderResend() {
+        binding.btnResend.isEnabled = !cooldown.active && !loading
+        binding.btnResend.text = if (cooldown.active) {
+            getString(R.string.otp_resend_in, cooldown.seconds)
+        } else {
+            getString(R.string.otp_resend)
+        }
+    }
+
+    override fun onDestroy() {
+        cooldownJob?.cancel()
+        super.onDestroy()
     }
 }

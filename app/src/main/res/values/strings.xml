@@ -55,12 +55,10 @@
     <string name="action_back">Back</string>
     <string name="action_send">Send</string>
     <string name="cd_video_preview">Video preview</string>
-    <string name="hint_confirm_password">Confirm Password</string>
     <string name="hint_content">Content</string>
     <string name="hint_description_optional">Description (Optional)</string>
     <string name="hint_email">Email</string>
     <string name="hint_full_name">Full Name</string>
-    <string name="hint_password">Password</string>
     <string name="hint_related_video">Related Video (Optional)</string>
     <string name="hint_title">Title</string>
     <string name="hint_message">Type a message...</string>
@@ -85,7 +83,7 @@
     <string name="action_login">Login</string>
     <string name="action_get_code">Get code</string>
     <string name="reauth_notice_title">Sign-in update</string>
-    <string name="reauth_notice_body">Sign-in and registration now use an email code, no password.\n\nIf you already had an account, tap “Register” and enter your previous email and username — your access, chats and contacts will be kept (the account will be linked automatically).</string>
+    <string name="reauth_notice_body">Sign-in and registration now use an email code, no password.\n\nIf you already had an account, sign in with the same email. If access is not restored, contact support.</string>
     <string name="reauth_notice_register">Register</string>
     <string name="reauth_notice_ok">Got it</string>
     <string name="otp_title">Enter the code</string>
@@ -339,4 +337,5 @@
     <string name="deleted_user">Deleted user</string>
     <string name="deleted_user_chat_disabled">Пользователь удалён</string>
     <string name="registration_code_resent">Account is not verified. We sent a new code.</string>
+    <string name="otp_resend_in">Resend in %1$ds</string>
 </resources>

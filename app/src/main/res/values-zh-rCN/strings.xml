@@ -54,12 +54,10 @@
     <string name="action_back">返回</string>
     <string name="action_send">发送</string>
     <string name="cd_video_preview">视频预览</string>
-    <string name="hint_confirm_password">确认密码</string>
     <string name="hint_content">内容</string>
     <string name="hint_description_optional">描述（可选）</string>
     <string name="hint_email">邮箱</string>
     <string name="hint_full_name">姓名</string>
-    <string name="hint_password">密码</string>
     <string name="hint_related_video">相关视频（可选）</string>
     <string name="hint_title">标题</string>
     <string name="hint_message">输入消息…</string>

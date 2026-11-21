@@ -54,12 +54,10 @@
     <string name="action_back">Назад</string>
     <string name="action_send">Отправить</string>
     <string name="cd_video_preview">Превью видео</string>
-    <string name="hint_confirm_password">Подтвердите пароль</string>
     <string name="hint_content">Содержание</string>
     <string name="hint_description_optional">Описание (необязательно)</string>
     <string name="hint_email">Email</string>
     <string name="hint_full_name">ФИО</string>
-    <string name="hint_password">Пароль</string>
     <string name="hint_related_video">Связанное видео (необязательно)</string>
     <string name="hint_title">Заголовок</string>
     <string name="hint_message">Введите сообщение…</string>
@@ -84,7 +82,7 @@
     <string name="action_login">Войти</string>
     <string name="action_get_code">Получить код</string>
     <string name="reauth_notice_title">Обновление входа</string>
-    <string name="reauth_notice_body">Теперь вход и регистрация — по коду на email, без пароля.\n\nЕсли у вас уже был аккаунт, нажмите «Зарегистрироваться» и укажите прежние email и username — доступ, переписки и контакты сохранятся (аккаунт привяжется автоматически).</string>
+    <string name="reauth_notice_body">Теперь вход и регистрация — по коду на email, без пароля.\n\nЕсли у вас уже был аккаунт, войдите с тем же email. Если доступ не восстановился, напишите в поддержку.</string>
     <string name="reauth_notice_register">Зарегистрироваться</string>
     <string name="reauth_notice_ok">Понятно</string>
     <string name="otp_title">Введите код</string>
@@ -325,4 +323,5 @@
     <string name="deleted_user">Удалённый пользователь</string>
     <string name="deleted_user_chat_disabled">Пользователь удалён</string>
     <string name="registration_code_resent">Аккаунт не подтверждён. Отправили новый код.</string>
+    <string name="otp_resend_in">Отправить код через %1$d с</string>
 </resources>

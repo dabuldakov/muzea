@@ -54,12 +54,10 @@
     <string name="action_back">वापस</string>
     <string name="action_send">भेजें</string>
     <string name="cd_video_preview">वीडियो पूर्वावलोकन</string>
-    <string name="hint_confirm_password">पासवर्ड की पुष्टि करें</string>
     <string name="hint_content">सामग्री</string>
     <string name="hint_description_optional">विवरण (वैकल्पिक)</string>
     <string name="hint_email">ईमेल</string>
     <string name="hint_full_name">पूरा नाम</string>
-    <string name="hint_password">पासवर्ड</string>
     <string name="hint_related_video">संबंधित वीडियो (वैकल्पिक)</string>
     <string name="hint_title">शीर्षक</string>
     <string name="hint_message">संदेश लिखें…</string>
