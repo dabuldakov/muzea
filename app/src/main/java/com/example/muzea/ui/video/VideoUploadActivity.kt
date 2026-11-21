@@ -5,7 +5,9 @@ import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Bundle
+import android.os.SystemClock
 import android.provider.OpenableColumns
+import android.util.Log
 import android.view.View
 import android.webkit.MimeTypeMap
 import android.widget.Toast
@@ -21,6 +23,7 @@ import com.example.muzea.utils.ErrorReporter
 import com.example.muzea.utils.VideoFileValidator
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -34,8 +37,14 @@ class VideoUploadActivity : AppCompatActivity() {
 
     private companion object {
         const val DEFAULT_VIDEO_TYPE = "video/mp4"
-        const val COPY_ATTEMPTS = 2
         const val COPY_BUFFER_BYTES = 64 * 1024
+
+        /**
+         * Повторы с паузами: облачный провайдер Google Фото может отдавать
+         * файл по мере скачивания. Ждём, пока размер растёт; если два раза
+         * подряд пришёл один и тот же кусок — дальше не тянем.
+         */
+        val COPY_RETRY_DELAYS_MS = longArrayOf(0, 2_000, 5_000, 10_000, 15_000)
     }
 
     /** Результат копирования выбранного видео во временный файл. */
@@ -140,70 +149,104 @@ class VideoUploadActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun copyToDraft(uri: Uri): VideoCopyResult {
-        val (fileName, declaredSize) = queryVideoMeta(uri)
+    private suspend fun copyToDraft(uri: Uri): VideoCopyResult {
+        val (fileName, _) = queryVideoMeta(uri)
         // filesDir, а не cacheDir: cacheDir вычищается системой и кнопкой
         // «Очистить кэш», из-за чего выбранное видео пропадало до отправки.
         val uploadDir = File(filesDir, "video_draft").apply { mkdirs() }
         val draft = File(uploadDir, "video_${System.currentTimeMillis()}_$fileName")
 
-        var lastCopied = -1L
+        var previousSize = -1L
+        var stablePolls = 0
         var lastReason = "unknown"
+        var lastCopied = -1L
+        var lastDeclared = -1L
+        var lastAtoms = "n/a"
+        val attempts = mutableListOf<Long>()
 
-        repeat(COPY_ATTEMPTS) {
-            val copied = try {
-                contentResolver.openInputStream(uri)?.use { input ->
-                    FileOutputStream(draft).use { output ->
-                        // Крупный буфер: облачные провайдеры отдают поток через
-                        // pipe и могут оборвать его, если читать слишком медленно.
-                        val buffer = ByteArray(COPY_BUFFER_BYTES)
-                        while (true) {
-                            val read = input.read(buffer)
-                            if (read < 0) break
-                            output.write(buffer, 0, read)
-                        }
-                    }
-                    draft.length()
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                draft.delete()
-                throw e
-            } catch (e: Exception) {
-                null
+        for ((index, delayMs) in COPY_RETRY_DELAYS_MS.withIndex()) {
+            if (delayMs > 0) delay(delayMs)
+
+            val declared = queryVideoMeta(uri).second
+            val startedAt = SystemClock.elapsedRealtime()
+            val copied = readIntoDraft(uri, draft)
+            val elapsed = SystemClock.elapsedRealtime() - startedAt
+            attempts += copied ?: -1L
+
+            val atoms = if (copied != null && copied > 0) {
+                VideoFileValidator.describe(draft)
+            } else {
+                "n/a"
             }
+            Log.i(
+                "VideoCopy",
+                "attempt=${index + 1} copied=$copied declared=$declared " +
+                    "elapsedMs=$elapsed source=${uri.path?.take(120)} atoms=$atoms"
+            )
 
             lastCopied = copied ?: -1L
-            val atomTruncated = copied != null && copied > 0 &&
-                VideoFileValidator.isTruncated(draft)
-            val shortCopy = copied != null && copied > 0 &&
-                declaredSize > 0 && copied < declaredSize
+            lastDeclared = declared
+            lastAtoms = atoms
 
-            // Провайдер отдал ровно столько, сколько заявил, но внутри MP4
-            // оборван (облачный Google Фото иногда отдаёт половину файла).
-            // Повтор ничего не изменит — сразу объясняем, что делать.
-            if (atomTruncated && !shortCopy) {
-                val atoms = VideoFileValidator.describe(draft)
-                draft.delete()
-                reportCopyFailure("truncated", declaredSize, lastCopied, atoms)
-                return VideoCopyResult(null, R.string.video_copy_truncated)
-            }
+            if (copied != null && copied > 0) {
+                val truncated = VideoFileValidator.isTruncated(draft)
+                val shortCopy = declared > 0 && copied < declared
+                if (!truncated && !shortCopy) {
+                    return VideoCopyResult(draft, null)
+                }
+                lastReason = if (truncated) "truncated" else "short"
 
-            if (copied != null && copied > 0 && !atomTruncated && !shortCopy) {
-                return VideoCopyResult(draft, null)
-            }
-
-            lastReason = when {
-                copied == null -> "unreadable"
-                copied <= 0 -> "empty"
-                atomTruncated -> "truncated-short"
-                else -> "short"
+                // Провайдер отдаёт один и тот же кусок: либо он ещё качает
+                // в фоне, либо это стабильная частичная копия. Ждём, только
+                // пока размер растёт.
+                if (copied == previousSize) {
+                    stablePolls++
+                    if (stablePolls >= 2) break
+                } else {
+                    stablePolls = 0
+                }
+                previousSize = copied
+            } else {
+                lastReason = if (copied == null) "unreadable" else "empty"
+                if (copied == previousSize) break
+                previousSize = copied ?: -1L
             }
             draft.delete()
         }
 
-        // Частота обрывов у провайдеров: по этому отчёту видно, где именно рвётся.
-        reportCopyFailure(lastReason, declaredSize, lastCopied)
-        return VideoCopyResult(null, R.string.video_copy_failed)
+        reportCopyFailure(
+            lastReason,
+            lastDeclared,
+            lastCopied,
+            "atoms=$lastAtoms attempts=${attempts.joinToString(",")}"
+        )
+        val errorRes = if (lastReason == "truncated") {
+            R.string.video_copy_truncated
+        } else {
+            R.string.video_copy_failed
+        }
+        return VideoCopyResult(null, errorRes)
+    }
+
+    private fun readIntoDraft(uri: Uri, draft: File): Long? = try {
+        contentResolver.openInputStream(uri)?.use { input ->
+            FileOutputStream(draft).use { output ->
+                // Крупный буфер: облачные провайдеры отдают поток через pipe
+                // и могут оборвать его, если читать слишком медленно.
+                val buffer = ByteArray(COPY_BUFFER_BYTES)
+                while (true) {
+                    val read = input.read(buffer)
+                    if (read < 0) break
+                    output.write(buffer, 0, read)
+                }
+            }
+            draft.length()
+        }
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        draft.delete()
+        throw e
+    } catch (e: Exception) {
+        null
     }
 
     private fun reportCopyFailure(
@@ -212,7 +255,7 @@ class VideoUploadActivity : AppCompatActivity() {
         copied: Long,
         details: String? = null
     ) {
-        val suffix = details?.let { " atoms=$it" } ?: ""
+        val suffix = details?.let { " $it" } ?: ""
         ErrorReporter.logCaught(
             "VideoCopy",
             IllegalStateException(
