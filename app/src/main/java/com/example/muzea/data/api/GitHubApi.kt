@@ -9,16 +9,20 @@ import retrofit2.http.GET
  * приложения и предложить обновление. Запросы идут на публичный API без
  * авторизации, поэтому клиент для него собирается отдельно — без токенов
  * основного API.
+ *
+ * Релизы публикуются в публичном `dabuldakov/muzea-site`: репозиторий с
+ * исходниками приложения приватный, а анонимный GitHub API приватные релизы
+ * не отдаёт.
  */
 interface GitHubApi {
 
     // per_page обязателен: без него GitHub периодически отдаёт 504 на список
     // релизов, и проверка обновлений в приложении падала.
-    @GET("repos/dabuldakov/muzea/releases?per_page=30")
+    @GET("repos/dabuldakov/muzea-site/releases?per_page=30")
     suspend fun getReleases(): Response<List<GitHubRelease>>
 
     /** Запасной путь: если список недоступен, узнаём хотя бы последний релиз. */
-    @GET("repos/dabuldakov/muzea/releases/latest")
+    @GET("repos/dabuldakov/muzea-site/releases/latest")
     suspend fun getLatestRelease(): Response<GitHubRelease>
 }
 
