@@ -54,7 +54,7 @@ class AppUpdateRepositoryTest {
 
         val update = (result as UpdateCheckResult.Available).update
         assertEquals("1.7.2", update.versionName)
-        assertEquals("https://github.com/download/1.7.2.apk", update.downloadUrl)
+        assertEquals("https://muzea.su/downloads/muzea-1.7.2.apk", update.downloadUrl)
         assertEquals(listOf("one", "two"), update.changelog.first { it.title == "Added" }.items)
         assertEquals(listOf("bug"), update.changelog.first { it.title == "Fixed" }.items)
     }
@@ -85,12 +85,13 @@ class AppUpdateRepositoryTest {
     }
 
     @Test
-    fun `falls back to the html url when no apk asset exists`() = runTest {
+    fun `uses the site url even when the release has no apk asset`() = runTest {
         coEvery { gitHubApi.getReleases() } returns httpOk(listOf(release("v1.7.1", apk = false)))
 
         val update = (repository().checkForUpdate() as UpdateCheckResult.Available).update
 
-        assertEquals("https://github.com/releases/1.7.1", update.downloadUrl)
+        // APK раздаётся с сайта, поэтому наличие ассета в GitHub не требуется.
+        assertEquals("https://muzea.su/downloads/muzea-1.7.1.apk", update.downloadUrl)
     }
 
     @Test
