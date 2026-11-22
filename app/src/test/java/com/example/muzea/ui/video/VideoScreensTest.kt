@@ -2,8 +2,10 @@ package com.example.muzea.ui.video
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.os.Looper
 import android.view.View
+import android.view.ViewGroup
 import androidx.test.core.app.ApplicationProvider
 import com.example.muzea.R
 import com.example.muzea.core.Resource
@@ -241,5 +243,89 @@ class VideoScreensTest {
         val activity = Robolectric.buildActivity(VideoDetailActivity::class.java).setup().get()
 
         assertTrue(activity.isFinishing)
+    }
+
+    @Test
+    fun `fullscreen hides chrome and expands the player`() {
+        val activity = videoDetailWithVideo()
+        val container = activity.findViewById<View>(R.id.playerContainer)
+        val normalHeight = container.layoutParams.height
+
+        activity.enterFullscreen()
+
+        assertEquals(View.GONE, activity.findViewById<View>(R.id.toolbar).visibility)
+        assertEquals(View.GONE, activity.findViewById<View>(R.id.contentScroll).visibility)
+        assertEquals(ViewGroup.LayoutParams.MATCH_PARENT, container.layoutParams.height)
+
+        activity.exitFullscreen()
+
+        assertEquals(View.VISIBLE, activity.findViewById<View>(R.id.toolbar).visibility)
+        assertEquals(View.VISIBLE, activity.findViewById<View>(R.id.contentScroll).visibility)
+        assertEquals(normalHeight, container.layoutParams.height)
+    }
+
+    @Test
+    fun `double fullscreen entry keeps the height restorable`() {
+        // Повторное нажатие кнопки не должно запоминать MATCH_PARENT как
+        // «исходную» высоту: иначе после выхода плеер остаётся на весь экран.
+        val activity = videoDetailWithVideo()
+        val container = activity.findViewById<View>(R.id.playerContainer)
+        val normalHeight = container.layoutParams.height
+
+        activity.enterFullscreen()
+        activity.enterFullscreen()
+        activity.exitFullscreen()
+
+        assertEquals(normalHeight, container.layoutParams.height)
+    }
+
+    @Test
+    fun `fullscreen orientation follows the video aspect`() {
+        val activity = videoDetailWithVideo()
+
+        activity.applyFullscreenOrientation(1920, 1080)
+        assertEquals(
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE,
+            activity.requestedOrientation
+        )
+
+        activity.applyFullscreenOrientation(1080, 1920)
+        assertEquals(
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT,
+            activity.requestedOrientation
+        )
+
+        // Пока размер видео неизвестен, ориентацию не трогаем.
+        activity.applyFullscreenOrientation(0, 0)
+        assertEquals(
+            ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED,
+            activity.requestedOrientation
+        )
+    }
+
+    @Test
+    fun `exiting fullscreen returns to the system orientation`() {
+        val activity = videoDetailWithVideo()
+
+        activity.enterFullscreen()
+        activity.applyFullscreenOrientation(1920, 1080)
+        activity.exitFullscreen()
+
+        assertEquals(
+            ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED,
+            activity.requestedOrientation
+        )
+    }
+
+    private fun videoDetailWithVideo(): VideoDetailActivity {
+        coEvery { videoRepository.getVideoById(1) } returns flowOf(Resource.Success(video()))
+        val intent = Intent(
+            ApplicationProvider.getApplicationContext(),
+            VideoDetailActivity::class.java
+        ).putExtra("video_id", 1L)
+        val activity = Robolectric.buildActivity(VideoDetailActivity::class.java, intent)
+            .setup().get()
+        shadowOf(Looper.getMainLooper()).idle()
+        return activity
     }
 }

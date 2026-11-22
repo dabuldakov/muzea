@@ -1,5 +1,6 @@
 package com.example.muzea.ui.video
 
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -13,6 +14,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.muzea.R
@@ -121,7 +123,8 @@ class VideoDetailActivity : AppCompatActivity() {
         if (isFullscreen) exitFullscreen() else enterFullscreen()
     }
 
-    private fun enterFullscreen() {
+    internal fun enterFullscreen() {
+        if (isFullscreen) return
         isFullscreen = true
         binding.toolbar.visibility = View.GONE
         binding.contentScroll.visibility = View.GONE
@@ -131,10 +134,11 @@ class VideoDetailActivity : AppCompatActivity() {
         params.height = ViewGroup.LayoutParams.MATCH_PARENT
         binding.playerContainer.layoutParams = params
 
+        applyFullscreenOrientation(player)
         hideSystemUi()
     }
 
-    private fun exitFullscreen() {
+    internal fun exitFullscreen() {
         if (!isFullscreen) return
         isFullscreen = false
         binding.toolbar.visibility = View.VISIBLE
@@ -145,7 +149,27 @@ class VideoDetailActivity : AppCompatActivity() {
         else (DEFAULT_PLAYER_HEIGHT_DP * resources.displayMetrics.density).toInt()
         binding.playerContainer.layoutParams = params
 
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         showSystemUi()
+    }
+
+    /**
+     * В полноэкранном режиме держим ту ориентацию, в которой видео занимает
+     * максимум места. Без этого на телефоне в портрете горизонтальное видео
+     * оставалось узкой полосой по центру — казалось, что экран не развернулся.
+     */
+    internal fun applyFullscreenOrientation(width: Int, height: Int) {
+        val orientation = fullscreenOrientation(width, height)
+        if (requestedOrientation != orientation) {
+            requestedOrientation = orientation
+        }
+    }
+
+    internal fun applyFullscreenOrientation(player: Player?) {
+        applyFullscreenOrientation(
+            player?.videoSize?.width ?: 0,
+            player?.videoSize?.height ?: 0
+        )
     }
 
     private fun hideSystemUi() {
@@ -236,6 +260,12 @@ class VideoDetailActivity : AppCompatActivity() {
         val newPlayer = VideoPlayerHelper.createPlayerWithAuth(this, videoUrl, token, useCache)
         // Без этого сбой воспроизведения выглядел бы как молчаливый чёрный экран.
         newPlayer.addListener(object : Player.Listener {
+            override fun onVideoSizeChanged(videoSize: VideoSize) {
+                // Размер приходит уже после первого кадра: если экран успели
+                // развернуть раньше, ориентацию доводим здесь.
+                if (isFullscreen) applyFullscreenOrientation(videoSize.width, videoSize.height)
+            }
+
             override fun onPlayerError(error: PlaybackException) {
                 // В телеметрию уходит вся цепочка причин: по одному коду
                 // CODE_IO_UNSPECIFIED не понять, сеть это, ответ сервера или кэш.
@@ -285,5 +315,15 @@ class VideoDetailActivity : AppCompatActivity() {
 
     private companion object {
         private const val DEFAULT_PLAYER_HEIGHT_DP = 240
+    }
+
+    /**
+     * Ориентация для полноэкранного видео: горизонтальное — ландшафт,
+     * вертикальное — портрет. Пока размер видео не известен, ничего не меняем.
+     */
+    internal fun fullscreenOrientation(width: Int, height: Int): Int = when {
+        width <= 0 || height <= 0 -> ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        width > height -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
     }
 }

@@ -94,8 +94,12 @@
             android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize" />
 
+        <!-- configChanges: поворот в полноэкранном видео не пересоздаёт экран,
+             иначе полноэкранный режим сбрасывался и видео снова становилось
+             маленьким. -->
         <activity
             android:name=".ui.video.VideoDetailActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
             android:exported="false" />
 
         <activity
