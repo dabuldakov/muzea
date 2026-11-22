@@ -89,9 +89,18 @@ class AppUpdateRepository @Inject constructor(
             .firstOrNull { it.name.endsWith(".apk", ignoreCase = true) }
             ?.downloadUrl
 
+        // APK раздаётся с нашего сайта: GitHub Releases в РФ отдаёт файлы
+        // слишком медленно. Метаданные (версия, заметки) по-прежнему из GitHub.
+        val version = latest.version()
+        val downloadUrl = if (version.isNotBlank()) {
+            "https://muzea.su/downloads/muzea-$version.apk"
+        } else {
+            apkUrl ?: latest.htmlUrl
+        }
+
         val update = AppUpdate(
-            versionName = latest.version(),
-            downloadUrl = apkUrl ?: latest.htmlUrl,
+            versionName = version,
+            downloadUrl = downloadUrl,
             // Релизы от старых к новым: пункты внутри групп пойдут по порядку.
             changelog = mergeChangelog(skipped.map { it.body })
         )
