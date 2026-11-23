@@ -91,6 +91,8 @@ class ChatConversationFragment : Fragment(),
     private lateinit var highlighter: ChatMessageHighlighter
     private lateinit var listScroller: ChatMessageListScroller
     private lateinit var actionsPresenter: ChatMessageActionsPresenter
+    private lateinit var selectionActions: ChatSelectionActions
+    private lateinit var composerIntents: ChatComposerIntents
     private lateinit var pinnedBarView: PinnedBarView
     private lateinit var downloadController: AttachmentDownloadController
     private lateinit var recordingTimer: RecordingTimer
@@ -383,6 +385,21 @@ class ChatConversationFragment : Fragment(),
     }
 
     private fun setupComposerViews() {
+        composerIntents = ChatComposerIntents(
+            input = binding.etMessageInput,
+            launchPhotos = {
+                pickPhotos.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            },
+            launchVideo = {
+                pickVideo.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
+                )
+            },
+            launchFile = { pickFile.launch(ATTACHMENT_FILE_MIME_TYPES) },
+            sendGif = { gif -> viewModel.sendGif(gif) }
+        )
         pendingAttachmentsView = PendingAttachmentsView(
             inflater = layoutInflater,
             scroll = binding.scrollPending,
@@ -538,6 +555,18 @@ class ChatConversationFragment : Fragment(),
         requireActivity().onBackPressedDispatcher.addCallback(
             viewLifecycleOwner, selectionBackCallback
         )
+        selectionActions = ChatSelectionActions(
+            context = requireContext(),
+            myUserUuid = { viewModel.myUserUuid },
+            selectedItems = { selectionController.selectedItems() },
+            deleteMessage = { message -> viewModel.deleteMessage(message) },
+            exitSelection = { exitSelectionMode() },
+            startForward = { messages ->
+                pendingForwardMessages = messages
+                ForwardChatPickerBottomSheet.newInstance(chatUuid)
+                    .show(childFragmentManager, "forward_picker")
+            }
+        )
         selectionController = SelectionController(
             adapter = adapter,
             selectionBar = binding.selectionBar,
@@ -546,8 +575,8 @@ class ChatConversationFragment : Fragment(),
             backCallback = selectionBackCallback,
             messages = { adapter.currentList },
             countLabel = { count -> getString(R.string.selected_count, count) },
-            onDelete = { deleteSelected() },
-            onForward = { forwardSelected() }
+            onDelete = { selectionActions.requestDelete() },
+            onForward = { selectionActions.requestForward() }
         ).also {
             it.setup(
                 deleteButton = binding.btnSelectionDelete,
@@ -567,31 +596,6 @@ class ChatConversationFragment : Fragment(),
 
     private fun exitSelectionMode() {
         if (::selectionController.isInitialized) selectionController.exit()
-    }
-
-    private fun selectedItems(): List<Message> = selectionController.selectedItems()
-
-    private fun deleteSelected() {
-        val deletable = selectedItems().filter {
-            it.messageId != null && it.senderUuid == viewModel.myUserUuid
-        }
-        if (deletable.isEmpty()) {
-            Toast.makeText(requireContext(), R.string.delete_message_failed, Toast.LENGTH_SHORT).show()
-            return
-        }
-        ChatDialogs.confirmDeleteSelected(requireContext()) {
-            deletable.forEach { viewModel.deleteMessage(it) }
-            exitSelectionMode()
-        }
-    }
-
-    private fun forwardSelected() {
-        val messages = selectedItems()
-        if (messages.isEmpty()) return
-        pendingForwardMessages = messages
-        exitSelectionMode()
-        ForwardChatPickerBottomSheet.newInstance(chatUuid)
-            .show(childFragmentManager, "forward_picker")
     }
 
     private fun copyMessage(text: String) {
@@ -795,17 +799,8 @@ class ChatConversationFragment : Fragment(),
             .show(childFragmentManager, "attachments")
     }
 
-    override fun onAttachmentKind(kind: AttachmentsBottomSheet.Kind) {
-        when (kind) {
-            AttachmentsBottomSheet.Kind.PHOTO -> pickPhotos.launch(
-                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-            )
-            AttachmentsBottomSheet.Kind.VIDEO -> pickVideo.launch(
-                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
-            )
-            AttachmentsBottomSheet.Kind.FILE -> pickFile.launch(ATTACHMENT_FILE_MIME_TYPES)
-        }
-    }
+    override fun onAttachmentKind(kind: AttachmentsBottomSheet.Kind) =
+        composerIntents.onAttachmentKind(kind)
 
     private fun renderPendingAttachments(pending: List<PendingAttachment>) {
         pendingAttachmentsView.render(pending)
@@ -936,19 +931,10 @@ class ChatConversationFragment : Fragment(),
         return "%d:%02d".format(total / 60, total % 60)
     }
 
-    override fun onGifSelected(gif: com.example.muzea.domain.model.Gif) {
-        viewModel.sendGif(gif)
-    }
+    override fun onGifSelected(gif: com.example.muzea.domain.model.Gif) =
+        composerIntents.onGifSelected(gif)
 
-    override fun onEmojiSelected(emoji: String) {
-        val input = binding.etMessageInput
-        val start = input.selectionStart.coerceAtLeast(0)
-        val end = input.selectionEnd.coerceAtLeast(start)
-        val current = input.text?.toString().orEmpty()
-        val updated = current.substring(0, start) + emoji + current.substring(end)
-        input.setText(updated)
-        input.setSelection((start + emoji.length).coerceAtMost(updated.length))
-    }
+    override fun onEmojiSelected(emoji: String) = composerIntents.onEmojiSelected(emoji)
 
     override fun onOpenGif() {
         GifPickerBottomSheet.newInstance(chatUuid)

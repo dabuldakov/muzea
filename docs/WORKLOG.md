@@ -41,6 +41,8 @@
 | 23.11 | refactor | ARCH.25 | `ChatMessageHighlighter`: прокрутка и подсветка сообщения из push вынесены из фрагмента | — |
 | 23.11 | refactor | ARCH.26 | `ChatMessageListScroller`: якорь истории и отметка прочтения вынесены из фрагмента | — |
 | 23.11 | refactor | ARCH.27 | `ChatMessageActionsPresenter`: плавающая карточка действий и строки «Деталей» вынесены из фрагмента | — |
+| 23.11 | refactor | ARCH.28 | `ChatSelectionActions`: удаление и пересылка выбранных сообщений вынесены из фрагмента | — |
+| 23.11 | refactor | ARCH.29 | `ChatComposerIntents`: выбор вложений, GIF и вставка эмодзи вынесены из фрагмента | — |
 
 ## 1.7.57 — 2026-11-23
 

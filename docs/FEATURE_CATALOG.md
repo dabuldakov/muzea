@@ -140,6 +140,8 @@
 | ARCH.25 | Подсветка из push | done | ChatMessageHighlighter: прокрутка и вспышка пузыря |
 | ARCH.26 | Якорь истории | done | ChatMessageListScroller: догрузка, восстановление позиции, прочтение |
 | ARCH.27 | Карточка действий | done | ChatMessageActionsPresenter: попап, fallback-шторка, строки «Деталей» |
+| ARCH.28 | Действия выделения | done | ChatSelectionActions: удаление своих и пересылка пачки |
+| ARCH.29 | Действия композера | done | ChatComposerIntents: фото/видео/файл, GIF, эмодзи |
 
 ## DIST — дистрибуция
 
