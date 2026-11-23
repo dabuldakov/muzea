@@ -135,7 +135,6 @@
     <ID>TooGenericExceptionCaught:AvatarRepositoryImpl.kt$AvatarRepositoryImpl$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ChatAuthManager.kt$ChatAuthManager$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ChatConversationFragment.kt$ChatConversationFragment$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:ChatConversationViewModel.kt$ChatConversationViewModel$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ChatRepositoryImpl.kt$ChatRepositoryImpl$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ChatSessionRepositoryImpl.kt$ChatSessionRepositoryImpl$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ContactRepositoryImpl.kt$ContactRepositoryImpl$e: Exception</ID>

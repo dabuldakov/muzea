@@ -120,6 +120,8 @@
 | QA.06 | Мутационное тестирование | planned | PIT для ViewModel/репозиториев |
 | QA.07 | Статический анализ Kotlin | done | Detekt + baseline в CI/Release |
 | ARCH.07 | Декомпозиция списка сообщений | done | MessageAdapter: биндинги вложений, ссылок, долгого нажатия и GIF-плеера в отдельных файлах |
+| ARCH.08 | Контроллер опроса переписки | done | ChatPollingController: интервалы, пауза и синхронизация после возврата сети |
+| ARCH.09 | Контроллер вложений | done | ChatPendingAttachmentController: подготовка, загрузка, повторы и черновик |
 
 ## DIST — дистрибуция
 

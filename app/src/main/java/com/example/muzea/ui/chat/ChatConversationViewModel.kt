@@ -1,6 +1,5 @@
 package com.example.muzea.ui.chat
 
-import android.net.Uri
 import java.io.File
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -17,11 +16,9 @@ import com.example.muzea.data.repository.ChatMessagesCache
 import com.example.muzea.utils.LocalTimeFormatter
 import com.example.muzea.utils.MediaFileReader
 import com.example.muzea.utils.NetworkMonitor
-import com.example.muzea.utils.NetworkQuality
 import com.example.muzea.utils.PreparedAttachment
 import com.example.muzea.data.repository.OutboxEvent
 import com.example.muzea.data.repository.PendingAttachmentStore
-import com.example.muzea.data.repository.StoredPendingAttachment
 import com.example.muzea.data.repository.OutboxItem
 import com.example.muzea.data.repository.OutboxSender
 import com.example.muzea.domain.repository.MessageRepository
@@ -30,15 +27,12 @@ import com.example.muzea.domain.chat.ChatMessageReducer
 import com.example.muzea.R
 import com.example.muzea.core.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -75,9 +69,6 @@ class ChatConversationViewModel @Inject constructor(
     private val _events = MutableSharedFlow<String>()
     val events: SharedFlow<String> = _events.asSharedFlow()
 
-    private var pollingJob: Job? = null
-    @Volatile
-    private var pollingPaused = false
     private var lastMarkedReadUuid: String? = null
     /** Первая загрузка экрана уже завершилась: больше не мигаем спиннером. */
     private var initialLoadDone = false
@@ -85,34 +76,36 @@ class ChatConversationViewModel @Inject constructor(
     /** Ошибку по сообщению показываем один раз, чтобы не спамить тостами. */
     private val notifiedFailures = mutableSetOf<String>()
 
+    private val pendingAttachments = ChatPendingAttachmentController(
+        chatUuid = chatUuid,
+        scope = viewModelScope,
+        repository = messageRepository,
+        mediaFileReader = mediaFileReader,
+        store = pendingStore,
+        networkMonitor = networkMonitor,
+        context = appContext,
+        state = { _uiState.value },
+        setState = { _uiState.value = it },
+        emitError = { _sendError.emit(it) }
+    )
+
+    private val polling = ChatPollingController(
+        scope = viewModelScope,
+        networkMonitor = networkMonitor,
+        loadOnce = ::loadOnce,
+        loadUpdatedOnce = ::loadUpdatedOnce,
+        onNetworkRestored = pendingAttachments::retryQueued
+    )
+
     init {
         restorePendingMessages()
-        restorePendingAttachments()
+        pendingAttachments.restore()
         observeOutbox()
-        observeNetworkWakeup()
+        polling.observeNetworkWakeup()
         // Опрос сам выполняет первый запрос, поэтому отдельный refresh() в init
         // был бы вторым обращением к серверу подряд при каждом входе в чат.
-        startPolling()
+        polling.start()
         viewModelScope.launch { refreshPinned() }
-    }
-
-    /**
-     * После блокировки/авиарежима сеть возвращается уже после onStart.
-     * Перезапускаем polling, чтобы не ждать 60-секундный offline-delay.
-     */
-    private fun observeNetworkWakeup() {
-        viewModelScope.launch {
-            var wasOnline = networkMonitor.status.value.online
-            networkMonitor.status.collect { status ->
-                if (status.online && !wasOnline && !pollingPaused) {
-                    pollingJob?.cancel()
-                    pendingFullSync = true
-                    startPolling()
-                    retryQueuedUploads()
-                }
-                wasOnline = status.online
-            }
-        }
     }
 
     /** Поднимаем из очереди сообщения, не отправленные в прошлой сессии. */
@@ -206,7 +199,7 @@ class ChatConversationViewModel @Inject constructor(
     /** @return true, если запрос завершился успешно (нужно для backoff-а). */
     private suspend fun loadOnce(incremental: Boolean = false): Boolean {
         var success = true
-        val since = lastServerCreatedAt
+        val since = polling.lastServerCreatedAt
         val source = if (incremental && since != null) {
             messageRepository.loadMessagesAfter(chatUuid, since)
         } else {
@@ -224,7 +217,7 @@ class ChatConversationViewModel @Inject constructor(
                     initialLoadDone = true
                     _uiState.value = _uiState.value.copy(isLoading = false)
                     val incoming = result.data ?: emptyList()
-                    rememberServerTime(incoming)
+                    polling.rememberServerTime(incoming)
                     cacheNewGifs(incoming)
                     mergeMessages(incoming)
                     refreshReceipts(force = incoming.isNotEmpty())
@@ -251,10 +244,10 @@ class ChatConversationViewModel @Inject constructor(
     private suspend fun loadUpdatedOnce(): Boolean {
         // Сдвиг в прошлое страхует от разницы часов и от строк, зафиксированных
         // уже после запроса: повторная обработка тех же сообщений безвредна.
-        val since = lastUpdatedCheckAt
+        val since = polling.lastUpdatedCheckAt
             ?: LocalTimeFormatter.serverTimestamp(UPDATED_OVERLAP_SECONDS)
         val updated = messageRepository.loadUpdatedMessages(chatUuid, since) ?: return false
-        lastUpdatedCheckAt = LocalTimeFormatter.serverTimestamp(UPDATED_OVERLAP_SECONDS)
+        polling.lastUpdatedCheckAt = LocalTimeFormatter.serverTimestamp(UPDATED_OVERLAP_SECONDS)
         if (updated.isEmpty()) return true
         cacheNewGifs(updated)
         mergeMessages(updated)
@@ -265,22 +258,9 @@ class ChatConversationViewModel @Inject constructor(
     }
 
     /** Пауза опроса, когда экран не виден: не тратим сеть и батарею. */
-    fun pausePolling() {
-        pollingPaused = true
-        // Не оставляем job спать в delay(60s) за спиной: при возврате
-        // на экран запускаем его заново с немедленным запросом.
-        pollingJob?.cancel()
-        pollingJob = null
-    }
+    fun pausePolling() = polling.pause()
 
-    fun resumePolling() {
-        pollingPaused = false
-        pollingJob?.cancel()
-        // Вернулись на экран — один раз сверяемся полной страницей: дельта
-        // и правки за это время могли выпасть из окна сверки.
-        pendingFullSync = true
-        startPolling()
-    }
+    fun resumePolling() = polling.resume()
 
     fun sendText(text: String, power: Int = 0) {
         val editing = _uiState.value.editing
@@ -320,7 +300,7 @@ class ChatConversationViewModel @Inject constructor(
             power = power.coerceIn(0, 100)
         )
         mergeMessages(listOf(optimistic))
-        clearPendingAttachments()
+        pendingAttachments.clearAll()
         clearReply()
 
         // Отправка идёт через app-scope очередь: уход из чата или смерть
@@ -340,177 +320,12 @@ class ChatConversationViewModel @Inject constructor(
         )
     }
 
-    private fun restorePendingAttachments() {
-        val stored = pendingStore.load(chatUuid)
-        if (stored.isEmpty()) return
-        _uiState.value = _uiState.value.copy(
-            pendingAttachments = stored.map { toPending(it) }
-        )
-        if (networkMonitor.status.value.online) retryQueuedUploads()
-    }
-
-    private fun retryQueuedUploads() {
-        val ids = _uiState.value.pendingAttachments
-            .filter { !it.isUploaded && it.error == null }
-            .map { it.id }
-        if (ids.isEmpty()) return
-        viewModelScope.launch {
-            for (id in ids) uploadPending(id)
-        }
-    }
-
-    private fun toPending(stored: StoredPendingAttachment): PendingAttachment {
-        val file = File(stored.filePath)
-        val prepared = PreparedAttachment(
-            file = file,
-            thumbnail = stored.thumbnailPath?.let(::File)?.takeIf { it.exists() },
-            name = stored.name,
-            size = stored.size,
-            mimeType = stored.mimeType,
-            type = stored.type,
-            width = stored.width,
-            height = stored.height,
-            duration = stored.duration
-        )
-        val uploaded = stored.uploadedUuid?.let { uuid ->
-            MessageAttachment(
-                fileUrl = "",
-                thumbnailUrl = null,
-                type = stored.type,
-                width = stored.width,
-                height = stored.height,
-                attachmentUuid = uuid,
-                fileName = stored.name,
-                fileSize = stored.size,
-                mimeType = stored.mimeType,
-                duration = stored.duration
-            )
-        }
-        return PendingAttachment(
-            id = stored.id,
-            name = stored.name,
-            size = stored.size,
-            mimeType = stored.mimeType,
-            type = stored.type,
-            prepared = prepared,
-            uploaded = uploaded
-        )
-    }
-
-    private fun persistPending() {
-        val stored = _uiState.value.pendingAttachments.mapNotNull { pending ->
-            val prepared = pending.prepared ?: return@mapNotNull null
-            StoredPendingAttachment(
-                id = pending.id,
-                name = pending.name,
-                size = pending.size,
-                mimeType = pending.mimeType,
-                type = pending.type,
-                filePath = prepared.file.absolutePath,
-                thumbnailPath = prepared.thumbnail?.absolutePath,
-                width = prepared.width,
-                height = prepared.height,
-                duration = prepared.duration,
-                uploadedUuid = pending.uploaded?.attachmentUuid
-            )
-        }
-        pendingStore.save(chatUuid, stored)
-    }
-
     /** Добавляет выбранные в системном пикере файлы и сразу загружает их. */
-    fun addAttachments(uris: List<Uri>) {
-        if (uris.isEmpty()) return
+    fun addAttachments(uris: List<android.net.Uri>) = pendingAttachments.add(uris)
 
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isUploadingAttachments = true)
-            try {
-                for (uri in uris) {
-                    val prepared = try {
-                        mediaFileReader.prepare(uri)
-                    } catch (e: Exception) {
-                        _sendError.emit(e.message ?: appContext.getString(R.string.attachment_cannot_attach))
-                        continue
-                    }
+    fun removePendingAttachment(id: String) = pendingAttachments.remove(id)
 
-                    val id = java.util.UUID.randomUUID().toString()
-                    val pending = PendingAttachment(
-                        id = id,
-                        name = prepared.name,
-                        size = prepared.size,
-                        mimeType = prepared.mimeType,
-                        type = prepared.type,
-                        prepared = prepared
-                    )
-                    _uiState.value = _uiState.value.copy(
-                        pendingAttachments = _uiState.value.pendingAttachments + pending
-                    )
-                    persistPending()
-                    uploadPending(id)
-                }
-            } finally {
-                _uiState.value = _uiState.value.copy(isUploadingAttachments = false)
-            }
-        }
-    }
-
-    fun removePendingAttachment(id: String) {
-        val pending = _uiState.value.pendingAttachments.firstOrNull { it.id == id } ?: return
-        mediaFileReader.cleanup(pending.prepared)
-        _uiState.value = _uiState.value.copy(
-            pendingAttachments = _uiState.value.pendingAttachments.filterNot { it.id == id }
-        )
-        persistPending()
-    }
-
-    fun retryPendingAttachment(id: String) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isUploadingAttachments = true)
-            try {
-                uploadPending(id)
-            } finally {
-                _uiState.value = _uiState.value.copy(isUploadingAttachments = false)
-            }
-        }
-    }
-
-    private suspend fun uploadPending(id: String) {
-        val pending = _uiState.value.pendingAttachments.firstOrNull { it.id == id } ?: return
-        val prepared = pending.prepared ?: return
-        _uiState.value = _uiState.value.copy(
-            pendingAttachments = _uiState.value.pendingAttachments.map {
-                if (it.id == id) it.copy(error = null) else it
-            }
-        )
-
-        when (val result = messageRepository.uploadAttachment(chatUuid, prepared) { percent ->
-            _uiState.value = _uiState.value.copy(
-                pendingAttachments = _uiState.value.pendingAttachments.map {
-                    if (it.id == id) it.copy(progress = percent) else it
-                }
-            )
-        }) {
-            is Resource.Success -> {
-                _uiState.value = _uiState.value.copy(
-                    pendingAttachments = _uiState.value.pendingAttachments.map {
-                        if (it.id == id) it.copy(uploaded = result.data) else it
-                    }
-                )
-                persistPending()
-            }
-            is Resource.Error -> _uiState.value = _uiState.value.copy(
-                pendingAttachments = _uiState.value.pendingAttachments.map {
-                    if (it.id == id) it.copy(error = result.message) else it
-                }
-            )
-            is Resource.Loading -> Unit
-        }
-    }
-
-    private fun clearPendingAttachments() {
-        _uiState.value.pendingAttachments.forEach { mediaFileReader.cleanup(it.prepared) }
-        pendingStore.clear(chatUuid)
-        _uiState.value = _uiState.value.copy(pendingAttachments = emptyList())
-    }
+    fun retryPendingAttachment(id: String) = pendingAttachments.retry(id)
 
     /** Ставит или снимает режим ответа на сообщение. */
     fun setReplyTo(message: Message?) {
@@ -856,6 +671,9 @@ class ChatConversationViewModel @Inject constructor(
         }
     }
 
+    /** Когда последний раз тянули квитанции — чтобы не делать это на каждом опросе. */
+    private var lastReceiptsRefreshAt = 0L
+
     /**
      * Подтягивает квитанции участников, но не чаще [RECEIPTS_REFRESH_INTERVAL_MS]:
      * галочки не обязаны обновляться каждые 3 секунды, а каждый такой запрос —
@@ -1156,65 +974,8 @@ class ChatConversationViewModel @Inject constructor(
     }
 
 
-    private fun startPolling() {
-        pollingJob?.cancel()
-        pollingJob = viewModelScope.launch {
-            var iteration = 0
-            while (isActive) {
-                val quality = networkMonitor.status.value.quality
-                if (pollingPaused || quality == NetworkQuality.OFFLINE) {
-                    delay(OFFLINE_POLL_INTERVAL_MS)
-                    continue
-                }
-
-                // Полная страница — только когда показать ещё нечего или после
-                // возврата на экран; в остальное время хватает дельты.
-                val fullSync = lastServerCreatedAt == null || pendingFullSync
-                if (fullSync) pendingFullSync = false
-                val success = loadOnce(incremental = !fullSync)
-                if (success && !fullSync && iteration % UPDATED_SYNC_EVERY == 0) {
-                    // Раз в UPDATED_SYNC_EVERY опросов подтягиваем только
-                    // изменённые сообщения: правки, закреп, снятые реакции.
-                    loadUpdatedOnce()
-                }
-                iteration++
-
-                val delayMs = when (quality) {
-                    NetworkQuality.GOOD ->
-                        if (success) POLL_INTERVAL_MS else ERROR_POLL_INTERVAL_MS
-                    NetworkQuality.WEAK -> WEAK_POLL_INTERVAL_MS
-                    NetworkQuality.OFFLINE -> OFFLINE_POLL_INTERVAL_MS
-                }
-                delay(delayMs)
-            }
-        }
-    }
-
-    private var lastServerCreatedAt: String? = null
-    /**
-     * До какого времени (UTC, формат сервера) уже сверены правки. Хранится
-     * строкой: ровно в таком виде его ждёт эндпоинт /updated.
-     */
-    private var lastUpdatedCheckAt: String? = null
-    /** Когда последний раз тянули квитанции — чтобы не делать это на каждом опросе. */
-    private var lastReceiptsRefreshAt = 0L
-    /** Нужна полная сверка на ближайшей итерации (возврат на экран, сеть). */
-    private var pendingFullSync = false
-
-    private fun rememberServerTime(messages: List<Message>) {
-        val latest = messages.asSequence()
-            .filter { it.messageId != null }
-            .mapNotNull { it.createdAt }
-            .maxOrNull()
-        // +1 секунда: сервер сравнивает `created_at > since` без дробной части,
-        // поэтому иначе последнее сообщение приходило бы в каждой дельте.
-        // Сообщение, пришедшее в ту же секунду уже после запроса, подхватит
-        // сверка /updated — она идёт раз в 15 секунд.
-        LocalTimeFormatter.nextServerSecond(latest)?.let { lastServerCreatedAt = it }
-    }
-
     override fun onCleared() {
-        pollingJob?.cancel()
+        polling.cancel()
         super.onCleared()
     }
 
@@ -1229,12 +990,6 @@ class ChatConversationViewModel @Inject constructor(
     companion object {
         const val ARG_CHAT_UUID = "chat_uuid"
         private const val LOCAL_PREFIX = "local-"
-        private const val POLL_INTERVAL_MS = 3_000L
-        private const val ERROR_POLL_INTERVAL_MS = 15_000L
-        private const val WEAK_POLL_INTERVAL_MS = 15_000L
-        private const val OFFLINE_POLL_INTERVAL_MS = 60_000L
-        /** Каждая пятая итерация опроса (≈15 с) — сверка только изменённых. */
-        private const val UPDATED_SYNC_EVERY = 5
         /**
          * Перекрытие окна сверки правок, секунды. Больше шага сверки, чтобы
          * не потерять строку, зафиксированную между запросами, но и не

@@ -21,6 +21,8 @@
 | 23.11 | ci | QA.07 | Detekt с baseline: новые нарушения падают в CI и Release, старые зафиксированы | — |
 | 23.11 | refactor | ARCH.07 | `MessageAdapter` (1036 → 399 строк): вложения, текст/превью ссылок, долгое нажатие и GIF-плеер вынесены в отдельные файлы | — |
 | 23.11 | refactor | ARCH.07 | `ChatConversationUiState` и `PendingAttachment` вынесены в отдельный файл | — |
+| 23.11 | refactor | ARCH.08 | `ChatPollingController`: ритм опроса, пауза, возврат сети и курсоры синхронизации вынесены из ViewModel | — |
+| 23.11 | refactor | ARCH.09 | `ChatPendingAttachmentController`: подготовка, загрузка и хранение вложений вынесены из ViewModel | — |
 
 ## 1.7.57 — 2026-11-23
 
