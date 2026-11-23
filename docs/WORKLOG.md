@@ -32,6 +32,7 @@
 | 23.11 | refactor | ARCH.16 | `ChatMessageSender`: текст/GIF/запись, повтор и серверное эхо вынесены из ViewModel | — |
 | 23.11 | refactor | ARCH.17 | `ChatInboxController`: первая страница, дельта, сверка правок и история вынесены из ViewModel | — |
 | 23.11 | refactor | ARCH.18 | `onViewCreated` разложен на аргументы, шапку и четыре setup-метода; ушёл LongMethod из baseline | — |
+| 23.11 | refactor | ARCH.19 | `ChatAttachmentPresenter`: выбор аудио/галереи/видео/скачивания вынесен из фрагмента | — |
 
 ## 1.7.57 — 2026-11-23
 

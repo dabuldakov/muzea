@@ -34,7 +34,6 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.example.muzea.domain.model.Chat
 import com.example.muzea.domain.model.Message
-import com.example.muzea.domain.model.MessageAttachment
 import com.example.muzea.domain.model.MessageDeliveryStatus
 import com.example.muzea.ui.chat.recording.RecordedAudio
 import com.example.muzea.ui.chat.recording.RecordedVideo
@@ -147,6 +146,7 @@ class ChatConversationFragment : Fragment(),
     private lateinit var audioController: ChatAudioController
     private lateinit var mentionController: MentionPopupController
     private lateinit var fileOpener: DownloadedFileOpener
+    private lateinit var attachmentPresenter: ChatAttachmentPresenter
 
     private val micPermission = registerForActivityResult(RequestPermission()) { granted ->
         if (!granted) {
@@ -369,6 +369,23 @@ class ChatConversationFragment : Fragment(),
                     requireContext(), R.string.attachment_open_failed, Toast.LENGTH_SHORT
                 ).show()
             }
+        )
+        attachmentPresenter = ChatAttachmentPresenter(
+            messages = { viewModel.uiState.value.messages },
+            launchViewer = { attachment ->
+                AttachmentViewerActivity.start(requireContext(), attachment)
+            },
+            launchGallery = { images, startIndex ->
+                imageGalleryLauncher.launch(
+                    ImageGalleryActivity.intent(requireContext(), images, startIndex)
+                )
+            },
+            playAudio = { message, attachment ->
+                AttachmentUrlResolver.resolve(attachment)?.let { url ->
+                    audioController.toggle(message.messageUuid, url)
+                }
+            },
+            download = { attachment -> downloadController.start(attachment) }
         )
     }
 
@@ -764,7 +781,7 @@ class ChatConversationFragment : Fragment(),
             statusFor = { message -> viewModel.deliveryStatus(message.messageUuid) },
             onStatusClick = { message -> showMessageActions(message) },
             onAttachmentClick = { message, attachment ->
-                openAttachment(message, attachment)
+                attachmentPresenter.open(message, attachment)
             },
             isGroupChat = isGroupChat(),
             onReactionClick = { message, emoji -> viewModel.toggleReaction(message, emoji) },
@@ -969,32 +986,6 @@ class ChatConversationFragment : Fragment(),
         pendingAttachmentsView.render(pending)
     }
 
-    private fun openAttachment(message: Message, attachment: MessageAttachment) {
-        when (attachment.type?.uppercase()) {
-            "AUDIO" -> toggleAudio(message, attachment)
-            "IMAGE" -> openImageGallery(message, attachment)
-            "VIDEO" -> AttachmentViewerActivity.start(requireContext(), attachment)
-            else -> downloadAndOpen(attachment)
-        }
-    }
-
-    /** Галерея картинок чата: открываем на выбранной, листаем свайпами. */
-    private fun openImageGallery(message: Message, attachment: MessageAttachment) {
-        val images = GalleryItems.from(viewModel.uiState.value.messages) { it ->
-            resolveAttachmentUrl(it)
-        }
-        val startIndex = GalleryItems.startIndex(
-            images, message.messageUuid, attachment.attachmentUuid
-        )
-        if (images.isEmpty()) {
-            AttachmentViewerActivity.start(requireContext(), attachment)
-            return
-        }
-        imageGalleryLauncher.launch(
-            ImageGalleryActivity.intent(requireContext(), images, startIndex)
-        )
-    }
-
     /** Ответ/пересылка из просмотрщика картинок. */
     private fun handleImageViewerResult(action: String, messageUuid: String) {
         val message = viewModel.uiState.value.messages
@@ -1007,19 +998,6 @@ class ChatConversationFragment : Fragment(),
                     .show(childFragmentManager, "forward_picker")
             }
         }
-    }
-
-    /** Воспроизведение голосового/аудио прямо в чате, без отдельного экрана. */
-    private fun toggleAudio(message: Message, attachment: MessageAttachment) {
-        val url = resolveAttachmentUrl(attachment) ?: return
-        audioController.toggle(message.messageUuid, url)
-    }
-
-    private fun resolveAttachmentUrl(attachment: MessageAttachment): String? =
-        AttachmentUrlResolver.resolve(attachment)
-
-    private fun downloadAndOpen(attachment: MessageAttachment) {
-        downloadController.start(attachment)
     }
 
     private fun setupInput() {

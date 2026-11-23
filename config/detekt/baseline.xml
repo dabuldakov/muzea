@@ -10,7 +10,6 @@
     <ID>CyclomaticComplexMethod:MediaFileReader.kt$MediaFileReader$suspend fun prepare(uri: Uri): PreparedAttachment</ID>
     <ID>CyclomaticComplexMethod:MessageActionsBuilder.kt$MessageActionsBuilder$fun build( message: Message, myUserUuid: String?, isGroupChat: Boolean, deliveryStatus: MessageDeliveryStatus? = null ): Result</ID>
     <ID>CyclomaticComplexMethod:VideoUploadActivity.kt$VideoUploadActivity$private suspend fun copyToDraft(uri: Uri): VideoCopyResult</ID>
-    <ID>ExplicitItLambdaParameter:ChatConversationFragment.kt$ChatConversationFragment${ it -&gt; resolveAttachmentUrl(it) }</ID>
     <ID>FunctionOnlyReturningConstant:GifCache.kt$GifCache.Companion$fun recentKey(): String</ID>
     <ID>LargeClass:ChatConversationFragment.kt$ChatConversationFragment : FragmentOnGifSelectedListenerOnChatForwardTargetSelectedListenerListener</ID>
     <ID>LargeClass:ChatConversationViewModelTest.kt$ChatConversationViewModelTest</ID>
