@@ -132,6 +132,7 @@
 | ARCH.17 | Входящий поток | done | ChatInboxController: первая страница, дельта, /updated и история |
 | ARCH.18 | Инициализация экрана | done | onViewCreated разложен на readArguments/bindHeader/setup-методы |
 | ARCH.19 | Открытие вложений | done | ChatAttachmentPresenter: аудио, галерея, видео, скачивание |
+| ARCH.20 | Рендер ленты | done | observeViewModel разложен на renderMessages/updateMessageList/scroll/highlight |
 
 ## DIST — дистрибуция
 

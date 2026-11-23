@@ -1487,137 +1487,172 @@ class ChatConversationFragment : Fragment(),
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             applyDeletedPeerState()
-        viewModel.uiState.collect { state ->
+            viewModel.uiState.collect { state ->
                 val messages = state.messages
                 val wasAtBottom = isAtBottom()
-                binding.progressHistory.visibility =
-                    if (state.isLoadingMore) View.VISIBLE else View.GONE
-                val previousStatuses = lastStatuses
-                val statusesChanged = state.statuses != previousStatuses
-                val changedStatusUuids = if (statusesChanged) {
-                    (previousStatuses.keys + state.statuses.keys).filter {
-                        previousStatuses[it] != state.statuses[it]
-                    }
-                } else {
-                    emptyList()
-                }
-                val notifyChangedStatuses = {
-                    changedStatusUuids.forEach { uuid ->
-                        val position = messages.indexOfFirst { it.messageUuid == uuid }
-                        if (position >= 0) adapter.notifyItemChanged(position)
-                    }
-                }
-                val listChanged = messages !== lastMessages
-                // Если пользователь читает историю, запоминаем верхний видимый
-                // пузырь и возвращаем его после DiffUtil — иначе список
-                // «прыгает» при фоновом обновлении.
-                val layoutManager = binding.recyclerViewMessages.layoutManager as? LinearLayoutManager
-                val anchorPosition = if (initialScrollDone && !wasAtBottom) {
-                    layoutManager?.findFirstVisibleItemPosition() ?: -1
-                } else {
-                    -1
-                }
-                val anchorUuid = messages.getOrNull(anchorPosition)?.messageUuid
-                val anchorOffset = if (anchorPosition >= 0) {
-                    layoutManager?.findViewByPosition(anchorPosition)?.top ?: 0
-                } else {
-                    0
-                }
-                if (listChanged) {
-                    lastMessages = messages
-                    adapter.updateList(messages) {
-                        if (statusesChanged) notifyChangedStatuses()
-                        if (initialScrollDone && !pendingScrollToTop &&
-                            anchorUuid == null && wasAtBottom
-                        ) {
-                            // Реакция/правка меняет высоту бабла. Если лента была
-                            // внизу, держим её внизу после раскладки — иначе чат
-                            // «скачет» на высоту нового чипа.
-                            binding.recyclerViewMessages.post {
-                                layoutManager?.scrollToPosition(
-                                    (adapter.itemCount - 1).coerceAtLeast(0)
-                                )
-                                markVisibleMessagesAsRead()
-                            }
-                        }
-                        if (anchorUuid != null) {
-                            val position = adapter.currentList.indexOfFirst {
-                                it.messageUuid == anchorUuid
-                            }
-                            if (position >= 0) {
-                                layoutManager?.scrollToPositionWithOffset(position, anchorOffset)
-                            }
-                        }
-                    }
-                } else if (statusesChanged) {
-                    notifyChangedStatuses()
-                }
-                if (statusesChanged) lastStatuses = state.statuses
-                if (state.pendingAttachments != lastPending) {
-                    lastPending = state.pendingAttachments
-                    renderPendingAttachments(state.pendingAttachments)
-                }
-                binding.btnSend.isEnabled = state.pendingAttachments.all { it.isUploaded }
-                updateSendButton()
-                updateEmptyState(messages)
-                renderConversationState(state)
-                renderComposerBanner(state)
-                renderPinnedBar(state)
-
-                if (messages.isNotEmpty() && !initialScrollDone) {
-                    initialScrollDone = true
-                    val unreadIndex = UnreadAnchor.firstUnreadIndex(
-                        messages, unreadCount, viewModel.myUserUuid
-                    )
-                    val target = if (unreadIndex >= 0) unreadIndex else messages.size - 1
-                    pendingScrollPosition = target
-                    if (unreadIndex >= 0) {
-                        unreadAnchorPosition = unreadIndex
-                        pendingScrollToTop = true
-                    }
-                } else if (messages.isNotEmpty() && messages.last().messageUuid != lastNewestUuid) {
-                    // Реагируем только на действительно новое сообщение внизу.
-                    // Догрузка истории вверх добавляет сообщения в начало и не
-                    // должна уводить список вниз.
-                    val lastIsMine = messages.last().senderUuid == viewModel.myUserUuid
-                    if (lastIsMine || wasAtBottom) {
-                        pendingScrollPosition = messages.size - 1
-                    }
-                }
-                if (messages.isNotEmpty()) lastNewestUuid = messages.last().messageUuid
-                // Позицию запомнили уже после обновления адаптера, поэтому
-                // наблюдатель её не увидит — прокручиваем сами.
-                if (pendingScrollPosition != null) {
-                    binding.recyclerViewMessages.post {
-                        if (_binding != null) performPendingScroll()
-                    }
-                }
-                updateScrollButton()
-
-                val targetUuid = pendingHighlightUuid
-                if (targetUuid != null) {
-                    val targetPosition = messages.indexOfFirst { it.messageUuid == targetUuid }
-                    if (targetPosition >= 0) {
-                        pendingHighlightUuid = null
-                        scrollToAndHighlight(targetPosition, targetUuid)
-                    } else if (!state.historyReached && !state.isLoadingMore && highlightAttempts < MAX_HIGHLIGHT_PAGES) {
-                        // Сообщение из push может быть выше первой страницы.
-                        highlightAttempts++
-                        viewModel.loadOlder()
-                    }
-                }
+                renderMessages(state, messages, wasAtBottom)
+                updateScrollForNewMessages(messages, wasAtBottom)
+                applyPendingHighlight(state, messages)
             }
         }
+        collectSendErrors()
+        collectEvents()
+    }
 
+    private fun collectSendErrors() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.sendError.collect { message ->
-                Toast.makeText(requireContext(), getString(R.string.error_prefix, message), Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    requireContext(), getString(R.string.error_prefix, message), Toast.LENGTH_LONG
+                ).show()
             }
         }
+    }
 
+    private fun collectEvents() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.events.collect { message ->
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    /** Обновляет адаптер и статические части экрана; прокруткой занимается отдельный шаг. */
+    private fun renderMessages(
+        state: ChatConversationUiState,
+        messages: List<Message>,
+        wasAtBottom: Boolean
+    ) {
+        binding.progressHistory.visibility =
+            if (state.isLoadingMore) View.VISIBLE else View.GONE
+        updateMessageList(messages, state.statuses, wasAtBottom)
+        if (state.pendingAttachments != lastPending) {
+            lastPending = state.pendingAttachments
+            renderPendingAttachments(state.pendingAttachments)
+        }
+        binding.btnSend.isEnabled = state.pendingAttachments.all { it.isUploaded }
+        updateSendButton()
+        updateEmptyState(messages)
+        renderConversationState(state)
+        renderComposerBanner(state)
+        renderPinnedBar(state)
+    }
+
+    /** DiffUtil-обновление списка с сохранением видимого якоря. */
+    private fun updateMessageList(
+        messages: List<Message>,
+        statuses: Map<String, MessageDeliveryStatus>,
+        wasAtBottom: Boolean
+    ) {
+        val previousStatuses = lastStatuses
+        val statusesChanged = statuses != previousStatuses
+        val changedStatusUuids = if (statusesChanged) {
+            (previousStatuses.keys + statuses.keys).filter {
+                previousStatuses[it] != statuses[it]
+            }
+        } else {
+            emptyList()
+        }
+        val notifyChangedStatuses = {
+            changedStatusUuids.forEach { uuid ->
+                val position = messages.indexOfFirst { it.messageUuid == uuid }
+                if (position >= 0) adapter.notifyItemChanged(position)
+            }
+        }
+        val listChanged = messages !== lastMessages
+        // Если пользователь читает историю, запоминаем верхний видимый
+        // пузырь и возвращаем его после DiffUtil — иначе список
+        // «прыгает» при фоновом обновлении.
+        val layoutManager = binding.recyclerViewMessages.layoutManager as? LinearLayoutManager
+        val anchorPosition = if (initialScrollDone && !wasAtBottom) {
+            layoutManager?.findFirstVisibleItemPosition() ?: -1
+        } else {
+            -1
+        }
+        val anchorUuid = messages.getOrNull(anchorPosition)?.messageUuid
+        val anchorOffset = if (anchorPosition >= 0) {
+            layoutManager?.findViewByPosition(anchorPosition)?.top ?: 0
+        } else {
+            0
+        }
+        // Если лента была внизу, держим её внизу после раскладки.
+        val keepAtBottom = initialScrollDone && !pendingScrollToTop &&
+            anchorUuid == null && wasAtBottom
+        if (listChanged) {
+            lastMessages = messages
+            adapter.updateList(messages) {
+                if (statusesChanged) notifyChangedStatuses()
+                if (keepAtBottom) {
+                    // Реакция/правка меняет высоту бабла. Если лента была
+                    // внизу, держим её внизу после раскладки — иначе чат
+                    // «скачет» на высоту нового чипа.
+                    binding.recyclerViewMessages.post {
+                        layoutManager?.scrollToPosition(
+                            (adapter.itemCount - 1).coerceAtLeast(0)
+                        )
+                        markVisibleMessagesAsRead()
+                    }
+                }
+                if (anchorUuid != null) {
+                    val position = adapter.currentList.indexOfFirst {
+                        it.messageUuid == anchorUuid
+                    }
+                    if (position >= 0) {
+                        layoutManager?.scrollToPositionWithOffset(position, anchorOffset)
+                    }
+                }
+            }
+        } else if (statusesChanged) {
+            notifyChangedStatuses()
+        }
+        if (statusesChanged) lastStatuses = statuses
+    }
+
+    /** Выбирает позицию прокрутки для первого открытия и новых сообщений. */
+    private fun updateScrollForNewMessages(messages: List<Message>, wasAtBottom: Boolean) {
+        if (messages.isNotEmpty() && !initialScrollDone) {
+            initialScrollDone = true
+            val unreadIndex = UnreadAnchor.firstUnreadIndex(
+                messages, unreadCount, viewModel.myUserUuid
+            )
+            val target = if (unreadIndex >= 0) unreadIndex else messages.size - 1
+            pendingScrollPosition = target
+            if (unreadIndex >= 0) {
+                unreadAnchorPosition = unreadIndex
+                pendingScrollToTop = true
+            }
+        } else if (messages.isNotEmpty() && messages.last().messageUuid != lastNewestUuid) {
+            // Реагируем только на действительно новое сообщение внизу.
+            // Догрузка истории вверх добавляет сообщения в начало и не
+            // должна уводить список вниз.
+            val lastIsMine = messages.last().senderUuid == viewModel.myUserUuid
+            if (lastIsMine || wasAtBottom) {
+                pendingScrollPosition = messages.size - 1
+            }
+        }
+        if (messages.isNotEmpty()) lastNewestUuid = messages.last().messageUuid
+        // Позицию запомнили уже после обновления адаптера, поэтому
+        // наблюдатель её не увидит — прокручиваем сами.
+        if (pendingScrollPosition != null) {
+            binding.recyclerViewMessages.post {
+                if (_binding != null) performPendingScroll()
+            }
+        }
+        updateScrollButton()
+    }
+
+    /** Переход к сообщению из push; при необходимости догружает историю. */
+    private fun applyPendingHighlight(state: ChatConversationUiState, messages: List<Message>) {
+        val targetUuid = pendingHighlightUuid
+        if (targetUuid != null) {
+            val targetPosition = messages.indexOfFirst { it.messageUuid == targetUuid }
+            if (targetPosition >= 0) {
+                pendingHighlightUuid = null
+                scrollToAndHighlight(targetPosition, targetUuid)
+            } else if (!state.historyReached && !state.isLoadingMore && highlightAttempts < MAX_HIGHLIGHT_PAGES) {
+                // Сообщение из push может быть выше первой страницы.
+                highlightAttempts++
+                viewModel.loadOlder()
             }
         }
     }

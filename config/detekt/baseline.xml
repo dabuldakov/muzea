@@ -2,10 +2,8 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>ComplexCondition:ChatConversationFragment.kt$ChatConversationFragment$initialScrollDone &amp;&amp; !pendingScrollToTop &amp;&amp; anchorUuid == null &amp;&amp; wasAtBottom</ID>
     <ID>ComplexCondition:LinkPreviewStore.kt$LinkPreviewStore$normalized == "localhost" || normalized.endsWith(".localhost") || normalized == "metadata.google.internal" || normalized.endsWith(".local") || normalized.endsWith(".internal")</ID>
     <ID>ComplexCondition:NewsListFragment.kt$NewsListFragment.&lt;no name provided&gt;$dy &lt;= 0 || state.isLoading || state.isRefreshing || state.endReached</ID>
-    <ID>CyclomaticComplexMethod:ChatConversationFragment.kt$ChatConversationFragment$private fun observeViewModel()</ID>
     <ID>CyclomaticComplexMethod:DetailsSection.kt$DetailsSection$private fun buildRow( row: MessageStatusRow, userReactions: List&lt;String&gt;, onSurface: Int, onSurfaceVariant: Int ): LinearLayout</ID>
     <ID>CyclomaticComplexMethod:MediaFileReader.kt$MediaFileReader$suspend fun prepare(uri: Uri): PreparedAttachment</ID>
     <ID>CyclomaticComplexMethod:MessageActionsBuilder.kt$MessageActionsBuilder$fun build( message: Message, myUserUuid: String?, isGroupChat: Boolean, deliveryStatus: MessageDeliveryStatus? = null ): Result</ID>
@@ -15,7 +13,6 @@
     <ID>LargeClass:ChatConversationViewModelTest.kt$ChatConversationViewModelTest</ID>
     <ID>LargeClass:MessageAdapterBindTest.kt$MessageAdapterBindTest</ID>
     <ID>LargeClass:MessageRepositoryImpl.kt$MessageRepositoryImpl : MessageRepository</ID>
-    <ID>LongMethod:ChatConversationFragment.kt$ChatConversationFragment$private fun observeViewModel()</ID>
     <ID>LoopWithTooManyJumpStatements:ChatMessageReducer.kt$ChatMessageReducer$for</ID>
     <ID>LoopWithTooManyJumpStatements:OgParser.kt$OgParser$for</ID>
     <ID>LoopWithTooManyJumpStatements:VideoUploadActivity.kt$VideoUploadActivity$for</ID>
