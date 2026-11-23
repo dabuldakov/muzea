@@ -10,7 +10,6 @@
     <ID>CyclomaticComplexMethod:DetailsSection.kt$DetailsSection$private fun buildRow( row: MessageStatusRow, userReactions: List&lt;String&gt;, onSurface: Int, onSurfaceVariant: Int ): LinearLayout</ID>
     <ID>CyclomaticComplexMethod:MediaFileReader.kt$MediaFileReader$suspend fun prepare(uri: Uri): PreparedAttachment</ID>
     <ID>CyclomaticComplexMethod:MessageActionsBuilder.kt$MessageActionsBuilder$fun build( message: Message, myUserUuid: String?, isGroupChat: Boolean, deliveryStatus: MessageDeliveryStatus? = null ): Result</ID>
-    <ID>CyclomaticComplexMethod:MessageAdapter.kt$private fun bindAttachments( container: android.widget.LinearLayout, textView: TextView, linkCard: View, message: Message, playingAudioUuid: String?, audioIsPlaying: Boolean, onClick: (Message, MessageAttachment) -&gt; Unit, onLongClick: (Message) -&gt; Unit )</ID>
     <ID>CyclomaticComplexMethod:VideoUploadActivity.kt$VideoUploadActivity$private suspend fun copyToDraft(uri: Uri): VideoCopyResult</ID>
     <ID>ExplicitItLambdaParameter:ChatConversationFragment.kt$ChatConversationFragment${ it -&gt; resolveAttachmentUrl(it) }</ID>
     <ID>FunctionOnlyReturningConstant:GifCache.kt$GifCache.Companion$fun recentKey(): String</ID>
@@ -27,7 +26,6 @@
     <ID>MatchingDeclarationName:ChangelogParser.kt$ChangelogGroup</ID>
     <ID>NestedBlockDepth:ContactRepositoryImpl.kt$ContactRepositoryImpl$override suspend fun loadPresence(userUuids: List&lt;String&gt;): Map&lt;String, Presence&gt;</ID>
     <ID>NestedBlockDepth:MessageActionsBottomSheet.kt$MessageActionsBottomSheet$private fun renderStatus(showStatus: Boolean, rows: List&lt;MessageStatusRow&gt;)</ID>
-    <ID>NestedBlockDepth:MessageAdapter.kt$private fun bindAttachments( container: android.widget.LinearLayout, textView: TextView, linkCard: View, message: Message, playingAudioUuid: String?, audioIsPlaying: Boolean, onClick: (Message, MessageAttachment) -&gt; Unit, onLongClick: (Message) -&gt; Unit )</ID>
     <ID>NestedBlockDepth:VideoUploadActivity.kt$VideoUploadActivity$private fun readIntoDraft(uri: Uri, draft: File): Long?</ID>
     <ID>NestedBlockDepth:VideoUploadActivity.kt$VideoUploadActivity$private suspend fun copyToDraft(uri: Uri): VideoCopyResult</ID>
     <ID>NewLineAtEndOfFile:AddContactRequest.kt$com.example.muzea.data.model.AddContactRequest.kt</ID>
@@ -116,7 +114,6 @@
     <ID>SwallowedException:LinkPreviewStore.kt$LinkPreviewStore$e: Exception</ID>
     <ID>SwallowedException:LocalTimeFormatter.kt$LocalTimeFormatter$e: Exception</ID>
     <ID>SwallowedException:MediaFileReader.kt$MediaFileReader$e: Exception</ID>
-    <ID>SwallowedException:MessageAdapter.kt$e: Exception</ID>
     <ID>SwallowedException:MessageRepositoryCancellationTest.kt$MessageRepositoryCancellationTest$e: CancellationException</ID>
     <ID>SwallowedException:MessageRepositoryImpl.kt$MessageRepositoryImpl$e: Exception</ID>
     <ID>SwallowedException:MessageStatusCalculator.kt$MessageStatusCalculator$e: Exception</ID>
@@ -150,7 +147,6 @@
     <ID>TooGenericExceptionCaught:LinkPreviewStore.kt$LinkPreviewStore$e: Exception</ID>
     <ID>TooGenericExceptionCaught:LocalTimeFormatter.kt$LocalTimeFormatter$e: Exception</ID>
     <ID>TooGenericExceptionCaught:MediaFileReader.kt$MediaFileReader$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:MessageAdapter.kt$e: Exception</ID>
     <ID>TooGenericExceptionCaught:MessageRepositoryImpl.kt$MessageRepositoryImpl$e: Exception</ID>
     <ID>TooGenericExceptionCaught:MessageStatusCalculator.kt$MessageStatusCalculator$e: Exception</ID>
     <ID>TooGenericExceptionCaught:NewsRepositoryImpl.kt$NewsRepositoryImpl$e: Exception</ID>
@@ -208,7 +204,6 @@
     <ID>UnusedParameter:AttachmentViewerActivity.kt$AttachmentViewerActivity$withControls: Boolean</ID>
     <ID>UnusedParameter:ChargeBurstView.kt$ChargeBurstView$intensity: Float</ID>
     <ID>UnusedParameter:DetailsSection.kt$DetailsSection$showStatus: Boolean</ID>
-    <ID>UnusedPrivateMember:MessageAdapter.kt$private fun hasNonGifAttachments(message: Message): Boolean</ID>
     <ID>UnusedPrivateProperty:ChatConversationFragment.kt$ChatConversationFragment.Companion$private const val MENU_DELETE = 1</ID>
     <ID>UnusedPrivateProperty:ChatConversationFragment.kt$ChatConversationFragment.Companion$private const val MENU_FORWARD = 2</ID>
     <ID>UnusedPrivateProperty:MediaUrlTest.kt$MediaUrlTest.Companion$private const val CHAT = "https://chat-muzea.su"</ID>
