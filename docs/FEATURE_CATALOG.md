@@ -126,7 +126,7 @@
 | DIST.01 | Подпись keystore | done | CI проверяет отпечаток |
 | DIST.02 | Самообновление | done | GitHub Releases + проверка версии |
 | DIST.03 | Google Play | partial | Публикация опциональна, секрет не настроен |
-| DIST.04 | Беты в чат | done | APK файлом, без сторонних сайтов |
+| DIST.04 | Беты в чат | deprecated | APK из чата отключён (безопасность); обновления — через сайт/GitHub Releases |
 | DIST.05 | Changelog из коммитов | done | `generate_release_notes.sh` |
 | DIST.06 | Поэтапный rollout | planned | Нет каналов beta/stable в Play |
 
