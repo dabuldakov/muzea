@@ -255,24 +255,41 @@ class ChatConversationFragment : Fragment(),
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        chatUuid = arguments?.getString(ChatConversationViewModel.ARG_CHAT_UUID) ?: ""
-        val chatTitle = arguments?.getString(ARG_CHAT_TITLE) ?: "Chat"
-        unreadCount = arguments?.getLong(ARG_UNREAD_COUNT, 0L) ?: 0L
-
-        binding.tvTitle.text = chatTitle
-        pendingHighlightUuid = arguments?.getString(ARG_HIGHLIGHT_MESSAGE)
-        AvatarLoader.load(binding.ivAvatar, arguments?.getString(ARG_CHAT_AVATAR))
-        binding.tvTitle.setOnClickListener {
-            openGroupSettings(chatTitle)
-        }
-        binding.btnBack.setOnClickListener {
-            navigator.back()
-        }
-
+        readArguments()
+        bindHeader()
         requireActivity().onBackPressedDispatcher.addCallback(
             viewLifecycleOwner, actionsBackCallback
         )
         setupRecyclerView()
+        setupConversationViews()
+        setupDownloadAndAudio()
+        setupComposerViews()
+        mentionController = MentionPopupController(requireContext(), binding.etMessageInput)
+        setupInput()
+        setupAttachments()
+        setupReplyBanner()
+        setupSelectionBar()
+        prefillDraft()
+        observeViewModel()
+        observeNetwork()
+        startMediaRetry()
+    }
+
+    private fun readArguments() {
+        chatUuid = arguments?.getString(ChatConversationViewModel.ARG_CHAT_UUID) ?: ""
+        unreadCount = arguments?.getLong(ARG_UNREAD_COUNT, 0L) ?: 0L
+        pendingHighlightUuid = arguments?.getString(ARG_HIGHLIGHT_MESSAGE)
+    }
+
+    private fun bindHeader() {
+        val chatTitle = arguments?.getString(ARG_CHAT_TITLE) ?: "Chat"
+        binding.tvTitle.text = chatTitle
+        AvatarLoader.load(binding.ivAvatar, arguments?.getString(ARG_CHAT_AVATAR))
+        binding.tvTitle.setOnClickListener { openGroupSettings(chatTitle) }
+        binding.btnBack.setOnClickListener { navigator.back() }
+    }
+
+    private fun setupConversationViews() {
         pinnedBarView = PinnedBarView(
             context = requireContext(),
             bar = binding.pinnedBar,
@@ -314,6 +331,9 @@ class ChatConversationFragment : Fragment(),
             onTick = { text -> binding.tvRecordingTimer.text = text },
             onLimit = { finishRecording(cancel = false) }
         )
+    }
+
+    private fun setupDownloadAndAudio() {
         fileOpener = DownloadedFileOpener(
             context = requireContext(),
             isAdded = { isAdded },
@@ -350,6 +370,9 @@ class ChatConversationFragment : Fragment(),
                 ).show()
             }
         )
+    }
+
+    private fun setupComposerViews() {
         pendingAttachmentsView = PendingAttachmentsView(
             inflater = layoutInflater,
             scroll = binding.scrollPending,
@@ -378,15 +401,6 @@ class ChatConversationFragment : Fragment(),
             },
             label = { res -> getString(res) }
         ).also { it.setup() }
-        mentionController = MentionPopupController(requireContext(), binding.etMessageInput)
-        setupInput()
-        setupAttachments()
-        setupReplyBanner()
-        setupSelectionBar()
-        prefillDraft()
-        observeViewModel()
-        observeNetwork()
-        startMediaRetry()
     }
 
     /**

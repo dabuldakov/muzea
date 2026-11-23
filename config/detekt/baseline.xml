@@ -16,7 +16,6 @@
     <ID>LargeClass:ChatConversationViewModelTest.kt$ChatConversationViewModelTest</ID>
     <ID>LargeClass:MessageAdapterBindTest.kt$MessageAdapterBindTest</ID>
     <ID>LargeClass:MessageRepositoryImpl.kt$MessageRepositoryImpl : MessageRepository</ID>
-    <ID>LongMethod:ChatConversationFragment.kt$ChatConversationFragment$override fun onViewCreated(view: View, savedInstanceState: Bundle?)</ID>
     <ID>LongMethod:ChatConversationFragment.kt$ChatConversationFragment$private fun observeViewModel()</ID>
     <ID>LoopWithTooManyJumpStatements:ChatMessageReducer.kt$ChatMessageReducer$for</ID>
     <ID>LoopWithTooManyJumpStatements:OgParser.kt$OgParser$for</ID>

@@ -130,6 +130,7 @@
 | ARCH.15 | Действия над сообщениями | done | ChatMessageActions: пересылка, закрепление, реакции, жалобы, блокировка |
 | ARCH.16 | Отправка сообщений | done | ChatMessageSender: очередь текста, GIF, голосовые/видео, повтор, серверное эхо |
 | ARCH.17 | Входящий поток | done | ChatInboxController: первая страница, дельта, /updated и история |
+| ARCH.18 | Инициализация экрана | done | onViewCreated разложен на readArguments/bindHeader/setup-методы |
 
 ## DIST — дистрибуция
 
