@@ -35,11 +35,6 @@ import androidx.recyclerview.widget.SimpleItemAnimator
 import com.example.muzea.domain.model.Chat
 import com.example.muzea.domain.model.Message
 import com.example.muzea.domain.model.MessageDeliveryStatus
-import com.example.muzea.ui.chat.recording.RecordedAudio
-import com.example.muzea.ui.chat.recording.RecordedVideo
-import com.example.muzea.ui.chat.recording.VideoNoteRecorder
-import com.example.muzea.ui.chat.recording.VoiceRecorder
-import com.example.muzea.utils.PreparedAttachment
 import com.example.muzea.utils.MediaUrl
 import com.example.muzea.utils.TokenManager
 import com.example.muzea.data.repository.ChatListCache
@@ -53,7 +48,6 @@ import com.example.muzea.utils.ChatNotifications
 import com.example.muzea.utils.AvatarLoader
 import com.example.muzea.utils.LocalTimeFormatter
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -99,6 +93,7 @@ class ChatConversationFragment : Fragment(),
     private lateinit var pendingAttachmentsView: PendingAttachmentsView
     private lateinit var chargeMeter: ChargeMeter
     private lateinit var chargeGesture: ChargeGestureController
+    private lateinit var recordingController: ChatRecordingController
     private lateinit var pinnedBarView: PinnedBarView
     private lateinit var downloadController: AttachmentDownloadController
     private lateinit var recordingTimer: RecordingTimer
@@ -126,19 +121,8 @@ class ChatConversationFragment : Fragment(),
     /** Текущий список закреплённых (для клика по панели и открепления). */
     private var pinnedMessages: List<Message> = emptyList()
 
-    private enum class SendMode { TEXT, VOICE, VIDEO }
 
     private var sendMode = SendMode.TEXT
-    private var activeRecorderMode: SendMode? = null
-    private var recordingStartJob: Job? = null
-    private var recordStartMs = 0L
-    private var pressStartY = 0f
-    private var cancelArmed = false
-    private var sendPressed = false
-    private var videoReady = false
-    private var finishingRecording = false
-    private var voiceRecorder: VoiceRecorder? = null
-    private var videoRecorder: VideoNoteRecorder? = null
     private lateinit var audioController: ChatAudioController
     private lateinit var mentionController: MentionPopupController
     private lateinit var fileOpener: DownloadedFileOpener
@@ -196,11 +180,8 @@ class ChatConversationFragment : Fragment(),
         private const val ARG_UNREAD_COUNT = "chat_unread_count"
         private const val ARG_DRAFT_TEXT = "chat_draft_text"
         private const val ARG_HIGHLIGHT_MESSAGE = "chat_highlight_message"
-        private const val LONG_PRESS_MS = 250L
         private const val MEDIA_RETRY_MS = 5 * 60 * 1000L
         private const val RECORD_CANCEL_DP = 72
-        private const val MAX_VOICE_MS = 5 * 60 * 1000L
-        private const val MAX_VIDEO_MS = 60 * 1000L
         private const val MAX_HIGHLIGHT_PAGES = 5
         private const val HIGHLIGHT_MS = 1800L
         private const val HIGHLIGHT_ATTEMPTS = 5
@@ -332,7 +313,18 @@ class ChatConversationFragment : Fragment(),
             scope = viewLifecycleOwner.lifecycleScope,
             format = { ms -> formatRecordingTime(ms) },
             onTick = { text -> binding.tvRecordingTimer.text = text },
-            onLimit = { finishRecording(cancel = false) }
+            onLimit = { recordingController.finishAtLimit() }
+        )
+        recordingController = ChatRecordingController(
+            context = requireContext(),
+            textureView = binding.videoNotePreview,
+            overlay = recordingOverlay,
+            timer = recordingTimer,
+            scope = viewLifecycleOwner.lifecycleScope,
+            cancelDistancePx = (RECORD_CANCEL_DP * resources.displayMetrics.density).toInt(),
+            ensurePermissions = ::ensurePermisssionsFor,
+            onRecorded = { prepared, type -> viewModel.sendRecordedAttachment(prepared, type) },
+            toast = { res -> Toast.makeText(requireContext(), res, Toast.LENGTH_SHORT).show() }
         )
     }
 
@@ -1115,48 +1107,7 @@ class ChatConversationFragment : Fragment(),
     private fun handleSendTouch(event: MotionEvent): Boolean {
         if (sendMode == SendMode.TEXT && canSendNow()) return chargeGesture.onTouch(event)
         if (sendMode == SendMode.TEXT || canSendNow()) return false
-        when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> {
-                if (!ensurePermisssionsFor(sendMode)) return true
-                sendPressed = true
-                pressStartY = event.rawY
-                cancelArmed = false
-                recordingStartJob?.cancel()
-                recordingStartJob = viewLifecycleOwner.lifecycleScope.launch {
-                    delay(LONG_PRESS_MS)
-                    startRecording(sendMode)
-                }
-                return true
-            }
-            MotionEvent.ACTION_MOVE -> {
-                if (activeRecorderMode != null) {
-                    val armed = event.rawY < pressStartY - dp(RECORD_CANCEL_DP)
-                    if (armed != cancelArmed) {
-                        cancelArmed = armed
-                        updateRecordingHint()
-                    }
-                }
-                return true
-            }
-            MotionEvent.ACTION_UP -> {
-                sendPressed = false
-                val wasRecording = activeRecorderMode != null
-                if (wasRecording) {
-                    finishRecording(cancelArmed)
-                } else {
-                    recordingStartJob?.cancel()
-                    cycleSendMode()
-                }
-                return true
-            }
-            MotionEvent.ACTION_CANCEL -> {
-                sendPressed = false
-                if (activeRecorderMode != null) finishRecording(cancel = true)
-                else recordingStartJob?.cancel()
-                return true
-            }
-        }
-        return true
+        return recordingController.onTouch(event, sendMode) { cycleSendMode() }
     }
 
     private fun ensurePermisssionsFor(mode: SendMode): Boolean {
@@ -1200,146 +1151,6 @@ class ChatConversationFragment : Fragment(),
     private fun hasPermission(permission: String): Boolean =
         ContextCompat.checkSelfPermission(requireContext(), permission) ==
             PackageManager.PERMISSION_GRANTED
-
-    private fun startRecording(mode: SendMode) {
-        if (activeRecorderMode != null) return
-        if (!ensurePermisssionsFor(mode)) return
-
-        activeRecorderMode = mode
-        cancelArmed = false
-        recordingOverlay.show(video = mode == SendMode.VIDEO)
-        updateRecordingHint()
-
-        when (mode) {
-            SendMode.VOICE -> startVoiceRecording()
-            SendMode.VIDEO -> startVideoRecording()
-            SendMode.TEXT -> Unit
-        }
-    }
-
-    private fun startVoiceRecording() {
-        val recorder = VoiceRecorder(requireContext())
-        if (!recorder.start()) {
-            abortRecording(R.string.recording_failed)
-            return
-        }
-        voiceRecorder = recorder
-        startRecordingTimer(MAX_VOICE_MS)
-    }
-
-    private fun startVideoRecording() {
-        val texture = binding.videoNotePreview
-        val recorder = VideoNoteRecorder(requireContext())
-        videoRecorder = recorder
-        videoReady = false
-        recordingOverlay.setStartingCamera()
-        val start = {
-            recorder.start(
-                texture,
-                onReady = {
-                    // Пока камера открывалась, палец могли отпустить.
-                    if (sendPressed && activeRecorderMode == SendMode.VIDEO) {
-                        videoReady = true
-                        updateRecordingHint()
-                        startRecordingTimer(MAX_VIDEO_MS)
-                    } else {
-                        recorder.cancel()
-                        if (activeRecorderMode == SendMode.VIDEO) {
-                            activeRecorderMode = null
-                            hideRecordingOverlay()
-                        }
-                    }
-                },
-                onError = { abortRecording(R.string.recording_failed) }
-            )
-        }
-        recordingOverlay.whenSurfaceReady(start)
-    }
-
-    private fun startRecordingTimer(maxMs: Long) {
-        recordStartMs = System.currentTimeMillis()
-        recordingTimer.start(maxMs)
-    }
-
-    private fun updateRecordingHint() {
-        recordingOverlay.setHint(cancelArmed)
-    }
-
-    private fun finishRecording(cancel: Boolean) {
-        if (finishingRecording) return
-        finishingRecording = true
-        val mode = activeRecorderMode
-        activeRecorderMode = null
-        recordingTimer.stop()
-        val cancelEffective = cancel || (mode == SendMode.VIDEO && !videoReady)
-        videoReady = false
-
-        if (cancelEffective) {
-            voiceRecorder?.cancel()
-            videoRecorder?.cancel()
-            voiceRecorder = null
-            videoRecorder = null
-            hideRecordingOverlay()
-            finishingRecording = false
-            return
-        }
-
-        val prepared = when (mode) {
-            SendMode.VOICE -> voiceRecorder?.stop()?.let { it.toPrepared() }
-            SendMode.VIDEO -> videoRecorder?.stop()?.let { it.toPrepared() }
-            else -> null
-        }
-        voiceRecorder = null
-        videoRecorder = null
-        hideRecordingOverlay()
-
-        if (prepared == null) {
-            Toast.makeText(requireContext(), R.string.recording_failed, Toast.LENGTH_SHORT).show()
-        } else {
-            val messageType = if (mode == SendMode.VOICE) "VOICE" else "VIDEO_NOTE"
-            viewModel.sendRecordedAttachment(prepared, messageType)
-        }
-        finishingRecording = false
-    }
-
-    private fun abortRecording(messageRes: Int) {
-        activeRecorderMode = null
-        recordingTimer.stop()
-        voiceRecorder?.cancel()
-        videoRecorder?.cancel()
-        voiceRecorder = null
-        videoRecorder = null
-        hideRecordingOverlay()
-        Toast.makeText(requireContext(), messageRes, Toast.LENGTH_SHORT).show()
-    }
-
-    private fun hideRecordingOverlay() {
-        recordingOverlay.hide()
-    }
-
-    private fun RecordedAudio.toPrepared() = PreparedAttachment(
-        file = file,
-        thumbnail = null,
-        name = file.name,
-        size = file.length(),
-        mimeType = "audio/mp4",
-        type = "AUDIO",
-        width = null,
-        height = null,
-        duration = durationSec
-    )
-
-    private fun RecordedVideo.toPrepared() = PreparedAttachment(
-        file = file,
-        thumbnail = thumbnail,
-        name = file.name,
-        size = file.length(),
-        mimeType = "video/mp4",
-        type = "VIDEO",
-        width = width,
-        height = height,
-        duration = durationSec
-    )
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
@@ -1685,7 +1496,7 @@ class ChatConversationFragment : Fragment(),
 
     override fun onPause() {
         actionsPopup?.dismiss()
-        if (activeRecorderMode != null) finishRecording(cancel = true)
+        if (::recordingController.isInitialized) recordingController.cancelIfActive()
         // Черновик сохраняем только для обычного ввода: текст редактирования
         // не должен затирать неотправленное сообщение.
         if (_binding != null && viewModel.uiState.value.editing == null) {

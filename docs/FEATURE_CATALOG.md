@@ -134,6 +134,7 @@
 | ARCH.19 | Открытие вложений | done | ChatAttachmentPresenter: аудио, галерея, видео, скачивание |
 | ARCH.20 | Рендер ленты | done | observeViewModel разложен на renderMessages/updateMessageList/scroll/highlight |
 | ARCH.21 | Жест заряда | done | ChargeGestureController: удержание, отмена движением, вибрация |
+| ARCH.22 | Запись медиа | done | ChatRecordingController: голосовые/видео-заметки, таймер, отмена, отправка |
 
 ## DIST — дистрибуция
 
