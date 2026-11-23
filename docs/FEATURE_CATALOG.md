@@ -133,6 +133,7 @@
 | ARCH.18 | Инициализация экрана | done | onViewCreated разложен на readArguments/bindHeader/setup-методы |
 | ARCH.19 | Открытие вложений | done | ChatAttachmentPresenter: аудио, галерея, видео, скачивание |
 | ARCH.20 | Рендер ленты | done | observeViewModel разложен на renderMessages/updateMessageList/scroll/highlight |
+| ARCH.21 | Жест заряда | done | ChargeGestureController: удержание, отмена движением, вибрация |
 
 ## DIST — дистрибуция
 

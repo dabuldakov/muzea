@@ -98,6 +98,7 @@ class ChatConversationFragment : Fragment(),
     private lateinit var composerBanner: ComposerBanner
     private lateinit var pendingAttachmentsView: PendingAttachmentsView
     private lateinit var chargeMeter: ChargeMeter
+    private lateinit var chargeGesture: ChargeGestureController
     private lateinit var pinnedBarView: PinnedBarView
     private lateinit var downloadController: AttachmentDownloadController
     private lateinit var recordingTimer: RecordingTimer
@@ -124,11 +125,6 @@ class ChatConversationFragment : Fragment(),
     }
     /** Текущий список закреплённых (для клика по панели и открепления). */
     private var pinnedMessages: List<Message> = emptyList()
-    private var chargeJob: Job? = null
-    private var chargeStartedAt = 0L
-    private var isCharging = false
-    private var chargeCancelled = false
-    private var lastChargeVibrationAt = 0L
 
     private enum class SendMode { TEXT, VOICE, VIDEO }
 
@@ -201,7 +197,6 @@ class ChatConversationFragment : Fragment(),
         private const val ARG_DRAFT_TEXT = "chat_draft_text"
         private const val ARG_HIGHLIGHT_MESSAGE = "chat_highlight_message"
         private const val LONG_PRESS_MS = 250L
-        private const val CHARGE_TICK_MS = 50L
         private const val MEDIA_RETRY_MS = 5 * 60 * 1000L
         private const val RECORD_CANCEL_DP = 72
         private const val MAX_VOICE_MS = 5 * 60 * 1000L
@@ -308,7 +303,15 @@ class ChatConversationFragment : Fragment(),
             sendButton = binding.btnSend,
             chargeFormat = { power -> getString(R.string.charge_format, power) },
             chargeZero = getString(R.string.charge_zero),
-            onVibrate = { level -> vibrateCharge(level) }
+            onVibrate = { level -> chargeGesture.vibrate(level) }
+        )
+        chargeGesture = ChargeGestureController(
+            scope = viewLifecycleOwner.lifecycleScope,
+            context = requireContext(),
+            meter = chargeMeter,
+            button = binding.btnSend,
+            cancelDistancePx = (RECORD_CANCEL_DP * resources.displayMetrics.density).toInt(),
+            onSend = { power -> sendClicked(power) }
         )
         recordingOverlay = RecordingOverlayView(
             overlay = binding.recordingOverlay,
@@ -1083,89 +1086,6 @@ class ChatConversationFragment : Fragment(),
             .start()
     }
 
-    private fun handleTextSendTouch(event: MotionEvent): Boolean {
-        when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> {
-                chargeStartedAt = android.os.SystemClock.elapsedRealtime()
-                isCharging = false
-                chargeCancelled = false
-                pressStartY = event.rawY
-                chargeJob?.cancel()
-                chargeJob = viewLifecycleOwner.lifecycleScope.launch {
-                    while (isActive) {
-                        delay(CHARGE_TICK_MS)
-                        val held = android.os.SystemClock.elapsedRealtime() - chargeStartedAt
-                        if (ChargeCalculator.isCharged(held)) {
-                            isCharging = true
-                            renderCharge(held)
-                        }
-                    }
-                }
-                return true
-            }
-            MotionEvent.ACTION_MOVE -> {
-                if (isCharging && event.rawY < pressStartY - dp(RECORD_CANCEL_DP)) {
-                    chargeCancelled = true
-                    cancelCharge()
-                }
-                return true
-            }
-            MotionEvent.ACTION_UP -> {
-                chargeJob?.cancel()
-                val held = android.os.SystemClock.elapsedRealtime() - chargeStartedAt
-                val power = if (isCharging && !chargeCancelled) ChargeCalculator.power(held) else 0
-                val shouldSend = !chargeCancelled
-                resetChargeMeter()
-                if (shouldSend) sendClicked(power)
-                return true
-            }
-            MotionEvent.ACTION_CANCEL -> {
-                cancelCharge()
-                return true
-            }
-        }
-        return true
-    }
-
-    private fun renderCharge(heldMs: Long) {
-        chargeMeter.render(heldMs)
-    }
-
-    /** Вибрация усиливается и учащается по мере заряда. */
-    private fun vibrateCharge(level: Float) {
-        if (level <= 0.02f) return
-        val now = android.os.SystemClock.elapsedRealtime()
-        val interval = (220 - 170 * level).toLong().coerceAtLeast(50)
-        if (now - lastChargeVibrationAt < interval) return
-        lastChargeVibrationAt = now
-        val vibrator = requireContext().getSystemService(android.os.Vibrator::class.java)
-        val amplitude = (25 + 230 * level).toInt().coerceIn(1, 255)
-        if (vibrator == null || !vibrator.hasVibrator()) {
-            binding.btnSend.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
-            return
-        }
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            vibrator.vibrate(
-                android.os.VibrationEffect.createOneShot(30, amplitude)
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(30)
-        }
-    }
-
-    private fun cancelCharge() {
-        chargeJob?.cancel()
-        isCharging = false
-        resetChargeMeter()
-    }
-
-    private fun resetChargeMeter() {
-        isCharging = false
-        chargeStartedAt = 0L
-        chargeMeter.reset()
-    }
-
     private fun cycleSendMode() {
         sendMode = when (sendMode) {
             SendMode.TEXT -> SendMode.VOICE
@@ -1193,7 +1113,7 @@ class ChatConversationFragment : Fragment(),
     }
 
     private fun handleSendTouch(event: MotionEvent): Boolean {
-        if (sendMode == SendMode.TEXT && canSendNow()) return handleTextSendTouch(event)
+        if (sendMode == SendMode.TEXT && canSendNow()) return chargeGesture.onTouch(event)
         if (sendMode == SendMode.TEXT || canSendNow()) return false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
