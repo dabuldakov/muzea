@@ -124,6 +124,7 @@
 | ARCH.09 | Контроллер вложений | done | ChatPendingAttachmentController: подготовка, загрузка, повторы и черновик |
 | ARCH.10 | Контроллер упоминаний | done | MentionPopupController: список и подстановка `@`-упоминаний |
 | ARCH.11 | Диалог реакций | done | ReactionPickerDialog: сетка эмодзи без сборки вьюх во фрагменте |
+| ARCH.12 | Контроллер квитанций | done | ChatReceiptsController: прочтения, время и галочки |
 
 ## DIST — дистрибуция
 

@@ -89,6 +89,15 @@ class ChatConversationViewModel @Inject constructor(
         emitError = { _sendError.emit(it) }
     )
 
+    private val receipts = ChatReceiptsController(
+        chatUuid = chatUuid,
+        repository = messageRepository,
+        myUserUuid = myUserUuid,
+        state = { _uiState.value },
+        setState = { _uiState.value = it },
+        withStatuses = ::withStatuses
+    )
+
     private val polling = ChatPollingController(
         scope = viewModelScope,
         networkMonitor = networkMonitor,
@@ -220,7 +229,7 @@ class ChatConversationViewModel @Inject constructor(
                     polling.rememberServerTime(incoming)
                     cacheNewGifs(incoming)
                     mergeMessages(incoming)
-                    refreshReceipts(force = incoming.isNotEmpty())
+                    receipts.refresh(force = incoming.isNotEmpty())
                 }
 
                 is Resource.Error -> {
@@ -253,7 +262,7 @@ class ChatConversationViewModel @Inject constructor(
         mergeMessages(updated)
         // Квитанции не форсируем: /updated приходит и с повторами из окна
         // перекрытия, а галочки живут в своём ритме (30 с).
-        refreshReceipts()
+        receipts.refresh()
         return true
     }
 
@@ -671,29 +680,8 @@ class ChatConversationViewModel @Inject constructor(
         }
     }
 
-    /** Когда последний раз тянули квитанции — чтобы не делать это на каждом опросе. */
-    private var lastReceiptsRefreshAt = 0L
-
-    /**
-     * Подтягивает квитанции участников, но не чаще [RECEIPTS_REFRESH_INTERVAL_MS]:
-     * галочки не обязаны обновляться каждые 3 секунды, а каждый такой запрос —
-     * это ~1,25 КБ (в большой группе — десятки килобайт).
-     * Ошибку не показываем: галочки просто останутся на прошлом значении.
-     */
-    private suspend fun refreshReceipts(force: Boolean = false) {
-        val now = System.currentTimeMillis()
-        if (!force && now - lastReceiptsRefreshAt < RECEIPTS_REFRESH_INTERVAL_MS) return
-        val receipts = messageRepository.loadChatReceipts(chatUuid) ?: return
-        lastReceiptsRefreshAt = now
-        _uiState.value = withStatuses(
-            _uiState.value.copy(receipts = receipts, receiptsLoaded = true)
-        )
-    }
-
     /** Свежие квитанции вне общего ритма — например, при открытии «Деталей». */
-    suspend fun refreshReceiptsNow() {
-        refreshReceipts(force = true)
-    }
+    suspend fun refreshReceiptsNow() = receipts.refreshNow()
 
     private fun withStatuses(state: ChatConversationUiState): ChatConversationUiState =
         state.copy(
@@ -910,52 +898,22 @@ class ChatConversationViewModel @Inject constructor(
 
     /** Статус сообщения для адаптера; null — у входящих и пока неизвестных. */
     fun deliveryStatus(messageUuid: String): MessageDeliveryStatus? =
-        _uiState.value.statuses[messageUuid]
+        receipts.deliveryStatus(messageUuid)
 
-    /**
-     * Кто поставил реакции — для блока «Детали». Нужен и на чужих сообщениях,
-     * где списка получателей нет.
-     */
-    fun reactionAuthors(message: Message): List<Pair<String, ChatReceipt?>> {
-        val uuids = message.reactions
-            .flatMap { reaction -> reaction.users.mapNotNull { it.userUuid } }
-            .distinct()
-        if (uuids.isEmpty()) return emptyList()
-        val byUuid = _uiState.value.receipts.associateBy { it.userUuid }
-        // Реакцию мог поставить и я сам — моего receipt в списке участников нет.
-        return uuids.map { uuid -> uuid to byUuid[uuid] }
-    }
-
-    /**
-     * Точное время доставки и прочтения конкретного сообщения.
-     *
-     * Водарки в квитанциях знают только «последнее прочтение чата», поэтому
-     * время в «Деталях» берём из отметок по сообщению. Для истории, до
-     * появления отметок, времени нет — строку показываем без него.
-     */
-    private val receiptTimes = mutableMapOf<String, Map<String, MessageReceiptTime>>()
+    /** Кто поставил реакции — для блока «Детали». */
+    fun reactionAuthors(message: Message): List<Pair<String, ChatReceipt?>> =
+        receipts.reactionAuthors(message)
 
     /** Загружает отметки сообщения; ошибку не показываем — время просто не появится. */
-    suspend fun loadMessageReceiptTimes(message: Message) {
-        if (message.messageId == null) return
-        val times = messageRepository.loadMessageReceiptTimes(chatUuid, message.messageUuid)
-            ?: return
-        receiptTimes[message.messageUuid] = times
-            .mapNotNull { time -> time.userUuid?.let { it to time } }
-            .toMap()
-    }
+    suspend fun loadMessageReceiptTimes(message: Message) = receipts.loadTimes(message)
 
     /** Время конкретного участника по сообщению или null, если его ещё нет. */
     fun receiptTime(message: Message, userUuid: String): MessageReceiptTime? =
-        receiptTimes[message.messageUuid]?.get(userUuid)
+        receipts.time(message, userUuid)
 
     /** Кто прочитал/получил сообщение — для шторки статуса. */
     fun participantStatuses(message: Message): List<ParticipantDeliveryStatus> =
-        MessageStatusCalculator.participantStatuses(
-            message = message,
-            receipts = _uiState.value.receipts,
-            myUserUuid = myUserUuid
-        )
+        receipts.participantStatuses(message)
 
     /**
      * Отмечает прочитанным всё до указанного сообщения. Вызывается по мере
@@ -996,8 +954,6 @@ class ChatConversationViewModel @Inject constructor(
          * пересылать одно и то же слишком много раз.
          */
         private const val UPDATED_OVERLAP_SECONDS = 15L
-        /** Квитанции прочтения — не чаще раза в 30 секунд. */
-        private const val RECEIPTS_REFRESH_INTERVAL_MS = 30_000L
         private const val PAGE_SIZE = 50
     }
 }

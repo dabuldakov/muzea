@@ -25,6 +25,7 @@
 | 23.11 | refactor | ARCH.09 | `ChatPendingAttachmentController`: подготовка, загрузка и хранение вложений вынесены из ViewModel | — |
 | 23.11 | refactor | ARCH.10 | `MentionPopupController`: подсказка `@`-упоминаний вынесена из `ChatConversationFragment` | — |
 | 23.11 | refactor | ARCH.11 | `ReactionPickerDialog`: сетка эмодзи-реакций вынесена из фрагмента | — |
+| 23.11 | refactor | ARCH.12 | `ChatReceiptsController`: квитанции, точное время и статусы вынесены из ViewModel | — |
 
 ## 1.7.57 — 2026-11-23
 
