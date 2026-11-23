@@ -85,6 +85,19 @@ class ChatConversationViewModel @Inject constructor(
         emitError = { _sendError.emit(it) }
     )
 
+    private val actions = ChatMessageActions(
+        chatUuid = chatUuid,
+        scope = viewModelScope,
+        repository = messageRepository,
+        reducer = reducer,
+        context = appContext,
+        state = { _uiState.value },
+        setState = { _uiState.value = it },
+        updateMessage = editor::update,
+        emitError = { _sendError.emit(it) },
+        emitEvent = { _events.emit(it) }
+    )
+
     private val pendingAttachments = ChatPendingAttachmentController(
         chatUuid = chatUuid,
         scope = viewModelScope,
@@ -123,7 +136,7 @@ class ChatConversationViewModel @Inject constructor(
         // Опрос сам выполняет первый запрос, поэтому отдельный refresh() в init
         // был бы вторым обращением к серверу подряд при каждом входе в чат.
         polling.start()
-        viewModelScope.launch { refreshPinned() }
+        viewModelScope.launch { actions.refreshPinned() }
     }
 
     /** Поднимаем из очереди сообщения, не отправленные в прошлой сессии. */
@@ -174,7 +187,7 @@ class ChatConversationViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             loadOnce()
-            refreshPinned()
+            actions.refreshPinned()
         }
     }
 
@@ -368,76 +381,21 @@ class ChatConversationViewModel @Inject constructor(
      * Пересылает сообщение в выбранный чат. Если пользователь добавил
      * комментарий, он отправляется в тот же чат отдельным сообщением.
      */
-    fun forwardMessage(message: Message, targetChatUuid: String, comment: String? = null) {
-        forwardMessages(listOf(message), targetChatUuid, comment)
-    }
+    fun forwardMessage(message: Message, targetChatUuid: String, comment: String? = null) =
+        actions.forward(message, targetChatUuid, comment)
 
     /**
      * Пересылает пачку сообщений. Комментарий пользователя отправляется один
      * раз, после всех пересланных сообщений.
      */
-    fun forwardMessages(messages: List<Message>, targetChatUuid: String, comment: String? = null) {
-        if (messages.isEmpty()) return
-        viewModelScope.launch {
-            var forwarded = false
-            for (message in messages) {
-                messageRepository.forwardMessage(reducer.serverUuid(message.messageUuid), targetChatUuid)
-                    .collect { result ->
-                        when (result) {
-                            is Resource.Success -> forwarded = true
-                            is Resource.Error ->
-                                _sendError.emit(appContext.getString(R.string.forward_message_failed))
-                            is Resource.Loading -> Unit
-                        }
-                    }
-            }
-            if (!forwarded) return@launch
-            if (!comment.isNullOrBlank()) {
-                messageRepository.sendMessage(
-                    targetChatUuid, comment, emptyList(), "TEXT", null
-                ).collect { result ->
-                    if (result is Resource.Error) {
-                        _sendError.emit(
-                            result.message ?: appContext.getString(R.string.forward_message_failed)
-                        )
-                    }
-                }
-            }
-            _events.emit(appContext.getString(R.string.message_forwarded))
-        }
-    }
+    fun forwardMessages(messages: List<Message>, targetChatUuid: String, comment: String? = null) =
+        actions.forwardMany(messages, targetChatUuid, comment)
 
     /** Закрепляет сообщение в текущем чате. */
-    fun pinMessage(message: Message) {
-        viewModelScope.launch {
-            val ok = messageRepository.pinMessage(chatUuid, reducer.serverUuid(message.messageUuid))
-            if (ok) {
-                editor.update(message.copy(isPinned = true))
-                refreshPinned()
-            } else {
-                _sendError.emit(appContext.getString(R.string.pin_message_failed))
-            }
-        }
-    }
+    fun pinMessage(message: Message) = actions.pin(message)
 
     /** Открепляет сообщение. */
-    fun unpinMessage(message: Message) {
-        viewModelScope.launch {
-            val ok = messageRepository.unpinMessage(chatUuid, reducer.serverUuid(message.messageUuid))
-            if (ok) {
-                editor.update(message.copy(isPinned = false))
-                refreshPinned()
-            } else {
-                _sendError.emit(appContext.getString(R.string.unpin_message_failed))
-            }
-        }
-    }
-
-    /** Обновляет список закреплённых для панели сверху. */
-    private suspend fun refreshPinned() {
-        val pinned = messageRepository.loadPinned(chatUuid)
-        _uiState.value = _uiState.value.copy(pinnedMessages = pinned)
-    }
+    fun unpinMessage(message: Message) = actions.unpin(message)
 
     private fun messageTypeFor(attachments: List<MessageAttachment>): String {
         if (attachments.isEmpty()) return "TEXT"
@@ -777,18 +735,7 @@ class ChatConversationViewModel @Inject constructor(
         mimeType: String?
     ): android.net.Uri? = messageRepository.publishDownloadedAttachment(file, fileName, mimeType)
 
-    fun toggleReaction(message: Message, emoji: String) {
-        viewModelScope.launch {
-            val updated = messageRepository.toggleReaction(
-                reducer.serverUuid(message.messageUuid), emoji
-            )
-            if (updated != null) {
-                editor.update(message.copy(reactions = updated))
-            } else {
-                _sendError.emit(appContext.getString(R.string.reaction_failed))
-            }
-        }
-    }
+    fun toggleReaction(message: Message, emoji: String) = actions.toggleReaction(message, emoji)
 
     /** Статус сообщения для адаптера; null — у входящих и пока неизвестных. */
     fun deliveryStatus(messageUuid: String): MessageDeliveryStatus? =
@@ -833,11 +780,10 @@ class ChatConversationViewModel @Inject constructor(
 
     /** Отправить жалобу на сообщение. Возвращает true, если сервер её принял. */
     suspend fun reportMessage(messageUuid: String, reason: String): Boolean =
-        messageRepository.reportMessage(reducer.serverUuid(messageUuid), reason)
+        actions.report(messageUuid, reason)
 
     /** Заблокировать автора сообщения. */
-    suspend fun blockUser(userUuid: String): Boolean =
-        messageRepository.blockUser(userUuid)
+    suspend fun blockUser(userUuid: String): Boolean = actions.block(userUuid)
 
     companion object {
         const val ARG_CHAT_UUID = "chat_uuid"

@@ -127,6 +127,7 @@
 | ARCH.12 | Контроллер квитанций | done | ChatReceiptsController: прочтения, время и галочки |
 | ARCH.13 | Открытие скачанных файлов | done | DownloadedFileOpener: просмотр, блокировка APK/EXE, fallback «Поделиться» |
 | ARCH.14 | Редактор сообщений | done | ChatMessageEditor: режим правки, серверное эхо, удаление и превью чата |
+| ARCH.15 | Действия над сообщениями | done | ChatMessageActions: пересылка, закрепление, реакции, жалобы, блокировка |
 
 ## DIST — дистрибуция
 
