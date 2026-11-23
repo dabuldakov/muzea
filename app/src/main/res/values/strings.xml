@@ -255,6 +255,7 @@
     <string name="charge_zero">⚡ 0%</string>
     <string name="charge_format">⚡ %1$d%%</string>
     <string name="attachment_open_failed">No app to open this file</string>
+    <string name="attachment_executable_blocked">For security, APK and other executable files are not opened from chat. The file is saved — open it from your file manager only if you trust the sender.</string>
     <string name="attachment_play">Play</string>
     <string name="attachment_wait_upload">Wait until the files are uploaded</string>
     <string name="attachment_cannot_attach">Could not attach this file</string>

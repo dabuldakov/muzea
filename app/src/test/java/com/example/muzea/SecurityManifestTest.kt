@@ -1,5 +1,6 @@
 package com.example.muzea
 
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -39,6 +40,14 @@ class SecurityManifestTest {
         val provider = manifest.substringAfter("<provider").substringBefore(">")
         assertTrue(provider, provider.contains("android:exported=\"false\""))
         assertTrue(provider, provider.contains("android:grantUriPermissions=\"true\""))
+    }
+
+    @Test
+    fun `install packages permission is absent`() {
+        assertFalse(
+            "REQUEST_INSTALL_PACKAGES must not be requested: APK from chat is not opened",
+            manifest.contains("REQUEST_INSTALL_PACKAGES")
+        )
     }
 
     @Test

@@ -241,6 +241,7 @@
     <string name="attachment_document">Документ</string>
     <string name="attachment_download_failed">Не удалось скачать файл</string>
     <string name="attachment_open_failed">Нет приложения для открытия файла</string>
+    <string name="attachment_executable_blocked">Из соображений безопасности APK и другие исполняемые файлы не открываются из чата. Файл сохранён — откройте его через файловый менеджер, только если доверяете отправителю.</string>
     <string name="attachment_play">Воспроизвести</string>
     <string name="attachment_wait_upload">Дождитесь загрузки файлов</string>
     <string name="attachment_cannot_attach">Не удалось прикрепить файл</string>

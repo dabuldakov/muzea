@@ -45,6 +45,7 @@ import com.example.muzea.ui.chat.recording.VoiceRecorder
 import com.example.muzea.utils.PreparedAttachment
 import com.example.muzea.utils.MediaUrl
 import com.example.muzea.utils.TokenManager
+import com.example.muzea.utils.AttachmentOpenPolicy
 import com.example.muzea.data.repository.ChatListCache
 import com.example.muzea.data.repository.LinkPreviewStore
 import com.example.muzea.databinding.FragmentChatConversationBinding
@@ -1045,6 +1046,17 @@ class ChatConversationFragment : Fragment(),
         file: java.io.File,
         attachment: MessageAttachment
     ) {
+        // APK/EXE и подобные файлы не открываем как установщик: приложение не
+        // должно провоцировать установку из чата. Файл уже сохранён, открыть
+        // его можно вручную через файловый менеджер.
+        if (AttachmentOpenPolicy.isExecutable(attachment.fileName, attachment.mimeType)) {
+            MaterialAlertDialogBuilder(requireContext())
+                .setMessage(R.string.attachment_executable_blocked)
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+            return
+        }
+
         val uri = publicUri ?: runCatching {
             androidx.core.content.FileProvider.getUriForFile(
                 requireContext(),
@@ -1058,17 +1070,12 @@ class ChatConversationFragment : Fragment(),
             ).show()
             return
         }
-        val mime = when {
-            attachment.fileName?.endsWith(".apk", ignoreCase = true) == true ->
-                "application/vnd.android.package-archive"
-            !attachment.mimeType.isNullOrBlank() -> attachment.mimeType
-            else -> "*/*"
-        }
+        val mime = attachment.mimeType?.takeIf { it.isNotBlank() } ?: "*/*"
         val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
             setDataAndType(uri, mime)
             addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            // Часть прошивок (Transsion/Infinix) не передаёт грант установщику
-            // только по флагу — дублируем URI в ClipData.
+            // Часть прошивок (Transsion/Infinix) не передаёт грант только по
+            // флагу — дублируем URI в ClipData.
             clipData = android.content.ClipData.newRawUri("", uri)
         }
         try {
