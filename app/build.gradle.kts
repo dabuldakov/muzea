@@ -6,6 +6,7 @@ plugins {
     id("kotlin-kapt")
     id("com.google.gms.google-services")
     id("com.google.dagger.hilt.android")
+    id("io.gitlab.arturbosch.detekt")
     jacoco
 }
 
@@ -325,4 +326,21 @@ configurations.all {
 kapt {
     // Hilt: не падать на неоднозначных типах, которые kapt видит как error types.
     correctErrorTypes = true
+}
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+    baseline = file("$rootDir/config/detekt/baseline.xml")
+    parallel = true
+}
+
+tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
+    }
+}
+
+tasks.named("check") {
+    dependsOn("detekt")
 }

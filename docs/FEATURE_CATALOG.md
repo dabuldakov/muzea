@@ -118,6 +118,7 @@
 | QA.04 | androidTest на устройстве | planned | Камера, плеер, установщик |
 | QA.05 | Гейт покрытия клиента | planned | Сейчас гейтов нет; цель 85%+ |
 | QA.06 | Мутационное тестирование | planned | PIT для ViewModel/репозиториев |
+| QA.07 | Статический анализ Kotlin | done | Detekt + baseline в CI/Release |
 
 ## DIST — дистрибуция
 

@@ -20,8 +20,8 @@
 
 | Событие | Workflow | Где | Что делает |
 |---|---|---|---|
-| push/PR в `main` | **CI** (`ci.yml`) | Ubuntu | unit-тесты, отчёт покрытия |
-| push тега `v*` | **Release** (`release.yml`) | Ubuntu | проверка `versionName` == тег, keystore, SHA-256 сертификата, `testDebugUnitTest`, сборка APK/AAB, GitHub Release, опционально Google Play |
+| push/PR в `main` | **CI** (`ci.yml`) | Ubuntu | unit-тесты, покрытие, Detekt (baseline) |
+| push тега `v*` | **Release** (`release.yml`) | Ubuntu | проверка `versionName` == тег, keystore, SHA-256 сертификата, `testDebugUnitTest`, Detekt, сборка APK/AAB, GitHub Release, опционально Google Play |
 | вручную | **Release** | Ubuntu | то же по `inputs.tag` |
 
 macOS-раннеры не тратятся. Перед релизом важно, чтобы `main`/релизная ветка

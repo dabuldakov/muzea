@@ -37,6 +37,9 @@ jobs:
       - name: Unit-тесты и покрытие (включая Robolectric)
         run: ./gradlew --no-daemon jacocoUnitTestReport
 
+      - name: Detekt (статический анализ Kotlin)
+        run: ./gradlew --no-daemon detekt
+
       - name: Отчёт о тестах
         if: always()
         uses: actions/upload-artifact@v4

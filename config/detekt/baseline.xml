@@ -1,0 +1,222 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:ChatConversationFragment.kt$ChatConversationFragment$initialScrollDone &amp;&amp; !pendingScrollToTop &amp;&amp; anchorUuid == null &amp;&amp; wasAtBottom</ID>
+    <ID>ComplexCondition:LinkPreviewStore.kt$LinkPreviewStore$normalized == "localhost" || normalized.endsWith(".localhost") || normalized == "metadata.google.internal" || normalized.endsWith(".local") || normalized.endsWith(".internal")</ID>
+    <ID>ComplexCondition:NewsListFragment.kt$NewsListFragment.&lt;no name provided&gt;$dy &lt;= 0 || state.isLoading || state.isRefreshing || state.endReached</ID>
+    <ID>CyclomaticComplexMethod:ChatConversationFragment.kt$ChatConversationFragment$private fun observeViewModel()</ID>
+    <ID>CyclomaticComplexMethod:ChatConversationViewModel.kt$ChatConversationViewModel$fun retryMessage(message: Message)</ID>
+    <ID>CyclomaticComplexMethod:DetailsSection.kt$DetailsSection$private fun buildRow( row: MessageStatusRow, userReactions: List&lt;String&gt;, onSurface: Int, onSurfaceVariant: Int ): LinearLayout</ID>
+    <ID>CyclomaticComplexMethod:MediaFileReader.kt$MediaFileReader$suspend fun prepare(uri: Uri): PreparedAttachment</ID>
+    <ID>CyclomaticComplexMethod:MessageActionsBuilder.kt$MessageActionsBuilder$fun build( message: Message, myUserUuid: String?, isGroupChat: Boolean, deliveryStatus: MessageDeliveryStatus? = null ): Result</ID>
+    <ID>CyclomaticComplexMethod:MessageAdapter.kt$private fun bindAttachments( container: android.widget.LinearLayout, textView: TextView, linkCard: View, message: Message, playingAudioUuid: String?, audioIsPlaying: Boolean, onClick: (Message, MessageAttachment) -&gt; Unit, onLongClick: (Message) -&gt; Unit )</ID>
+    <ID>CyclomaticComplexMethod:VideoUploadActivity.kt$VideoUploadActivity$private suspend fun copyToDraft(uri: Uri): VideoCopyResult</ID>
+    <ID>ExplicitItLambdaParameter:ChatConversationFragment.kt$ChatConversationFragment${ it -&gt; resolveAttachmentUrl(it) }</ID>
+    <ID>FunctionOnlyReturningConstant:GifCache.kt$GifCache.Companion$fun recentKey(): String</ID>
+    <ID>LargeClass:ChatConversationFragment.kt$ChatConversationFragment : FragmentOnGifSelectedListenerOnChatForwardTargetSelectedListenerListener</ID>
+    <ID>LargeClass:ChatConversationViewModel.kt$ChatConversationViewModel : ViewModel</ID>
+    <ID>LargeClass:ChatConversationViewModelTest.kt$ChatConversationViewModelTest</ID>
+    <ID>LargeClass:MessageAdapterBindTest.kt$MessageAdapterBindTest</ID>
+    <ID>LargeClass:MessageRepositoryImpl.kt$MessageRepositoryImpl : MessageRepository</ID>
+    <ID>LongMethod:ChatConversationFragment.kt$ChatConversationFragment$override fun onViewCreated(view: View, savedInstanceState: Bundle?)</ID>
+    <ID>LongMethod:ChatConversationFragment.kt$ChatConversationFragment$private fun observeViewModel()</ID>
+    <ID>LoopWithTooManyJumpStatements:ChatMessageReducer.kt$ChatMessageReducer$for</ID>
+    <ID>LoopWithTooManyJumpStatements:OgParser.kt$OgParser$for</ID>
+    <ID>LoopWithTooManyJumpStatements:VideoUploadActivity.kt$VideoUploadActivity$for</ID>
+    <ID>MatchingDeclarationName:ChangelogParser.kt$ChangelogGroup</ID>
+    <ID>NestedBlockDepth:ContactRepositoryImpl.kt$ContactRepositoryImpl$override suspend fun loadPresence(userUuids: List&lt;String&gt;): Map&lt;String, Presence&gt;</ID>
+    <ID>NestedBlockDepth:MessageActionsBottomSheet.kt$MessageActionsBottomSheet$private fun renderStatus(showStatus: Boolean, rows: List&lt;MessageStatusRow&gt;)</ID>
+    <ID>NestedBlockDepth:MessageAdapter.kt$private fun bindAttachments( container: android.widget.LinearLayout, textView: TextView, linkCard: View, message: Message, playingAudioUuid: String?, audioIsPlaying: Boolean, onClick: (Message, MessageAttachment) -&gt; Unit, onLongClick: (Message) -&gt; Unit )</ID>
+    <ID>NestedBlockDepth:VideoUploadActivity.kt$VideoUploadActivity$private fun readIntoDraft(uri: Uri, draft: File): Long?</ID>
+    <ID>NestedBlockDepth:VideoUploadActivity.kt$VideoUploadActivity$private suspend fun copyToDraft(uri: Uri): VideoCopyResult</ID>
+    <ID>NewLineAtEndOfFile:AddContactRequest.kt$com.example.muzea.data.model.AddContactRequest.kt</ID>
+    <ID>NewLineAtEndOfFile:AddGroupParticipantsRequest.kt$com.example.muzea.data.model.AddGroupParticipantsRequest.kt</ID>
+    <ID>NewLineAtEndOfFile:ApiService.kt$com.example.muzea.data.api.ApiService.kt</ID>
+    <ID>NewLineAtEndOfFile:AvatarLoader.kt$com.example.muzea.utils.AvatarLoader.kt</ID>
+    <ID>NewLineAtEndOfFile:ChatConversationViewModel.kt$com.example.muzea.ui.chat.ChatConversationViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:ChatListCache.kt$com.example.muzea.data.repository.ChatListCache.kt</ID>
+    <ID>NewLineAtEndOfFile:ChatListCacheTest.kt$com.example.muzea.data.repository.ChatListCacheTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ChatListFragment.kt$com.example.muzea.ui.chat.ChatListFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:ChatListViewState.kt$com.example.muzea.ui.chat.ChatListViewState.kt</ID>
+    <ID>NewLineAtEndOfFile:ChatListViewStateTest.kt$com.example.muzea.ui.chat.ChatListViewStateTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ChatParticipantResponse.kt$com.example.muzea.data.model.ChatParticipantResponse.kt</ID>
+    <ID>NewLineAtEndOfFile:ChatRepositoryIntegrationTest.kt$com.example.muzea.data.repository.ChatRepositoryIntegrationTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ChatResponse.kt$com.example.muzea.data.model.ChatResponse.kt</ID>
+    <ID>NewLineAtEndOfFile:ChatTimeFormatter.kt$com.example.muzea.utils.ChatTimeFormatter.kt</ID>
+    <ID>NewLineAtEndOfFile:ChatTimeFormatterTest.kt$com.example.muzea.utils.ChatTimeFormatterTest.kt</ID>
+    <ID>NewLineAtEndOfFile:ChatTokenStore.kt$com.example.muzea.utils.ChatTokenStore.kt</ID>
+    <ID>NewLineAtEndOfFile:ChatUserResponse.kt$com.example.muzea.data.model.ChatUserResponse.kt</ID>
+    <ID>NewLineAtEndOfFile:Constants.kt$com.example.muzea.utils.Constants.kt</ID>
+    <ID>NewLineAtEndOfFile:ContactAdapter.kt$com.example.muzea.ui.contact.ContactAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:ContactListFragment.kt$com.example.muzea.ui.contact.ContactListFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:ContactResponse.kt$com.example.muzea.data.model.ContactResponse.kt</ID>
+    <ID>NewLineAtEndOfFile:CreateGroupChatRequest.kt$com.example.muzea.data.model.CreateGroupChatRequest.kt</ID>
+    <ID>NewLineAtEndOfFile:CreateNewsActivity.kt$com.example.muzea.ui.news.CreateNewsActivity.kt</ID>
+    <ID>NewLineAtEndOfFile:CreatePrivateChatRequest.kt$com.example.muzea.data.model.CreatePrivateChatRequest.kt</ID>
+    <ID>NewLineAtEndOfFile:ExampleUnitTest.kt$com.example.muzea.ExampleUnitTest.kt</ID>
+    <ID>NewLineAtEndOfFile:GlideModule.kt$com.example.muzea.utils.GlideModule.kt</ID>
+    <ID>NewLineAtEndOfFile:GroupMemberAdapter.kt$com.example.muzea.ui.chat.GroupMemberAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:GroupSettingsFragment.kt$com.example.muzea.ui.chat.GroupSettingsFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:GroupSettingsViewModel.kt$com.example.muzea.ui.chat.GroupSettingsViewModel.kt</ID>
+    <ID>NewLineAtEndOfFile:IntegrationTestClient.kt$com.example.muzea.data.IntegrationTestClient.kt</ID>
+    <ID>NewLineAtEndOfFile:LastSeenFormatter.kt$com.example.muzea.utils.LastSeenFormatter.kt</ID>
+    <ID>NewLineAtEndOfFile:LastSeenFormatterTest.kt$com.example.muzea.utils.LastSeenFormatterTest.kt</ID>
+    <ID>NewLineAtEndOfFile:MainActivity.kt$com.example.muzea.ui.MainActivity.kt</ID>
+    <ID>NewLineAtEndOfFile:MediaUrl.kt$com.example.muzea.utils.MediaUrl.kt</ID>
+    <ID>NewLineAtEndOfFile:MediaUrlTest.kt$com.example.muzea.utils.MediaUrlTest.kt</ID>
+    <ID>NewLineAtEndOfFile:MessagePreview.kt$com.example.muzea.data.model.MessagePreview.kt</ID>
+    <ID>NewLineAtEndOfFile:NewsAdapter.kt$com.example.muzea.ui.news.NewsAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:NewsCreateResponse.kt$com.example.muzea.data.model.NewsCreateResponse.kt</ID>
+    <ID>NewLineAtEndOfFile:NewsDetailFragment.kt$com.example.muzea.ui.news.NewsDetailFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:NewsFeedFilter.kt$com.example.muzea.ui.news.NewsFeedFilter.kt</ID>
+    <ID>NewLineAtEndOfFile:NewsFeedFilterTest.kt$com.example.muzea.ui.news.NewsFeedFilterTest.kt</ID>
+    <ID>NewLineAtEndOfFile:NewsListFragment.kt$com.example.muzea.ui.news.NewsListFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:NewsRepositoryIntegrationTest.kt$com.example.muzea.data.repository.NewsRepositoryIntegrationTest.kt</ID>
+    <ID>NewLineAtEndOfFile:NewsResponse.kt$com.example.muzea.data.model.NewsResponse.kt</ID>
+    <ID>NewLineAtEndOfFile:NewsViewModelTest.kt$com.example.muzea.ui.news.NewsViewModelTest.kt</ID>
+    <ID>NewLineAtEndOfFile:PageResponse.kt$com.example.muzea.data.model.PageResponse.kt</ID>
+    <ID>NewLineAtEndOfFile:ParticipantAdapter.kt$com.example.muzea.ui.chat.ParticipantAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:PresenceDeserializationTest.kt$com.example.muzea.data.model.PresenceDeserializationTest.kt</ID>
+    <ID>NewLineAtEndOfFile:PresenceResponse.kt$com.example.muzea.data.model.PresenceResponse.kt</ID>
+    <ID>NewLineAtEndOfFile:Resource.kt$com.example.muzea.core.Resource.kt</ID>
+    <ID>NewLineAtEndOfFile:SendMessageRequest.kt$com.example.muzea.data.model.SendMessageRequest.kt</ID>
+    <ID>NewLineAtEndOfFile:TokenManager.kt$com.example.muzea.utils.TokenManager.kt</ID>
+    <ID>NewLineAtEndOfFile:UpdateUserRequest.kt$com.example.muzea.data.model.UpdateUserRequest.kt</ID>
+    <ID>NewLineAtEndOfFile:VideoAdapter.kt$com.example.muzea.ui.video.VideoAdapter.kt</ID>
+    <ID>NewLineAtEndOfFile:VideoListFragment.kt$com.example.muzea.ui.video.VideoListFragment.kt</ID>
+    <ID>NewLineAtEndOfFile:VideoRepositoryIntegrationTest.kt$com.example.muzea.data.repository.VideoRepositoryIntegrationTest.kt</ID>
+    <ID>NewLineAtEndOfFile:VideoResponse.kt$com.example.muzea.data.model.VideoResponse.kt</ID>
+    <ID>NewLineAtEndOfFile:VideoUploadActivity.kt$com.example.muzea.ui.video.VideoUploadActivity.kt</ID>
+    <ID>SerialVersionUIDInSerializableClass:ImageViewerData.kt$ViewerImage : Serializable</ID>
+    <ID>SerialVersionUIDInSerializableClass:MessageActionsBottomSheet.kt$MessageActionSpec : Serializable</ID>
+    <ID>SerialVersionUIDInSerializableClass:MessageActionsBottomSheet.kt$MessageStatusRow : Serializable</ID>
+    <ID>SpreadOperator:MessageLinks.kt$MessageLinks$(*TRAILING)</ID>
+    <ID>SwallowedException:AttachmentDownloads.kt$AttachmentDownloads$e: Exception</ID>
+    <ID>SwallowedException:AuthRepository.kt$AuthRepository$e: Exception</ID>
+    <ID>SwallowedException:AuthRepositoryCancellationTest.kt$AuthRepositoryCancellationTest$e: CancellationException</ID>
+    <ID>SwallowedException:AvatarRepositoryExtraTest.kt$AvatarRepositoryExtraTest$e: CancellationException</ID>
+    <ID>SwallowedException:BackendRepositoryErrorPathsTest.kt$BackendRepositoryErrorPathsTest$e: CancellationException</ID>
+    <ID>SwallowedException:ChatAdapterTest.kt$ChatAdapterTest$e: NoSuchFieldException</ID>
+    <ID>SwallowedException:ChatAuthManager.kt$ChatAuthManager$e: Exception</ID>
+    <ID>SwallowedException:ChatConversationFragment.kt$ChatConversationFragment$e: Exception</ID>
+    <ID>SwallowedException:ChatRepositoryErrorPathsTest.kt$ChatRepositoryErrorPathsTest$e: CancellationException</ID>
+    <ID>SwallowedException:ChatSessionRepositoryExtraTest.kt$ChatSessionRepositoryExtraTest$e: CancellationException</ID>
+    <ID>SwallowedException:ChatSessionRepositoryImpl.kt$ChatSessionRepositoryImpl$e: Exception</ID>
+    <ID>SwallowedException:ContactAdapterTest.kt$ContactAdapterTest$e: NoSuchFieldException</ID>
+    <ID>SwallowedException:ContactRepositoryErrorPathsTest.kt$ContactRepositoryErrorPathsTest$e: CancellationException</ID>
+    <ID>SwallowedException:ContactRepositoryImpl.kt$ContactRepositoryImpl$e: Exception</ID>
+    <ID>SwallowedException:ContactViewModel.kt$ContactViewModel$e: Exception</ID>
+    <ID>SwallowedException:FlowExtensions.kt$e: NoSuchElementException</ID>
+    <ID>SwallowedException:GifPickerAdapterTest.kt$GifPickerAdapterTest$e: NoSuchFieldException</ID>
+    <ID>SwallowedException:GifRepositoryFailureTest.kt$GifRepositoryFailureTest$e: CancellationException</ID>
+    <ID>SwallowedException:GifRepositoryImpl.kt$GifRepositoryImpl$e: Exception</ID>
+    <ID>SwallowedException:GroupMemberAdapterTest.kt$GroupMemberAdapterTest$e: NoSuchFieldException</ID>
+    <ID>SwallowedException:LastSeenFormatter.kt$LastSeenFormatter$e: Exception</ID>
+    <ID>SwallowedException:LinkPreviewStore.kt$LinkPreviewStore$e: Exception</ID>
+    <ID>SwallowedException:LocalTimeFormatter.kt$LocalTimeFormatter$e: Exception</ID>
+    <ID>SwallowedException:MediaFileReader.kt$MediaFileReader$e: Exception</ID>
+    <ID>SwallowedException:MessageAdapter.kt$e: Exception</ID>
+    <ID>SwallowedException:MessageRepositoryCancellationTest.kt$MessageRepositoryCancellationTest$e: CancellationException</ID>
+    <ID>SwallowedException:MessageRepositoryImpl.kt$MessageRepositoryImpl$e: Exception</ID>
+    <ID>SwallowedException:MessageStatusCalculator.kt$MessageStatusCalculator$e: Exception</ID>
+    <ID>SwallowedException:NewsAdapterTest.kt$NewsAdapterTest$e: NoSuchFieldException</ID>
+    <ID>SwallowedException:NewsRepositoryImpl.kt$NewsRepositoryImpl$e: Exception</ID>
+    <ID>SwallowedException:NewsViewModel.kt$NewsViewModel$e: Exception</ID>
+    <ID>SwallowedException:OpenPrivateChatUseCase.kt$OpenPrivateChatUseCase$e: Exception</ID>
+    <ID>SwallowedException:OpenPrivateChatUseCaseTest.kt$OpenPrivateChatUseCaseTest$e: CancellationException</ID>
+    <ID>SwallowedException:ParticipantAdapterTest.kt$ParticipantAdapterTest$e: NoSuchFieldException</ID>
+    <ID>SwallowedException:ProfileFragment.kt$ProfileFragment$e: Exception</ID>
+    <ID>SwallowedException:VideoAdapterTest.kt$VideoAdapterTest$e: NoSuchFieldException</ID>
+    <ID>SwallowedException:VideoNoteRecorder.kt$VideoNoteRecorder$e: Exception</ID>
+    <ID>SwallowedException:VideoRepositoryImpl.kt$VideoRepositoryImpl$e: Exception</ID>
+    <ID>SwallowedException:VideoUploadActivity.kt$VideoUploadActivity$e: Exception</ID>
+    <ID>SwallowedException:VoiceRecorder.kt$VoiceRecorder$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:AttachmentDownloads.kt$AttachmentDownloads$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:AuthRepository.kt$AuthRepository$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:AuthTokenRefresher.kt$AuthTokenRefresher$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:AvatarRepositoryImpl.kt$AvatarRepositoryImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ChatAuthManager.kt$ChatAuthManager$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ChatConversationFragment.kt$ChatConversationFragment$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ChatConversationViewModel.kt$ChatConversationViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ChatRepositoryImpl.kt$ChatRepositoryImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ChatSessionRepositoryImpl.kt$ChatSessionRepositoryImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ContactRepositoryImpl.kt$ContactRepositoryImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ContactViewModel.kt$ContactViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:CreateNewsActivity.kt$CreateNewsActivity$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GifRepositoryImpl.kt$GifRepositoryImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GroupSettingsFragment.kt$GroupSettingsFragment$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:LastSeenFormatter.kt$LastSeenFormatter$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:LinkPreviewStore.kt$LinkPreviewStore$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:LocalTimeFormatter.kt$LocalTimeFormatter$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MediaFileReader.kt$MediaFileReader$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MessageAdapter.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MessageRepositoryImpl.kt$MessageRepositoryImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MessageStatusCalculator.kt$MessageStatusCalculator$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:NewsRepositoryImpl.kt$NewsRepositoryImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:NewsViewModel.kt$NewsViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:OpenPrivateChatUseCase.kt$OpenPrivateChatUseCase$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ProfileFragment.kt$ProfileFragment$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SecureStore.kt$SecureStore$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:UserRepositoryImpl.kt$UserRepositoryImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:VideoNoteRecorder.kt$VideoNoteRecorder$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:VideoRepositoryImpl.kt$VideoRepositoryImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:VideoUploadActivity.kt$VideoUploadActivity$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:VoiceRecorder.kt$VoiceRecorder$e: Exception</ID>
+    <ID>TooManyFunctions:ChatApiService.kt$ChatApiService</ID>
+    <ID>TooManyFunctions:ChatConversationFragment.kt$ChatConversationFragment : FragmentOnGifSelectedListenerOnChatForwardTargetSelectedListenerListener</ID>
+    <ID>TooManyFunctions:ChatConversationViewModel.kt$ChatConversationViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:ChatRepositories.kt$MessageRepository</ID>
+    <ID>UnusedImports:AttachmentDownloadsTest.kt$import android.provider.MediaStore</ID>
+    <ID>UnusedImports:AttachmentViewerActivity.kt$import com.example.muzea.utils.MediaUrl</ID>
+    <ID>UnusedImports:AttachmentsBottomSheetTest.kt$import android.os.Bundle</ID>
+    <ID>UnusedImports:AttachmentsBottomSheetTest.kt$import android.view.LayoutInflater</ID>
+    <ID>UnusedImports:AttachmentsBottomSheetTest.kt$import android.view.ViewGroup</ID>
+    <ID>UnusedImports:CacheManagerTest.kt$import com.example.muzea.utils.Constants</ID>
+    <ID>UnusedImports:ChatConversationFragment.kt$import androidx.recyclerview.widget.SimpleItemAnimator</ID>
+    <ID>UnusedImports:ChatConversationFragment.kt$import com.example.muzea.databinding.ItemPendingAttachmentBinding</ID>
+    <ID>UnusedImports:ChatConversationFragment.kt$import com.example.muzea.utils.MediaUrl</ID>
+    <ID>UnusedImports:ChatConversationViewModelBranchesTest.kt$import kotlinx.coroutines.Dispatchers</ID>
+    <ID>UnusedImports:ChatListFragment.kt$import com.example.muzea.domain.model.Contact</ID>
+    <ID>UnusedImports:ChatViewModelTest.kt$import kotlinx.coroutines.flow.first</ID>
+    <ID>UnusedImports:ContentRepositories.kt$import okhttp3.MultipartBody</ID>
+    <ID>UnusedImports:FlowExtensions.kt$import com.example.muzea.core.Resource</ID>
+    <ID>UnusedImports:ForwardChatPickerBottomSheetTest.kt$import androidx.fragment.app.FragmentActivity</ID>
+    <ID>UnusedImports:KlipyApi.kt$import com.example.muzea.data.model.KlipyGifDto</ID>
+    <ID>UnusedImports:MessageActionsBottomSheetTest.kt$import android.os.Bundle</ID>
+    <ID>UnusedImports:MessageActionsBottomSheetTest.kt$import androidx.test.core.app.ApplicationProvider</ID>
+    <ID>UnusedImports:MessageActionsPopup.kt$import android.widget.GridLayout</ID>
+    <ID>UnusedImports:MessageActionsPopup.kt$import android.widget.ImageView</ID>
+    <ID>UnusedImports:MessageActionsPopup.kt$import android.widget.ScrollView</ID>
+    <ID>UnusedImports:MessageActionsPopup.kt$import android.widget.TextView</ID>
+    <ID>UnusedImports:MessageAdapterBindTest.kt$import android.widget.ImageView</ID>
+    <ID>UnusedImports:MessageRepositoryImplTest.kt$import com.example.muzea.data.model.ContactResponse</ID>
+    <ID>UnusedImports:NewsDetailFragmentTest.kt$import kotlinx.coroutines.flow.flowOf</ID>
+    <ID>UnusedImports:NewsListFragment.kt$import com.example.muzea.domain.model.News</ID>
+    <ID>UnusedImports:NewsViewModelTest.kt$import kotlinx.coroutines.flow.first</ID>
+    <ID>UnusedImports:OutboxSenderTest.kt$import kotlinx.coroutines.flow.MutableSharedFlow</ID>
+    <ID>UnusedImports:ProfileFragmentTest.kt$import io.mockk.verify</ID>
+    <ID>UnusedImports:ReactionsSectionTest.kt$import com.example.muzea.utils.FakeSharedPreferences</ID>
+    <ID>UnusedImports:ReactionsSectionTest.kt$import io.mockk.every</ID>
+    <ID>UnusedImports:ReactionsSectionTest.kt$import io.mockk.mockk</ID>
+    <ID>UnusedImports:RegisterAndOtpTest.kt$import org.junit.Assert.assertEquals</ID>
+    <ID>UnusedImports:ShareReceiverActivityTest.kt$import com.example.muzea.R</ID>
+    <ID>UnusedImports:TokenRefreshInterceptorTest.kt$import org.junit.Assert.assertNull</ID>
+    <ID>UnusedImports:UserRepositoryImplTest.kt$import io.mockk.coVerify</ID>
+    <ID>UnusedImports:VideoNoteRecorderTest.kt$import org.junit.Assert.assertEquals</ID>
+    <ID>UnusedImports:VideoScreensTest.kt$import okhttp3.MultipartBody</ID>
+    <ID>UnusedParameter:AttachmentViewerActivity.kt$AttachmentViewerActivity$withControls: Boolean</ID>
+    <ID>UnusedParameter:ChargeBurstView.kt$ChargeBurstView$intensity: Float</ID>
+    <ID>UnusedParameter:DetailsSection.kt$DetailsSection$showStatus: Boolean</ID>
+    <ID>UnusedPrivateMember:MessageAdapter.kt$private fun hasNonGifAttachments(message: Message): Boolean</ID>
+    <ID>UnusedPrivateProperty:ChatConversationFragment.kt$ChatConversationFragment.Companion$private const val MENU_DELETE = 1</ID>
+    <ID>UnusedPrivateProperty:ChatConversationFragment.kt$ChatConversationFragment.Companion$private const val MENU_FORWARD = 2</ID>
+    <ID>UnusedPrivateProperty:MediaUrlTest.kt$MediaUrlTest.Companion$private const val CHAT = "https://chat-muzea.su"</ID>
+    <ID>UnusedPrivateProperty:MessageActionsPopup.kt$MessageActionsPopup$private val messageUuid: String</ID>
+    <ID>WildcardImport:ApiService.kt$import com.example.muzea.data.model.*</ID>
+    <ID>WildcardImport:ApiService.kt$import retrofit2.http.*</ID>
+    <ID>WildcardImport:ChatAvatarRepositoryTest.kt$import io.mockk.*</ID>
+    <ID>WildcardImport:ChatAvatarRepositoryTest.kt$import org.junit.Assert.*</ID>
+    <ID>WildcardImport:ExampleUnitTest.kt$import org.junit.Assert.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

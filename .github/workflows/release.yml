@@ -131,6 +131,9 @@ jobs:
       - name: Тест перед релизом (unit)
         run: ./gradlew --no-daemon testDebugUnitTest
 
+      - name: Detekt (статический анализ Kotlin)
+        run: ./gradlew --no-daemon detekt
+
       - name: Собрать APK и AAB
         env:
           # Ключ Klipy встраивается в сборку (поиск гифок идёт с клиента).
