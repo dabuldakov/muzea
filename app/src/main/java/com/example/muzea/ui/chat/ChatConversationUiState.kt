@@ -46,3 +46,6 @@ data class ChatConversationUiState(
     /** Закреплённые сообщения чата (для панели сверху). */
     val pinnedMessages: List<Message> = emptyList()
 )
+
+/** Префикс локального uuid сообщения до подтверждения сервером. */
+internal const val LOCAL_MESSAGE_PREFIX = "local-"

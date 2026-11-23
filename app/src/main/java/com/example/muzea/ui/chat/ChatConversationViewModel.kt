@@ -16,12 +16,10 @@ import com.example.muzea.utils.NetworkMonitor
 import com.example.muzea.utils.PreparedAttachment
 import com.example.muzea.data.repository.OutboxEvent
 import com.example.muzea.data.repository.PendingAttachmentStore
-import com.example.muzea.data.repository.OutboxItem
 import com.example.muzea.data.repository.OutboxSender
 import com.example.muzea.domain.repository.MessageRepository
 import com.example.muzea.domain.ChatUserIdentity
 import com.example.muzea.domain.chat.ChatMessageReducer
-import com.example.muzea.R
 import com.example.muzea.core.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -111,6 +109,25 @@ class ChatConversationViewModel @Inject constructor(
         emitError = { _sendError.emit(it) }
     )
 
+    private val sender = ChatMessageSender(
+        chatUuid = chatUuid,
+        myUserUuid = myUserUuid,
+        scope = viewModelScope,
+        repository = messageRepository,
+        outboxSender = outboxSender,
+        reducer = reducer,
+        mediaFileReader = mediaFileReader,
+        context = appContext,
+        state = { _uiState.value },
+        setState = { _uiState.value = it },
+        withStatuses = ::withStatuses,
+        mergeMessages = ::mergeMessages,
+        clearReply = ::clearReply,
+        clearPendingAttachments = pendingAttachments::clearAll,
+        onDelivered = ::markLatestAsDelivered,
+        emitError = { _sendError.emit(it) }
+    )
+
     private val receipts = ChatReceiptsController(
         chatUuid = chatUuid,
         repository = messageRepository,
@@ -170,10 +187,10 @@ class ChatConversationViewModel @Inject constructor(
                 when (event) {
                     is OutboxEvent.Sent -> if (event.item.chatUuid == chatUuid) {
                         notifiedFailures.remove(event.item.localMessageUuid)
-                        applyServerEcho(event.item.localMessageUuid, event.message)
+                        sender.applyServerEcho(event.item.localMessageUuid, event.message)
                     }
                     is OutboxEvent.Failed -> if (event.item.chatUuid == chatUuid) {
-                        markFailed(event.item.localMessageUuid)
+                        sender.markFailed(event.item.localMessageUuid)
                         if (notifiedFailures.add(event.item.localMessageUuid)) {
                             _sendError.emit(event.reason)
                         }
@@ -202,7 +219,7 @@ class ChatConversationViewModel @Inject constructor(
         if (state.isLoadingMore || state.historyReached) return
 
         val oldest = state.messages.firstOrNull {
-            it.messageUuid.isNotBlank() && !it.messageUuid.startsWith(LOCAL_PREFIX)
+            it.messageUuid.isNotBlank() && !it.messageUuid.startsWith(LOCAL_MESSAGE_PREFIX)
         } ?: return
 
         _uiState.value = state.copy(isLoadingMore = true)
@@ -249,7 +266,7 @@ class ChatConversationViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(isLoading = false)
                     val incoming = result.data ?: emptyList()
                     polling.rememberServerTime(incoming)
-                    cacheNewGifs(incoming)
+                    sender.cacheNewGifs(incoming)
                     mergeMessages(incoming)
                     receipts.refresh(force = incoming.isNotEmpty())
                 }
@@ -280,7 +297,7 @@ class ChatConversationViewModel @Inject constructor(
         val updated = messageRepository.loadUpdatedMessages(chatUuid, since) ?: return false
         polling.lastUpdatedCheckAt = LocalTimeFormatter.serverTimestamp(UPDATED_OVERLAP_SECONDS)
         if (updated.isEmpty()) return true
-        cacheNewGifs(updated)
+        sender.cacheNewGifs(updated)
         mergeMessages(updated)
         // Квитанции не форсируем: /updated приходит и с повторами из окна
         // перекрытия, а галочки живут в своём ритме (30 с).
@@ -299,56 +316,7 @@ class ChatConversationViewModel @Inject constructor(
             editor.submitEdit(editing, text)
             return
         }
-
-        val trimmed = text.trim()
-        val state = _uiState.value
-        val attachments = state.pendingAttachments
-        if (trimmed.isEmpty() && attachments.isEmpty()) return
-        if (attachments.any { !it.isUploaded }) {
-            viewModelScope.launch { _sendError.emit(appContext.getString(R.string.attachment_wait_upload)) }
-            return
-        }
-
-        val uploaded = attachments.mapNotNull { it.uploaded }
-        val type = messageTypeFor(uploaded)
-        val replyToUuid = state.replyTo?.messageUuid?.let { reducer.serverUuid(it) }
-        val optimistic = Message(
-            messageUuid = LOCAL_PREFIX + System.currentTimeMillis(),
-            chatUuid = chatUuid,
-            senderId = null,
-            senderUuid = myUserUuid,
-            senderName = null,
-            senderAvatar = null,
-            text = trimmed,
-            messageType = type,
-            replyToMessageUuid = replyToUuid,
-            isEdited = false,
-            isDeleted = false,
-            isPinned = false,
-            createdAt = null,
-            updatedAt = null,
-            attachments = uploaded,
-            power = power.coerceIn(0, 100)
-        )
-        mergeMessages(listOf(optimistic))
-        pendingAttachments.clearAll()
-        clearReply()
-
-        // Отправка идёт через app-scope очередь: уход из чата или смерть
-        // процесса не теряют текст, повтор идемпотентен по clientMessageId.
-        outboxSender.enqueue(
-            OutboxItem(
-                clientMessageId = java.util.UUID.randomUUID().toString(),
-                localMessageUuid = optimistic.messageUuid,
-                chatUuid = chatUuid,
-                text = trimmed,
-                messageType = type,
-                replyToMessageUuid = replyToUuid,
-                attachments = uploaded,
-                createdAt = System.currentTimeMillis(),
-                power = optimistic.power
-            )
-        )
+        sender.sendText(text, power)
     }
 
     /** Добавляет выбранные в системном пикере файлы и сразу загружает их. */
@@ -397,115 +365,7 @@ class ChatConversationViewModel @Inject constructor(
     /** Открепляет сообщение. */
     fun unpinMessage(message: Message) = actions.unpin(message)
 
-    private fun messageTypeFor(attachments: List<MessageAttachment>): String {
-        if (attachments.isEmpty()) return "TEXT"
-        if (attachments.all { it.type == "IMAGE" }) return "IMAGE"
-        if (attachments.all { it.type == "AUDIO" }) return "AUDIO"
-        if (attachments.size == 1 && attachments.single().type == "VIDEO") return "VIDEO"
-        return "FILE"
-    }
-
-    fun sendGif(gif: Gif) {
-        val replyToUuid = _uiState.value.replyTo?.messageUuid?.let { reducer.serverUuid(it) }
-        val optimistic = Message(
-            messageUuid = LOCAL_PREFIX + System.currentTimeMillis(),
-            chatUuid = chatUuid,
-            senderId = null,
-            senderUuid = myUserUuid,
-            senderName = null,
-            senderAvatar = null,
-            text = "",
-            messageType = "GIF",
-            replyToMessageUuid = replyToUuid,
-            isEdited = false,
-            isDeleted = false,
-            isPinned = false,
-            createdAt = null,
-            updatedAt = null,
-            attachments = listOf(
-                MessageAttachment(
-                    fileUrl = gif.url,
-                    thumbnailUrl = gif.previewUrl,
-                    type = "GIF",
-                    width = gif.width,
-                    height = gif.height,
-                    mp4Url = gif.mp4Url
-                )
-            )
-        )
-        mergeMessages(listOf(optimistic))
-        clearReply()
-
-        // Сразу добавляем в кэш «Мои»/«Этот чат» (текущий пользователь — автор).
-        messageRepository.cacheSentGif(chatUuid, gif, mine = true)
-
-        viewModelScope.launch {
-            messageRepository.sendGif(chatUuid, gif, replyToMessageUuid = replyToUuid).collect { result ->
-                when (result) {
-                    is Resource.Success -> applyServerEcho(optimistic.messageUuid, result.data!!)
-                    is Resource.Error -> {
-                        markFailed(optimistic.messageUuid)
-                        _sendError.emit(result.message ?: "Failed to send GIF")
-                    }
-                    is Resource.Loading -> {}
-                }
-            }
-        }
-    }
-
-    /**
-     * Обновляет локальный пузырь данными серверного эха, не меняя его
-     * идентификатор в списке. Раньше локальное сообщение удалялось, а серверное
-     * вставлялось заново: DiffUtil считал строку другой и перерисовывал её —
-     * при отправке список мигал. Теперь это обычное изменение содержимого.
-     */
-    private fun applyServerEcho(localUuid: String, serverMessage: Message) {
-        _uiState.value = withStatuses(
-            _uiState.value.copy(
-                messages = reducer.applyServerEcho(_uiState.value.messages, localUuid, serverMessage),
-                failedMessages = _uiState.value.failedMessages - localUuid
-            )
-        )
-        markLatestAsDelivered()
-    }
-
-    private fun markFailed(localUuid: String) {
-        _uiState.value = withStatuses(
-            _uiState.value.copy(failedMessages = _uiState.value.failedMessages + localUuid)
-        )
-    }
-
-    /**
-     * Новая гифка в переписке (в т.ч. от другого участника) — добавляем её в
-     * кэш «Этот чат»/«Мои» из уже полученного сообщения, без обращения к сети.
-     * Никакого сброса кэша: список просто пополняется сверху.
-     */
-    private fun cacheNewGifs(incoming: List<Message>) {
-        if (incoming.isEmpty()) return
-        val known = _uiState.value.messages.mapTo(HashSet()) { it.messageUuid }
-        incoming.forEach { message ->
-            if (message.messageUuid in known || !message.isGifMessage()) return@forEach
-            val attachment = message.attachments.firstOrNull {
-                it.type?.equals("GIF", ignoreCase = true) == true
-            } ?: return@forEach
-            val gif = Gif(
-                provider = "",
-                providerGifId = "",
-                title = null,
-                url = attachment.fileUrl,
-                previewUrl = attachment.thumbnailUrl,
-                width = attachment.width,
-                height = attachment.height,
-                mp4Url = attachment.mp4Url,
-                gifKey = attachment.gifKey
-            )
-            messageRepository.cacheSentGif(chatUuid, gif, mine = message.senderUuid == myUserUuid)
-        }
-    }
-
-    private fun Message.isGifMessage(): Boolean =
-        messageType?.equals("GIF", ignoreCase = true) == true ||
-            attachments.any { it.type?.equals("GIF", ignoreCase = true) == true }
+    fun sendGif(gif: Gif) = sender.sendGif(gif)
 
     private fun mergeMessages(incoming: List<Message>) {
         _uiState.value = withStatuses(
@@ -521,7 +381,7 @@ class ChatConversationViewModel @Inject constructor(
      */
     private fun markLatestAsDelivered() {
         val latest = _uiState.value.messages.lastOrNull {
-            it.messageId != null && !it.messageUuid.startsWith(LOCAL_PREFIX)
+            it.messageId != null && !it.messageUuid.startsWith(LOCAL_MESSAGE_PREFIX)
         } ?: return
         if (latest.messageUuid == lastMarkedDeliveredUuid) return
         lastMarkedDeliveredUuid = latest.messageUuid
@@ -550,175 +410,11 @@ class ChatConversationViewModel @Inject constructor(
      * Загружает только что записанное голосовое/видео-сообщение и отправляет его.
      * Тип VOICE/VIDEO_NOTE передаётся явно — по нему UI рисует волну/кружок.
      */
-    fun sendRecordedAttachment(prepared: PreparedAttachment, messageType: String) {
-        val localUuid = LOCAL_PREFIX + System.currentTimeMillis()
-        val replyToUuid = _uiState.value.replyTo?.messageUuid?.let { reducer.serverUuid(it) }
-        val localAttachment = MessageAttachment(
-            fileUrl = prepared.file.absolutePath,
-            thumbnailUrl = prepared.thumbnail?.absolutePath,
-            type = prepared.type,
-            width = prepared.width,
-            height = prepared.height,
-            attachmentUuid = null,
-            fileName = prepared.name,
-            fileSize = prepared.size,
-            mimeType = prepared.mimeType,
-            duration = prepared.duration
-        )
-        val optimistic = Message(
-            messageUuid = localUuid,
-            chatUuid = chatUuid,
-            senderId = null,
-            senderUuid = myUserUuid,
-            senderName = null,
-            senderAvatar = null,
-            text = "",
-            messageType = messageType,
-            replyToMessageUuid = replyToUuid,
-            isEdited = false,
-            isDeleted = false,
-            isPinned = false,
-            createdAt = null,
-            updatedAt = null,
-            attachments = listOf(localAttachment)
-        )
-        // Пузырь появляется сразу, ещё до загрузки: на слабой сети иначе
-        // пользователь несколько секунд не видит, что запись вообще есть.
-        mergeMessages(listOf(optimistic))
-        clearReply()
+    fun sendRecordedAttachment(prepared: PreparedAttachment, messageType: String) =
+        sender.sendRecorded(prepared, messageType)
 
-        viewModelScope.launch {
-            when (val uploaded = messageRepository.uploadAttachment(chatUuid, prepared)) {
-                is Resource.Success -> {
-                    val attachment = uploaded.data ?: return@launch
-                    replaceLocalAttachment(localUuid, attachment)
-                    mediaFileReader.cleanup(prepared)
-
-                    messageRepository.sendMessage(
-                        chatUuid = chatUuid,
-                        text = "",
-                        attachments = listOfNotNull(attachment.attachmentUuid),
-                        messageType = messageType,
-                        replyToMessageUuid = replyToUuid
-                    ).collect { result ->
-                        when (result) {
-                            is Resource.Success ->
-                                applyServerEcho(localUuid, result.data!!)
-                            is Resource.Error -> {
-                                markFailed(localUuid)
-                                _sendError.emit(result.message ?: "Failed to send message")
-                            }
-                            is Resource.Loading -> Unit
-                        }
-                    }
-                }
-                is Resource.Error -> {
-                    // Файл не удаляем: запись остаётся в пузыре и её можно
-                    // перезаписать/отправить позже, когда появится сеть.
-                    markFailed(localUuid)
-                    _sendError.emit(uploaded.message ?: "Upload failed")
-                }
-                is Resource.Loading -> Unit
-            }
-        }
-    }
-
-    private fun replaceLocalAttachment(localUuid: String, attachment: MessageAttachment) {
-        replaceMessageAttachments(localUuid, listOf(attachment))
-    }
-
-    private fun replaceMessageAttachments(localUuid: String, attachments: List<MessageAttachment>) {
-        _uiState.value = withStatuses(
-            _uiState.value.copy(
-                messages = _uiState.value.messages.map { message ->
-                    if (message.messageUuid == localUuid) {
-                        message.copy(attachments = attachments)
-                    } else {
-                        message
-                    }
-                }
-            )
-        )
-    }
-
-    /**
-     * Повторная отправка неудавшегося сообщения. Для локальных голосовых и
-     * видео сначала повторно загружает файл (он сохранён на устройстве),
-     * затем отправляет сообщение.
-     */
-    fun retryMessage(message: Message) {
-        val localUuid = message.messageUuid
-        if (!localUuid.startsWith(LOCAL_PREFIX)) return
-        if (localUuid !in _uiState.value.failedMessages) return
-
-        // Сбрасываем FAILED -> SENDING.
-        _uiState.value = withStatuses(
-            _uiState.value.copy(failedMessages = _uiState.value.failedMessages - localUuid)
-        )
-
-        // Текстовые сообщения живут в очереди — повторяем оттуда.
-        if (outboxSender.pendingForChat(chatUuid).any { it.localMessageUuid == localUuid }) {
-            outboxSender.retry(chatUuid, localUuid)
-            return
-        }
-
-        viewModelScope.launch {
-            val uploaded = mutableListOf<MessageAttachment>()
-            for (attachment in message.attachments) {
-                if (!attachment.attachmentUuid.isNullOrBlank()) {
-                    uploaded += attachment
-                    continue
-                }
-                val file = File(attachment.fileUrl)
-                if (!file.exists()) {
-                    retryFailed(localUuid, "Attachment file is no longer available")
-                    return@launch
-                }
-                val prepared = PreparedAttachment(
-                    file = file,
-                    thumbnail = attachment.thumbnailUrl?.let(::File)?.takeIf { it.exists() },
-                    name = attachment.fileName ?: file.name,
-                    size = file.length(),
-                    mimeType = attachment.mimeType ?: "application/octet-stream",
-                    type = attachment.type ?: "FILE",
-                    width = attachment.width,
-                    height = attachment.height,
-                    duration = attachment.duration
-                )
-                when (val result = messageRepository.uploadAttachment(chatUuid, prepared)) {
-                    is Resource.Success -> {
-                        result.data?.let { uploaded += it }
-                        mediaFileReader.cleanup(prepared)
-                    }
-                    is Resource.Error -> {
-                        retryFailed(localUuid, result.message ?: "Upload failed")
-                        return@launch
-                    }
-                    is Resource.Loading -> Unit
-                }
-            }
-
-            replaceMessageAttachments(localUuid, uploaded)
-            messageRepository.sendMessage(
-                chatUuid = chatUuid,
-                text = message.text.orEmpty(),
-                attachments = uploaded.mapNotNull { it.attachmentUuid },
-                messageType = message.messageType ?: "TEXT",
-                replyToMessageUuid = message.replyToMessageUuid
-            ).collect { result ->
-                when (result) {
-                    is Resource.Success -> applyServerEcho(localUuid, result.data!!)
-                    is Resource.Error -> retryFailed(localUuid, result.message ?: "Failed to send message")
-                    is Resource.Loading -> Unit
-                }
-            }
-        }
-    }
-
-    private fun retryFailed(localUuid: String, error: String) {
-        markFailed(localUuid)
-        viewModelScope.launch { _sendError.emit(error) }
-    }
+    /** Повторная отправка неудавшегося сообщения. */
+    fun retryMessage(message: Message) = sender.retry(message)
 
     /** Скачивает документ во временный файл для открытия системным приложением. */
     suspend fun downloadAttachment(
@@ -762,7 +458,7 @@ class ChatConversationViewModel @Inject constructor(
      * пользователь реально увидел.
      */
     fun markReadUpTo(messageUuid: String) {
-        if (messageUuid.isBlank() || messageUuid.startsWith(LOCAL_PREFIX)) return
+        if (messageUuid.isBlank() || messageUuid.startsWith(LOCAL_MESSAGE_PREFIX)) return
         if (messageUuid == lastMarkedReadUuid) return
         lastMarkedReadUuid = messageUuid
         viewModelScope.launch {
@@ -787,7 +483,6 @@ class ChatConversationViewModel @Inject constructor(
 
     companion object {
         const val ARG_CHAT_UUID = "chat_uuid"
-        private const val LOCAL_PREFIX = "local-"
         /**
          * Перекрытие окна сверки правок, секунды. Больше шага сверки, чтобы
          * не потерять строку, зафиксированную между запросами, но и не

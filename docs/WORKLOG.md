@@ -29,6 +29,7 @@
 | 23.11 | refactor | ARCH.13 | `DownloadedFileOpener`: открытие скачанных файлов и блокировка исполняемых вынесены из фрагмента | — |
 | 23.11 | refactor | ARCH.14 | `ChatMessageEditor`: правка и удаление сообщений вынесены из ViewModel | — |
 | 23.11 | refactor | ARCH.15 | `ChatMessageActions`: пересылка, закрепление, реакции, жалобы и блокировка вынесены из ViewModel | — |
+| 23.11 | refactor | ARCH.16 | `ChatMessageSender`: текст/GIF/запись, повтор и серверное эхо вынесены из ViewModel | — |
 
 ## 1.7.57 — 2026-11-23
 
