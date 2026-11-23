@@ -47,6 +47,7 @@
 | 23.11 | refactor | ARCH.31 | `ChatMessageInteractions`: копирование и жалоба вынесены из фрагмента | — |
 | 23.11 | refactor | ARCH.32 | `setupRecyclerView` разложен на контроллеры списка и адаптер/слушатели | — |
 | 23.11 | refactor | ARCH.33 | `ChatPresenceController`: активный чат, push, пауза опроса и черновик вынесены из lifecycle фрагмента | — |
+| 23.11 | refactor | ARCH.34 | `ChatInputController`: поле ввода, отправка, черновик и «взрыв» кнопки вынесены из фрагмента | — |
 
 ## 1.7.57 — 2026-11-23
 

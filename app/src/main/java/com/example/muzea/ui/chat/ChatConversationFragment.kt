@@ -17,7 +17,6 @@ import androidx.activity.result.contract.ActivityResultContracts.RequestPermissi
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
-import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -92,6 +91,7 @@ class ChatConversationFragment : Fragment(),
     private lateinit var renderer: ChatConversationRenderer
     private lateinit var interactions: ChatMessageInteractions
     private lateinit var presence: ChatPresenceController
+    private lateinit var inputController: ChatInputController
     private lateinit var pinnedBarView: PinnedBarView
     private lateinit var downloadController: AttachmentDownloadController
     private lateinit var recordingTimer: RecordingTimer
@@ -291,7 +291,7 @@ class ChatConversationFragment : Fragment(),
             meter = chargeMeter,
             button = binding.btnSend,
             cancelDistancePx = (RECORD_CANCEL_DP * resources.displayMetrics.density).toInt(),
-            onSend = { power -> sendClicked(power) }
+            onSend = { power -> inputController.send(power) }
         )
         recordingOverlay = RecordingOverlayView(
             overlay = binding.recordingOverlay,
@@ -319,7 +319,7 @@ class ChatConversationFragment : Fragment(),
             button = binding.btnSend,
             requestMic = ::requestMicPermission,
             requestCamera = ::requestCameraPermissions,
-            canSendNow = ::canSendNow
+            canSendNow = { inputController.canSendNow() }
         )
         recordingController = ChatRecordingController(
             context = requireContext(),
@@ -447,6 +447,24 @@ class ChatConversationFragment : Fragment(),
             context = requireContext(),
             scope = viewLifecycleOwner.lifecycleScope,
             sendReport = { uuid, reason -> viewModel.reportMessage(uuid, reason) }
+        )
+        inputController = ChatInputController(
+            context = requireContext(),
+            input = binding.etMessageInput,
+            sendButton = binding.btnSend,
+            gifButton = binding.btnGif,
+            burst = binding.chargeBurst,
+            hasAttachments = { viewModel.uiState.value.pendingAttachments.isNotEmpty() },
+            onSend = { text, power -> viewModel.sendText(text, power) },
+            onCycleMode = { sendModeController.cycle() },
+            onTouch = { event -> handleSendTouch(event) },
+            onTextChanged = { text, cursor -> showMentionSuggestions(text, cursor) },
+            onInputActivity = { hasText -> sendModeController.onInputChanged(hasText) },
+            clearDraft = { ChatDrafts.clear(requireContext(), chatUuid) },
+            onGif = {
+                EmojiGifBottomSheet.newInstance()
+                    .show(childFragmentManager, "emoji_gif")
+            }
         )
     }
 
@@ -802,30 +820,7 @@ class ChatConversationFragment : Fragment(),
     }
 
     private fun setupInput() {
-        binding.btnSend.setOnClickListener {
-            if (canSendNow()) {
-                sendClicked()
-            } else {
-                sendModeController.cycle()
-            }
-        }
-        binding.btnSend.setOnTouchListener { _, event -> handleSendTouch(event) }
-        binding.etMessageInput.setOnEditorActionListener { _, _, _ ->
-            if (canSendNow()) sendClicked()
-            false
-        }
-        binding.etMessageInput.doOnTextChanged { text, _, _, _ ->
-            sendModeController.onInputChanged(!text.isNullOrBlank())
-            showMentionSuggestions(
-                text?.toString().orEmpty(),
-                binding.etMessageInput.selectionStart
-            )
-        }
-
-        binding.btnGif.setOnClickListener {
-            EmojiGifBottomSheet.newInstance()
-                .show(childFragmentManager, "emoji_gif")
-        }
+        inputController.setup()
         sendModeController.updateButton()
     }
 
@@ -844,49 +839,10 @@ class ChatConversationFragment : Fragment(),
         mentionController.show(suggestion)
     }
 
-    private fun canSendNow(): Boolean =
-        binding.etMessageInput.text?.toString()?.isNotBlank() == true ||
-            viewModel.uiState.value.pendingAttachments.isNotEmpty()
-
-    private fun sendClicked(power: Int = 0) {
-        val text = binding.etMessageInput.text?.toString().orEmpty()
-        if (canSendNow()) {
-            viewModel.sendText(text, power)
-            binding.etMessageInput.setText("")
-            ChatDrafts.clear(requireContext(), chatUuid)
-            if (power > 0) playSendBurst(power)
-        }
-    }
-
-    /** Короткий «взрыв» кнопки: чем сильнее заряд, тем заметнее анимация. */
-    private fun playSendBurst(power: Int) {
-        val scale = 1f + 1.3f * (power / 100f)
-        binding.chargeBurst.burst(power)
-        val vibrator = requireContext().getSystemService(android.os.Vibrator::class.java)
-        if (vibrator != null && vibrator.hasVibrator()) {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                vibrator.vibrate(android.os.VibrationEffect.createOneShot(140, 255))
-            } else {
-                @Suppress("DEPRECATION")
-                vibrator.vibrate(140)
-            }
-        } else {
-            binding.btnSend.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
-        }
-        binding.btnSend.animate()
-            .scaleX(scale)
-            .scaleY(scale)
-            .setDuration(120)
-            .withEndAction {
-                binding.btnSend.animate().scaleX(1f).scaleY(1f).setDuration(180).start()
-            }
-            .start()
-    }
-
     private fun handleSendTouch(event: MotionEvent): Boolean {
         val mode = sendModeController.mode
-        if (mode == SendMode.TEXT && canSendNow()) return chargeGesture.onTouch(event)
-        if (mode == SendMode.TEXT || canSendNow()) return false
+        if (mode == SendMode.TEXT && inputController.canSendNow()) return chargeGesture.onTouch(event)
+        if (mode == SendMode.TEXT || inputController.canSendNow()) return false
         return recordingController.onTouch(event, mode) { sendModeController.cycle() }
     }
 

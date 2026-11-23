@@ -146,6 +146,7 @@
 | ARCH.31 | Быстрые действия | done | ChatMessageInteractions: копирование и жалоба |
 | ARCH.32 | Настройка списка | done | setupRecyclerView разложен на list-контроллеры и адаптер |
 | ARCH.33 | Присутствие в чате | done | ChatPresenceController: активный чат, push, polling, черновик |
+| ARCH.34 | Поле ввода | done | ChatInputController: клики, touch, текст, черновик, взрыв кнопки |
 
 ## DIST — дистрибуция
 
