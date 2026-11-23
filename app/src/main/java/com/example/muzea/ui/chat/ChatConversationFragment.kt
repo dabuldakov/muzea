@@ -1,21 +1,17 @@
 package com.example.muzea.ui.chat
 
 import com.example.muzea.R
-import android.app.Dialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.MotionEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
-import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions
@@ -52,7 +48,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 @AndroidEntryPoint
 class ChatConversationFragment : Fragment(),
@@ -597,7 +592,18 @@ class ChatConversationFragment : Fragment(),
                     reportMessage(message.messageUuid, reason)
                 }
             MessageActionsBottomSheet.ACTION_BLOCK ->
-                message.senderUuid?.let { confirmBlock(it) }
+                message.senderUuid?.let { uuid ->
+                    ChatDialogs.confirmBlock(requireContext()) {
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            val ok = viewModel.blockUser(uuid)
+                            Toast.makeText(
+                                requireContext(),
+                                if (ok) R.string.block_success else R.string.block_failed,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                }
             MessageActionsBottomSheet.ACTION_REPLY ->
                 viewModel.setReplyTo(message)
             MessageActionsBottomSheet.ACTION_SELECT ->
@@ -605,7 +611,9 @@ class ChatConversationFragment : Fragment(),
             MessageActionsBottomSheet.ACTION_EDIT ->
                 viewModel.startEditing(message)
             MessageActionsBottomSheet.ACTION_DELETE ->
-                confirmDeleteMessage(message)
+                ChatDialogs.confirmDeleteMessage(requireContext()) {
+                    viewModel.deleteMessage(message)
+                }
             MessageActionsBottomSheet.ACTION_FORWARD -> {
                 pendingForwardMessages = listOf(message)
                 ForwardChatPickerBottomSheet.newInstance(chatUuid)
@@ -625,31 +633,9 @@ class ChatConversationFragment : Fragment(),
         val messages = pendingForwardMessages
         pendingForwardMessages = emptyList()
         if (messages.isEmpty()) return
-        showForwardCommentDialog { comment ->
+        ChatDialogs.forwardComment(requireContext(), layoutInflater) { comment ->
             viewModel.forwardMessages(messages, chat.chatUuid, comment)
         }
-    }
-
-    private fun showForwardCommentDialog(onSend: (String?) -> Unit) {
-        val view = layoutInflater.inflate(R.layout.dialog_forward_comment, null)
-        val input = view.findViewById<EditText>(R.id.etForwardComment)
-        val dialog = Dialog(requireContext())
-        dialog.setContentView(view)
-        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        dialog.window?.setLayout(
-            (resources.displayMetrics.widthPixels * 0.9f).toInt(),
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
-        // Случайный тап мимо окна не должен «терять» пересылку.
-        dialog.setCanceledOnTouchOutside(false)
-        view.findViewById<View>(R.id.btnForwardCancel).setOnClickListener { dialog.dismiss() }
-        view.findViewById<View>(R.id.btnForwardSend).setOnClickListener {
-            val comment = input.text?.toString()?.trim().orEmpty()
-            dialog.dismiss()
-            onSend(comment.ifBlank { null })
-        }
-        dialog.show()
-        input.requestFocus()
     }
 
     private fun setupSelectionBar() {
@@ -697,15 +683,10 @@ class ChatConversationFragment : Fragment(),
             Toast.makeText(requireContext(), R.string.delete_message_failed, Toast.LENGTH_SHORT).show()
             return
         }
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.delete_selected_title)
-            .setMessage(R.string.delete_selected_message)
-            .setPositiveButton(R.string.action_delete) { _, _ ->
-                deletable.forEach { viewModel.deleteMessage(it) }
-                exitSelectionMode()
-            }
-            .setNegativeButton(R.string.action_cancel, null)
-            .show()
+        ChatDialogs.confirmDeleteSelected(requireContext()) {
+            deletable.forEach { viewModel.deleteMessage(it) }
+            exitSelectionMode()
+        }
     }
 
     private fun forwardSelected() {
@@ -715,18 +696,6 @@ class ChatConversationFragment : Fragment(),
         exitSelectionMode()
         ForwardChatPickerBottomSheet.newInstance(chatUuid)
             .show(childFragmentManager, "forward_picker")
-    }
-
-    /** Подтверждение удаления сообщения «для всех». */
-    private fun confirmDeleteMessage(message: Message) {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.delete_message_confirm_title)
-            .setMessage(R.string.delete_message_confirm_message)
-            .setPositiveButton(R.string.action_delete) { _, _ ->
-                viewModel.deleteMessage(message)
-            }
-            .setNegativeButton(R.string.action_cancel, null)
-            .show()
     }
 
     private fun copyMessage(text: String) {
@@ -745,24 +714,6 @@ class ChatConversationFragment : Fragment(),
                 Toast.LENGTH_SHORT
             ).show()
         }
-    }
-
-    private fun confirmBlock(userUuid: String) {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.block_confirm_title)
-            .setMessage(R.string.block_confirm_message)
-            .setPositiveButton(R.string.action_block) { _, _ ->
-                viewLifecycleOwner.lifecycleScope.launch {
-                    val ok = viewModel.blockUser(userUuid)
-                    Toast.makeText(
-                        requireContext(),
-                        if (ok) R.string.block_success else R.string.block_failed,
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-            .setNegativeButton(R.string.action_cancel, null)
-            .show()
     }
 
     private fun openGroupSettings(chatTitle: String) {
