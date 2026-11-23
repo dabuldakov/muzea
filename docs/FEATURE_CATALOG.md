@@ -137,6 +137,8 @@
 | ARCH.22 | Запись медиа | done | ChatRecordingController: голосовые/видео-заметки, таймер, отмена, отправка |
 | ARCH.23 | Режим отправки | done | ChatSendModeController: текст/голос/видео, иконка и разрешения |
 | ARCH.24 | Диалоги действий | done | ChatDialogs: удаление, блокировка, комментарий пересылки |
+| ARCH.25 | Подсветка из push | done | ChatMessageHighlighter: прокрутка и вспышка пузыря |
+| ARCH.26 | Якорь истории | done | ChatMessageListScroller: догрузка, восстановление позиции, прочтение |
 
 ## DIST — дистрибуция
 

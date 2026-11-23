@@ -90,6 +90,8 @@ class ChatConversationFragment : Fragment(),
     private lateinit var chargeGesture: ChargeGestureController
     private lateinit var recordingController: ChatRecordingController
     private lateinit var sendModeController: ChatSendModeController
+    private lateinit var highlighter: ChatMessageHighlighter
+    private lateinit var listScroller: ChatMessageListScroller
     private lateinit var pinnedBarView: PinnedBarView
     private lateinit var downloadController: AttachmentDownloadController
     private lateinit var recordingTimer: RecordingTimer
@@ -157,13 +159,11 @@ class ChatConversationFragment : Fragment(),
 
     // Якорь при догрузке истории: сохраняем верхнее видимое сообщение и его
     // смещение, чтобы после вставки старых сообщений сверху вид не «прыгнул».
-    private var historyAnchorUuid: String? = null
-    private var historyAnchorOffset: Int = 0
 
     private val scrollObserver = object : RecyclerView.AdapterDataObserver() {
         override fun onChanged() = performPendingScroll()
         override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
-            restoreHistoryAnchor()
+            listScroller.restore()
             performPendingScroll()
         }
         override fun onItemRangeRemoved(positionStart: Int, itemCount: Int) = performPendingScroll()
@@ -178,11 +178,8 @@ class ChatConversationFragment : Fragment(),
         private const val MEDIA_RETRY_MS = 5 * 60 * 1000L
         private const val RECORD_CANCEL_DP = 72
         private const val MAX_HIGHLIGHT_PAGES = 5
-        private const val HIGHLIGHT_MS = 1800L
-        private const val HIGHLIGHT_ATTEMPTS = 5
         private const val MENU_DELETE = 1
         private const val MENU_FORWARD = 2
-        private const val HIGHLIGHT_COLOR = 0x557C3AED
 
         private val ATTACHMENT_FILE_MIME_TYPES = arrayOf(
             "audio/*", "video/*",
@@ -721,6 +718,15 @@ class ChatConversationFragment : Fragment(),
     }
 
     private fun setupRecyclerView() {
+        highlighter = ChatMessageHighlighter(binding.recyclerViewMessages, dp(80))
+        listScroller = ChatMessageListScroller(
+            recyclerView = binding.recyclerViewMessages,
+            adapter = { if (::adapter.isInitialized) adapter else null },
+            messages = { viewModel.uiState.value.messages },
+            isViewAlive = { _binding != null },
+            onLoadOlder = { viewModel.loadOlder() },
+            onMarkRead = { uuid -> viewModel.markReadUpTo(uuid) }
+        )
         adapter = MessageAdapter(
             myUserUuid = viewModel.myUserUuid,
             linkPreviews = linkPreviewStore,
@@ -771,45 +777,19 @@ class ChatConversationFragment : Fragment(),
             addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                     if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-                        markVisibleMessagesAsRead()
+                        listScroller.markVisibleAsRead()
                     }
                 }
 
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                     // Догружаем историю, когда пользователь домотал до самого верха.
                     if (dy < 0 && !recyclerView.canScrollVertically(-1)) {
-                        requestOlderMessages()
+                        listScroller.requestOlder()
                     }
                     actionsPopup?.dismiss()
                     updateScrollButton()
                 }
             })
-        }
-    }
-
-    /** Запоминает якорь и просит ViewModel догрузить историю. */
-    private fun requestOlderMessages() {
-        val layoutManager = binding.recyclerViewMessages.layoutManager as? LinearLayoutManager ?: return
-        val position = layoutManager.findFirstVisibleItemPosition()
-        val uuid = viewModel.uiState.value.messages.getOrNull(position)?.messageUuid
-        if (uuid != null) {
-            historyAnchorUuid = uuid
-            historyAnchorOffset = layoutManager.findViewByPosition(position)?.top ?: 0
-        }
-        viewModel.loadOlder()
-    }
-
-    /** Возвращает список к тому же сообщению, что было сверху до догрузки. */
-    private fun restoreHistoryAnchor() {
-        val uuid = historyAnchorUuid ?: return
-        historyAnchorUuid = null
-        binding.recyclerViewMessages.post {
-            if (_binding == null) return@post
-            val position = adapter.currentList.indexOfFirst { it.messageUuid == uuid }
-            if (position >= 0) {
-                (binding.recyclerViewMessages.layoutManager as? LinearLayoutManager)
-                    ?.scrollToPositionWithOffset(position, historyAnchorOffset)
-            }
         }
     }
 
@@ -820,44 +800,10 @@ class ChatConversationFragment : Fragment(),
             pendingScrollToTop = false
             // Отметку о прочтении ставим уже после выравнивания, иначе
             // до прокрутки успеет «прочитаться» низ ленты.
-            scrollToPositionAtTop(position)
+            listScroller.scrollToTop(position)
         } else {
-            binding.recyclerViewMessages.scrollToPosition(position)
-            markVisibleMessagesAsRead()
+            listScroller.scrollTo(position)
         }
-    }
-
-    /**
-     * Ставит сообщение к верхнему краю ленты. При stackFromEnd обычный
-     * scrollToPosition прижимает его к низу, поэтому выравниваем по пикселям
-     * после раскладки.
-     */
-    private fun scrollToPositionAtTop(position: Int) {
-        val recycler = binding.recyclerViewMessages
-        val layoutManager = recycler.layoutManager as? LinearLayoutManager ?: return
-        layoutManager.scrollToPositionWithOffset(position, 0)
-        recycler.post {
-            if (_binding == null) return@post
-            val view = layoutManager.findViewByPosition(position)
-            if (view == null) return@post
-            val delta = view.top - recycler.paddingTop
-            if (delta != 0) recycler.scrollBy(0, delta)
-            markVisibleMessagesAsRead()
-        }
-    }
-
-    /**
-     * Отмечает прочитанным всё до последнего видимого сообщения. Счётчик
-     * непрочитанных уменьшается только на то, что пользователь увидел.
-     */
-    private fun markVisibleMessagesAsRead() {
-        if (!::adapter.isInitialized || _binding == null) return
-        val layoutManager = binding.recyclerViewMessages.layoutManager
-            as? LinearLayoutManager ?: return
-        val last = layoutManager.findLastVisibleItemPosition()
-        if (last < 0) return
-        val message = adapter.currentList.getOrNull(last) ?: return
-        viewModel.markReadUpTo(message.messageUuid)
     }
 
     private fun isAtBottom(): Boolean = scrollController.isAtBottom()
@@ -904,7 +850,7 @@ class ChatConversationFragment : Fragment(),
         val position = viewModel.uiState.value.messages
             .indexOfFirst { it.messageUuid == messageUuid }
         if (position >= 0) {
-            scrollToAndHighlight(position, messageUuid)
+            highlighter.scrollToAndHighlight(position, messageUuid)
             return
         }
         pendingHighlightUuid = messageUuid
@@ -1226,7 +1172,7 @@ class ChatConversationFragment : Fragment(),
                         layoutManager?.scrollToPosition(
                             (adapter.itemCount - 1).coerceAtLeast(0)
                         )
-                        markVisibleMessagesAsRead()
+                        listScroller.markVisibleAsRead()
                     }
                 }
                 if (anchorUuid != null) {
@@ -1284,7 +1230,7 @@ class ChatConversationFragment : Fragment(),
             val targetPosition = messages.indexOfFirst { it.messageUuid == targetUuid }
             if (targetPosition >= 0) {
                 pendingHighlightUuid = null
-                scrollToAndHighlight(targetPosition, targetUuid)
+                highlighter.scrollToAndHighlight(targetPosition, targetUuid)
             } else if (!state.historyReached && !state.isLoadingMore && highlightAttempts < MAX_HIGHLIGHT_PAGES) {
                 // Сообщение из push может быть выше первой страницы.
                 highlightAttempts++
@@ -1303,60 +1249,6 @@ class ChatConversationFragment : Fragment(),
             binding.recyclerViewMessages.visibility = View.VISIBLE
             binding.tvError.visibility = View.GONE
         }
-    }
-
-    /**
-     * Прокручивает к сообщению из push и коротко подсвечивает его.
-     *
-     * Подсветка — полупрозрачный foreground строки: он рисуется поверх
-     * содержимого и не ломает скругления пузыря.
-     */
-    private fun scrollToAndHighlight(position: Int, uuid: String) {
-        val recyclerView = binding.recyclerViewMessages
-        recyclerView.post {
-            val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
-            layoutManager?.scrollToPositionWithOffset(position, dp(80))
-            attemptHighlight(recyclerView, position, uuid, attempt = 0)
-        }
-    }
-
-    private fun highlightDrawable(): android.graphics.drawable.Drawable =
-        android.graphics.drawable.GradientDrawable().apply {
-            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
-            cornerRadius = dp(16).toFloat()
-            setColor(HIGHLIGHT_COLOR)
-        }
-
-    private fun attemptHighlight(
-        recyclerView: androidx.recyclerview.widget.RecyclerView,
-        position: Int,
-        uuid: String,
-        attempt: Int
-    ) {
-        recyclerView.postDelayed({
-            val holder = recyclerView.findViewHolderForAdapterPosition(position)
-            if (holder == null) {
-                // Строка могла ещё не разложиться после прокрутки.
-                if (attempt < HIGHLIGHT_ATTEMPTS) {
-                    attemptHighlight(recyclerView, position, uuid, attempt + 1)
-                }
-                return@postDelayed
-            }
-            val row = holder.itemView
-            // Вспышка — по самому пузырю, а не по всей строке: у пузыря
-            // скругления, и цвет остаётся в его границах.
-            val bubble = row.findViewById<android.view.View>(R.id.tvMessage)
-                ?.takeIf { it.visibility == android.view.View.VISIBLE }
-                ?: row
-            bubble.tag = uuid
-            bubble.foreground = highlightDrawable()
-            bubble.postDelayed({
-                if (bubble.tag == uuid) {
-                    bubble.foreground = null
-                    bubble.tag = null
-                }
-            }, HIGHLIGHT_MS)
-        }, if (attempt == 0) 250L else 120L)
     }
 
     override fun onStart() {
