@@ -37,8 +37,6 @@ import com.example.muzea.databinding.FragmentChatConversationBinding
 import com.example.muzea.databinding.ItemPendingAttachmentBinding
 import com.example.muzea.ui.common.ReportDialog
 import com.example.muzea.ui.navigation.navigator
-import com.example.muzea.utils.ActiveChatTracker
-import com.example.muzea.utils.ChatNotifications
 import com.example.muzea.utils.AvatarLoader
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
@@ -93,6 +91,7 @@ class ChatConversationFragment : Fragment(),
     private lateinit var composerIntents: ChatComposerIntents
     private lateinit var renderer: ChatConversationRenderer
     private lateinit var interactions: ChatMessageInteractions
+    private lateinit var presence: ChatPresenceController
     private lateinit var pinnedBarView: PinnedBarView
     private lateinit var downloadController: AttachmentDownloadController
     private lateinit var recordingTimer: RecordingTimer
@@ -248,6 +247,13 @@ class ChatConversationFragment : Fragment(),
         chatUuid = arguments?.getString(ChatConversationViewModel.ARG_CHAT_UUID) ?: ""
         unreadCount = arguments?.getLong(ARG_UNREAD_COUNT, 0L) ?: 0L
         pendingHighlightUuid = arguments?.getString(ARG_HIGHLIGHT_MESSAGE)
+        presence = ChatPresenceController(
+            chatUuid = chatUuid,
+            context = requireContext(),
+            resumePolling = viewModel::resumePolling,
+            pausePolling = viewModel::pausePolling,
+            saveDraft = { draft -> ChatDrafts.save(requireContext(), chatUuid, draft) }
+        )
     }
 
     private fun bindHeader() {
@@ -1114,54 +1120,31 @@ class ChatConversationFragment : Fragment(),
 
     override fun onStart() {
         super.onStart()
-        viewModel.resumePolling()
-        // Внутри onStart lifecycle ещё CREATED, поэтому смотрим только на hidden.
-        if (!isHidden) markChatVisible()
+        presence.onStart(isHidden)
     }
 
     override fun onStop() {
-        clearActiveChat()
-        viewModel.pausePolling()
+        presence.onStop()
         super.onStop()
     }
 
-    /**
-     * Вкладки и экраны «поверх» не останавливают фрагмент, а прячут его.
-     * Без этого чат считался бы открытым, пока пользователь на другой вкладке,
-     * и push этого чата ошибочно подавлялся бы.
-     */
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)
-        if (hidden) {
-            clearActiveChat()
-        } else if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
-            markChatVisible()
-        }
-    }
-
-    /**
-     * Чат на экране: подавляем пуши по нему и снимаем уже показанное
-     * уведомление — оно больше не актуально, сообщения видно в ленте.
-     */
-    private fun markChatVisible() {
-        ActiveChatTracker.chatUuid = chatUuid
-        ChatNotifications.cancel(requireContext().applicationContext, chatUuid)
-    }
-
-    private fun clearActiveChat() {
-        if (ActiveChatTracker.chatUuid == chatUuid) ActiveChatTracker.chatUuid = null
+        presence.onHiddenChanged(
+            hidden = hidden,
+            started = lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+        )
     }
 
     override fun onPause() {
         if (::actionsPresenter.isInitialized) actionsPresenter.dismiss()
         if (::recordingController.isInitialized) recordingController.cancelIfActive()
-        // Черновик сохраняем только для обычного ввода: текст редактирования
-        // не должен затирать неотправленное сообщение.
-        if (_binding != null && viewModel.uiState.value.editing == null) {
-            ChatDrafts.save(
-                requireContext(), chatUuid, binding.etMessageInput.text?.toString()
-            )
+        val draft = if (_binding != null && viewModel.uiState.value.editing == null) {
+            binding.etMessageInput.text?.toString()
+        } else {
+            null
         }
+        presence.onPause(draft)
         super.onPause()
     }
 

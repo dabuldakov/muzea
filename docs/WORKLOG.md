@@ -46,6 +46,7 @@
 | 23.11 | refactor | ARCH.30 | `ChatConversationRenderer`: состояние, баннеры, закреплённые, вложения и пустое состояние | — |
 | 23.11 | refactor | ARCH.31 | `ChatMessageInteractions`: копирование и жалоба вынесены из фрагмента | — |
 | 23.11 | refactor | ARCH.32 | `setupRecyclerView` разложен на контроллеры списка и адаптер/слушатели | — |
+| 23.11 | refactor | ARCH.33 | `ChatPresenceController`: активный чат, push, пауза опроса и черновик вынесены из lifecycle фрагмента | — |
 
 ## 1.7.57 — 2026-11-23
 

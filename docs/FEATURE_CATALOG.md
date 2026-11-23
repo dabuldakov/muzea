@@ -145,6 +145,7 @@
 | ARCH.30 | Рендер состояния | done | ChatConversationRenderer: лоадер, баннеры, pinned, вложения |
 | ARCH.31 | Быстрые действия | done | ChatMessageInteractions: копирование и жалоба |
 | ARCH.32 | Настройка списка | done | setupRecyclerView разложен на list-контроллеры и адаптер |
+| ARCH.33 | Присутствие в чате | done | ChatPresenceController: активный чат, push, polling, черновик |
 
 ## DIST — дистрибуция
 
