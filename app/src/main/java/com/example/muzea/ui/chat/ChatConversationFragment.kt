@@ -1,8 +1,6 @@
 package com.example.muzea.ui.chat
 
 import com.example.muzea.R
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.Manifest
 import android.content.pm.PackageManager
@@ -93,6 +91,8 @@ class ChatConversationFragment : Fragment(),
     private lateinit var actionsPresenter: ChatMessageActionsPresenter
     private lateinit var selectionActions: ChatSelectionActions
     private lateinit var composerIntents: ChatComposerIntents
+    private lateinit var renderer: ChatConversationRenderer
+    private lateinit var interactions: ChatMessageInteractions
     private lateinit var pinnedBarView: PinnedBarView
     private lateinit var downloadController: AttachmentDownloadController
     private lateinit var recordingTimer: RecordingTimer
@@ -428,6 +428,20 @@ class ChatConversationFragment : Fragment(),
             },
             label = { res -> getString(res) }
         ).also { it.setup() }
+        renderer = ChatConversationRenderer(
+            stateView = conversationStateView,
+            composerBanner = composerBanner,
+            pinnedBar = pinnedBarView,
+            pendingAttachments = pendingAttachmentsView,
+            emptyView = binding.tvEmpty,
+            listView = binding.recyclerViewMessages,
+            errorView = binding.tvError
+        )
+        interactions = ChatMessageInteractions(
+            context = requireContext(),
+            scope = viewLifecycleOwner.lifecycleScope,
+            sendReport = { uuid, reason -> viewModel.reportMessage(uuid, reason) }
+        )
     }
 
     /**
@@ -499,10 +513,10 @@ class ChatConversationFragment : Fragment(),
         when (actionId) {
             MessageActionsBottomSheet.ACTION_REACT -> showReactionPicker(message)
             MessageActionsBottomSheet.ACTION_COPY ->
-                message.text?.takeIf { it.isNotBlank() }?.let { copyMessage(it) }
+                message.text?.takeIf { it.isNotBlank() }?.let { interactions.copy(it) }
             MessageActionsBottomSheet.ACTION_REPORT ->
                 ReportDialog.show(requireContext()) { reason ->
-                    reportMessage(message.messageUuid, reason)
+                    interactions.report(message.messageUuid, reason)
                 }
             MessageActionsBottomSheet.ACTION_BLOCK ->
                 message.senderUuid?.let { uuid ->
@@ -598,65 +612,12 @@ class ChatConversationFragment : Fragment(),
         if (::selectionController.isInitialized) selectionController.exit()
     }
 
-    private fun copyMessage(text: String) {
-        val clipboard = requireContext()
-            .getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newPlainText(null, text))
-        Toast.makeText(requireContext(), R.string.message_copied, Toast.LENGTH_SHORT).show()
-    }
-
-    private fun reportMessage(messageUuid: String, reason: String) {
-        viewLifecycleOwner.lifecycleScope.launch {
-            val ok = viewModel.reportMessage(messageUuid, reason)
-            Toast.makeText(
-                requireContext(),
-                if (ok) R.string.report_sent else R.string.report_failed,
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-    }
-
     private fun openGroupSettings(chatTitle: String) {
         navigator.openGroupSettings(chatUuid, chatTitle, arguments?.getString(ARG_CHAT_AVATAR))
     }
 
     private fun setupRecyclerView() {
-        highlighter = ChatMessageHighlighter(binding.recyclerViewMessages, dp(80))
-        listScroller = ChatMessageListScroller(
-            recyclerView = binding.recyclerViewMessages,
-            adapter = { if (::adapter.isInitialized) adapter else null },
-            messages = { viewModel.uiState.value.messages },
-            isViewAlive = { _binding != null },
-            onLoadOlder = { viewModel.loadOlder() },
-            onMarkRead = { uuid -> viewModel.markReadUpTo(uuid) }
-        )
-        actionsPresenter = ChatMessageActionsPresenter(
-            context = requireContext(),
-            fragmentManager = childFragmentManager,
-            recyclerView = binding.recyclerViewMessages,
-            adapter = { if (::adapter.isInitialized) adapter else null },
-            myUserUuid = { viewModel.myUserUuid },
-            isGroupChat = ::isGroupChat,
-            deliveryStatus = { uuid -> viewModel.deliveryStatus(uuid) },
-            reactionAuthors = { message -> viewModel.reactionAuthors(message) },
-            participantStatuses = { message -> viewModel.participantStatuses(message) },
-            receiptTime = { message, uuid -> viewModel.receiptTime(message, uuid) },
-            strings = { res -> getString(res) },
-            topLimit = ::actionsTopLimit,
-            lastTap = {
-                val x = lastTapX.takeIf { it > 0 } ?: MessageAdapter.lastTouchX.takeIf { it > 0 }
-                val y = lastTapY.takeIf { it > 0 } ?: MessageAdapter.lastTouchY.takeIf { it > 0 }
-                x to y
-            },
-            scope = viewLifecycleOwner.lifecycleScope,
-            onAction = ::onMessageAction,
-            onReaction = { message, emoji -> viewModel.toggleReaction(message, emoji) },
-            loadDetails = { message ->
-                viewModel.loadMessageReceiptTimes(message)
-                viewModel.refreshReceiptsNow()
-            },
-            onDismissed = { actionsBackCallback.isEnabled = false }
-        )
+        setupListControllers()
         adapter = MessageAdapter(
             myUserUuid = viewModel.myUserUuid,
             linkPreviews = linkPreviewStore,
@@ -717,10 +678,49 @@ class ChatConversationFragment : Fragment(),
                         listScroller.requestOlder()
                     }
                     if (::actionsPresenter.isInitialized) actionsPresenter.dismiss()
-                    updateScrollButton()
+                    if (::scrollController.isInitialized) scrollController.update()
                 }
             })
         }
+    }
+
+    private fun setupListControllers() {
+        highlighter = ChatMessageHighlighter(binding.recyclerViewMessages, dp(80))
+        listScroller = ChatMessageListScroller(
+            recyclerView = binding.recyclerViewMessages,
+            adapter = { if (::adapter.isInitialized) adapter else null },
+            messages = { viewModel.uiState.value.messages },
+            isViewAlive = { _binding != null },
+            onLoadOlder = { viewModel.loadOlder() },
+            onMarkRead = { uuid -> viewModel.markReadUpTo(uuid) }
+        )
+        actionsPresenter = ChatMessageActionsPresenter(
+            context = requireContext(),
+            fragmentManager = childFragmentManager,
+            recyclerView = binding.recyclerViewMessages,
+            adapter = { if (::adapter.isInitialized) adapter else null },
+            myUserUuid = { viewModel.myUserUuid },
+            isGroupChat = ::isGroupChat,
+            deliveryStatus = { uuid -> viewModel.deliveryStatus(uuid) },
+            reactionAuthors = { message -> viewModel.reactionAuthors(message) },
+            participantStatuses = { message -> viewModel.participantStatuses(message) },
+            receiptTime = { message, uuid -> viewModel.receiptTime(message, uuid) },
+            strings = { res -> getString(res) },
+            topLimit = ::actionsTopLimit,
+            lastTap = {
+                val x = lastTapX.takeIf { it > 0 } ?: MessageAdapter.lastTouchX.takeIf { it > 0 }
+                val y = lastTapY.takeIf { it > 0 } ?: MessageAdapter.lastTouchY.takeIf { it > 0 }
+                x to y
+            },
+            scope = viewLifecycleOwner.lifecycleScope,
+            onAction = ::onMessageAction,
+            onReaction = { message, emoji -> viewModel.toggleReaction(message, emoji) },
+            loadDetails = { message ->
+                viewModel.loadMessageReceiptTimes(message)
+                viewModel.refreshReceiptsNow()
+            },
+            onDismissed = { actionsBackCallback.isEnabled = false }
+        )
     }
 
     private fun performPendingScroll() {
@@ -736,13 +736,6 @@ class ChatConversationFragment : Fragment(),
         }
     }
 
-    private fun isAtBottom(): Boolean = scrollController.isAtBottom()
-
-    /** Кнопка прокрутки: видна, только когда список не в самом низу. */
-    private fun updateScrollButton() {
-        if (::scrollController.isInitialized) scrollController.update()
-    }
-
     private fun setupAttachments() {
         binding.btnAdd.setOnClickListener { showAttachmentPicker() }
     }
@@ -756,14 +749,6 @@ class ChatConversationFragment : Fragment(),
                 viewModel.setReplyTo(null)
             }
         }
-    }
-
-    /**
-     * Баннер над полем ввода: либо «ответ», либо «редактирование». Оригинал
-     * подставляем как цитату; при редактировании ещё и заполняем поле ввода.
-     */
-    private fun renderComposerBanner(state: ChatConversationUiState) {
-        composerBanner.render(replyTo = state.replyTo, editing = state.editing)
     }
 
     private fun showKeyboard() {
@@ -788,12 +773,6 @@ class ChatConversationFragment : Fragment(),
         viewModel.loadOlder()
     }
 
-    /** Панель закреплённого сообщения сверху чата. */
-    private fun renderPinnedBar(state: ChatConversationUiState) {
-        pinnedMessages = state.pinnedMessages
-        pinnedBarView.render(state.pinnedMessages)
-    }
-
     private fun showAttachmentPicker() {
         AttachmentsBottomSheet.newInstance()
             .show(childFragmentManager, "attachments")
@@ -801,10 +780,6 @@ class ChatConversationFragment : Fragment(),
 
     override fun onAttachmentKind(kind: AttachmentsBottomSheet.Kind) =
         composerIntents.onAttachmentKind(kind)
-
-    private fun renderPendingAttachments(pending: List<PendingAttachment>) {
-        pendingAttachmentsView.render(pending)
-    }
 
     /** Ответ/пересылка из просмотрщика картинок. */
     private fun handleImageViewerResult(action: String, messageUuid: String) {
@@ -941,21 +916,6 @@ class ChatConversationFragment : Fragment(),
             .show(childFragmentManager, "gif_picker")
     }
 
-    /**
-     * Единая отрисовка экрана переписки.
-     *
-     * Список берём из ViewModel, потому что [androidx.recyclerview.widget.ListAdapter]
-     * обновляет currentList асинхронно: опираясь на него, мы сразу после
-     * submitList() считали бы экран пустым и спрятали бы переписку.
-     */
-    private fun renderConversationState(state: ChatConversationUiState) {
-        conversationStateView.render(
-            isLoading = state.isLoading,
-            hasMessages = state.messages.isNotEmpty(),
-            errorText = state.error
-        )
-    }
-
     private fun observeNetwork() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -983,7 +943,7 @@ class ChatConversationFragment : Fragment(),
             applyDeletedPeerState()
             viewModel.uiState.collect { state ->
                 val messages = state.messages
-                val wasAtBottom = isAtBottom()
+                val wasAtBottom = scrollController.isAtBottom()
                 renderMessages(state, messages, wasAtBottom)
                 updateScrollForNewMessages(messages, wasAtBottom)
                 applyPendingHighlight(state, messages)
@@ -1022,14 +982,15 @@ class ChatConversationFragment : Fragment(),
         updateMessageList(messages, state.statuses, wasAtBottom)
         if (state.pendingAttachments != lastPending) {
             lastPending = state.pendingAttachments
-            renderPendingAttachments(state.pendingAttachments)
+            renderer.renderPendingAttachments(state.pendingAttachments)
         }
         binding.btnSend.isEnabled = state.pendingAttachments.all { it.isUploaded }
         sendModeController.updateButton()
-        updateEmptyState(messages)
-        renderConversationState(state)
-        renderComposerBanner(state)
-        renderPinnedBar(state)
+        renderer.renderEmptyState(messages)
+        renderer.renderState(state)
+        renderer.renderComposerBanner(state)
+        pinnedMessages = state.pinnedMessages
+        renderer.renderPinnedBar(state)
     }
 
     /** DiffUtil-обновление списка с сохранением видимого якоря. */
@@ -1132,7 +1093,7 @@ class ChatConversationFragment : Fragment(),
                 if (_binding != null) performPendingScroll()
             }
         }
-        updateScrollButton()
+        if (::scrollController.isInitialized) scrollController.update()
     }
 
     /** Переход к сообщению из push; при необходимости догружает историю. */
@@ -1148,18 +1109,6 @@ class ChatConversationFragment : Fragment(),
                 highlightAttempts++
                 viewModel.loadOlder()
             }
-        }
-    }
-
-    private fun updateEmptyState(messages: List<Message>) {
-        if (messages.isEmpty()) {
-            binding.tvEmpty.visibility = View.VISIBLE
-            binding.recyclerViewMessages.visibility = View.GONE
-            binding.tvError.visibility = View.GONE
-        } else {
-            binding.tvEmpty.visibility = View.GONE
-            binding.recyclerViewMessages.visibility = View.VISIBLE
-            binding.tvError.visibility = View.GONE
         }
     }
 

@@ -142,6 +142,9 @@
 | ARCH.27 | Карточка действий | done | ChatMessageActionsPresenter: попап, fallback-шторка, строки «Деталей» |
 | ARCH.28 | Действия выделения | done | ChatSelectionActions: удаление своих и пересылка пачки |
 | ARCH.29 | Действия композера | done | ChatComposerIntents: фото/видео/файл, GIF, эмодзи |
+| ARCH.30 | Рендер состояния | done | ChatConversationRenderer: лоадер, баннеры, pinned, вложения |
+| ARCH.31 | Быстрые действия | done | ChatMessageInteractions: копирование и жалоба |
+| ARCH.32 | Настройка списка | done | setupRecyclerView разложен на list-контроллеры и адаптер |
 
 ## DIST — дистрибуция
 

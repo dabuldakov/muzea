@@ -43,6 +43,9 @@
 | 23.11 | refactor | ARCH.27 | `ChatMessageActionsPresenter`: плавающая карточка действий и строки «Деталей» вынесены из фрагмента | — |
 | 23.11 | refactor | ARCH.28 | `ChatSelectionActions`: удаление и пересылка выбранных сообщений вынесены из фрагмента | — |
 | 23.11 | refactor | ARCH.29 | `ChatComposerIntents`: выбор вложений, GIF и вставка эмодзи вынесены из фрагмента | — |
+| 23.11 | refactor | ARCH.30 | `ChatConversationRenderer`: состояние, баннеры, закреплённые, вложения и пустое состояние | — |
+| 23.11 | refactor | ARCH.31 | `ChatMessageInteractions`: копирование и жалоба вынесены из фрагмента | — |
+| 23.11 | refactor | ARCH.32 | `setupRecyclerView` разложен на контроллеры списка и адаптер/слушатели | — |
 
 ## 1.7.57 — 2026-11-23
 
