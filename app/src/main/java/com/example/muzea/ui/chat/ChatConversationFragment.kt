@@ -43,7 +43,6 @@ import com.example.muzea.ui.chat.recording.VoiceRecorder
 import com.example.muzea.utils.PreparedAttachment
 import com.example.muzea.utils.MediaUrl
 import com.example.muzea.utils.TokenManager
-import com.example.muzea.utils.AttachmentOpenPolicy
 import com.example.muzea.data.repository.ChatListCache
 import com.example.muzea.data.repository.LinkPreviewStore
 import com.example.muzea.databinding.FragmentChatConversationBinding
@@ -147,6 +146,7 @@ class ChatConversationFragment : Fragment(),
     private var videoRecorder: VideoNoteRecorder? = null
     private lateinit var audioController: ChatAudioController
     private lateinit var mentionController: MentionPopupController
+    private lateinit var fileOpener: DownloadedFileOpener
 
     private val micPermission = registerForActivityResult(RequestPermission()) { granted ->
         if (!granted) {
@@ -314,6 +314,11 @@ class ChatConversationFragment : Fragment(),
             onTick = { text -> binding.tvRecordingTimer.text = text },
             onLimit = { finishRecording(cancel = false) }
         )
+        fileOpener = DownloadedFileOpener(
+            context = requireContext(),
+            isAdded = { isAdded },
+            startActivity = { intent -> startActivity(intent) }
+        )
         downloadController = AttachmentDownloadController(
             scope = viewLifecycleOwner.lifecycleScope,
             createProgress = { onCancel ->
@@ -325,7 +330,7 @@ class ChatConversationFragment : Fragment(),
             publish = { file, name, mime ->
                 viewModel.publishDownloadedAttachment(file, name, mime)
             },
-            open = { uri, file, attachment -> openDownloadedFile(uri, file, attachment) },
+            open = { uri, file, attachment -> fileOpener.open(uri, file, attachment) },
             toast = { res -> Toast.makeText(requireContext(), res, Toast.LENGTH_SHORT).show() }
         )
         audioController = ChatAudioController(
@@ -1001,74 +1006,6 @@ class ChatConversationFragment : Fragment(),
 
     private fun downloadAndOpen(attachment: MessageAttachment) {
         downloadController.start(attachment)
-    }
-
-    private fun openDownloadedFile(
-        publicUri: android.net.Uri?,
-        file: java.io.File,
-        attachment: MessageAttachment
-    ) {
-        // APK/EXE и подобные файлы не открываем как установщик: приложение не
-        // должно провоцировать установку из чата. Файл уже сохранён, открыть
-        // его можно вручную через файловый менеджер.
-        if (AttachmentOpenPolicy.isExecutable(attachment.fileName, attachment.mimeType)) {
-            MaterialAlertDialogBuilder(requireContext())
-                .setMessage(R.string.attachment_executable_blocked)
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
-            return
-        }
-
-        val uri = publicUri ?: runCatching {
-            androidx.core.content.FileProvider.getUriForFile(
-                requireContext(),
-                "${requireContext().packageName}.fileprovider",
-                file
-            )
-        }.getOrNull()
-        if (uri == null) {
-            Toast.makeText(
-                requireContext(), R.string.attachment_open_failed, Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-        val mime = attachment.mimeType?.takeIf { it.isNotBlank() } ?: "*/*"
-        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, mime)
-            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            // Часть прошивок (Transsion/Infinix) не передаёт грант только по
-            // флагу — дублируем URI в ClipData.
-            clipData = android.content.ClipData.newRawUri("", uri)
-        }
-        try {
-            startActivity(intent)
-        } catch (e: Exception) {
-            showOpenFallback(uri, mime, publicUri != null)
-        }
-    }
-
-    /** Нет обработчика для файла: предлагаем «Поделиться» и не теряем его. */
-    private fun showOpenFallback(uri: android.net.Uri, mime: String, savedToDownloads: Boolean) {
-        if (!isAdded) return
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.attachment_open_failed)
-            .setMessage(
-                if (savedToDownloads) R.string.attachment_saved_downloads
-                else R.string.attachment_saved_private
-            )
-            .setPositiveButton(R.string.action_share) { _, _ ->
-                val share = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                    type = mime
-                    putExtra(android.content.Intent.EXTRA_STREAM, uri)
-                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    clipData = android.content.ClipData.newRawUri("", uri)
-                }
-                runCatching {
-                    startActivity(android.content.Intent.createChooser(share, null))
-                }
-            }
-            .setNegativeButton(R.string.action_later, null)
-            .show()
     }
 
     private fun setupInput() {

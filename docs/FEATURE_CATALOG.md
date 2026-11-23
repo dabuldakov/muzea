@@ -125,6 +125,7 @@
 | ARCH.10 | Контроллер упоминаний | done | MentionPopupController: список и подстановка `@`-упоминаний |
 | ARCH.11 | Диалог реакций | done | ReactionPickerDialog: сетка эмодзи без сборки вьюх во фрагменте |
 | ARCH.12 | Контроллер квитанций | done | ChatReceiptsController: прочтения, время и галочки |
+| ARCH.13 | Открытие скачанных файлов | done | DownloadedFileOpener: просмотр, блокировка APK/EXE, fallback «Поделиться» |
 
 ## DIST — дистрибуция
 
