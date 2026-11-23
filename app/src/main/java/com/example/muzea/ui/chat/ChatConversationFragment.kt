@@ -15,9 +15,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
-import android.widget.ArrayAdapter
 import android.widget.EditText
-import android.widget.ListPopupWindow
 import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions
@@ -128,14 +126,11 @@ class ChatConversationFragment : Fragment(),
     }
     /** Текущий список закреплённых (для клика по панели и открепления). */
     private var pinnedMessages: List<Message> = emptyList()
-    private var mentionPopup: ListPopupWindow? = null
     private var chargeJob: Job? = null
     private var chargeStartedAt = 0L
     private var isCharging = false
     private var chargeCancelled = false
     private var lastChargeVibrationAt = 0L
-    private var mentionStart = -1
-    private var mentionEnd = -1
 
     private enum class SendMode { TEXT, VOICE, VIDEO }
 
@@ -151,6 +146,7 @@ class ChatConversationFragment : Fragment(),
     private var voiceRecorder: VoiceRecorder? = null
     private var videoRecorder: VideoNoteRecorder? = null
     private lateinit var audioController: ChatAudioController
+    private lateinit var mentionController: MentionPopupController
 
     private val micPermission = registerForActivityResult(RequestPermission()) { granted ->
         if (!granted) {
@@ -377,6 +373,7 @@ class ChatConversationFragment : Fragment(),
             },
             label = { res -> getString(res) }
         ).also { it.setup() }
+        mentionController = MentionPopupController(requireContext(), binding.etMessageInput)
         setupInput()
         setupAttachments()
         setupReplyBanner()
@@ -1147,48 +1144,10 @@ class ChatConversationFragment : Fragment(),
             .toList()
         val suggestion = MentionSuggestions.resolve(text, cursor, usernames)
         if (suggestion == null) {
-            dismissMentionSuggestions()
+            mentionController.dismiss()
             return
         }
-        mentionStart = suggestion.start
-        mentionEnd = suggestion.end
-        val names = suggestion.candidates
-        val popup = mentionPopup ?: ListPopupWindow(requireContext()).apply {
-            anchorView = binding.etMessageInput
-            width = dp(240)
-            isModal = false
-            inputMethodMode = ListPopupWindow.INPUT_METHOD_NOT_NEEDED
-            setOnItemClickListener { _, _, position, _ ->
-                val adapter = mentionPopup?.listView?.adapter
-                val name = adapter?.getItem(position) as? String
-                    ?: return@setOnItemClickListener
-                insertMention(name)
-            }
-            mentionPopup = this
-        }
-        popup.setAdapter(
-            ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, names)
-        )
-        if (!popup.isShowing) popup.show()
-    }
-
-    private fun insertMention(username: String) {
-        if (mentionStart < 0 || mentionEnd < mentionStart) return
-        val input = binding.etMessageInput
-        val text = input.text?.toString().orEmpty()
-        val insertion = "@$username "
-        val updated = text.substring(0, mentionStart) + insertion +
-            text.substring(mentionEnd.coerceAtMost(text.length))
-        input.setText(updated)
-        val position = (mentionStart + insertion.length).coerceAtMost(updated.length)
-        input.setSelection(position)
-        dismissMentionSuggestions()
-    }
-
-    private fun dismissMentionSuggestions() {
-        mentionPopup?.dismiss()
-        mentionStart = -1
-        mentionEnd = -1
+        mentionController.show(suggestion)
     }
 
     private fun canSendNow(): Boolean =
