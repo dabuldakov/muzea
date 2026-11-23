@@ -14,7 +14,6 @@
     <ID>ExplicitItLambdaParameter:ChatConversationFragment.kt$ChatConversationFragment${ it -&gt; resolveAttachmentUrl(it) }</ID>
     <ID>FunctionOnlyReturningConstant:GifCache.kt$GifCache.Companion$fun recentKey(): String</ID>
     <ID>LargeClass:ChatConversationFragment.kt$ChatConversationFragment : FragmentOnGifSelectedListenerOnChatForwardTargetSelectedListenerListener</ID>
-    <ID>LargeClass:ChatConversationViewModel.kt$ChatConversationViewModel : ViewModel</ID>
     <ID>LargeClass:ChatConversationViewModelTest.kt$ChatConversationViewModelTest</ID>
     <ID>LargeClass:MessageAdapterBindTest.kt$MessageAdapterBindTest</ID>
     <ID>LargeClass:MessageRepositoryImpl.kt$MessageRepositoryImpl : MessageRepository</ID>
