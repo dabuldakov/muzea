@@ -139,6 +139,7 @@
 | ARCH.24 | Диалоги действий | done | ChatDialogs: удаление, блокировка, комментарий пересылки |
 | ARCH.25 | Подсветка из push | done | ChatMessageHighlighter: прокрутка и вспышка пузыря |
 | ARCH.26 | Якорь истории | done | ChatMessageListScroller: догрузка, восстановление позиции, прочтение |
+| ARCH.27 | Карточка действий | done | ChatMessageActionsPresenter: попап, fallback-шторка, строки «Деталей» |
 
 ## DIST — дистрибуция
 

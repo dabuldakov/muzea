@@ -42,7 +42,6 @@ import com.example.muzea.ui.navigation.navigator
 import com.example.muzea.utils.ActiveChatTracker
 import com.example.muzea.utils.ChatNotifications
 import com.example.muzea.utils.AvatarLoader
-import com.example.muzea.utils.LocalTimeFormatter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -82,7 +81,6 @@ class ChatConversationFragment : Fragment(),
     private var lastMessages: List<Message>? = null
     private var pendingHighlightUuid: String? = null
     private var highlightAttempts = 0
-    private var actionsPopup: MessageActionsPopup? = null
     private lateinit var scrollController: ChatScrollController
     private lateinit var composerBanner: ComposerBanner
     private lateinit var pendingAttachmentsView: PendingAttachmentsView
@@ -92,6 +90,7 @@ class ChatConversationFragment : Fragment(),
     private lateinit var sendModeController: ChatSendModeController
     private lateinit var highlighter: ChatMessageHighlighter
     private lateinit var listScroller: ChatMessageListScroller
+    private lateinit var actionsPresenter: ChatMessageActionsPresenter
     private lateinit var pinnedBarView: PinnedBarView
     private lateinit var downloadController: AttachmentDownloadController
     private lateinit var recordingTimer: RecordingTimer
@@ -101,7 +100,7 @@ class ChatConversationFragment : Fragment(),
     /** Пока модалка открыта, «назад» закрывает её, а не весь чат. */
     private val actionsBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
-            actionsPopup?.dismiss()
+            if (::actionsPresenter.isInitialized) actionsPresenter.dismiss()
         }
     }
     /** Точка последнего касания списка — к ней ставим модалку. */
@@ -434,78 +433,11 @@ class ChatConversationFragment : Fragment(),
      * чата: сверху ряд иконок, снизу — статус прочтения (для своих сообщений).
      * Чужие сообщения можно копировать/жаловаться/блокировать, свои — копировать.
      */
-    private fun showMessageActions(message: Message) {
-        // У удалённого сообщения действий нет.
-        if (message.isDeleted) return
-        val built = MessageActionsBuilder.build(
-            message = message,
-            myUserUuid = viewModel.myUserUuid,
-            isGroupChat = isGroupChat(),
-            deliveryStatus = viewModel.deliveryStatus(message.messageUuid)
-        )
-        val actions = built.actions
-        val showStatus = built.showStatus
-        if (actions.isEmpty() && !showStatus) return
-
-        val position = adapter.currentList.indexOfFirst { it.messageUuid == message.messageUuid }
-        val holder = if (position >= 0) {
-            binding.recyclerViewMessages.findViewHolderForAdapterPosition(position)
-        } else {
-            null
-        }
-        val anchor = holder?.itemView?.findViewById<android.view.View>(R.id.tvMessage)
-            ?.takeIf { it.visibility == android.view.View.VISIBLE }
-            ?: holder?.itemView
-        if (anchor != null) {
-            actionsPopup?.dismiss()
-            val popup = MessageActionsPopup(
-                context = requireContext(),
-                messageUuid = message.messageUuid,
-                actions = actions,
-                statusRows = if (showStatus) buildStatusRows(message) else emptyList(),
-                reactions = message.reactions,
-                reactionRows = buildReactionRows(message),
-                topLimit = actionsTopLimit(),
-                showStatus = showStatus,
-                onAction = { actionId -> onMessageAction(message.messageUuid, actionId) },
-                onReaction = { emoji -> viewModel.toggleReaction(message, emoji) },
-                onDismissed = { actionsBackCallback.isEnabled = false },
-                // Квитанции обновляются раз в 30 секунд; на раскрытие «Деталей»
-                // тянем их сразу, иначе список читателей отстаёт.
-                onDetailsExpanded = {
-                    viewLifecycleOwner.lifecycleScope.launch {
-                        viewModel.loadMessageReceiptTimes(message)
-                        viewModel.refreshReceiptsNow()
-                        if (actionsPopup?.isShowing() == true) {
-                            actionsPopup?.refreshDetails(
-                                statusRows = if (showStatus) buildStatusRows(message) else emptyList(),
-                                reactionRows = buildReactionRows(message)
-                            )
-                        }
-                    }
-                }
-            )
-            actionsPopup = popup
-            popup.show(
-                anchor,
-                tapX = lastTapX.takeIf { v -> v > 0 }
-                    ?: MessageAdapter.lastTouchX.takeIf { v -> v > 0 },
-                tapY = lastTapY.takeIf { v -> v > 0 }
-                    ?: MessageAdapter.lastTouchY.takeIf { v -> v > 0 }
-            )
-        } else {
-            // Строка ещё не разложена — показываем старую шторку.
-            MessageActionsBottomSheet.newInstance(
-                messageUuid = message.messageUuid,
-                actions = actions,
-                rows = if (showStatus) buildStatusRows(message) else emptyList(),
-                showStatus = showStatus
-            ).show(childFragmentManager, "message_actions")
-        }
-    }
+    private fun showMessageActions(message: Message) = actionsPresenter.show(message)
 
     /** Для тестов: видна ли сейчас плавающая модалка действий. */
-    internal fun isActionsPopupShowing(): Boolean = actionsPopup?.isShowing() == true
+    internal fun isActionsPopupShowing(): Boolean =
+        ::actionsPresenter.isInitialized && actionsPresenter.isShowing()
 
 
     private fun showReactionPicker(message: Message) {
@@ -543,39 +475,6 @@ class ChatConversationFragment : Fragment(),
         header.getLocationOnScreen(location)
         return location[1] + header.height + (8 * resources.displayMetrics.density).toInt()
     }
-
-    /** Авторы реакций — для «Деталей» на чужих сообщениях. */
-    private fun buildReactionRows(message: Message): List<MessageStatusRow> {
-        val receipts = viewModel.reactionAuthors(message).associate { it.first to it.second }
-        return MessageDetailsRows.reactions(
-            message = message,
-            receiptsByUuid = receipts,
-            myUserUuid = viewModel.myUserUuid,
-            youLabel = getString(R.string.reply_you),
-            unknownLabel = getString(R.string.reply_unknown_sender),
-            formatTime = { LocalTimeFormatter.format(it) }
-        )
-    }
-
-    private fun buildStatusRows(message: Message): List<MessageStatusRow> =
-        viewModel.participantStatuses(message).map { row ->
-            // Время — только из отметки по этому сообщению. Водяной знак
-            // квитанции показывает последнее прочтение чата и для старых
-            // сообщений дал бы неверную дату, поэтому fallback нет.
-            val exact = row.receipt.userUuid?.let { viewModel.receiptTime(message, it) }
-            val at = if (row.status == MessageDeliveryStatus.READ) {
-                exact?.readAt
-            } else {
-                exact?.deliveredAt
-            }
-            MessageStatusRow(
-                userUuid = row.receipt.userUuid,
-                name = row.receipt.displayName(),
-                avatarUrl = row.receipt.avatarUrl,
-                status = row.status.name,
-                at = LocalTimeFormatter.format(at).takeIf { it.isNotBlank() }
-            )
-        }
 
     override fun onMessageAction(messageUuid: String, actionId: String) {
         val message = viewModel.uiState.value.messages
@@ -727,6 +626,33 @@ class ChatConversationFragment : Fragment(),
             onLoadOlder = { viewModel.loadOlder() },
             onMarkRead = { uuid -> viewModel.markReadUpTo(uuid) }
         )
+        actionsPresenter = ChatMessageActionsPresenter(
+            context = requireContext(),
+            fragmentManager = childFragmentManager,
+            recyclerView = binding.recyclerViewMessages,
+            adapter = { if (::adapter.isInitialized) adapter else null },
+            myUserUuid = { viewModel.myUserUuid },
+            isGroupChat = ::isGroupChat,
+            deliveryStatus = { uuid -> viewModel.deliveryStatus(uuid) },
+            reactionAuthors = { message -> viewModel.reactionAuthors(message) },
+            participantStatuses = { message -> viewModel.participantStatuses(message) },
+            receiptTime = { message, uuid -> viewModel.receiptTime(message, uuid) },
+            strings = { res -> getString(res) },
+            topLimit = ::actionsTopLimit,
+            lastTap = {
+                val x = lastTapX.takeIf { it > 0 } ?: MessageAdapter.lastTouchX.takeIf { it > 0 }
+                val y = lastTapY.takeIf { it > 0 } ?: MessageAdapter.lastTouchY.takeIf { it > 0 }
+                x to y
+            },
+            scope = viewLifecycleOwner.lifecycleScope,
+            onAction = ::onMessageAction,
+            onReaction = { message, emoji -> viewModel.toggleReaction(message, emoji) },
+            loadDetails = { message ->
+                viewModel.loadMessageReceiptTimes(message)
+                viewModel.refreshReceiptsNow()
+            },
+            onDismissed = { actionsBackCallback.isEnabled = false }
+        )
         adapter = MessageAdapter(
             myUserUuid = viewModel.myUserUuid,
             linkPreviews = linkPreviewStore,
@@ -769,7 +695,7 @@ class ChatConversationFragment : Fragment(),
                         lastTapY = event.rawY.toInt()
                         // Любое новое касание списка закрывает старую модалку:
                         // иначе она остаётся на месте прошлого тапа.
-                        actionsPopup?.dismiss()
+                        if (::actionsPresenter.isInitialized) actionsPresenter.dismiss()
                     }
                     return false
                 }
@@ -786,7 +712,7 @@ class ChatConversationFragment : Fragment(),
                     if (dy < 0 && !recyclerView.canScrollVertically(-1)) {
                         listScroller.requestOlder()
                     }
-                    actionsPopup?.dismiss()
+                    if (::actionsPresenter.isInitialized) actionsPresenter.dismiss()
                     updateScrollButton()
                 }
             })
@@ -1292,7 +1218,7 @@ class ChatConversationFragment : Fragment(),
     }
 
     override fun onPause() {
-        actionsPopup?.dismiss()
+        if (::actionsPresenter.isInitialized) actionsPresenter.dismiss()
         if (::recordingController.isInitialized) recordingController.cancelIfActive()
         // Черновик сохраняем только для обычного ввода: текст редактирования
         // не должен затирать неотправленное сообщение.
@@ -1305,7 +1231,7 @@ class ChatConversationFragment : Fragment(),
     }
 
     override fun onDestroyView() {
-        actionsPopup?.dismiss()
+        if (::actionsPresenter.isInitialized) actionsPresenter.dismiss()
         actionsBackCallback.isEnabled = false
         if (::audioController.isInitialized) audioController.release()
         if (::adapter.isInitialized) {
