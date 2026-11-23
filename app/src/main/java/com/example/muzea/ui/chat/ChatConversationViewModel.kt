@@ -9,10 +9,7 @@ import com.example.muzea.domain.model.Gif
 import com.example.muzea.domain.model.Message
 import com.example.muzea.domain.model.MessageAttachment
 import com.example.muzea.domain.model.MessageDeliveryStatus
-import com.example.muzea.domain.model.MessagePreview
 import com.example.muzea.domain.model.MessageReceiptTime
-import com.example.muzea.data.repository.ChatListCache
-import com.example.muzea.data.repository.ChatMessagesCache
 import com.example.muzea.utils.LocalTimeFormatter
 import com.example.muzea.utils.MediaFileReader
 import com.example.muzea.utils.NetworkMonitor
@@ -75,6 +72,18 @@ class ChatConversationViewModel @Inject constructor(
     private var lastMarkedDeliveredUuid: String? = null
     /** Ошибку по сообщению показываем один раз, чтобы не спамить тостами. */
     private val notifiedFailures = mutableSetOf<String>()
+
+    private val editor = ChatMessageEditor(
+        chatUuid = chatUuid,
+        scope = viewModelScope,
+        repository = messageRepository,
+        reducer = reducer,
+        context = appContext,
+        state = { _uiState.value },
+        setState = { _uiState.value = it },
+        withStatuses = ::withStatuses,
+        emitError = { _sendError.emit(it) }
+    )
 
     private val pendingAttachments = ChatPendingAttachmentController(
         chatUuid = chatUuid,
@@ -274,7 +283,7 @@ class ChatConversationViewModel @Inject constructor(
     fun sendText(text: String, power: Int = 0) {
         val editing = _uiState.value.editing
         if (editing != null) {
-            submitEdit(editing, text)
+            editor.submitEdit(editing, text)
             return
         }
 
@@ -348,127 +357,12 @@ class ChatConversationViewModel @Inject constructor(
     }
 
     /** Включает режим редактирования; режим ответа при этом сбрасывается. */
-    fun startEditing(message: Message) {
-        _uiState.value = _uiState.value.copy(editing = message, replyTo = null)
-    }
+    fun startEditing(message: Message) = editor.startEditing(message)
 
-    fun cancelEditing() {
-        clearEditing()
-    }
-
-    private fun submitEdit(target: Message, text: String) {
-        val trimmed = text.trim()
-        if (trimmed.isEmpty()) {
-            viewModelScope.launch {
-                _sendError.emit(appContext.getString(R.string.error_message_required))
-            }
-            return
-        }
-        clearEditing()
-        if (trimmed == target.text) return
-
-        viewModelScope.launch {
-            messageRepository.editMessage(reducer.serverUuid(target.messageUuid), trimmed).collect { result ->
-                when (result) {
-                    is Resource.Success -> updateMessage(result.data!!)
-                    is Resource.Error ->
-                        _sendError.emit(result.message ?: "Failed to edit message")
-                    is Resource.Loading -> Unit
-                }
-            }
-        }
-    }
-
-    private fun clearEditing() {
-        if (_uiState.value.editing != null) {
-            _uiState.value = _uiState.value.copy(editing = null)
-        }
-    }
-
-    private fun updateMessage(updated: Message) {
-        // Сервер возвращает сообщение с реальным uuid; в списке наше сообщение
-        // может храниться под локальным uuid — приводим к нему, иначе правка
-        // не найдёт нужный пузырь.
-        val displayUuid = reducer.localUuidFor(updated.messageUuid) ?: updated.messageUuid
-        val reconciled = updated.copy(messageUuid = displayUuid)
-        // Сервер может вернуть сообщение без вложений (например, при правке
-        // подписи к фото). Не теряем уже показанную картинку.
-        val existing = _uiState.value.messages.firstOrNull {
-            it.messageUuid == displayUuid
-        }
-        val merged = if (reconciled.attachments.isEmpty() &&
-            existing != null && existing.attachments.isNotEmpty()
-        ) {
-            reconciled.copy(
-                attachments = existing.attachments,
-                power = if (reconciled.power > 0) reconciled.power else existing.power,
-                reactions = reconciled.reactions
-            )
-        } else {
-            reconciled.copy(
-                power = if (reconciled.power > 0) reconciled.power else existing?.power ?: 0,
-                reactions = reconciled.reactions
-            )
-        }
-        val messages = reducer.updateMessage(_uiState.value.messages, merged)
-        _uiState.value = withStatuses(_uiState.value.copy(messages = messages))
-        ChatMessagesCache.put(chatUuid, reducer.toServerIdentities(messages))
-        // Если правили последнее сообщение — сразу обновляем превью в списке чатов.
-        if (messages.lastOrNull()?.messageUuid == merged.messageUuid) {
-            ChatListCache.updateLastMessage(chatUuid, previewOf(merged))
-        }
-    }
+    fun cancelEditing() = editor.cancelEditing()
 
     /** Мягко удаляет своё сообщение «для всех». */
-    fun deleteMessage(message: Message) {
-        viewModelScope.launch {
-            val ok = messageRepository.deleteMessage(reducer.serverUuid(message.messageUuid))
-            if (ok) {
-                removeMessageLocally(message.messageUuid)
-                clearComposerFor(message.messageUuid)
-            } else {
-                _sendError.emit(appContext.getString(R.string.delete_message_failed))
-            }
-        }
-    }
-
-    /**
-     * Удалённое сообщение не показываем пузырём-заглушкой: убираем его из
-     * списка, а RecyclerView анимирует исчезновение (scale-to-point). Превью
-     * чата откатывается на предыдущее сообщение.
-     */
-    private fun removeMessageLocally(messageUuid: String) {
-        val remaining = _uiState.value.messages.filterNot { it.messageUuid == messageUuid }
-        _uiState.value = withStatuses(_uiState.value.copy(messages = remaining))
-        ChatMessagesCache.put(chatUuid, reducer.toServerIdentities(remaining))
-        val last = remaining.lastOrNull()
-        if (last == null) {
-            ChatListCache.clearLastMessage(chatUuid)
-        } else {
-            ChatListCache.updateLastMessage(chatUuid, previewOf(last))
-        }
-    }
-
-    private fun previewOf(message: Message) = MessagePreview(
-        messageUuid = reducer.serverUuid(message.messageUuid),
-        text = replyPreviewText(appContext, message),
-        senderId = message.senderId,
-        senderName = message.senderName,
-        createdAt = message.createdAt
-    )
-
-    /** Сбрасывает «ответ»/«редактирование», если они ссылаются на это сообщение. */
-    private fun clearComposerFor(messageUuid: String) {
-        val state = _uiState.value
-        val editingThis = state.editing?.messageUuid == messageUuid
-        val replyThis = state.replyTo?.messageUuid == messageUuid
-        if (editingThis || replyThis) {
-            _uiState.value = state.copy(
-                editing = if (editingThis) null else state.editing,
-                replyTo = if (replyThis) null else state.replyTo
-            )
-        }
-    }
+    fun deleteMessage(message: Message) = editor.delete(message)
 
     /**
      * Пересылает сообщение в выбранный чат. Если пользователь добавил
@@ -518,7 +412,7 @@ class ChatConversationViewModel @Inject constructor(
         viewModelScope.launch {
             val ok = messageRepository.pinMessage(chatUuid, reducer.serverUuid(message.messageUuid))
             if (ok) {
-                updateMessage(message.copy(isPinned = true))
+                editor.update(message.copy(isPinned = true))
                 refreshPinned()
             } else {
                 _sendError.emit(appContext.getString(R.string.pin_message_failed))
@@ -531,7 +425,7 @@ class ChatConversationViewModel @Inject constructor(
         viewModelScope.launch {
             val ok = messageRepository.unpinMessage(chatUuid, reducer.serverUuid(message.messageUuid))
             if (ok) {
-                updateMessage(message.copy(isPinned = false))
+                editor.update(message.copy(isPinned = false))
                 refreshPinned()
             } else {
                 _sendError.emit(appContext.getString(R.string.unpin_message_failed))
@@ -889,7 +783,7 @@ class ChatConversationViewModel @Inject constructor(
                 reducer.serverUuid(message.messageUuid), emoji
             )
             if (updated != null) {
-                updateMessage(message.copy(reactions = updated))
+                editor.update(message.copy(reactions = updated))
             } else {
                 _sendError.emit(appContext.getString(R.string.reaction_failed))
             }
