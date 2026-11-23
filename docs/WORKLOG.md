@@ -24,6 +24,7 @@
 | 23.11 | refactor | ARCH.08 | `ChatPollingController`: ритм опроса, пауза, возврат сети и курсоры синхронизации вынесены из ViewModel | — |
 | 23.11 | refactor | ARCH.09 | `ChatPendingAttachmentController`: подготовка, загрузка и хранение вложений вынесены из ViewModel | — |
 | 23.11 | refactor | ARCH.10 | `MentionPopupController`: подсказка `@`-упоминаний вынесена из `ChatConversationFragment` | — |
+| 23.11 | refactor | ARCH.11 | `ReactionPickerDialog`: сетка эмодзи-реакций вынесена из фрагмента | — |
 
 ## 1.7.57 — 2026-11-23
 

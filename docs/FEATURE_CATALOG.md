@@ -123,6 +123,7 @@
 | ARCH.08 | Контроллер опроса переписки | done | ChatPollingController: интервалы, пауза и синхронизация после возврата сети |
 | ARCH.09 | Контроллер вложений | done | ChatPendingAttachmentController: подготовка, загрузка, повторы и черновик |
 | ARCH.10 | Контроллер упоминаний | done | MentionPopupController: список и подстановка `@`-упоминаний |
+| ARCH.11 | Диалог реакций | done | ReactionPickerDialog: сетка эмодзи без сборки вьюх во фрагменте |
 
 ## DIST — дистрибуция
 

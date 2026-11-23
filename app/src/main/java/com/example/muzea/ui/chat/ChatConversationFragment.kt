@@ -478,45 +478,10 @@ class ChatConversationFragment : Fragment(),
     internal fun isActionsPopupShowing(): Boolean = actionsPopup?.isShowing() == true
 
 
-    private fun opaqueEmojiTextColor(): Int =
-        if ((resources.configuration.uiMode and
-                android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
-            android.content.res.Configuration.UI_MODE_NIGHT_YES
-        ) android.graphics.Color.WHITE else android.graphics.Color.BLACK
-
     private fun showReactionPicker(message: Message) {
-        val emojis = listOf(
-            "👍", "❤️", "😂", "😮", "😢", "🔥", "🎉", "👏",
-            "🙏", "💯", "😍", "🤔", "😡", "🥰", "😎", "🤝",
-            "✅", "❌", "👀", "🤯", "😴", "💜", "⚡", "🚀"
-        )
-        val density = resources.displayMetrics.density
-        val grid = android.widget.GridLayout(requireContext()).apply { columnCount = 6 }
-        val size = (48 * density).toInt()
-        var dialog: androidx.appcompat.app.AlertDialog? = null
-        emojis.forEach { emoji ->
-            val cell = android.widget.TextView(requireContext()).apply {
-                text = emoji
-                textSize = 26f
-                includeFontPadding = false
-                gravity = android.view.Gravity.CENTER
-                setTextColor(opaqueEmojiTextColor())
-                layoutParams = android.widget.GridLayout.LayoutParams().apply {
-                    width = size
-                    height = size
-                }
-                setOnClickListener {
-                    viewModel.toggleReaction(message, emoji)
-                    dialog?.dismiss()
-                }
-            }
-            grid.addView(cell)
+        ReactionPickerDialog.show(requireContext(), message) { target, emoji ->
+            viewModel.toggleReaction(target, emoji)
         }
-        dialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.action_react)
-            .setView(grid)
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
     }
 
     /**
