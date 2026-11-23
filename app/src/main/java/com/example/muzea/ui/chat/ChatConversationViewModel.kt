@@ -10,7 +10,6 @@ import com.example.muzea.domain.model.Message
 import com.example.muzea.domain.model.MessageAttachment
 import com.example.muzea.domain.model.MessageDeliveryStatus
 import com.example.muzea.domain.model.MessageReceiptTime
-import com.example.muzea.utils.LocalTimeFormatter
 import com.example.muzea.utils.MediaFileReader
 import com.example.muzea.utils.NetworkMonitor
 import com.example.muzea.utils.PreparedAttachment
@@ -20,7 +19,6 @@ import com.example.muzea.data.repository.OutboxSender
 import com.example.muzea.domain.repository.MessageRepository
 import com.example.muzea.domain.ChatUserIdentity
 import com.example.muzea.domain.chat.ChatMessageReducer
-import com.example.muzea.core.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -65,8 +63,6 @@ class ChatConversationViewModel @Inject constructor(
     val events: SharedFlow<String> = _events.asSharedFlow()
 
     private var lastMarkedReadUuid: String? = null
-    /** Первая загрузка экрана уже завершилась: больше не мигаем спиннером. */
-    private var initialLoadDone = false
     private var lastMarkedDeliveredUuid: String? = null
     /** Ошибку по сообщению показываем один раз, чтобы не спамить тостами. */
     private val notifiedFailures = mutableSetOf<String>()
@@ -140,12 +136,28 @@ class ChatConversationViewModel @Inject constructor(
     private val polling = ChatPollingController(
         scope = viewModelScope,
         networkMonitor = networkMonitor,
-        loadOnce = ::loadOnce,
-        loadUpdatedOnce = ::loadUpdatedOnce,
+        loadOnce = { incremental -> inbox.loadOnce(incremental) },
+        loadUpdatedOnce = { inbox.loadUpdatedOnce() },
         onNetworkRestored = pendingAttachments::retryQueued
     )
 
+    private lateinit var inbox: ChatInboxController
+
     init {
+        inbox = ChatInboxController(
+            chatUuid = chatUuid,
+            scope = viewModelScope,
+            repository = messageRepository,
+            state = { _uiState.value },
+            setState = { _uiState.value = it },
+            mergeMessages = ::mergeMessages,
+            cacheNewGifs = { messages -> sender.cacheNewGifs(messages) },
+            refreshReceipts = { force -> receipts.refresh(force) },
+            serverSince = { polling.lastServerCreatedAt },
+            rememberServerTime = { messages -> polling.rememberServerTime(messages) },
+            updatedSince = { polling.lastUpdatedCheckAt },
+            rememberUpdatedCheck = { value -> polling.lastUpdatedCheckAt = value }
+        )
         restorePendingMessages()
         pendingAttachments.restore()
         observeOutbox()
@@ -203,107 +215,13 @@ class ChatConversationViewModel @Inject constructor(
     /** Разовая загрузка вне цикла опроса: pull-to-refresh и ручное обновление. */
     fun refresh() {
         viewModelScope.launch {
-            loadOnce()
+            inbox.loadOnce()
             actions.refreshPinned()
         }
     }
 
-    /**
-     * Догрузка истории вверх: подтягивает сообщения старше самого раннего в
-     * списке. Пока идёт запрос или история исчерпана, повторные вызовы
-     * игнорируются. Локальные (ещё не отправленные) сообщения пропускаем —
-     * у них нет серверного uuid.
-     */
-    fun loadOlder() {
-        val state = _uiState.value
-        if (state.isLoadingMore || state.historyReached) return
-
-        val oldest = state.messages.firstOrNull {
-            it.messageUuid.isNotBlank() && !it.messageUuid.startsWith(LOCAL_MESSAGE_PREFIX)
-        } ?: return
-
-        _uiState.value = state.copy(isLoadingMore = true)
-        viewModelScope.launch {
-            messageRepository.loadMessagesBefore(chatUuid, oldest.messageUuid, PAGE_SIZE)
-                .collect { result ->
-                    when (result) {
-                        is Resource.Loading -> Unit
-                        is Resource.Success -> {
-                            val older = result.data.orEmpty()
-                            mergeMessages(older)
-                            _uiState.value = _uiState.value.copy(
-                                isLoadingMore = false,
-                                // Неполная страница означает, что история кончилась.
-                                historyReached = older.size < PAGE_SIZE
-                            )
-                        }
-                        is Resource.Error ->
-                            _uiState.value = _uiState.value.copy(isLoadingMore = false)
-                    }
-                }
-        }
-    }
-
-    /** @return true, если запрос завершился успешно (нужно для backoff-а). */
-    private suspend fun loadOnce(incremental: Boolean = false): Boolean {
-        var success = true
-        val since = polling.lastServerCreatedAt
-        val source = if (incremental && since != null) {
-            messageRepository.loadMessagesAfter(chatUuid, since)
-        } else {
-            messageRepository.loadMessages(chatUuid)
-        }
-        source.collect { result ->
-            when (result) {
-                // Спиннер показываем только когда показать нечего: переписка из
-                // кэша уже на экране, и мигать индикатором при входе незачем.
-                is Resource.Loading -> _uiState.value = _uiState.value.copy(
-                    isLoading = _uiState.value.messages.isEmpty() && !initialLoadDone
-                )
-
-                is Resource.Success -> {
-                    initialLoadDone = true
-                    _uiState.value = _uiState.value.copy(isLoading = false)
-                    val incoming = result.data ?: emptyList()
-                    polling.rememberServerTime(incoming)
-                    sender.cacheNewGifs(incoming)
-                    mergeMessages(incoming)
-                    receipts.refresh(force = incoming.isNotEmpty())
-                }
-
-                is Resource.Error -> {
-                    success = false
-                    initialLoadDone = true
-                    _uiState.value =
-                        _uiState.value.copy(isLoading = false, error = result.message)
-                }
-            }
-        }
-        return success
-    }
-
-    /**
-     * Сверка правок без полной страницы: запрашиваем только сообщения,
-     * изменённые с прошлой проверки. Полная страница на 50 сообщений весит
-     * ~67 КБ, а изменений обычно нет вовсе — ответ пустой, ~2 байта.
-     *
-     * @return true, если запрос завершился успешно.
-     */
-    private suspend fun loadUpdatedOnce(): Boolean {
-        // Сдвиг в прошлое страхует от разницы часов и от строк, зафиксированных
-        // уже после запроса: повторная обработка тех же сообщений безвредна.
-        val since = polling.lastUpdatedCheckAt
-            ?: LocalTimeFormatter.serverTimestamp(UPDATED_OVERLAP_SECONDS)
-        val updated = messageRepository.loadUpdatedMessages(chatUuid, since) ?: return false
-        polling.lastUpdatedCheckAt = LocalTimeFormatter.serverTimestamp(UPDATED_OVERLAP_SECONDS)
-        if (updated.isEmpty()) return true
-        sender.cacheNewGifs(updated)
-        mergeMessages(updated)
-        // Квитанции не форсируем: /updated приходит и с повторами из окна
-        // перекрытия, а галочки живут в своём ритме (30 с).
-        receipts.refresh()
-        return true
-    }
+    /** Догрузка истории вверх: подтягивает сообщения старше самого раннего в списке. */
+    fun loadOlder() = inbox.loadOlder()
 
     /** Пауза опроса, когда экран не виден: не тратим сеть и батарею. */
     fun pausePolling() = polling.pause()
@@ -483,12 +401,5 @@ class ChatConversationViewModel @Inject constructor(
 
     companion object {
         const val ARG_CHAT_UUID = "chat_uuid"
-        /**
-         * Перекрытие окна сверки правок, секунды. Больше шага сверки, чтобы
-         * не потерять строку, зафиксированную между запросами, но и не
-         * пересылать одно и то же слишком много раз.
-         */
-        private const val UPDATED_OVERLAP_SECONDS = 15L
-        private const val PAGE_SIZE = 50
     }
 }
