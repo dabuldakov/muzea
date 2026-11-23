@@ -36,6 +36,7 @@
 | 23.11 | refactor | ARCH.20 | `observeViewModel` разложен на render/scroll/highlight; ушли LongMethod, CyclomaticComplexMethod и ComplexCondition | — |
 | 23.11 | refactor | ARCH.21 | `ChargeGestureController`: удержание/отмена/вибрация «заряда» вынесены из фрагмента | — |
 | 23.11 | refactor | ARCH.22 | `ChatRecordingController`: голосовые/видео-заметки, удержание и отмена вынесены из фрагмента | — |
+| 23.11 | refactor | ARCH.23 | `ChatSendModeController`: режим кнопки, иконка и проверка разрешений вынесены из фрагмента | — |
 
 ## 1.7.57 — 2026-11-23
 

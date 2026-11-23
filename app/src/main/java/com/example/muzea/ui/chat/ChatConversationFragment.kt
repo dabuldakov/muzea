@@ -94,6 +94,7 @@ class ChatConversationFragment : Fragment(),
     private lateinit var chargeMeter: ChargeMeter
     private lateinit var chargeGesture: ChargeGestureController
     private lateinit var recordingController: ChatRecordingController
+    private lateinit var sendModeController: ChatSendModeController
     private lateinit var pinnedBarView: PinnedBarView
     private lateinit var downloadController: AttachmentDownloadController
     private lateinit var recordingTimer: RecordingTimer
@@ -122,7 +123,6 @@ class ChatConversationFragment : Fragment(),
     private var pinnedMessages: List<Message> = emptyList()
 
 
-    private var sendMode = SendMode.TEXT
     private lateinit var audioController: ChatAudioController
     private lateinit var mentionController: MentionPopupController
     private lateinit var fileOpener: DownloadedFileOpener
@@ -315,6 +315,13 @@ class ChatConversationFragment : Fragment(),
             onTick = { text -> binding.tvRecordingTimer.text = text },
             onLimit = { recordingController.finishAtLimit() }
         )
+        sendModeController = ChatSendModeController(
+            context = requireContext(),
+            button = binding.btnSend,
+            requestMic = ::requestMicPermission,
+            requestCamera = ::requestCameraPermissions,
+            canSendNow = ::canSendNow
+        )
         recordingController = ChatRecordingController(
             context = requireContext(),
             textureView = binding.videoNotePreview,
@@ -322,7 +329,7 @@ class ChatConversationFragment : Fragment(),
             timer = recordingTimer,
             scope = viewLifecycleOwner.lifecycleScope,
             cancelDistancePx = (RECORD_CANCEL_DP * resources.displayMetrics.density).toInt(),
-            ensurePermissions = ::ensurePermisssionsFor,
+            ensurePermissions = sendModeController::ensurePermissions,
             onRecorded = { prepared, type -> viewModel.sendRecordedAttachment(prepared, type) },
             toast = { res -> Toast.makeText(requireContext(), res, Toast.LENGTH_SHORT).show() }
         )
@@ -1000,7 +1007,7 @@ class ChatConversationFragment : Fragment(),
             if (canSendNow()) {
                 sendClicked()
             } else {
-                cycleSendMode()
+                sendModeController.cycle()
             }
         }
         binding.btnSend.setOnTouchListener { _, event -> handleSendTouch(event) }
@@ -1009,8 +1016,7 @@ class ChatConversationFragment : Fragment(),
             false
         }
         binding.etMessageInput.doOnTextChanged { text, _, _, _ ->
-            if (!text.isNullOrBlank()) sendMode = SendMode.TEXT
-            updateSendButton()
+            sendModeController.onInputChanged(!text.isNullOrBlank())
             showMentionSuggestions(
                 text?.toString().orEmpty(),
                 binding.etMessageInput.selectionStart
@@ -1021,7 +1027,7 @@ class ChatConversationFragment : Fragment(),
             EmojiGifBottomSheet.newInstance()
                 .show(childFragmentManager, "emoji_gif")
         }
-        updateSendButton()
+        sendModeController.updateButton()
     }
 
     /** Подсказка участников при вводе @: список над полем ввода. */
@@ -1078,67 +1084,15 @@ class ChatConversationFragment : Fragment(),
             .start()
     }
 
-    private fun cycleSendMode() {
-        sendMode = when (sendMode) {
-            SendMode.TEXT -> SendMode.VOICE
-            SendMode.VOICE -> SendMode.VIDEO
-            SendMode.VIDEO -> SendMode.TEXT
-        }
-        if (sendMode == SendMode.VOICE) requestMicPermission()
-        if (sendMode == SendMode.VIDEO) requestCameraPermissions()
-        updateSendButton()
-    }
-
-    private fun updateSendButton() {
-        val effective = if (canSendNow()) SendMode.TEXT else sendMode
-        val (icon, description) = when (effective) {
-            SendMode.TEXT -> R.drawable.ic_send_burst to R.string.send_mode_text
-            SendMode.VOICE -> R.drawable.ic_mic to R.string.send_mode_voice
-            SendMode.VIDEO -> R.drawable.ic_videocam to R.string.send_mode_video
-        }
-        binding.btnSend.setImageResource(icon)
-        // Взрыв — цветная иконка, её не тонируем; микрофон/камеру красим в акцент.
-        binding.btnSend.imageTintList =
-            if (effective == SendMode.TEXT) null
-            else ContextCompat.getColorStateList(requireContext(), R.color.purple_500)
-        binding.btnSend.contentDescription = getString(description)
-    }
-
     private fun handleSendTouch(event: MotionEvent): Boolean {
-        if (sendMode == SendMode.TEXT && canSendNow()) return chargeGesture.onTouch(event)
-        if (sendMode == SendMode.TEXT || canSendNow()) return false
-        return recordingController.onTouch(event, sendMode) { cycleSendMode() }
-    }
-
-    private fun ensurePermisssionsFor(mode: SendMode): Boolean {
-        return when (mode) {
-            SendMode.VOICE -> {
-                if (hasPermission(Manifest.permission.RECORD_AUDIO)) {
-                    true
-                } else {
-                    requestMicPermission()
-                    false
-                }
-            }
-            SendMode.VIDEO -> {
-                val mic = hasPermission(Manifest.permission.RECORD_AUDIO)
-                val camera = hasPermission(Manifest.permission.CAMERA)
-                if (mic && camera) {
-                    true
-                } else {
-                    requestCameraPermissions()
-                    // Разрешения спрашиваем до записи; пользователь нажмёт ещё раз.
-                    false
-                }
-            }
-            SendMode.TEXT -> true
-        }
+        val mode = sendModeController.mode
+        if (mode == SendMode.TEXT && canSendNow()) return chargeGesture.onTouch(event)
+        if (mode == SendMode.TEXT || canSendNow()) return false
+        return recordingController.onTouch(event, mode) { sendModeController.cycle() }
     }
 
     private fun requestMicPermission() {
-        if (!hasPermission(Manifest.permission.RECORD_AUDIO)) {
-            micPermission.launch(Manifest.permission.RECORD_AUDIO)
-        }
+        micPermission.launch(Manifest.permission.RECORD_AUDIO)
     }
 
     private fun requestCameraPermissions() {
@@ -1262,7 +1216,7 @@ class ChatConversationFragment : Fragment(),
             renderPendingAttachments(state.pendingAttachments)
         }
         binding.btnSend.isEnabled = state.pendingAttachments.all { it.isUploaded }
-        updateSendButton()
+        sendModeController.updateButton()
         updateEmptyState(messages)
         renderConversationState(state)
         renderComposerBanner(state)
