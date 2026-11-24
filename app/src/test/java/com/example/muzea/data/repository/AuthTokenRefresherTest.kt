@@ -52,7 +52,7 @@ class AuthTokenRefresherTest {
     }
 
     @Test
-    fun `rejected refresh keeps the old tokens`() {
+    fun `rejected refresh clears the session`() {
         every { tokenManager.getAuthRefreshToken() } returns "old-refresh"
         val call = mockk<Call<AuthServiceTokenResponse>>()
         every { api.refresh(any()) } returns call
@@ -60,6 +60,7 @@ class AuthTokenRefresherTest {
 
         assertNull(refresher.refreshToken())
         verify(exactly = 0) { tokenManager.saveToken(any()) }
+        verify(exactly = 1) { tokenManager.clearToken() }
     }
 
     @Test

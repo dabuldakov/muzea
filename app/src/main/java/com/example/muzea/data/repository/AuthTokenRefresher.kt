@@ -44,6 +44,12 @@ class AuthTokenRefresher @Inject constructor(
                 body.accessToken
             } else {
                 android.util.Log.w("AuthTokenRefresher", "refresh rejected: HTTP ${response.code()}")
+                // Refresh отозван/просрочен/повторно использован — сессия
+                // восстановлению не подлежит. Чистим токены, чтобы клиент
+                // перестал долбить /auth/token/refresh и ушёл на экран входа.
+                if (response.code() == 401) {
+                    tokenManager.clearToken()
+                }
                 null
             }
         } catch (e: Exception) {
