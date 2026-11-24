@@ -115,9 +115,9 @@
 | QA.01 | Unit-тесты | done | 1151 тест, 82.4% строк |
 | QA.02 | Robolectric в покрытии | done | Offline JaCoCo |
 | QA.03 | Интеграционные MockWebServer | done | API, очередь, скачивание |
-| QA.04 | androidTest на устройстве | planned | Камера, плеер, установщик |
-| QA.05 | Гейт покрытия клиента | planned | Сейчас гейтов нет; цель 85%+ |
-| QA.06 | Мутационное тестирование | planned | PIT для ViewModel/репозиториев |
+| QA.04 | androidTest на устройстве | partial | Эмулятор в CI (API 33), базовый smoke; камера/плеер/установщик — дальше |
+| QA.05 | Гейт покрытия клиента | done | JaCoCo: 85% строк логики, Activities — androidTest |
+| QA.06 | Мутационное тестирование | partial | PIT для чистой логики чата, порог 60% |
 | QA.07 | Статический анализ Kotlin | done | Detekt + baseline в CI/Release |
 | ARCH.07 | Декомпозиция списка сообщений | done | MessageAdapter: биндинги вложений, ссылок, долгого нажатия и GIF-плеера в отдельных файлах |
 | ARCH.08 | Контроллер опроса переписки | done | ChatPollingController: интервалы, пауза и синхронизация после возврата сети |

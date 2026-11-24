@@ -246,6 +246,93 @@ tasks.register<org.gradle.testing.jacoco.tasks.JacocoReport>("jacocoUnitTestRepo
     )
 }
 
+tasks.register<org.gradle.testing.jacoco.tasks.JacocoCoverageVerification>("jacocoTestCoverageVerification") {
+    group = "verification"
+    description = "Гейт покрытия логики (Activities проверяются androidTest)."
+    dependsOn("jacocoUnitTestReport")
+
+    classDirectories.setFrom(
+        files(
+            file("build/intermediates/classes/debug/transformDebugClassesWithAsm/dirs")
+        ).asFileTree.matching {
+            exclude(
+                "**/databinding/**",
+                "**/Dagger*.class",
+                "**/Hilt_*.class",
+                "**/*_Factory.class",
+                "**/*_HiltModules*",
+                "**/*_HiltComponents*",
+                "**/*_GeneratedInjector*",
+                "**/*_MembersInjector*",
+                "**/hilt_aggregated_deps/**",
+                "**/utils/GlideApp.class",
+                "**/utils/GlideOptions.class",
+                "**/utils/GlideRequest.class",
+                "**/utils/GlideRequests.class",
+                "**/GeneratedAppGlideModule*.class",
+                // Activities — UI-точки входа, их поведение проверяет androidTest.
+                "**/*Activity.class",
+                "**/*Activity$*.class"
+            )
+        }
+    )
+    sourceDirectories.setFrom(files("src/main/java"))
+    executionData.setFrom(
+        file("build/outputs/unit_test_code_coverage/testDebugUnitTest.exec")
+    )
+
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "0.85".toBigDecimal()
+            }
+        }
+    }
+}
+
+// PIT запускается CLI-задачей: Gradle-плагин PIT не умеет Android-модули.
+val pitestCli: Configuration by configurations.creating
+
+dependencies {
+    pitestCli("org.pitest:pitest-command-line:1.15.0")
+}
+
+tasks.register<JavaExec>("pitestPureLogic") {
+    group = "verification"
+    description = "Мутационное тестирование чистой логики чата (PIT, JUnit 4)."
+    dependsOn(
+        "compileDebugKotlin",
+        "compileDebugUnitTestKotlin",
+        "transformDebugUnitTestClassesWithAsm"
+    )
+    classpath = pitestCli +
+        configurations.getByName("debugUnitTestRuntimeClasspath") +
+        files("build/intermediates/classes/debugUnitTest/transformDebugUnitTestClassesWithAsm/dirs")
+    mainClass.set("org.pitest.mutationtest.commandline.MutationCoverageReport")
+
+    doFirst {
+        val targetClassesDir =
+            file("build/intermediates/classes/debug/transformDebugClassesWithAsm/dirs")
+                .absolutePath
+        args(
+            "--reportDir", layout.buildDirectory.dir("reports/pitest").get().asFile.absolutePath,
+            "--targetClasses",
+            "com.example.muzea.ui.chat.ChargeCalculator,com.example.muzea.ui.chat.MentionSuggestions",
+            "--targetTests",
+            "com.example.muzea.ui.chat.ChargeCalculatorTest,com.example.muzea.ui.chat.MentionSuggestionsTest",
+            "--sourceDirs", "src/main/java",
+            "--classPath", targetClassesDir,
+            "--testPlugin", "junit",
+            "--outputFormats", "XML,HTML",
+            "--timestampedReports", "false",
+            "--mutationThreshold", "60",
+            "--coverageThreshold", "80"
+        )
+    }
+}
+
 dependencies {
     testImplementation("org.jacoco:org.jacoco.agent:0.8.13:runtime")
     implementation("androidx.core:core-ktx:1.12.0")
@@ -344,3 +431,5 @@ tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
 tasks.named("check") {
     dependsOn("detekt")
 }
+
+

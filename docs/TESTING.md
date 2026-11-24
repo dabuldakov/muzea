@@ -4,11 +4,20 @@
 
 ```bash
 # все unit-тесты
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew --offline :app:testDebugUnitTest
+JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew --offline :app:testDebugUnitTest
 
-# HTML/XML-отчёт о покрытии
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew :app:createDebugUnitTestCoverageReport
-# результат: app/build/reports/coverage/test/debug/index.html
+# HTML/XML-отчёт о покрытии (Robolectric + offline JaCoCo)
+JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew :app:jacocoUnitTestReport
+# результат: app/build/reports/jacoco/jacocoUnitTestReport/html/index.html
+
+# гейт покрытия логики: 85% строк (Activities проверяет androidTest)
+JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew :app:jacocoTestCoverageVerification
+
+# мутационное тестирование чистой логики чата
+JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew :app:pitestPureLogic
+
+# инструментальные тесты на эмуляторе/устройстве
+JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew :app:connectedDebugAndroidTest
 ```
 
 В CI (`.github/workflows/ci.yml`) эти шаги объединены: собирается отчёт о
@@ -16,22 +25,16 @@ JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew :app:createDebugUnitTestC
 
 ## Текущее покрытие
 
-Замер на 02.11.2026 (392 теста, 0 падений):
+Замер на 24.11.2026:
 
-| Слой | Покрытие строк |
-|------|----------------|
-| `data/repository` | 82% |
-| `data/mapper` | 100% |
-| `data/model` | 88% |
-| `domain` | 97% |
-| `core` | 88% |
-| `utils` | 40% |
-| Весь `app` без сгенерированного кода | ~37% |
-| Только UI (`ui/*`) | ~17% |
+| Метрика | Значение | Гейт |
+|---------|----------|------|
+| Строки всего `app` без сгенерированного кода | ~83% | — |
+| Логика без Activities | ~85% | **85%** (`jacocoTestCoverageVerification`) |
+| Мутации `ChargeCalculator` + `MentionSuggestions` | ~86% | **60%** (`pitestPureLogic`) |
 
-Низкий общий процент — это фрагменты, активности, адаптеры и
-`databinding`/Hilt/Dagger. Логика (репозитории, ViewModel'и, мапперы,
-форматтеры) покрыта существенно выше; UI проверяется вручную на эмуляторе.
+Низкий общий процент дают Activities и фрагменты — это UI-точки входа.
+Их проверяет `connectedDebugAndroidTest` на эмуляторе (job `instrumented`).
 
 ## Что и как тестируется
 

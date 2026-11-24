@@ -32,6 +32,11 @@ macOS-раннеры не тратятся. Перед релизом важно
 - **JDK 21**: Gradle 8.11.1, AGP 8.10.1, Kotlin 2.1.21, Hilt/Dagger 2.56.2.
   Bytecode приложения по-прежнему target 17 (совместимость с Android), но
   сборка и CI идут на JDK 21.
+- **Покрытие**: `jacocoTestCoverageVerification` требует 85% строк логики;
+  Activities исключены из unit-гейта — их проверяет `connectedDebugAndroidTest`
+  на эмуляторе (job `instrumented` в `ci.yml`).
+- **Мутации**: `pitestPureLogic` гоняет PIT по чистой логике чата
+  (`ChargeCalculator`, `MentionSuggestions`), порог — 60%.
 - Секреты GitHub Actions: `MUZEA_KEYSTORE_BASE64`,
   `MUZEA_KEYSTORE_PASSWORD`, `MUZEA_KEY_ALIAS`, `MUZEA_KEY_PASSWORD`,
   `KLIPY_APP_KEY`; опционально `PLAY_SERVICE_ACCOUNT_JSON_B64`.
