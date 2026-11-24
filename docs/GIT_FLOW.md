@@ -29,9 +29,9 @@ macOS-раннеры не тратятся. Перед релизом важно
 
 ## Окружение и секреты
 
-- **JDK 17**. JDK 21 пока нельзя: AGP 8.2.2 / Gradle 8.7 / Kotlin 1.9.20
-  и kapt падают с `NoSuchMethodError` (`JCTree$JCImport`). Переход на 21 —
-  только вместе с AGP 8.9+ / Gradle 8.11+ / Kotlin 2.1+ отдельным PR.
+- **JDK 21**: Gradle 8.11.1, AGP 8.10.1, Kotlin 2.1.21, Hilt/Dagger 2.56.2.
+  Bytecode приложения по-прежнему target 17 (совместимость с Android), но
+  сборка и CI идут на JDK 21.
 - Секреты GitHub Actions: `MUZEA_KEYSTORE_BASE64`,
   `MUZEA_KEYSTORE_PASSWORD`, `MUZEA_KEY_ALIAS`, `MUZEA_KEY_PASSWORD`,
   `KLIPY_APP_KEY`; опционально `PLAY_SERVICE_ACCOUNT_JSON_B64`.

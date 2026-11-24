@@ -4,9 +4,9 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath("com.android.tools.build:gradle:8.2.2")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.20")
-        classpath("com.google.dagger:hilt-android-gradle-plugin:2.48")
+        classpath("com.android.tools.build:gradle:8.10.1")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.21")
+        classpath("com.google.dagger:hilt-android-gradle-plugin:2.56.2")
         // Инструментация классов для offline-JaCoCo: Robolectric грузит байты
         // мимо on-the-fly агента, поэтому считаем покрытие вручную.
         classpath("org.jacoco:org.jacoco.core:0.8.13")
