@@ -1,5 +1,6 @@
 package com.example.muzea.data.api
 
+import com.example.muzea.BuildConfig
 import com.example.muzea.utils.TokenManager
 import okhttp3.Interceptor
 import okhttp3.Response
@@ -35,6 +36,10 @@ class AuthInterceptor @Inject constructor(
     }
 
     internal companion object {
-        val DEFAULT_HOSTS = setOf("api-muzea.su", "chat-muzea.su", "auth.muzea.su")
+        private val PRODUCTION_HOSTS = setOf("api-muzea.su", "chat-muzea.su", "auth.muzea.su")
+        private val DEBUG_HOSTS = setOf("localhost", "127.0.0.1", "10.0.2.2")
+
+        val DEFAULT_HOSTS: Set<String> =
+            if (BuildConfig.DEBUG) PRODUCTION_HOSTS + DEBUG_HOSTS else PRODUCTION_HOSTS
     }
 }

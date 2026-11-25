@@ -305,4 +305,34 @@
     <string name="pinned_message_title">رسالة مثبّتة</string>
     <string name="pinned_messages_count">مثبّتة: %1$d</string>
     <string name="action_open_pinned">فتح الرسالة المثبّتة</string>
+
+    <!-- News engagement -->
+    <string name="action_like">إعجاب</string>
+    <string name="action_unlike">إزالة الإعجاب</string>
+    <string name="news_views">المشاهدات</string>
+    <string name="news_comments">التعليقات</string>
+    <string name="news_comments_title">التعليقات</string>
+    <string name="news_comments_title_format">التعليقات (%1$s)</string>
+    <string name="news_load_older_comments">عرض التعليقات الأقدم</string>
+    <string name="news_comments_empty">لا توجد تعليقات بعد</string>
+    <string name="news_comment_actions">إجراءات التعليق</string>
+    <string name="news_comment_hint">اكتب تعليقًا…</string>
+    <string name="news_detail_title">خبر</string>
+    <string name="news_actions">إجراءات الخبر</string>
+    <string name="news_not_loaded">الخبر قيد التحميل</string>
+    <string name="news_delete_comment_title">حذف التعليق؟</string>
+    <string name="news_delete_comment_message">سيتم حذف التعليق للجميع.</string>
+    <string name="create_news_title">إنشاء خبر</string>
+    <string name="news_edit_title">تحرير الخبر</string>
+    <string name="news_save">حفظ</string>
+    <string name="news_saving">جارٍ الحفظ…</string>
+    <string name="news_creating">جارٍ إنشاء الخبر…</string>
+    <string name="news_updated">تم تحديث الخبر</string>
+    <string name="news_update_failed_format">تعذر تحديث الخبر: %1$s</string>
+    <string name="news_current_image">الصورة الحالية</string>
+    <string name="news_remove_image">إزالة الصورة</string>
+    <string name="count_thousand_short">ألف</string>
+    <string name="count_million_short">مليون</string>
+    <string name="count_billion_short">مليار</string>
+    <string name="count_compact_format">%1$s %2$s</string>
 </resources>

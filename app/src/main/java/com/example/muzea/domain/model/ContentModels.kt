@@ -11,7 +11,28 @@ data class News(
     val imageUrl: String?,
     val relatedVideo: Video?,
     val author: String,
-    val publishedAt: String
+    val publishedAt: String,
+    val views: Long = 0,
+    val likes: Long = 0,
+    val commentsCount: Long = 0,
+    val likedByMe: Boolean = false
+)
+
+/** Комментарий к новости. */
+data class NewsComment(
+    val id: Long,
+    val newsId: Long,
+    val content: String,
+    val author: String,
+    val createdAt: String
+)
+
+/** Страница комментариев в хронологическом порядке. */
+data class NewsCommentsPage(
+    val comments: List<NewsComment>,
+    val total: Long,
+    val hasMore: Boolean,
+    val nextBefore: Long?
 )
 
 data class Video(

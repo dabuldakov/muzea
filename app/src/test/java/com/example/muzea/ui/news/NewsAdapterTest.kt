@@ -42,6 +42,10 @@ class NewsAdapterTest {
     private lateinit var tvContent: TextView
     private lateinit var tvAuthor: TextView
     private lateinit var tvDate: TextView
+    private lateinit var tvLikes: TextView
+    private lateinit var tvViews: TextView
+    private lateinit var tvComments: TextView
+    private lateinit var btnLike: android.widget.ImageButton
     private lateinit var ivImage: ImageView
     private lateinit var binding: ItemNewsBinding
 
@@ -55,6 +59,10 @@ class NewsAdapterTest {
         tvContent = mockk(relaxed = true)
         tvAuthor = mockk(relaxed = true)
         tvDate = mockk(relaxed = true)
+        tvLikes = mockk(relaxed = true)
+        tvViews = mockk(relaxed = true)
+        tvComments = mockk(relaxed = true)
+        btnLike = mockk(relaxed = true)
         ivImage = mockk(relaxed = true)
         binding = mockk(relaxed = true)
 
@@ -63,6 +71,10 @@ class NewsAdapterTest {
         setViewField("tvContent", tvContent)
         setViewField("tvAuthor", tvAuthor)
         setViewField("tvDate", tvDate)
+        setViewField("tvLikes", tvLikes)
+        setViewField("tvViews", tvViews)
+        setViewField("tvComments", tvComments)
+        setViewField("btnLike", btnLike)
         setViewField("ivImage", ivImage)
         every { root.context } returns mockk<Context>(relaxed = true)
 
@@ -108,6 +120,7 @@ class NewsAdapterTest {
         every { requestManager.load(any<String>()) } returns requestBuilder
         every { requestManager.load(any<Any>()) } returns requestBuilder
         every { requestBuilder.centerCrop() } returns requestBuilder
+        every { requestBuilder.fitCenter() } returns requestBuilder
         every { requestBuilder.diskCacheStrategy(any()) } returns requestBuilder
         every { requestBuilder.placeholder(any<Int>()) } returns requestBuilder
         every { requestBuilder.error(any<Int>()) } returns requestBuilder
@@ -132,8 +145,10 @@ class NewsAdapterTest {
         publishedAt = "2026-01-01T00:00:00"
     )
 
-    private fun holder(onClick: (Long) -> Unit = {}) =
-        NewsAdapter.NewsViewHolder(binding, onClick)
+    private fun holder(
+        onClick: (Long) -> Unit = {},
+        onLike: (Long) -> Unit = {}
+    ) = NewsAdapter.NewsViewHolder(binding, onClick, onLike)
 
     @Test
     fun `binds title content author and date`() {
@@ -178,7 +193,7 @@ class NewsAdapterTest {
     @Test
     fun `clicking the row reports the news id`() {
         var clicked: Long? = null
-        val holder = holder { clicked = it }
+        val holder = holder(onClick = { clicked = it })
         holder.bind(news(55))
 
         val listener = slot<View.OnClickListener>()
@@ -189,13 +204,36 @@ class NewsAdapterTest {
     }
 
     @Test
+    fun `binds counters and like state`() {
+        holder().bind(news(1).copy(likes = 12, views = 340, commentsCount = 5, likedByMe = true))
+
+        verify { tvLikes.setText("12") }
+        verify { tvViews.setText("340") }
+        verify { tvComments.setText("5") }
+        verify { btnLike.isSelected = true }
+    }
+
+    @Test
+    fun `clicking the heart reports the news id without opening the row`() {
+        var liked: Long? = null
+        val holder = holder(onLike = { liked = it })
+        holder.bind(news(55))
+
+        val listener = slot<View.OnClickListener>()
+        verify { btnLike.setOnClickListener(capture(listener)) }
+        listener.captured.onClick(btnLike)
+
+        assertEquals(55L, liked)
+    }
+
+    @Test
     fun `adapter starts empty`() {
-        assertEquals(0, NewsAdapter { }.itemCount)
+        assertEquals(0, NewsAdapter({}, {}).itemCount)
     }
 
     @Test
     fun `updateList publishes the first list synchronously`() {
-        val adapter = NewsAdapter { }
+        val adapter = NewsAdapter({}, {})
         enableNotifications(adapter)
         adapter.updateList(listOf(news(1), news(2)))
 
@@ -204,18 +242,18 @@ class NewsAdapterTest {
 
     @Test
     fun `onBindViewHolder binds the item at the requested position`() {
-        val adapter = NewsAdapter { }
+        val adapter = NewsAdapter({}, {})
         enableNotifications(adapter)
         adapter.updateList(listOf(news(7)))
 
-        adapter.onBindViewHolder(NewsAdapter.NewsViewHolder(binding, { }), 0)
+        adapter.onBindViewHolder(NewsAdapter.NewsViewHolder(binding, { }, { }), 0)
 
         verify { tvTitle.setText("Title 7") }
     }
 
     @Test
     fun `clearItems on a fresh adapter leaves it empty`() {
-        val adapter = NewsAdapter { }
+        val adapter = NewsAdapter({}, {})
         enableNotifications(adapter)
         adapter.clearItems()
 

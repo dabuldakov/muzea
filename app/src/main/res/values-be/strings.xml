@@ -305,4 +305,34 @@
     <string name="pinned_message_title">Замацаванае паведамленне</string>
     <string name="pinned_messages_count">Замацаваных: %1$d</string>
     <string name="action_open_pinned">Адкрыць замацаванае паведамленне</string>
+
+    <!-- News engagement -->
+    <string name="action_like">Падабаецца</string>
+    <string name="action_unlike">Прыбраць лайк</string>
+    <string name="news_views">Прагляды</string>
+    <string name="news_comments">Каментарыі</string>
+    <string name="news_comments_title">Каментарыі</string>
+    <string name="news_comments_title_format">Каментарыі (%1$s)</string>
+    <string name="news_load_older_comments">Паказаць ранейшыя каментарыі</string>
+    <string name="news_comments_empty">Пакуль няма каментарыяў</string>
+    <string name="news_comment_actions">Дзеянні з каментарыем</string>
+    <string name="news_comment_hint">Напісаць каментарый…</string>
+    <string name="news_detail_title">Навіна</string>
+    <string name="news_actions">Дзеянні з навіной</string>
+    <string name="news_not_loaded">Навіна яшчэ загружаецца</string>
+    <string name="news_delete_comment_title">Выдаліць каментарый?</string>
+    <string name="news_delete_comment_message">Каментарый будзе выдалены для ўсіх.</string>
+    <string name="create_news_title">Стварыць навіну</string>
+    <string name="news_edit_title">Рэдагаваць навіну</string>
+    <string name="news_save">Захаваць</string>
+    <string name="news_saving">Захоўваем…</string>
+    <string name="news_creating">Ствараем навіну…</string>
+    <string name="news_updated">Навіна абноўлена</string>
+    <string name="news_update_failed_format">Не ўдалося абнавіць навіну: %1$s</string>
+    <string name="news_current_image">Бягучая выява</string>
+    <string name="news_remove_image">Выдаліць выяву</string>
+    <string name="count_thousand_short">тыс.</string>
+    <string name="count_million_short">млн</string>
+    <string name="count_billion_short">млрд</string>
+    <string name="count_compact_format">%1$s %2$s</string>
 </resources>

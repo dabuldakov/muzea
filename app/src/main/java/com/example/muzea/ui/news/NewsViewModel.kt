@@ -45,6 +45,14 @@ class NewsViewModel @Inject constructor(
     private val _deleteNewsResult = MutableSharedFlow<Resource<Unit>>()
     val deleteNewsResult: SharedFlow<Resource<Unit>> = _deleteNewsResult.asSharedFlow()
 
+    private val _updateNewsResult = MutableSharedFlow<Resource<News>>()
+    val updateNewsResult: SharedFlow<Resource<News>> = _updateNewsResult.asSharedFlow()
+
+    private val _likeError = MutableSharedFlow<String>()
+    val likeError: SharedFlow<String> = _likeError.asSharedFlow()
+
+    private val likesInFlight = mutableSetOf<Long>()
+
     private var pageSize = 20
     private var isContactsLoaded = false
     private var contactUsernames = emptySet<String>()
@@ -82,6 +90,7 @@ class NewsViewModel @Inject constructor(
             }
 
             fillFeed()
+            applyLikedStates()
             isLoading = false
             _feedState.value = _feedState.value.copy(
                 isLoading = false,
@@ -158,6 +167,67 @@ class NewsViewModel @Inject constructor(
         return NewsFeedFilter.filterByContacts(rawNewsCache, contactUsernames, ownUsername)
     }
 
+    /** Подтягивает «мои лайки» одним запросом и мержит в уже загруженную ленту. */
+    private suspend fun applyLikedStates() {
+        val result = try {
+            newsRepository.getLikedNewsIds().firstTerminal()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            return
+        }
+        if (result !is Resource.Success) return
+        val likedIds = result.data ?: emptySet()
+        for (index in rawNewsCache.indices) {
+            val item = rawNewsCache[index]
+            rawNewsCache[index] = item.copy(likedByMe = item.id in likedIds)
+        }
+        _feedState.value = _feedState.value.copy(news = visibleNews())
+    }
+
+    /**
+     * Оптимистичный лайк из ленты. Сервер подтверждает актуальное число;
+     * при ошибке возвращаем строку к исходному состоянию.
+     */
+    fun toggleLike(newsId: Long) {
+        val current = _feedState.value.news.firstOrNull { it.id == newsId } ?: return
+        if (!likesInFlight.add(newsId)) return
+
+        val targetLiked = !current.likedByMe
+        val optimistic = current.copy(
+            likedByMe = targetLiked,
+            likes = (current.likes + if (targetLiked) 1 else -1).coerceAtLeast(0)
+        )
+        replaceNewsInFeed(optimistic)
+
+        viewModelScope.launch {
+            val request = if (targetLiked) {
+                newsRepository.likeNews(newsId)
+            } else {
+                newsRepository.unlikeNews(newsId)
+            }
+            when (val result = request.firstTerminal()) {
+                is Resource.Success -> {
+                    replaceNewsInFeed(
+                        optimistic.copy(likes = result.data ?: optimistic.likes)
+                    )
+                }
+                is Resource.Error -> {
+                    replaceNewsInFeed(current)
+                    _likeError.emit(result.message ?: "Failed to update like")
+                }
+                is Resource.Loading -> Unit
+            }
+            likesInFlight.remove(newsId)
+        }
+    }
+
+    private fun replaceNewsInFeed(updated: News) {
+        val cacheIndex = rawNewsCache.indexOfFirst { it.id == updated.id }
+        if (cacheIndex >= 0) rawNewsCache[cacheIndex] = updated
+        _feedState.value = _feedState.value.copy(news = visibleNews())
+    }
+
     fun loadNewsById(id: Long) {
         viewModelScope.launch {
             newsRepository.getNewsById(id).collect { result ->
@@ -170,6 +240,24 @@ class NewsViewModel @Inject constructor(
         viewModelScope.launch {
             newsRepository.createNews(title, content, videoId, imageFile).collect { result ->
                 _createNewsResult.emit(result)
+            }
+        }
+    }
+
+    fun updateNews(
+        id: Long,
+        title: String,
+        content: String,
+        videoId: Long?,
+        removeVideo: Boolean,
+        imageFile: File?,
+        removeImage: Boolean
+    ) {
+        viewModelScope.launch {
+            newsRepository.updateNews(
+                id, title, content, videoId, removeVideo, imageFile, removeImage
+            ).collect { result ->
+                _updateNewsResult.emit(result)
             }
         }
     }

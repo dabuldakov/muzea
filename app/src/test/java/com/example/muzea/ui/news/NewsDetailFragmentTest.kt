@@ -11,6 +11,8 @@ import com.example.muzea.core.Resource
 import com.example.muzea.di.ChatRepositoryModule
 import com.example.muzea.di.ContentRepositoryModule
 import com.example.muzea.domain.model.News
+import com.example.muzea.domain.model.NewsComment
+import com.example.muzea.domain.model.NewsCommentsPage
 import com.example.muzea.domain.repository.AvatarRepository
 import com.example.muzea.domain.repository.ChatRepository
 import com.example.muzea.domain.repository.ChatSessionRepository
@@ -31,6 +33,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -78,6 +81,33 @@ class NewsDetailFragmentTest {
         publishedAt = "2026-01-01T00:00:00"
     )
 
+    private fun stubComments(comments: List<NewsComment> = emptyList()) {
+        coEvery { newsRepository.getComments(1, null, 20) } returns flowOf(
+            Resource.Success(NewsCommentsPage(comments, comments.size.toLong(), false, null))
+        )
+        coEvery { newsRepository.registerView(1) } returns Unit
+    }
+
+    private fun comment(id: Long = 2) = NewsComment(
+        id = id,
+        newsId = 1,
+        content = "Комментарий",
+        author = "bob",
+        createdAt = "2026-01-01T00:00:00"
+    )
+
+    private fun layoutRecycler(fragment: NewsDetailFragment): androidx.recyclerview.widget.RecyclerView {
+        val recycler = fragment.requireView()
+            .findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.recyclerView)
+        recycler.measure(
+            View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(1920, View.MeasureSpec.EXACTLY)
+        )
+        recycler.layout(0, 0, 1080, 1920)
+        shadowOf(Looper.getMainLooper()).idle()
+        return recycler
+    }
+
     private fun launch(id: Long? = 1L): NewsDetailFragment {
         val activity = Robolectric.buildActivity(HiltTestActivity::class.java).setup().get()
         val fragment = NewsDetailFragment().apply {
@@ -91,29 +121,203 @@ class NewsDetailFragmentTest {
     }
 
     @Test
-    fun `renders the news and owner actions`() {
+    fun `renders the news header`() {
         coEvery { newsRepository.getNewsById(1) } returns flow {
             delay(20)
             emit(Resource.Success(news()))
         }
+        stubComments()
 
         val fragment = launch()
         shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(50))
 
-        val title = fragment.requireView().findViewById<android.widget.TextView>(R.id.tvTitle)
+        val recycler = layoutRecycler(fragment)
+
+        val header = recycler.findViewHolderForAdapterPosition(0)?.itemView
+        org.junit.Assert.assertNotNull(header)
+        val title = header!!.findViewById<android.widget.TextView>(R.id.tvTitle)
         assertEquals("Заголовок новости", title.text.toString())
-        assertEquals(
-            View.VISIBLE,
-            fragment.requireView().findViewById<View>(R.id.btnDeleteNews).visibility
-        )
-        assertEquals(
-            View.GONE,
-            fragment.requireView().findViewById<View>(R.id.btnReportNews).visibility
+    }
+
+    @Test
+    fun `author actions sheet opens from the toolbar`() {
+        coEvery { newsRepository.getNewsById(1) } returns flowOf(Resource.Success(news()))
+        stubComments()
+
+        val fragment = launch()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        fragment.requireView().findViewById<View>(R.id.btnActions).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        org.junit.Assert.assertTrue(
+            fragment.childFragmentManager.fragments.any { it is NewsActionsBottomSheet }
         )
     }
 
     @Test
+    fun `sending a comment calls the repository and clears the field`() {
+        coEvery { newsRepository.getNewsById(1) } returns flowOf(Resource.Success(news()))
+        coEvery { newsRepository.addComment(1, "Привет") } returns flowOf(
+            Resource.Success(comment())
+        )
+        stubComments()
+
+        val fragment = launch()
+        shadowOf(Looper.getMainLooper()).idle()
+        val field = fragment.requireView()
+            .findViewById<android.widget.EditText>(R.id.etComment)
+        field.setText("Привет")
+        fragment.requireView().findViewById<View>(R.id.btnSendComment).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        io.mockk.coVerify { newsRepository.addComment(1, "Привет") }
+        assertEquals("", field.text.toString())
+    }
+
+    @Test
+    fun `heart in the header toggles the like`() {
+        coEvery { newsRepository.getNewsById(1) } returns flowOf(Resource.Success(news()))
+        coEvery { newsRepository.likeNews(1) } returns flowOf(Resource.Success(3))
+        stubComments()
+
+        val fragment = launch()
+        shadowOf(Looper.getMainLooper()).idle()
+        val recycler = layoutRecycler(fragment)
+        recycler.findViewHolderForAdapterPosition(0)?.itemView
+            ?.findViewById<View>(R.id.btnLike)
+            ?.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        io.mockk.coVerify { newsRepository.likeNews(1) }
+    }
+
+    @Test
+    fun `comment actions open the sheet`() {
+        coEvery { newsRepository.getNewsById(1) } returns flowOf(Resource.Success(news()))
+        stubComments(listOf(comment()))
+
+        val fragment = launch()
+        shadowOf(Looper.getMainLooper()).idle()
+        val recycler = layoutRecycler(fragment)
+        recycler.findViewHolderForAdapterPosition(1)?.itemView
+            ?.findViewById<View>(R.id.btnCommentMore)
+            ?.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        org.junit.Assert.assertTrue(
+            fragment.childFragmentManager.fragments.any { it is NewsActionsBottomSheet }
+        )
+    }
+
+    @Test
+    fun `delete action confirms and calls the repository`() {
+        coEvery { newsRepository.getNewsById(1) } returns flowOf(Resource.Success(news()))
+        coEvery { newsRepository.deleteNews(1) } returns flowOf(Resource.Success(Unit))
+        stubComments()
+
+        val fragment = launch()
+        shadowOf(Looper.getMainLooper()).idle()
+        fragment.onNewsAction(NewsActionsBottomSheet.ACTION_DELETE)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        val dialog = org.robolectric.shadows.ShadowDialog.getLatestDialog()
+        assertNotNull(dialog)
+        dialog.findViewById<View>(android.R.id.button1).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        io.mockk.coVerify { newsRepository.deleteNews(1) }
+    }
+
+    @Test
+    fun `edit action starts the editor`() {
+        coEvery { newsRepository.getNewsById(1) } returns flowOf(Resource.Success(news()))
+        stubComments()
+
+        val fragment = launch()
+        shadowOf(Looper.getMainLooper()).idle()
+        fragment.onNewsAction(NewsActionsBottomSheet.ACTION_EDIT)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertNotNull(shadowOf(fragment.requireActivity()).nextStartedActivityForResult)
+    }
+
+    @Test
+    fun `comment delete action calls the repository`() {
+        coEvery { newsRepository.getNewsById(1) } returns flowOf(Resource.Success(news()))
+        coEvery { newsRepository.deleteComment(1, 2) } returns flowOf(Resource.Success(Unit))
+        stubComments(listOf(comment()))
+
+        val fragment = launch()
+        shadowOf(Looper.getMainLooper()).idle()
+        val recycler = layoutRecycler(fragment)
+        recycler.findViewHolderForAdapterPosition(1)?.itemView
+            ?.findViewById<View>(R.id.btnCommentMore)
+            ?.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        val sheet = fragment.childFragmentManager.fragments
+            .filterIsInstance<NewsActionsBottomSheet>()
+            .first()
+        val container = sheet.dialog!!.findViewById<android.widget.LinearLayout>(R.id.actionsContainer)
+        container.getChildAt(0).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        org.robolectric.shadows.ShadowDialog.getLatestDialog()
+            .findViewById<View>(android.R.id.button1)
+            .performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        io.mockk.coVerify { newsRepository.deleteComment(1, 2) }
+    }
+
+    @Test
+    fun `watch video starts the player`() {
+        val videoNews = news().copy(
+            relatedVideo = com.example.muzea.domain.model.Video(
+                id = 9,
+                title = "Клип",
+                description = null,
+                url = "/v.mp4",
+                thumbnailUrl = null,
+                fileSize = 1,
+                duration = null,
+                views = 1,
+                likes = 0,
+                uploadedBy = "Morris",
+                uploadedAt = "2026-01-01T00:00:00"
+            )
+        )
+        coEvery { newsRepository.getNewsById(1) } returns flowOf(Resource.Success(videoNews))
+        stubComments()
+
+        val fragment = launch()
+        shadowOf(Looper.getMainLooper()).idle()
+        val recycler = layoutRecycler(fragment)
+        recycler.findViewHolderForAdapterPosition(0)?.itemView
+            ?.findViewById<View>(R.id.btnWatchVideo)
+            ?.performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertNotNull(shadowOf(fragment.requireActivity()).nextStartedActivity)
+    }
+
+    @Test
+    fun `blank comment is not sent`() {
+        coEvery { newsRepository.getNewsById(1) } returns flowOf(Resource.Success(news()))
+        stubComments()
+
+        val fragment = launch()
+        shadowOf(Looper.getMainLooper()).idle()
+        fragment.requireView().findViewById<View>(R.id.btnSendComment).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        io.mockk.coVerify(exactly = 0) { newsRepository.addComment(any(), any()) }
+    }
+
+    @Test
     fun `error response shows the message`() {
+        stubComments()
         coEvery { newsRepository.getNewsById(1) } returns flow {
             delay(20)
             emit(Resource.Error("offline"))

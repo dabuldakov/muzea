@@ -11,16 +11,18 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.muzea.R
 import com.example.muzea.domain.model.News
 import com.example.muzea.databinding.ItemNewsBinding
+import com.example.muzea.utils.CountFormatter
 import com.example.muzea.utils.LocalTimeFormatter
 import com.example.muzea.utils.MediaUrl
 
 class NewsAdapter(
-    private val onItemClick: (Long) -> Unit
+    private val onItemClick: (Long) -> Unit,
+    private val onLikeClick: (Long) -> Unit
 ) : ListAdapter<News, NewsAdapter.NewsViewHolder>(NewsDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NewsViewHolder {
         val binding = ItemNewsBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return NewsViewHolder(binding, onItemClick)
+        return NewsViewHolder(binding, onItemClick, onLikeClick)
     }
 
     override fun onBindViewHolder(holder: NewsViewHolder, position: Int) {
@@ -29,14 +31,29 @@ class NewsAdapter(
 
     class NewsViewHolder(
         private val binding: ItemNewsBinding,
-        private val onItemClick: (Long) -> Unit
+        private val onItemClick: (Long) -> Unit,
+        private val onLikeClick: (Long) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(news: News) {
+            val context = binding.root.context
             binding.tvTitle.text = news.title
             binding.tvContent.text = news.content
             binding.tvAuthor.text = news.author
             binding.tvDate.text = LocalTimeFormatter.formatDate(news.publishedAt)
+
+            binding.tvLikes.text = CountFormatter.format(context, news.likes)
+            binding.tvViews.text = CountFormatter.format(context, news.views)
+            binding.tvComments.text = CountFormatter.format(context, news.commentsCount)
+
+            binding.btnLike.isSelected = news.likedByMe
+            binding.btnLike.setImageResource(
+                if (news.likedByMe) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline
+            )
+            binding.btnLike.contentDescription = context.getString(
+                if (news.likedByMe) R.string.action_unlike else R.string.action_like
+            )
+            binding.btnLike.setOnClickListener { onLikeClick(news.id) }
 
             loadImage(news)
 
@@ -52,7 +69,7 @@ class NewsAdapter(
                 binding.ivImage.visibility = View.VISIBLE
                 Glide.with(binding.root.context)
                     .load(imageUrl)
-                    .centerCrop()
+                    .fitCenter()
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .placeholder(R.drawable.placeholder_image)
                     .error(R.drawable.placeholder_image)

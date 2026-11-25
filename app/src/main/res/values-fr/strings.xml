@@ -305,4 +305,34 @@
     <string name="pinned_message_title">Message épinglé</string>
     <string name="pinned_messages_count">Épinglés : %1$d</string>
     <string name="action_open_pinned">Ouvrir le message épinglé</string>
+
+    <!-- News engagement -->
+    <string name="action_like">J’aime</string>
+    <string name="action_unlike">Retirer j’aime</string>
+    <string name="news_views">Vues</string>
+    <string name="news_comments">Commentaires</string>
+    <string name="news_comments_title">Commentaires</string>
+    <string name="news_comments_title_format">Commentaires (%1$s)</string>
+    <string name="news_load_older_comments">Afficher les commentaires précédents</string>
+    <string name="news_comments_empty">Aucun commentaire pour l’instant</string>
+    <string name="news_comment_actions">Actions du commentaire</string>
+    <string name="news_comment_hint">Écrire un commentaire…</string>
+    <string name="news_detail_title">Actualité</string>
+    <string name="news_actions">Actions de l’actualité</string>
+    <string name="news_not_loaded">L’actualité est en cours de chargement</string>
+    <string name="news_delete_comment_title">Supprimer le commentaire ?</string>
+    <string name="news_delete_comment_message">Le commentaire sera supprimé pour tout le monde.</string>
+    <string name="create_news_title">Créer une actualité</string>
+    <string name="news_edit_title">Modifier l’actualité</string>
+    <string name="news_save">Enregistrer</string>
+    <string name="news_saving">Enregistrement…</string>
+    <string name="news_creating">Création de l’actualité…</string>
+    <string name="news_updated">Actualité mise à jour</string>
+    <string name="news_update_failed_format">Impossible de mettre à jour l’actualité : %1$s</string>
+    <string name="news_current_image">Image actuelle</string>
+    <string name="news_remove_image">Supprimer l’image</string>
+    <string name="count_thousand_short">k</string>
+    <string name="count_million_short">M</string>
+    <string name="count_billion_short">Md</string>
+    <string name="count_compact_format">%1$s %2$s</string>
 </resources>

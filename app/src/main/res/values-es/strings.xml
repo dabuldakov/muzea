@@ -305,4 +305,34 @@
     <string name="pinned_message_title">Mensaje fijado</string>
     <string name="pinned_messages_count">Fijados: %1$d</string>
     <string name="action_open_pinned">Abrir mensaje fijado</string>
+
+    <!-- News engagement -->
+    <string name="action_like">Me gusta</string>
+    <string name="action_unlike">Quitar me gusta</string>
+    <string name="news_views">Vistas</string>
+    <string name="news_comments">Comentarios</string>
+    <string name="news_comments_title">Comentarios</string>
+    <string name="news_comments_title_format">Comentarios (%1$s)</string>
+    <string name="news_load_older_comments">Mostrar comentarios anteriores</string>
+    <string name="news_comments_empty">Aún no hay comentarios</string>
+    <string name="news_comment_actions">Acciones del comentario</string>
+    <string name="news_comment_hint">Escribe un comentario…</string>
+    <string name="news_detail_title">Noticia</string>
+    <string name="news_actions">Acciones de la noticia</string>
+    <string name="news_not_loaded">La noticia aún se está cargando</string>
+    <string name="news_delete_comment_title">¿Eliminar comentario?</string>
+    <string name="news_delete_comment_message">El comentario se eliminará para todos.</string>
+    <string name="create_news_title">Crear noticia</string>
+    <string name="news_edit_title">Editar noticia</string>
+    <string name="news_save">Guardar</string>
+    <string name="news_saving">Guardando…</string>
+    <string name="news_creating">Creando noticia…</string>
+    <string name="news_updated">Noticia actualizada</string>
+    <string name="news_update_failed_format">No se pudo actualizar la noticia: %1$s</string>
+    <string name="news_current_image">Imagen actual</string>
+    <string name="news_remove_image">Quitar imagen</string>
+    <string name="count_thousand_short">mil</string>
+    <string name="count_million_short">M</string>
+    <string name="count_billion_short">MM</string>
+    <string name="count_compact_format">%1$s %2$s</string>
 </resources>

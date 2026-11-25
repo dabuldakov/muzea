@@ -8,6 +8,7 @@ import com.example.muzea.R
 import com.example.muzea.core.Resource
 import com.example.muzea.di.ChatRepositoryModule
 import com.example.muzea.di.ContentRepositoryModule
+import com.example.muzea.domain.model.News
 import com.example.muzea.domain.model.Video
 import com.example.muzea.domain.repository.AvatarRepository
 import com.example.muzea.domain.repository.ChatRepository
@@ -158,6 +159,57 @@ class CreateNewsActivityTest {
         shadowOf(Looper.getMainLooper()).idle()
 
         io.mockk.coVerify { newsRepository.createNews("Заголовок", "Текст", null, any()) }
+    }
+
+    @Test
+    fun `edit mode prefills the form and updates the news`() {
+        val news = News(
+            id = 7,
+            title = "Старый заголовок",
+            content = "Старый текст",
+            imageUrl = "/api/news/image/old.jpg",
+            relatedVideo = null,
+            author = "Morris",
+            publishedAt = "2026-01-01T00:00:00"
+        )
+        coEvery { newsRepository.getNewsById(7) } returns flowOf(Resource.Success(news))
+        coEvery { newsRepository.updateNews(any(), any(), any(), any(), any(), any(), any()) } returns
+            flowOf(Resource.Success(news.copy(title = "Новый заголовок")))
+
+        val intent = android.content.Intent(
+            ApplicationProvider.getApplicationContext(),
+            CreateNewsActivity::class.java
+        ).putExtra(CreateNewsActivity.EXTRA_NEWS_ID, 7L)
+        val activity = Robolectric.buildActivity(CreateNewsActivity::class.java, intent)
+            .setup().get()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(
+            "Старый заголовок",
+            activity.findViewById<android.widget.EditText>(R.id.etTitle).text.toString()
+        )
+        assertEquals(
+            View.VISIBLE,
+            activity.findViewById<View>(R.id.btnRemoveImage).visibility
+        )
+
+        activity.findViewById<View>(R.id.btnRemoveImage).performClick()
+        activity.findViewById<android.widget.EditText>(R.id.etTitle).setText("Новый заголовок")
+        activity.findViewById<View>(R.id.btnSubmit).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        io.mockk.coVerify {
+            newsRepository.updateNews(
+                id = 7,
+                title = "Новый заголовок",
+                content = "Старый текст",
+                videoId = null,
+                removeVideo = false,
+                imageFile = null,
+                removeImage = true
+            )
+        }
+        assertTrue(activity.isFinishing)
     }
 
     @Test

@@ -56,6 +56,13 @@ android {
             ?: localProps.getProperty("KLIPY_APP_KEY")
             ?: ""
         buildConfigField("String", "KLIPY_APP_KEY", "\"$klipyAppKey\"")
+
+        // Локальная проверка: -PMUZEA_API_BASE_URL=http://localhost:8080
+        // По умолчанию — прод, чтобы обычная сборка ничего не меняла.
+        val apiBaseUrl: String = (project.findProperty("MUZEA_API_BASE_URL") as String?)
+            ?.takeIf { it.isNotBlank() }
+            ?: "https://api-muzea.su"
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
 
     signingConfigs {

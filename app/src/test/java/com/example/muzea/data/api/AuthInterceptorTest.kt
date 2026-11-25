@@ -69,9 +69,11 @@ class AuthInterceptorTest {
     fun `does not send the token to a foreign host`() = runTest {
         every { tokenManager.getToken() } returns "access"
         server.enqueue(MockResponse().setResponseCode(200))
-        // Дефолтный allowlist содержит только muzea-хосты, не localhost.
+        // Хост MockWebServer не входит в allowlist основного API.
         val foreignClient = OkHttpClient.Builder()
-            .addInterceptor(AuthInterceptor(tokenManager))
+            .addInterceptor(AuthInterceptor(tokenManager).apply {
+                allowedHosts = setOf("api-muzea.su")
+            })
             .build()
 
         foreignClient.newCall(request()).execute()

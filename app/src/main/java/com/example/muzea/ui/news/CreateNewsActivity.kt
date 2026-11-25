@@ -14,8 +14,10 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.muzea.R
+import com.example.muzea.domain.model.News
 import com.example.muzea.domain.model.Video
 import com.example.muzea.databinding.ActivityCreateNewsBinding
+import com.example.muzea.utils.MediaUrl
 import com.example.muzea.ui.video.VideoViewModel
 import com.example.muzea.core.Resource
 import com.example.muzea.utils.TokenManager
@@ -42,10 +44,22 @@ class CreateNewsActivity : AppCompatActivity() {
     private var isLoadingVideos = false
     private var myUsername: String? = null
 
-    private companion object {
+    private var newsId: Long = 0L
+    private val isEditMode: Boolean get() = newsId != 0L
+    private var initialVideoId: Long? = null
+    private var currentImageUrl: String? = null
+    private var removeImage = false
+    private var editLoaded = false
+
+    companion object {
         private const val IMAGE_PREFIX = "news_image_"
         private const val IMAGE_EXTENSION = ".jpg"
         private const val DRAFT_DIR = "news_draft"
+        const val EXTRA_NEWS_ID = "extra_news_id"
+
+        fun intent(context: android.content.Context, newsId: Long): android.content.Intent =
+            android.content.Intent(context, CreateNewsActivity::class.java)
+                .putExtra(EXTRA_NEWS_ID, newsId)
     }
 
     // Регистрация для выбора изображения из галереи
@@ -61,9 +75,11 @@ class CreateNewsActivity : AppCompatActivity() {
         setContentView(binding.root)
         SystemBars.apply(this)
 
+        newsId = intent.getLongExtra(EXTRA_NEWS_ID, 0L)
         initViewModels()
         setupUI()
         loadVideos()
+        if (isEditMode) loadNewsForEdit()
     }
 
     private fun initViewModels() {
@@ -80,6 +96,14 @@ class CreateNewsActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         binding.toolbar.setNavigationOnClickListener { finish() }
+        val title = getString(
+            if (isEditMode) R.string.news_edit_title else R.string.create_news_title
+        )
+        supportActionBar?.title = title
+        binding.toolbar.title = title
+        binding.btnSubmit.setText(
+            if (isEditMode) R.string.news_save else R.string.create_news_submit
+        )
     }
 
     private fun setupClickListeners() {
@@ -93,6 +117,76 @@ class CreateNewsActivity : AppCompatActivity() {
                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
             )
         }
+        binding.btnRemoveImage.setOnClickListener { clearImage() }
+    }
+
+    private fun loadNewsForEdit() {
+        lifecycleScope.launch {
+            newsViewModel.loadNewsById(newsId)
+            newsViewModel.newsDetailResult.collect { result ->
+                when (result) {
+                    is Resource.Success -> {
+                        val news = result.data ?: return@collect
+                        if (editLoaded) return@collect
+                        editLoaded = true
+                        prefill(news)
+                    }
+                    is Resource.Error -> Toast.makeText(
+                        this@CreateNewsActivity,
+                        result.message,
+                        Toast.LENGTH_LONG
+                    ).show()
+                    is Resource.Loading -> Unit
+                }
+            }
+        }
+    }
+
+    private fun prefill(news: News) {
+        binding.etTitle.setText(news.title)
+        binding.etContent.setText(news.content)
+        currentImageUrl = news.imageUrl
+        initialVideoId = news.relatedVideo?.id
+        selectedVideoId = news.relatedVideo?.id
+        renderCurrentImage()
+        applyInitialVideoSelection()
+    }
+
+    private fun renderCurrentImage() {
+        val url = currentImageUrl
+        if (url.isNullOrEmpty()) {
+            binding.cardImagePreview.visibility = android.view.View.GONE
+            binding.tvImageFileName.text = getString(R.string.create_news_no_image)
+            binding.btnRemoveImage.visibility = android.view.View.GONE
+            return
+        }
+        binding.cardImagePreview.visibility = android.view.View.VISIBLE
+        Glide.with(this)
+            .load(MediaUrl.main(url))
+            .fitCenter()
+            .into(binding.ivImagePreview)
+        binding.tvImageFileName.text = getString(R.string.news_current_image)
+        binding.btnRemoveImage.visibility = android.view.View.VISIBLE
+    }
+
+    private fun clearImage() {
+        selectedImageFile?.delete()
+        selectedImageFile = null
+        currentImageUrl = null
+        removeImage = true
+        binding.cardImagePreview.visibility = android.view.View.GONE
+        binding.tvImageFileName.text = getString(R.string.create_news_no_image)
+        binding.btnRemoveImage.visibility = android.view.View.GONE
+    }
+
+    private fun applyInitialVideoSelection() {
+        val targetId = initialVideoId ?: return
+        if (videosList.isEmpty()) return
+        val index = videosList.indexOfFirst { it.id == targetId }
+        if (index >= 0) {
+            binding.spinnerVideo.setSelection(index + 1, false)
+            selectedVideoId = targetId
+        }
     }
 
     private fun handleSelectedImage(uri: Uri) {
@@ -104,7 +198,7 @@ class CreateNewsActivity : AppCompatActivity() {
         binding.cardImagePreview.visibility = android.view.View.VISIBLE
         Glide.with(this)
             .load(uri)
-            .centerCrop()
+            .fitCenter()
             .into(binding.ivImagePreview)
     }
 
@@ -126,8 +220,11 @@ class CreateNewsActivity : AppCompatActivity() {
             }
 
             selectedImageFile = imageFile
+            currentImageUrl = null
+            removeImage = false
             binding.tvImageFileName.text = fileName
             binding.tvImageFileName.setTextColor(ContextCompat.getColor(this, R.color.teal_200))
+            binding.btnRemoveImage.visibility = android.view.View.VISIBLE
         } catch (e: Exception) {
             Toast.makeText(this, getString(R.string.error_copy_image_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
         }
@@ -182,7 +279,9 @@ class CreateNewsActivity : AppCompatActivity() {
             setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
 
+        binding.spinnerVideo.onItemSelectedListener = null
         binding.spinnerVideo.adapter = adapter
+        applyInitialVideoSelection()
         binding.spinnerVideo.onItemSelectedListener = createSpinnerListener()
     }
 
@@ -222,6 +321,15 @@ class CreateNewsActivity : AppCompatActivity() {
         when {
             title.isEmpty() -> binding.etTitle.error = getString(R.string.error_title_required)
             content.isEmpty() -> binding.etContent.error = getString(R.string.error_content_required)
+            isEditMode -> newsViewModel.updateNews(
+                id = newsId,
+                title = title,
+                content = content,
+                videoId = selectedVideoId,
+                removeVideo = selectedVideoId == null && initialVideoId != null,
+                imageFile = image,
+                removeImage = image == null && removeImage
+            )
             else -> newsViewModel.createNews(title, content, selectedVideoId, image)
         }
     }
@@ -239,6 +347,18 @@ class CreateNewsActivity : AppCompatActivity() {
                 }
             }
         }
+        lifecycleScope.launch {
+            newsViewModel.updateNewsResult.collect { result ->
+                when (result) {
+                    is Resource.Loading -> setLoadingState(true)
+                    is Resource.Success -> handleSuccess()
+                    is Resource.Error -> {
+                        android.util.Log.e("EditNews", "Error: ${result.message}")
+                        handleError(result.message ?: "Unknown error")
+                    }
+                }
+            }
+        }
     }
 
     private fun setLoadingState(isLoading: Boolean) {
@@ -246,12 +366,20 @@ class CreateNewsActivity : AppCompatActivity() {
         binding.btnSelectImage.isEnabled = !isLoading
         binding.progressBar.visibility =
             if (isLoading) android.view.View.VISIBLE else android.view.View.GONE
-        binding.tvProgress.text = if (isLoading) "Creating news..." else ""
+        binding.tvProgress.text = if (isLoading) {
+            getString(if (isEditMode) R.string.news_saving else R.string.news_creating)
+        } else {
+            ""
+        }
     }
 
     private fun handleSuccess() {
         setLoadingState(false)
-        Toast.makeText(this, R.string.news_created, Toast.LENGTH_LONG).show()
+        Toast.makeText(
+            this,
+            if (isEditMode) R.string.news_updated else R.string.news_created,
+            Toast.LENGTH_LONG
+        ).show()
         setResult(RESULT_OK)
         finish()
     }
@@ -264,7 +392,15 @@ class CreateNewsActivity : AppCompatActivity() {
 
     private fun handleError(message: String) {
         setLoadingState(false)
-        Toast.makeText(this, getString(R.string.news_create_failed_format, message), Toast.LENGTH_LONG).show()
+        Toast.makeText(
+            this,
+            getString(
+                if (isEditMode) R.string.news_update_failed_format
+                else R.string.news_create_failed_format,
+                message
+            ),
+            Toast.LENGTH_LONG
+        ).show()
     }
 
     private fun showProgressBar(show: Boolean) {

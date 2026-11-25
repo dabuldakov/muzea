@@ -305,4 +305,34 @@
     <string name="pinned_message_title">Бэхэлсэн мессеж</string>
     <string name="pinned_messages_count">Бэхэлсэн: %1$d</string>
     <string name="action_open_pinned">Бэхэлсэн мессежийг нээх</string>
+
+    <!-- News engagement -->
+    <string name="action_like">Таалагдлаа</string>
+    <string name="action_unlike">Таалагдлыг болиулах</string>
+    <string name="news_views">Үзэлт</string>
+    <string name="news_comments">Сэтгэгдэл</string>
+    <string name="news_comments_title">Сэтгэгдэл</string>
+    <string name="news_comments_title_format">Сэтгэгдэл (%1$s)</string>
+    <string name="news_load_older_comments">Өмнөх сэтгэгдлийг харах</string>
+    <string name="news_comments_empty">Одоогоор сэтгэгдэл байхгүй</string>
+    <string name="news_comment_actions">Сэтгэгдлийн үйлдэл</string>
+    <string name="news_comment_hint">Сэтгэгдэл бичих…</string>
+    <string name="news_detail_title">Мэдээ</string>
+    <string name="news_actions">Мэдээний үйлдэл</string>
+    <string name="news_not_loaded">Мэдээ ачаалж байна</string>
+    <string name="news_delete_comment_title">Сэтгэгдлийг устгах уу?</string>
+    <string name="news_delete_comment_message">Сэтгэгдэл бүгдэд устгагдана.</string>
+    <string name="create_news_title">Мэдээ үүсгэх</string>
+    <string name="news_edit_title">Мэдээ засах</string>
+    <string name="news_save">Хадгалах</string>
+    <string name="news_saving">Хадгалж байна…</string>
+    <string name="news_creating">Мэдээ үүсгэж байна…</string>
+    <string name="news_updated">Мэдээ шинэчлэгдлээ</string>
+    <string name="news_update_failed_format">Мэдээг шинэчлэх боломжгүй: %1$s</string>
+    <string name="news_current_image">Одоогийн зураг</string>
+    <string name="news_remove_image">Зургийг устгах</string>
+    <string name="count_thousand_short">мянга</string>
+    <string name="count_million_short">сая</string>
+    <string name="count_billion_short">тэрбум</string>
+    <string name="count_compact_format">%1$s %2$s</string>
 </resources>

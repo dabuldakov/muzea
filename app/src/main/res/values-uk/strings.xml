@@ -305,4 +305,34 @@
     <string name="pinned_message_title">Закріплене повідомлення</string>
     <string name="pinned_messages_count">Закріплених: %1$d</string>
     <string name="action_open_pinned">Відкрити закріплене повідомлення</string>
+
+    <!-- News engagement -->
+    <string name="action_like">Подобається</string>
+    <string name="action_unlike">Прибрати вподобання</string>
+    <string name="news_views">Перегляди</string>
+    <string name="news_comments">Коментарі</string>
+    <string name="news_comments_title">Коментарі</string>
+    <string name="news_comments_title_format">Коментарі (%1$s)</string>
+    <string name="news_load_older_comments">Показати раніші коментарі</string>
+    <string name="news_comments_empty">Коментарів ще немає</string>
+    <string name="news_comment_actions">Дії з коментарем</string>
+    <string name="news_comment_hint">Написати коментар…</string>
+    <string name="news_detail_title">Новина</string>
+    <string name="news_actions">Дії з новиною</string>
+    <string name="news_not_loaded">Новина ще завантажується</string>
+    <string name="news_delete_comment_title">Видалити коментар?</string>
+    <string name="news_delete_comment_message">Коментар буде видалено для всіх.</string>
+    <string name="create_news_title">Створити новину</string>
+    <string name="news_edit_title">Редагувати новину</string>
+    <string name="news_save">Зберегти</string>
+    <string name="news_saving">Зберігаємо…</string>
+    <string name="news_creating">Створюємо новину…</string>
+    <string name="news_updated">Новину оновлено</string>
+    <string name="news_update_failed_format">Не вдалося оновити новину: %1$s</string>
+    <string name="news_current_image">Поточне зображення</string>
+    <string name="news_remove_image">Видалити зображення</string>
+    <string name="count_thousand_short">тис.</string>
+    <string name="count_million_short">млн</string>
+    <string name="count_billion_short">млрд</string>
+    <string name="count_compact_format">%1$s %2$s</string>
 </resources>

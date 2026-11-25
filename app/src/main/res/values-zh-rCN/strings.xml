@@ -305,4 +305,34 @@
     <string name="pinned_message_title">置顶消息</string>
     <string name="pinned_messages_count">已置顶：%1$d</string>
     <string name="action_open_pinned">打开置顶消息</string>
+
+    <!-- News engagement -->
+    <string name="action_like">赞</string>
+    <string name="action_unlike">取消赞</string>
+    <string name="news_views">浏览</string>
+    <string name="news_comments">评论</string>
+    <string name="news_comments_title">评论</string>
+    <string name="news_comments_title_format">评论（%1$s）</string>
+    <string name="news_load_older_comments">显示更早的评论</string>
+    <string name="news_comments_empty">还没有评论</string>
+    <string name="news_comment_actions">评论操作</string>
+    <string name="news_comment_hint">写评论…</string>
+    <string name="news_detail_title">新闻</string>
+    <string name="news_actions">新闻操作</string>
+    <string name="news_not_loaded">新闻正在加载</string>
+    <string name="news_delete_comment_title">删除评论？</string>
+    <string name="news_delete_comment_message">评论将对所有人删除。</string>
+    <string name="create_news_title">创建新闻</string>
+    <string name="news_edit_title">编辑新闻</string>
+    <string name="news_save">保存</string>
+    <string name="news_saving">正在保存…</string>
+    <string name="news_creating">正在创建新闻…</string>
+    <string name="news_updated">新闻已更新</string>
+    <string name="news_update_failed_format">无法更新新闻：%1$s</string>
+    <string name="news_current_image">当前图片</string>
+    <string name="news_remove_image">移除图片</string>
+    <string name="count_thousand_short">千</string>
+    <string name="count_million_short">百万</string>
+    <string name="count_billion_short">十亿</string>
+    <string name="count_compact_format">%1$s %2$s</string>
 </resources>

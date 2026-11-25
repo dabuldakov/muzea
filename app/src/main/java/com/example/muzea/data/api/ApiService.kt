@@ -6,6 +6,7 @@ import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
 
+@Suppress("TooManyFunctions")
 interface ApiService {
 
     // Video endpoints
@@ -70,9 +71,58 @@ interface ApiService {
         @Part image: MultipartBody.Part?
     ): Response<NewsCreateResponse>
 
+    @Multipart
+    @PUT("/api/news/{id}")
+    suspend fun updateNews(
+        @Path("id") id: Long,
+        @Part("title") title: okhttp3.RequestBody,
+        @Part("content") content: okhttp3.RequestBody,
+        @Part("videoId") videoId: Long?,
+        @Part("removeVideo") removeVideo: Boolean,
+        @Part("removeImage") removeImage: Boolean,
+        @Part image: MultipartBody.Part?
+    ): Response<NewsResponse>
+
     @DELETE("/api/news/{id}")
     suspend fun deleteNews(
         @Path("id") id: Long
+    ): Response<Unit>
+
+    @POST("/api/news/{id}/like")
+    suspend fun likeNews(
+        @Path("id") id: Long
+    ): Response<NewsLikeResponse>
+
+    @DELETE("/api/news/{id}/like")
+    suspend fun unlikeNews(
+        @Path("id") id: Long
+    ): Response<NewsLikeResponse>
+
+    @GET("/api/news/likes/me")
+    suspend fun getLikedNewsIds(): Response<LikedNewsResponse>
+
+    @POST("/api/news/{id}/view")
+    suspend fun registerNewsView(
+        @Path("id") id: Long
+    ): Response<Unit>
+
+    @GET("/api/news/{id}/comments")
+    suspend fun getNewsComments(
+        @Path("id") newsId: Long,
+        @Query("before") before: Long?,
+        @Query("size") size: Int
+    ): Response<NewsCommentsResponse>
+
+    @POST("/api/news/{id}/comments")
+    suspend fun addNewsComment(
+        @Path("id") newsId: Long,
+        @Body request: CreateNewsCommentRequest
+    ): Response<NewsCommentResponse>
+
+    @DELETE("/api/news/{id}/comments/{commentId}")
+    suspend fun deleteNewsComment(
+        @Path("id") newsId: Long,
+        @Path("commentId") commentId: Long
     ): Response<Unit>
 
     // User endpoints

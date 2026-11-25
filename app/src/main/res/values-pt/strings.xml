@@ -305,4 +305,34 @@
     <string name="pinned_message_title">Mensagem fixada</string>
     <string name="pinned_messages_count">Fixadas: %1$d</string>
     <string name="action_open_pinned">Abrir mensagem fixada</string>
+
+    <!-- News engagement -->
+    <string name="action_like">Curtir</string>
+    <string name="action_unlike">Descurtir</string>
+    <string name="news_views">Visualizações</string>
+    <string name="news_comments">Comentários</string>
+    <string name="news_comments_title">Comentários</string>
+    <string name="news_comments_title_format">Comentários (%1$s)</string>
+    <string name="news_load_older_comments">Mostrar comentários anteriores</string>
+    <string name="news_comments_empty">Ainda não há comentários</string>
+    <string name="news_comment_actions">Ações do comentário</string>
+    <string name="news_comment_hint">Escreva um comentário…</string>
+    <string name="news_detail_title">Notícia</string>
+    <string name="news_actions">Ações da notícia</string>
+    <string name="news_not_loaded">A notícia ainda está carregando</string>
+    <string name="news_delete_comment_title">Excluir comentário?</string>
+    <string name="news_delete_comment_message">O comentário será excluído para todos.</string>
+    <string name="create_news_title">Criar notícia</string>
+    <string name="news_edit_title">Editar notícia</string>
+    <string name="news_save">Salvar</string>
+    <string name="news_saving">Salvando…</string>
+    <string name="news_creating">Criando notícia…</string>
+    <string name="news_updated">Notícia atualizada</string>
+    <string name="news_update_failed_format">Não foi possível atualizar a notícia: %1$s</string>
+    <string name="news_current_image">Imagem atual</string>
+    <string name="news_remove_image">Remover imagem</string>
+    <string name="count_thousand_short">mil</string>
+    <string name="count_million_short">mi</string>
+    <string name="count_billion_short">bi</string>
+    <string name="count_compact_format">%1$s %2$s</string>
 </resources>

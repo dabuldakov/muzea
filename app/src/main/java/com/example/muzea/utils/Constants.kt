@@ -1,7 +1,9 @@
 package com.example.muzea.utils
 
+import com.example.muzea.BuildConfig
+
 object Constants {
-    const val BASE_URL = "https://api-muzea.su"
+    val BASE_URL: String = BuildConfig.API_BASE_URL
     const val CHAT_BASE_URL = "https://chat-muzea.su"
     const val AUTH_BASE_URL = "https://auth.muzea.su"
 

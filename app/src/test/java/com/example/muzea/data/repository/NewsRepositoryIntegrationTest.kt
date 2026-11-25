@@ -97,6 +97,51 @@ class NewsRepositoryIntegrationTest {
     }
 
     @Test
+    fun `comments parse the cursor page`() = runTest {
+        val body = """
+            {"comments":[{"id":12,"newsId":47,"content":"Привет","author":"bob",
+             "createdAt":"2026-11-25T10:00:00"}],
+             "total":2,"hasMore":true,"nextBefore":12}
+        """.trimIndent()
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(body)
+        )
+
+        val result = repository.getComments(47, before = null, size = 20)
+            .firstTerminal()
+
+        assertTrue(result is Resource.Success)
+        val page = result.data!!
+        assertEquals(1, page.comments.size)
+        assertEquals("Привет", page.comments.single().content)
+        assertEquals(2L, page.total)
+        assertTrue(page.hasMore)
+        assertEquals(12L, page.nextBefore)
+
+        val request = server.takeRequest()
+        assertEquals("/api/news/47/comments?size=20", request.path)
+    }
+
+    @Test
+    fun `like response returns the server counter`() = runTest {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"liked":true,"likes":7}""")
+        )
+
+        val result = repository.likeNews(47).firstTerminal()
+
+        assertTrue(result is Resource.Success)
+        assertEquals(7L, result.data)
+        assertEquals("POST", server.takeRequest().method)
+    }
+
+    @Test
     fun `getNews surfaces server error`() = runTest {
         server.enqueue(MockResponse().setResponseCode(500))
 

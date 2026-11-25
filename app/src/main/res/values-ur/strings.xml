@@ -305,4 +305,34 @@
     <string name="pinned_message_title">پن شدہ پیغام</string>
     <string name="pinned_messages_count">پن شدہ: %1$d</string>
     <string name="action_open_pinned">پن شدہ پیغام کھولیں</string>
+
+    <!-- News engagement -->
+    <string name="action_like">پسند</string>
+    <string name="action_unlike">پسند ہٹائیں</string>
+    <string name="news_views">ملاحظات</string>
+    <string name="news_comments">تبصرے</string>
+    <string name="news_comments_title">تبصرے</string>
+    <string name="news_comments_title_format">تبصرے (%1$s)</string>
+    <string name="news_load_older_comments">پرانے تبصرے دکھائیں</string>
+    <string name="news_comments_empty">ابھی کوئی تبصرہ نہیں</string>
+    <string name="news_comment_actions">تبصرے کے اعمال</string>
+    <string name="news_comment_hint">تبصرہ لکھیں…</string>
+    <string name="news_detail_title">خبر</string>
+    <string name="news_actions">خبر کے اعمال</string>
+    <string name="news_not_loaded">خبر ابھی لوڈ ہو رہی ہے</string>
+    <string name="news_delete_comment_title">تبصرہ حذف کریں؟</string>
+    <string name="news_delete_comment_message">تبصرہ سب کے لیے حذف ہو جائے گا۔</string>
+    <string name="create_news_title">خبر بنائیں</string>
+    <string name="news_edit_title">خبر میں ترمیم کریں</string>
+    <string name="news_save">محفوظ کریں</string>
+    <string name="news_saving">محفوظ ہو رہا ہے…</string>
+    <string name="news_creating">خبر بنائی جا رہی ہے…</string>
+    <string name="news_updated">خبر اپ ڈیٹ ہو گئی</string>
+    <string name="news_update_failed_format">خبر اپ ڈیٹ نہیں ہو سکی: %1$s</string>
+    <string name="news_current_image">موجودہ تصویر</string>
+    <string name="news_remove_image">تصویر ہٹائیں</string>
+    <string name="count_thousand_short">ہزار</string>
+    <string name="count_million_short">ملین</string>
+    <string name="count_billion_short">بلین</string>
+    <string name="count_compact_format">%1$s %2$s</string>
 </resources>

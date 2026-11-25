@@ -4,7 +4,11 @@ import com.example.muzea.core.Resource
 import com.example.muzea.data.api.ApiService
 import com.example.muzea.data.httpError
 import com.example.muzea.data.httpOk
+import com.example.muzea.data.model.LikedNewsResponse
+import com.example.muzea.data.model.NewsCommentResponse
+import com.example.muzea.data.model.NewsCommentsResponse
 import com.example.muzea.data.model.NewsCreateResponse
+import com.example.muzea.data.model.NewsLikeResponse
 import com.example.muzea.data.model.NewsResponse
 import com.example.muzea.data.model.PageResponse
 import io.mockk.coEvery
@@ -114,6 +118,89 @@ class NewsRepositoryImplTest {
 
         assertTrue(repository.reportNews(1L, "SPAM"))
         assertFalse(repository.reportNews(2L, "ABUSE"))
+    }
+
+    @Test
+    fun `updateNews maps the updated item`() = runTest {
+        coEvery { api.updateNews(1L, any(), any(), null, false, true, null) } returns
+            httpOk(news(1, title = "New"))
+
+        val last = repository.updateNews(
+            1L, "New", "Text", null, removeVideo = false, imageFile = null, removeImage = true
+        ).toList().last()
+
+        assertEquals("New", (last as Resource.Success).data!!.title)
+    }
+
+    @Test
+    fun `like and unlike return the server counter`() = runTest {
+        coEvery { api.likeNews(1L) } returns httpOk(NewsLikeResponse(true, 7))
+        coEvery { api.unlikeNews(1L) } returns httpOk(NewsLikeResponse(false, 6))
+
+        assertEquals(7L, (repository.likeNews(1L).toList().last() as Resource.Success).data)
+        assertEquals(6L, (repository.unlikeNews(1L).toList().last() as Resource.Success).data)
+    }
+
+    @Test
+    fun `liked ids are converted to a set`() = runTest {
+        coEvery { api.getLikedNewsIds() } returns httpOk(LikedNewsResponse(listOf(1, 2, 2)))
+
+        val last = repository.getLikedNewsIds().toList().last()
+
+        assertEquals(setOf(1L, 2L), (last as Resource.Success).data)
+    }
+
+    @Test
+    fun `comments are mapped with pagination cursor`() = runTest {
+        coEvery { api.getNewsComments(5L, 10L, 20) } returns httpOk(
+            NewsCommentsResponse(
+                comments = listOf(
+                    NewsCommentResponse(11L, 5L, "Hi", "bob", "2026-01-01T00:00:00")
+                ),
+                total = 1,
+                hasMore = false,
+                nextBefore = null
+            )
+        )
+
+        val last = repository.getComments(5L, 10L, 20).toList().last()
+        val page = (last as Resource.Success).data!!
+
+        assertEquals("Hi", page.comments.single().content)
+        assertEquals(1L, page.total)
+    }
+
+    @Test
+    fun `addComment maps the created comment`() = runTest {
+        coEvery { api.addNewsComment(5L, any()) } returns httpOk(
+            NewsCommentResponse(11L, 5L, "Hi", "bob", "2026-01-01T00:00:00")
+        )
+
+        val last = repository.addComment(5L, "Hi").toList().last()
+
+        assertEquals("bob", (last as Resource.Success).data!!.author)
+    }
+
+    @Test
+    fun `deleteComment explains the forbidden case`() = runTest {
+        coEvery { api.deleteNewsComment(5L, 11L) } returns httpError(403)
+
+        val last = repository.deleteComment(5L, 11L).toList().last()
+
+        assertEquals(
+            "Only the comment or news author can delete this comment",
+            (last as Resource.Error).message
+        )
+    }
+
+    @Test
+    fun `reportComment uses the NEWS_COMMENT type`() = runTest {
+        coEvery { api.reportContent(any()) } returns httpOk(Unit)
+
+        assertTrue(repository.reportComment(11L, "SPAM"))
+        coVerify {
+            api.reportContent(match { it.contentType == "NEWS_COMMENT" && it.contentId == 11L })
+        }
     }
 
     private fun page(vararg items: NewsResponse) = PageResponse(

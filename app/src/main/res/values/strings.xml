@@ -339,4 +339,34 @@
     <string name="deleted_user_chat_disabled">Пользователь удалён</string>
     <string name="registration_code_resent">Account is not verified. We sent a new code.</string>
     <string name="otp_resend_in">Resend in %1$ds</string>
+
+    <!-- News engagement: likes, views, comments, editing -->
+    <string name="action_like">Like</string>
+    <string name="action_unlike">Unlike</string>
+    <string name="news_views">Views</string>
+    <string name="news_comments">Comments</string>
+    <string name="news_comments_title">Comments</string>
+    <string name="news_comments_title_format">Comments (%1$s)</string>
+    <string name="news_load_older_comments">Show earlier comments</string>
+    <string name="news_comments_empty">No comments yet</string>
+    <string name="news_comment_actions">Comment actions</string>
+    <string name="news_comment_hint">Write a comment…</string>
+    <string name="news_detail_title">News</string>
+    <string name="news_actions">News actions</string>
+    <string name="news_not_loaded">News is still loading</string>
+    <string name="news_delete_comment_title">Delete comment?</string>
+    <string name="news_delete_comment_message">The comment will be deleted for everyone.</string>
+    <string name="create_news_title">Create News</string>
+    <string name="news_edit_title">Edit News</string>
+    <string name="news_save">Save</string>
+    <string name="news_saving">Saving…</string>
+    <string name="news_creating">Creating news…</string>
+    <string name="news_updated">News updated</string>
+    <string name="news_update_failed_format">Failed to update news: %1$s</string>
+    <string name="news_current_image">Current image</string>
+    <string name="news_remove_image">Remove image</string>
+    <string name="count_thousand_short">K</string>
+    <string name="count_million_short">M</string>
+    <string name="count_billion_short">B</string>
+    <string name="count_compact_format">%1$s %2$s</string>
 </resources>

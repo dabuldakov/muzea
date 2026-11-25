@@ -305,4 +305,34 @@
     <string name="pinned_message_title">পিন করা বার্তা</string>
     <string name="pinned_messages_count">পিন করা: %1$d</string>
     <string name="action_open_pinned">পিন করা বার্তা খুলুন</string>
+
+    <!-- News engagement -->
+    <string name="action_like">পছন্দ</string>
+    <string name="action_unlike">পছন্দ সরান</string>
+    <string name="news_views">দেখা</string>
+    <string name="news_comments">মন্তব্য</string>
+    <string name="news_comments_title">মন্তব্য</string>
+    <string name="news_comments_title_format">মন্তব্য (%1$s)</string>
+    <string name="news_load_older_comments">আগের মন্তব্য দেখান</string>
+    <string name="news_comments_empty">এখনো কোনো মন্তব্য নেই</string>
+    <string name="news_comment_actions">মন্তব্যের কাজ</string>
+    <string name="news_comment_hint">মন্তব্য লিখুন…</string>
+    <string name="news_detail_title">খবর</string>
+    <string name="news_actions">খবরের কাজ</string>
+    <string name="news_not_loaded">খবর এখনো লোড হচ্ছে</string>
+    <string name="news_delete_comment_title">মন্তব্য মুছবেন?</string>
+    <string name="news_delete_comment_message">মন্তব্যটি সবার জন্য মুছে যাবে।</string>
+    <string name="create_news_title">খবর তৈরি করুন</string>
+    <string name="news_edit_title">খবর সম্পাদনা করুন</string>
+    <string name="news_save">সংরক্ষণ</string>
+    <string name="news_saving">সংরক্ষণ হচ্ছে…</string>
+    <string name="news_creating">খবর তৈরি হচ্ছে…</string>
+    <string name="news_updated">খবর আপডেট হয়েছে</string>
+    <string name="news_update_failed_format">খবর আপডেট করা যায়নি: %1$s</string>
+    <string name="news_current_image">বর্তমান ছবি</string>
+    <string name="news_remove_image">ছবি সরান</string>
+    <string name="count_thousand_short">হাজার</string>
+    <string name="count_million_short">মিলিয়ন</string>
+    <string name="count_billion_short">বিলিয়ন</string>
+    <string name="count_compact_format">%1$s %2$s</string>
 </resources>

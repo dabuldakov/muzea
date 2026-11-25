@@ -64,7 +64,8 @@ class NewsListFragment : Fragment() {
 
     private fun setupRecyclerView() {
         adapter = NewsAdapter(
-            onItemClick = ::openNewsDetail
+            onItemClick = ::openNewsDetail,
+            onLikeClick = viewModel::toggleLike
         )
         binding.recyclerViewNews.apply {
             layoutManager = LinearLayoutManager(requireContext())
@@ -120,6 +121,11 @@ class NewsListFragment : Fragment() {
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.feedState.collect { render(it) }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.likeError.collect { message ->
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

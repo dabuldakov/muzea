@@ -16,5 +16,13 @@ data class NewsResponse(
     @SerializedName("author")
     val author: String,
     @SerializedName("publishedAt")
-    val publishedAt: String
+    val publishedAt: String,
+    @SerializedName("views")
+    val views: Long? = null,
+    @SerializedName("likes")
+    val likes: Long? = null,
+    @SerializedName("commentsCount")
+    val commentsCount: Long? = null,
+    @SerializedName("likedByMe")
+    val likedByMe: Boolean? = null
 )

@@ -17,9 +17,11 @@
         <ImageView
             android:id="@+id/ivImage"
             android:layout_width="match_parent"
-            android:layout_height="180dp"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
             android:contentDescription="@string/news_image"
-            android:scaleType="centerCrop"
+            android:maxHeight="320dp"
+            android:scaleType="fitCenter"
             android:src="@drawable/placeholder_image" />
 
         <LinearLayout
@@ -35,7 +37,7 @@
                 android:letterSpacing="0.01"
                 android:lineSpacingExtra="2dp"
                 android:text="@string/label_news_title"
-                android:textColor="@android:color/black"
+                android:textColor="?attr/colorOnSurface"
                 android:textFontWeight="600"
                 android:textSize="17sp" />
 
@@ -55,6 +57,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
+                android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <TextView
@@ -62,6 +65,8 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
                     android:text="@string/label_author"
                     android:textColor="@color/gray"
                     android:textSize="12sp" />
@@ -71,6 +76,69 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/label_date"
+                    android:textColor="@color/gray"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/btnLike"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/action_like"
+                    android:padding="6dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_heart_outline"
+                    app:tint="@color/red" />
+
+                <TextView
+                    android:id="@+id/tvLikes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minWidth="20dp"
+                    android:text="0"
+                    android:textColor="@color/gray"
+                    android:textSize="12sp" />
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_marginStart="14dp"
+                    android:contentDescription="@string/news_views"
+                    android:src="@drawable/ic_eye"
+                    app:tint="@color/gray" />
+
+                <TextView
+                    android:id="@+id/tvViews"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="0"
+                    android:textColor="@color/gray"
+                    android:textSize="12sp" />
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_marginStart="14dp"
+                    android:contentDescription="@string/news_comments"
+                    android:src="@drawable/ic_comment"
+                    app:tint="@color/gray" />
+
+                <TextView
+                    android:id="@+id/tvComments"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="0"
                     android:textColor="@color/gray"
                     android:textSize="12sp" />
 
