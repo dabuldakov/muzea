@@ -583,3 +583,64 @@ alter table content_reports
    связанное видео.
 5. **iOS:** после Android, отдельным этапом; API с самого начала обратно
    совместимый.
+
+## 11. Итоговая архитектура (после реализации)
+
+### Бэкенд `makeup`
+
+Модуль `news` разделён по ответственности:
+
+| Компонент | Ответственность |
+|---|---|
+| `NewsService` | CRUD новости, фото, связанное видео, удаление, push |
+| `NewsCommentService` | список/счётчики, добавление, мягкое удаление комментариев |
+| `NewsEngagementService` | лайки, «мои лайки», просмотры |
+| `NewsViewCounter` | Redis-батч просмотров, независимый от HTTP-слоя |
+| `NewsMapper` | DTO и скрытие удалённых авторов |
+| `NewsController` | только HTTP-контракт и права доступа |
+
+Границы модулей не расширены: `report → news` уже существовал для жалоб,
+`video → news` по-прежнему отсутствует, `news → video/auth/media` остаётся
+ацикличным. Nginx microcache не персонализируется: `likedByMe` отдаётся
+только деталью и `/api/news/likes/me`.
+
+### Android
+
+```
+data/api          Retrofit: лайки, просмотры, комментарии, PUT новости
+data/repository   NewsRepositoryImpl: Resource<T>, отмена, сетевые ошибки
+domain            News / NewsComment / NewsCommentsPage
+ui/news/list      NewsViewModel + NewsAdapter: оптимистичный лайк
+ui/news/detail    NewsDetailViewModel: статья + комментарии + лайк
+ui/news/editor    CreateNewsActivity: create/edit, фото и видео
+ui/news/actions   NewsActionsBottomSheet: edit/delete/report в стиле чата
+```
+
+`NewsDetailFragment` отвечает только за view/навигацию; состояние, пагинация
+и сетевые операции — в `NewsDetailViewModel`. Список комментариев —
+`ConcatAdapter` (шапка + комментарии), поэтому нет вложенных ScrollView.
+
+### iOS
+
+Повторяет контракт Android: `NewsRepository`, `NewsListViewModel`,
+`NewsDetailViewModel`, `CreateNewsViewModel`, DTO с nullable-полями.
+`FullWidthImage` получил режим `.fit`, чтобы не обрезать фото.
+
+## 12. Матрица тестов
+
+| Операция | Бэкенд unit | Бэкенд IT | Android unit/IT | iOS unit |
+|---|---|---|---|---|
+| Лента + счётчики | `NewsServiceTest` | `NewsControllerIT` | `NewsRepositoryImplTest`, MockWebServer | `NewsRepositoryTests` |
+| Деталь + `likedByMe` | `NewsMapperTest` | `NewsControllerIT` | repository/ViewModel | `RepositoriesTests`, detail VM |
+| Лайк / анлайк | `NewsEngagementServiceTest` | `NewsControllerIT` | repository, feed/detail VM | `RepositoriesTests`, view models |
+| Просмотр | `NewsEngagementServiceTest` | `NewsControllerIT` | repository, detail VM | `RepositoriesTests` |
+| Комментарии: список | `NewsCommentServiceTest` | `NewsControllerIT` | repository, detail VM | `RepositoriesTests`, detail VM |
+| Комментарии: добавить | `NewsCommentServiceTest` | `NewsControllerIT` | repository, detail VM | `RepositoriesTests`, detail VM |
+| Комментарии: удалить | `NewsCommentServiceTest` | `NewsControllerIT` | repository, detail VM | `RepositoriesTests`, detail VM |
+| Редактирование | `NewsServiceTest` | `NewsControllerIT` | repository, editor tests | `RepositoriesTests`, `CreateNewsViewModel` |
+| Жалобы | `NewsCommentService`/report | `ContentReportEndpointIT` | repository, fragment | `NewsDetailViewModel` |
+| Фото без обрезки | — | изображение отдаётся | layout/adapters | `FullWidthImage` smoke |
+
+Проверки перед релизом: `test`, `integrationTest`, Checkstyle, SpotBugs,
+JaCoCo ≥70% (бэкенд) и Android `testDebugUnitTest`, Detekt,
+`jacocoTestCoverageVerification` ≥85%.

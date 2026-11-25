@@ -141,6 +141,113 @@ class NewsRepositoryIntegrationTest {
         assertEquals("POST", server.takeRequest().method)
     }
 
+
+    @Test
+    fun `unlike and liked ids use the expected endpoints`() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"liked":false,"likes":1}""")
+        )
+        server.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"likedIds":[47]}""")
+        )
+
+        assertEquals(1L, (repository.unlikeNews(47).firstTerminal() as Resource.Success).data)
+        assertEquals(setOf(47L), (repository.getLikedNewsIds().firstTerminal() as Resource.Success).data)
+
+        val unlikeRequest = server.takeRequest()
+        val likedRequest = server.takeRequest()
+        assertEquals("/api/news/47/like", unlikeRequest.path)
+        assertEquals("DELETE", unlikeRequest.method)
+        assertEquals("/api/news/likes/me", likedRequest.path)
+    }
+
+    @Test
+    fun `registerView posts to the view endpoint`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(204))
+
+        repository.registerView(47)
+
+        val request = server.takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/api/news/47/view", request.path)
+    }
+
+    @Test
+    fun `updateNews sends multipart and parses the result`() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(singleNewsJson(title = "Updated"))
+        )
+
+        val result = repository.updateNews(
+            id = 47,
+            title = "Updated",
+            content = "Text",
+            videoId = null,
+            removeVideo = false,
+            imageFile = null,
+            removeImage = true
+        ).firstTerminal()
+
+        assertTrue(result is Resource.Success)
+        assertEquals("Updated", result.data!!.title)
+        val request = server.takeRequest()
+        assertEquals("PUT", request.method)
+        assertEquals("/api/news/47", request.path)
+        val body = request.body.readUtf8()
+        assertTrue(body.contains("name=\"title\""))
+        assertTrue(body.contains("removeImage"))
+    }
+
+    @Test
+    fun `add and delete comment use the expected contract`() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"id":12,"newsId":47,"content":"Hi","author":"vovan",
+                       "createdAt":"2026-11-25T10:00:00"}"""
+                )
+        )
+        server.enqueue(MockResponse().setResponseCode(204))
+
+        val added = repository.addComment(47, "Hi").firstTerminal()
+        assertEquals("Hi", (added as Resource.Success).data!!.content)
+        val addRequest = server.takeRequest()
+        assertEquals("POST", addRequest.method)
+        assertEquals("/api/news/47/comments", addRequest.path)
+        assertTrue(addRequest.body.readUtf8().contains("\"content\":\"Hi\""))
+
+        assertTrue(repository.deleteComment(47, 12).firstTerminal() is Resource.Success)
+        val deleteRequest = server.takeRequest()
+        assertEquals("DELETE", deleteRequest.method)
+        assertEquals("/api/news/47/comments/12", deleteRequest.path)
+    }
+
+    @Test
+    fun `reportComment sends NEWS_COMMENT to reports`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200))
+
+        assertTrue(repository.reportComment(12, "ABUSE"))
+
+        val request = server.takeRequest()
+        assertEquals("/api/reports", request.path)
+        val body = request.body.readUtf8()
+        assertTrue(body.contains("NEWS_COMMENT"))
+        assertTrue(body.contains("\"contentId\":12"))
+    }
+
+    private fun singleNewsJson(title: String) = """
+        {"id":47,"title":"$title","content":"Text","imageUrl":null,
+         "author":"vovan","publishedAt":"2026-11-25T10:00:00","relatedVideo":null,
+         "views":1,"likes":2,"commentsCount":3,"likedByMe":false}
+    """.trimIndent()
+
     @Test
     fun `getNews surfaces server error`() = runTest {
         server.enqueue(MockResponse().setResponseCode(500))

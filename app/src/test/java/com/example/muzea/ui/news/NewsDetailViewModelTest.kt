@@ -181,6 +181,110 @@ class NewsDetailViewModelTest {
         assertEquals(Unit, event.await())
     }
 
+
+    @Test
+    fun `detail error is exposed`() = runTest {
+        coEvery { repository.getNewsById(1) } returns flowOf(Resource.Error("offline"))
+        coEvery { repository.getComments(1, null, 20) } returns flowOf(
+            Resource.Success(page(emptyList()))
+        )
+        coEvery { repository.registerView(1) } returns Unit
+
+        viewModel.load(1)
+
+        assertEquals("offline", viewModel.detailState.value.error)
+        assertNull(viewModel.detailState.value.news)
+        assertFalse(viewModel.detailState.value.isLoading)
+    }
+
+    @Test
+    fun `comments error is exposed without losing the article`() = runTest {
+        coEvery { repository.getNewsById(1) } returns flowOf(Resource.Success(news()))
+        coEvery { repository.getComments(1, null, 20) } returns flowOf(Resource.Error("no comments"))
+        coEvery { repository.registerView(1) } returns Unit
+
+        viewModel.load(1)
+
+        assertEquals("Title", viewModel.detailState.value.news?.title)
+        assertEquals("no comments", viewModel.commentsState.value.error)
+        assertFalse(viewModel.commentsState.value.isLoading)
+    }
+
+    @Test
+    fun `older comments error restores loading flag`() = runTest {
+        stubLoad(comments = page(listOf(comment(3)), total = 3, hasMore = true, nextBefore = 3))
+        coEvery { repository.getComments(1, 3, 20) } returns flowOf(Resource.Error("offline"))
+
+        viewModel.load(1)
+        viewModel.loadOlderComments()
+
+        assertFalse(viewModel.commentsState.value.isLoading)
+        assertEquals("offline", viewModel.commentsState.value.error)
+        assertEquals(listOf(3L), viewModel.commentsState.value.comments.map { it.id })
+    }
+
+    @Test
+    fun `add comment error restores sending flag`() = runTest {
+        stubLoad()
+        coEvery { repository.addComment(1, "Hi") } returns flowOf(Resource.Error("offline"))
+
+        viewModel.load(1)
+        viewModel.addComment("Hi")
+
+        assertFalse(viewModel.commentsState.value.isSending)
+        assertEquals("offline", viewModel.commentsState.value.error)
+        assertTrue(viewModel.commentsState.value.comments.isEmpty())
+    }
+
+    @Test
+    fun `delete comment error keeps the row`() = runTest {
+        stubLoad(comments = page(listOf(comment(1), comment(2)), total = 2))
+        coEvery { repository.deleteComment(1, 1) } returns flowOf(Resource.Error("offline"))
+
+        viewModel.load(1)
+        viewModel.deleteComment(1)
+
+        assertEquals(listOf(1L, 2L), viewModel.commentsState.value.comments.map { it.id })
+        assertEquals(2L, viewModel.commentsState.value.total)
+    }
+
+    @Test
+    fun `unlike error rolls the state back`() = runTest {
+        stubLoad(detail = news().copy(likedByMe = true, likes = 3))
+        coEvery { repository.unlikeNews(1) } returns flowOf(Resource.Error("offline"))
+
+        viewModel.load(1)
+        viewModel.toggleLike()
+
+        assertTrue(viewModel.detailState.value.news!!.likedByMe)
+        assertEquals(3L, viewModel.detailState.value.news!!.likes)
+    }
+
+    @Test
+    fun `duplicate comment is not appended twice`() = runTest {
+        stubLoad(comments = page(listOf(comment(5)), total = 1))
+        coEvery { repository.addComment(1, "Hi") } returns flowOf(
+            Resource.Success(comment(5, "Hi"))
+        )
+
+        viewModel.load(1)
+        viewModel.addComment("Hi")
+
+        assertEquals(listOf(5L), viewModel.commentsState.value.comments.map { it.id })
+        assertEquals(2L, viewModel.commentsState.value.total)
+    }
+
+    @Test
+    fun `report methods delegate to repository`() = runTest {
+        stubLoad()
+        viewModel.load(1)
+        coEvery { repository.reportNews(1, "SPAM") } returns true
+        coEvery { repository.reportComment(2, "ABUSE") } returns false
+
+        assertTrue(viewModel.reportNews("SPAM"))
+        assertFalse(viewModel.reportComment(2, "ABUSE"))
+    }
+
     @Test
     fun `reload does not register the view twice`() = runTest {
         stubLoad()

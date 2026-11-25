@@ -224,6 +224,63 @@ class NewsViewModelTest {
         assertEquals(2L, item.likes)
     }
 
+
+    @Test
+    fun `toggleLike ignores a second tap while the first is in flight`() = runTest {
+        coEvery { contactRepository.loadContacts() } returns flowOf(Resource.Success(emptyList()))
+        coEvery { newsRepository.getNews(any(), any()) } returns flowOf(
+            Resource.Success(listOf(news(1, "vovan")))
+        )
+        coEvery { newsRepository.getLikedNewsIds() } returns flowOf(Resource.Success(emptySet()))
+        val gate = CompletableDeferred<Unit>()
+        coEvery { newsRepository.likeNews(1L) } returns flow {
+            emit(Resource.Loading())
+            gate.await()
+            emit(Resource.Success(1))
+        }
+
+        val viewModel = NewsViewModel(newsRepository, contactRepository)
+        viewModel.loadNews(ownUsername = "vovan")
+        viewModel.toggleLike(1L)
+        viewModel.toggleLike(1L)
+        gate.complete(Unit)
+
+        coVerify(exactly = 1) { newsRepository.likeNews(1L) }
+    }
+
+    @Test
+    fun `toggleLike calls unlike when the row is already liked`() = runTest {
+        coEvery { contactRepository.loadContacts() } returns flowOf(Resource.Success(emptyList()))
+        coEvery { newsRepository.getNews(any(), any()) } returns flowOf(
+            Resource.Success(listOf(news(1, "vovan").copy(likedByMe = true, likes = 3)))
+        )
+        coEvery { newsRepository.getLikedNewsIds() } returns flowOf(Resource.Success(setOf(1L)))
+        coEvery { newsRepository.unlikeNews(1L) } returns flowOf(Resource.Success(2))
+
+        val viewModel = NewsViewModel(newsRepository, contactRepository)
+        viewModel.loadNews(ownUsername = "vovan")
+        viewModel.toggleLike(1L)
+
+        val item = viewModel.feedState.value.news.single()
+        assertFalse(item.likedByMe)
+        assertEquals(2L, item.likes)
+        coVerify { newsRepository.unlikeNews(1L) }
+    }
+
+    @Test
+    fun `liked ids failure does not break the feed`() = runTest {
+        coEvery { contactRepository.loadContacts() } returns flowOf(Resource.Success(emptyList()))
+        coEvery { newsRepository.getNews(any(), any()) } returns flowOf(
+            Resource.Success(listOf(news(1, "vovan")))
+        )
+        coEvery { newsRepository.getLikedNewsIds() } throws IllegalStateException("offline")
+
+        val viewModel = NewsViewModel(newsRepository, contactRepository)
+        viewModel.loadNews(ownUsername = "vovan")
+
+        assertEquals(listOf(1L), viewModel.feedState.value.news.map { it.id })
+    }
+
     @Test
     fun `consumeError clears the message`() = runTest {
         coEvery { contactRepository.loadContacts() } returns flowOf(Resource.Success(emptyList()))

@@ -203,6 +203,115 @@ class NewsRepositoryImplTest {
         }
     }
 
+
+    @Test
+    fun `getNews maps counters and personal like state`() = runTest {
+        coEvery { api.getNews(0, 20) } returns httpOk(
+            page(
+                news(1).copy(
+                    views = 10,
+                    likes = 2,
+                    commentsCount = 3,
+                    likedByMe = true
+                )
+            )
+        )
+
+        val item = (repository.getNews().toList().last() as Resource.Success).data!!.single()
+
+        assertEquals(10L, item.views)
+        assertEquals(2L, item.likes)
+        assertEquals(3L, item.commentsCount)
+        assertTrue(item.likedByMe)
+    }
+
+    @Test
+    fun `updateNews reports forbidden and network errors`() = runTest {
+        coEvery { api.updateNews(1L, any(), any(), any(), any(), any(), any()) } returns
+            httpError(403)
+
+        val forbidden = repository.updateNews(
+            1L, "T", "C", null, false, null, false
+        ).toList().last()
+        assertEquals("Only the author can edit this news", (forbidden as Resource.Error).message)
+
+        coEvery { api.updateNews(1L, any(), any(), any(), any(), any(), any()) } throws
+            IOException("offline")
+        val network = repository.updateNews(
+            1L, "T", "C", null, false, null, false
+        ).toList().last()
+        assertEquals("Network error: offline", (network as Resource.Error).message)
+    }
+
+    @Test
+    fun `updateNews sends the image and remove flags`() = runTest {
+        val image = File.createTempFile("news-edit", ".jpg").apply {
+            writeBytes(byteArrayOf(1, 2, 3))
+            deleteOnExit()
+        }
+        coEvery { api.updateNews(1L, any(), any(), 7L, true, true, any()) } returns
+            httpOk(news(1))
+
+        val last = repository.updateNews(
+            1L, "T", "C", 7L, removeVideo = true, imageFile = image, removeImage = true
+        ).toList().last()
+
+        assertTrue(last is Resource.Success)
+        coVerify { api.updateNews(1L, any(), any(), 7L, true, true, any()) }
+    }
+
+    @Test
+    fun `like and unlike report failures`() = runTest {
+        coEvery { api.likeNews(1L) } returns httpError(500)
+        coEvery { api.unlikeNews(1L) } throws IOException("offline")
+
+        assertTrue(repository.likeNews(1L).toList().last() is Resource.Error)
+        assertTrue(repository.unlikeNews(1L).toList().last() is Resource.Error)
+    }
+
+    @Test
+    fun `liked ids report failures`() = runTest {
+        coEvery { api.getLikedNewsIds() } returns httpError(500)
+
+        assertTrue(repository.getLikedNewsIds().toList().last() is Resource.Error)
+    }
+
+    @Test
+    fun `comments report failures`() = runTest {
+        coEvery { api.getNewsComments(5L, null, 20) } returns httpError(500)
+        coEvery { api.addNewsComment(5L, any()) } throws IOException("offline")
+
+        assertTrue(repository.getComments(5L).toList().last() is Resource.Error)
+        assertTrue(repository.addComment(5L, "x").toList().last() is Resource.Error)
+    }
+
+    @Test
+    fun `deleteComment succeeds and reports server errors`() = runTest {
+        coEvery { api.deleteNewsComment(5L, 11L) } returns httpOk(Unit)
+
+        assertTrue(repository.deleteComment(5L, 11L).toList().last() is Resource.Success)
+
+        coEvery { api.deleteNewsComment(5L, 12L) } returns httpError(500)
+        assertTrue(repository.deleteComment(5L, 12L).toList().last() is Resource.Error)
+    }
+
+    @Test
+    fun `registerView swallows failures`() = runTest {
+        coEvery { api.registerNewsView(1L) } returns httpOk(Unit)
+        repository.registerView(1L)
+        coVerify { api.registerNewsView(1L) }
+
+        coEvery { api.registerNewsView(2L) } throws IOException("offline")
+        repository.registerView(2L)
+    }
+
+    @Test
+    fun `reportComment reports false on network error`() = runTest {
+        coEvery { api.reportContent(any()) } throws IOException("offline")
+
+        assertFalse(repository.reportComment(11L, "SPAM"))
+    }
+
     private fun page(vararg items: NewsResponse) = PageResponse(
         content = items.toList(),
         empty = items.isEmpty(),
