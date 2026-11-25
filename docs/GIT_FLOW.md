@@ -60,9 +60,40 @@ macOS-раннеры не тратятся. Перед релизом важно
 7. Дождаться workflow **Release**. Он проверит `versionName`, восстановит
    ключ, проверит отпечаток, соберёт `muzea-X.Y.Z.apk`/`.aab` и создаст
    GitHub Release.
-8. Проверить ссылку на сайте/в приложении:
-   `https://muzea.su/downloads/muzea-X.Y.Z.apk`. Сайт показывает последний
-   релиз через GitHub API, но ссылку всё равно проверить.
+8. **Вручную выложить APK на сайт.** GitHub Release — источник метаданных
+   (версия, changelog), но сам APK для автообновления раздаётся с
+   `muzea.su/downloads/`. Это отдельный шаг: без него приложение увидит новую
+   версию, но скачает 404.
+
+   Сайт и скрипт публикации живут в репозитории
+   [`dabuldakov/muzea-site`](https://github.com/dabuldakov/muzea-site):
+
+   ```bash
+   cd ../muzea-site
+
+   # APK берём из уже собранного релиза, а не пересобираем
+   APK=../muzea/app/build/outputs/apk/release/app-release.apk \
+   FTP_HOST=31.31.196.115 \
+   FTP_USER=... \
+   FTP_PASSWORD=... \
+     ./scripts/promote-release.sh vX.Y.Z
+   ```
+
+   Скрипт:
+   - заливает файл в `/www/muzea.su/downloads/muzea-X.Y.Z.apk`;
+   - сверяет размер файла на сайте с локальным;
+   - создаёт архивный релиз в `muzea-site` (для истории, автообновление его
+     не читает).
+
+   Проверить после загрузки:
+
+   ```bash
+   curl -sI https://muzea.su/downloads/muzea-X.Y.Z.apk
+   ```
+
+   Должен быть `200` и `Content-Length`, совпадающий с APK. Учётные данные FTP
+   в git не хранятся; их нужно запросить у владельца хостинга. Если APK не
+   загружен, сайт и приложение получат 404, хотя GitHub Release уже существует.
 9. **Закрыть линию**: после успешного релиза — PR `release/<линия>` → `main`,
    merge `--no-ff`, тег сохранить. Прогнать CI на `main`. Ветку
    `release/<линия>` можно оставить как maintenance или удалить после
