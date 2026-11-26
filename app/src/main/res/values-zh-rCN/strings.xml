@@ -342,4 +342,5 @@
     <string name="video_rewind">后退 10 秒</string>
     <string name="video_forward">前进 10 秒</string>
     <string name="video_close">关闭播放器</string>
+    <string name="video_actions">视频操作</string>
 </resources>

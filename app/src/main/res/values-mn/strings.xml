@@ -342,4 +342,5 @@
     <string name="video_rewind">10 секунд ухрах</string>
     <string name="video_forward">10 секунд урагшлах</string>
     <string name="video_close">Тоглуулагчийг хаах</string>
+    <string name="video_actions">Видеоның үйлдэл</string>
 </resources>

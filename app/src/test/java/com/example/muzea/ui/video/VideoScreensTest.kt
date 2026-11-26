@@ -221,9 +221,18 @@ class VideoScreensTest {
         shadowOf(Looper.getMainLooper()).idle()
 
         val toolbar = activity.findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
-        assertTrue(toolbar.menu.findItem(R.id.action_delete_video).isVisible)
-        assertTrue(!toolbar.menu.findItem(R.id.action_report_video).isVisible)
-        activity.onOptionsItemSelected(toolbar.menu.findItem(R.id.action_delete_video))
+        assertTrue(toolbar.menu.findItem(R.id.action_video_actions).isVisible)
+        activity.onOptionsItemSelected(toolbar.menu.findItem(R.id.action_video_actions))
+        shadowOf(Looper.getMainLooper()).idle()
+
+        val sheet = activity.supportFragmentManager.fragments
+            .filterIsInstance<VideoActionsBottomSheet>()
+            .first()
+        val container = sheet.dialog!!.findViewById<android.widget.LinearLayout>(R.id.actionsContainer)
+        assertEquals(1, container.childCount)
+        container.getChildAt(0).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
         val dialog = org.robolectric.shadows.ShadowDialog.getLatestDialog()
             as androidx.appcompat.app.AlertDialog
         dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).performClick()
@@ -246,8 +255,21 @@ class VideoScreensTest {
         shadowOf(Looper.getMainLooper()).idle()
 
         val toolbar = activity.findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
-        assertTrue(toolbar.menu.findItem(R.id.action_report_video).isVisible)
-        assertTrue(!toolbar.menu.findItem(R.id.action_delete_video).isVisible)
+        assertTrue(toolbar.menu.findItem(R.id.action_video_actions).isVisible)
+        activity.onOptionsItemSelected(toolbar.menu.findItem(R.id.action_video_actions))
+        shadowOf(Looper.getMainLooper()).idle()
+
+        val sheet = activity.supportFragmentManager.fragments
+            .filterIsInstance<VideoActionsBottomSheet>()
+            .first()
+        val action = sheet.dialog!!
+            .findViewById<android.widget.LinearLayout>(R.id.actionsContainer)
+            .getChildAt(0)
+            .findViewById<android.widget.ImageView>(R.id.ivAction)
+        assertEquals(
+            activity.getString(R.string.action_report),
+            action.contentDescription.toString()
+        )
     }
 
     @Test

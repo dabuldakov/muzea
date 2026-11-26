@@ -342,4 +342,5 @@
     <string name="video_rewind">Reculer de 10 secondes</string>
     <string name="video_forward">Avancer de 10 secondes</string>
     <string name="video_close">Fermer le lecteur</string>
+    <string name="video_actions">Actions de la vidéo</string>
 </resources>

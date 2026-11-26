@@ -376,4 +376,5 @@
     <string name="video_rewind">Rewind 10 seconds</string>
     <string name="video_forward">Forward 10 seconds</string>
     <string name="video_close">Close player</string>
+    <string name="video_actions">Video actions</string>
 </resources>

@@ -342,4 +342,5 @@
     <string name="video_rewind">Voltar 10 segundos</string>
     <string name="video_forward">Avançar 10 segundos</string>
     <string name="video_close">Fechar reprodutor</string>
+    <string name="video_actions">Ações do vídeo</string>
 </resources>

@@ -342,4 +342,5 @@
     <string name="video_rewind">Назад на 10 секунд</string>
     <string name="video_forward">Наперад на 10 секунд</string>
     <string name="video_close">Закрыць прайгравальнік</string>
+    <string name="video_actions">Дзеянні з відэа</string>
 </resources>

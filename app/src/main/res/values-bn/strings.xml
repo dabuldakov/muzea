@@ -342,4 +342,5 @@
     <string name="video_rewind">১০ সেকেন্ড পিছনে</string>
     <string name="video_forward">১০ সেকেন্ড সামনে</string>
     <string name="video_close">প্লেয়ার বন্ধ করুন</string>
+    <string name="video_actions">ভিডিওর কাজ</string>
 </resources>

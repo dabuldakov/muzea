@@ -342,4 +342,5 @@
     <string name="video_rewind">10 секунд артқа</string>
     <string name="video_forward">10 секунд алға</string>
     <string name="video_close">Ойнатқышты жабу</string>
+    <string name="video_actions">Бейне әрекеттері</string>
 </resources>

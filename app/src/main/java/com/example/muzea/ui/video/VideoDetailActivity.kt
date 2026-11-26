@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 @AndroidEntryPoint
-class VideoDetailActivity : AppCompatActivity() {
+class VideoDetailActivity : AppCompatActivity(), VideoActionsBottomSheet.Listener {
 
     private lateinit var binding: ActivityVideoDetailBinding
     private val viewModel: VideoViewModel by viewModels()
@@ -105,23 +105,21 @@ class VideoDetailActivity : AppCompatActivity() {
         return true
     }
 
-    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
-        menu.findItem(R.id.action_delete_video)?.isVisible = isMine
-        menu.findItem(R.id.action_report_video)?.isVisible = !isMine
-        menu.findItem(R.id.action_delete_video)?.isEnabled = !isDeleting
-        return super.onPrepareOptionsMenu(menu)
-    }
-
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-        R.id.action_delete_video -> {
-            confirmDelete()
-            true
-        }
-        R.id.action_report_video -> {
-            ReportDialog.show(this) { reason -> reportVideo(reason) }
+        R.id.action_video_actions -> {
+            VideoActionsBottomSheet.forVideo(canDelete = isMine)
+                .show(supportFragmentManager, "video_actions")
             true
         }
         else -> super.onOptionsItemSelected(item)
+    }
+
+    override fun onVideoAction(actionId: String) {
+        when (actionId) {
+            VideoActionsBottomSheet.ACTION_DELETE -> confirmDelete()
+            VideoActionsBottomSheet.ACTION_REPORT ->
+                ReportDialog.show(this) { reason -> reportVideo(reason) }
+        }
     }
 
     private fun setupBackPressHandling() {
@@ -264,7 +262,6 @@ class VideoDetailActivity : AppCompatActivity() {
 
         val myUsername = tokenManager.getUsername()
         isMine = myUsername != null && video.uploadedBy.trim() == myUsername.trim()
-        invalidateOptionsMenu()
 
         initializePlayer(video)
     }
