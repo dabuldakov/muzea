@@ -194,4 +194,37 @@ class ProfileFragmentTest {
         val started = shadowOf(activity).nextStartedActivity
         assertTrue(started.component?.className!!.endsWith("LoginActivity"))
     }
+    @Test
+    fun `shows update dot when a newer release is available`() {
+        every { appUpdateRepository.availableUpdate } returns
+            MutableStateFlow<AppUpdate?>(AppUpdate("1.7.61", "https://muzea.su/downloads/muzea-1.7.61.apk"))
+        coEvery { appUpdateRepository.checkForUpdate() } returns
+            UpdateCheckResult.Available(
+                AppUpdate("1.7.61", "https://muzea.su/downloads/muzea-1.7.61.apk")
+            )
+
+        val activity = launch()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(
+            View.VISIBLE,
+            activity.findViewById<View>(R.id.updateDot).visibility
+        )
+        assertTrue(
+            activity.findViewById<android.widget.TextView>(R.id.tvAppVersion)
+                .text.contains("1.7.28")
+        )
+    }
+
+    @Test
+    fun `hides update dot when no newer release exists`() {
+        val activity = launch()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals(
+            View.GONE,
+            activity.findViewById<View>(R.id.updateDot).visibility
+        )
+    }
+
 }

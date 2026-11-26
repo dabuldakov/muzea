@@ -8,6 +8,7 @@ import com.example.muzea.data.api.AuthServiceApi
 import com.example.muzea.data.api.AuthTokenApi
 import com.example.muzea.data.api.ChatApiService
 import com.example.muzea.data.api.GitHubApi
+import com.example.muzea.data.api.SiteVersionApi
 import com.example.muzea.data.api.KlipyApi
 import com.example.muzea.data.api.TokenRefreshInterceptor
 import com.example.muzea.utils.Constants
@@ -164,6 +165,25 @@ object NetworkModule {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(GitHubApi::class.java)
+
+    /**
+     * Сайт muzea.su — источник актуальной версии и ссылки на APK. Публичный
+     * статический манифест, без токена и без пиннинга (внешний хост сайта).
+     */
+    @Provides
+    @Singleton
+    fun provideSiteVersionApi(): SiteVersionApi =
+        Retrofit.Builder()
+            .baseUrl("https://muzea.su/")
+            .client(
+                OkHttpClient.Builder()
+                    .connectTimeout(15, TimeUnit.SECONDS)
+                    .readTimeout(15, TimeUnit.SECONDS)
+                    .build()
+            )
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(SiteVersionApi::class.java)
 
     private const val GITHUB_BASE_URL = "https://api.github.com/"
 

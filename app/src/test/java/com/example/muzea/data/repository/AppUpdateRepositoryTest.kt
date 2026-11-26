@@ -6,6 +6,8 @@ import android.content.pm.PackageManager
 import com.example.muzea.data.api.GitHubApi
 import com.example.muzea.data.api.GitHubAsset
 import com.example.muzea.data.api.GitHubRelease
+import com.example.muzea.data.api.SiteVersionApi
+import com.example.muzea.data.api.SiteVersionResponse
 import com.example.muzea.data.httpError
 import com.example.muzea.data.httpOk
 import io.mockk.coEvery
@@ -15,6 +17,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 class AppUpdateRepositoryTest {
@@ -22,6 +25,12 @@ class AppUpdateRepositoryTest {
     private val context = mockk<Context>(relaxed = true)
     private val packageManager = mockk<PackageManager>()
     private val gitHubApi = mockk<GitHubApi>()
+    private val siteVersionApi = mockk<SiteVersionApi>()
+
+    @Before
+    fun defaultSiteFailure() {
+        coEvery { siteVersionApi.getVersion() } returns httpError(503)
+    }
 
     private fun repository(version: String = "1.7.0"): AppUpdateRepository {
         val info = PackageInfo().apply { versionName = version }
@@ -29,7 +38,58 @@ class AppUpdateRepositoryTest {
         every { context.packageName } returns "com.cyber.muzea"
         every { context.packageManager } returns packageManager
         every { packageManager.getPackageInfo("com.cyber.muzea", 0) } returns info
-        return AppUpdateRepository(context, gitHubApi)
+        return AppUpdateRepository(context, gitHubApi, siteVersionApi)
+    }
+
+    @Test
+    fun `site manifest is the primary source`() = runTest {
+        coEvery { siteVersionApi.getVersion() } returns httpOk(
+            SiteVersionResponse(
+                version = "1.7.2",
+                downloadUrl = "https://muzea.su/downloads/muzea-1.7.2.apk",
+                changelog = "## Added\n- from site"
+            )
+        )
+
+        val result = repository().checkForUpdate()
+
+        val update = (result as UpdateCheckResult.Available).update
+        assertEquals("1.7.2", update.versionName)
+        assertEquals("https://muzea.su/downloads/muzea-1.7.2.apk", update.downloadUrl)
+        assertEquals("from site", update.changelog.single().items.single())
+    }
+
+    @Test
+    fun `site says up to date without touching github`() = runTest {
+        coEvery { siteVersionApi.getVersion() } returns httpOk(
+            SiteVersionResponse(version = "1.7.0")
+        )
+        coEvery { gitHubApi.getReleases() } returns httpOk(listOf(release("v9.9.9")))
+
+        val repo = repository()
+        val result = repo.checkForUpdate()
+
+        assertEquals(UpdateCheckResult.UpToDate, result)
+        assertNull(repo.availableUpdate.value)
+    }
+
+    @Test
+    fun `blank site version falls back to github`() = runTest {
+        coEvery { siteVersionApi.getVersion() } returns httpOk(SiteVersionResponse(version = " "))
+        coEvery { gitHubApi.getReleases() } returns httpOk(listOf(release("v1.7.1")))
+
+        val result = repository().checkForUpdate()
+
+        assertEquals("1.7.1", (result as UpdateCheckResult.Available).update.versionName)
+    }
+
+    @Test
+    fun `site failure falls back to github`() = runTest {
+        coEvery { gitHubApi.getReleases() } returns httpOk(listOf(release("v1.7.1")))
+
+        val result = repository().checkForUpdate()
+
+        assertEquals("1.7.1", (result as UpdateCheckResult.Available).update.versionName)
     }
 
     @Test

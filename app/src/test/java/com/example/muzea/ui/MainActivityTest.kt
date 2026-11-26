@@ -119,8 +119,37 @@ class MainActivityTest {
         shadowOf(Looper.getMainLooper()).idle()
     }
 
+
     @Test
-    fun `opens on the news tab`() {
+    fun `update badge is shown on the profile tab`() {
+        every { appUpdateRepository.availableUpdate } returns
+            MutableStateFlow<AppUpdate?>(AppUpdate("1.7.61", "https://muzea.su/downloads/muzea-1.7.61.apk"))
+        coEvery { appUpdateRepository.checkForUpdate() } returns
+            UpdateCheckResult.Available(
+                AppUpdate("1.7.61", "https://muzea.su/downloads/muzea-1.7.61.apk")
+            )
+
+        val activity = launch()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        val navigation = activity.findViewById<BottomNavigationView>(R.id.bottomNavigation)
+        val badge = navigation.getBadge(R.id.profileFragment)
+        assertTrue(badge != null && badge.isVisible)
+    }
+
+    @Test
+    fun `update badge is removed when no update is available`() {
+        every { appUpdateRepository.availableUpdate } returns MutableStateFlow<AppUpdate?>(null)
+
+        val activity = launch()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        val navigation = activity.findViewById<BottomNavigationView>(R.id.bottomNavigation)
+        assertTrue(navigation.getBadge(R.id.profileFragment)?.isVisible != true)
+    }
+
+    @Test
+    fun `shows the news list`() {
         val activity = launch()
         activity.supportFragmentManager.executePendingTransactions()
         shadowOf(Looper.getMainLooper()).idle()

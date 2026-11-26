@@ -3,6 +3,7 @@ package com.example.muzea.data.repository
 import android.content.Context
 import com.example.muzea.data.api.GitHubApi
 import com.example.muzea.data.api.GitHubRelease
+import com.example.muzea.data.api.SiteVersionApi
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,7 +36,8 @@ sealed interface UpdateCheckResult {
 @Singleton
 class AppUpdateRepository @Inject constructor(
     @ApplicationContext context: Context,
-    private val gitHubApi: GitHubApi
+    private val gitHubApi: GitHubApi,
+    private val siteVersionApi: SiteVersionApi
 ) {
 
     private val appContext = context.applicationContext
@@ -60,6 +62,31 @@ class AppUpdateRepository @Inject constructor(
      * версий, в список «что нового» соберём изменения всех пропущенных релизов.
      */
     suspend fun checkForUpdate(): UpdateCheckResult {
+        // Основной канал — манифест сайта: именно с muzea.su пользователь
+        // скачивает APK. GitHub остаётся запасным путём на случай, если
+        // статический манифест временно недоступен.
+        val siteVersion = runCatching { siteVersionApi.getVersion() }
+            .getOrNull()
+            ?.takeIf { it.isSuccessful }
+            ?.body()
+            ?.takeIf { it.version.isNotBlank() }
+
+        if (siteVersion != null) {
+            if (!isNewerVersion(siteVersion.version, currentVersionName)) {
+                _availableUpdate.value = null
+                return UpdateCheckResult.UpToDate
+            }
+            val update = AppUpdate(
+                versionName = siteVersion.version,
+                downloadUrl = siteVersion.downloadUrl
+                    ?.takeIf { it.isNotBlank() }
+                    ?: "https://muzea.su/downloads/muzea-${siteVersion.version}.apk",
+                changelog = parseChangelog(siteVersion.changelog)
+            )
+            _availableUpdate.value = update
+            return UpdateCheckResult.Available(update)
+        }
+
         // GitHub иногда отдаёт 504 на список релизов. Тогда пробуем
         // /releases/latest — обновление всё равно найдём, просто без полного
         // списка «что нового» за пропущенные версии.
