@@ -2,6 +2,8 @@ package com.example.muzea.ui.video
 
 import android.content.pm.ActivityInfo
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
@@ -12,7 +14,6 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
-import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
@@ -23,13 +24,10 @@ import com.example.muzea.utils.LocalTimeFormatter
 import com.example.muzea.core.Resource
 import com.example.muzea.ui.common.ReportDialog
 import com.example.muzea.ui.common.SystemBars
-import com.example.muzea.utils.ErrorReporter
 import com.example.muzea.utils.TokenManager
-import com.example.muzea.utils.VideoCache
-import com.example.muzea.utils.VideoPlayerHelper
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlinx.coroutines.launch
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 @AndroidEntryPoint
@@ -45,7 +43,11 @@ class VideoDetailActivity : AppCompatActivity() {
     private var videoId: Long = 0
     private var isFullscreen = false
     private var originalPlayerHeight = 0
-    private var retryAttempted = false
+    private var isMine = false
+    private var isDeleting = false
+
+    @Inject
+    lateinit var playbackController: VideoPlaybackController
 
     @UnstableApi override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,10 +62,6 @@ class VideoDetailActivity : AppCompatActivity() {
             return
         }
 
-        binding.btnDelete.setOnClickListener { confirmDelete() }
-        binding.btnReport.setOnClickListener {
-            ReportDialog.show(this) { reason -> reportVideo(reason) }
-        }
         setupToolbar()
         setupFullscreen()
         setupBackPressHandling()
@@ -76,7 +74,8 @@ class VideoDetailActivity : AppCompatActivity() {
             .setTitle(R.string.video_delete_title)
             .setMessage(R.string.video_delete_message)
             .setPositiveButton(R.string.action_delete) { _, _ ->
-                binding.btnDelete.isEnabled = false
+                isDeleting = true
+                invalidateOptionsMenu()
                 viewModel.deleteVideo(videoId)
             }
             .setNegativeButton(R.string.action_cancel, null)
@@ -84,10 +83,8 @@ class VideoDetailActivity : AppCompatActivity() {
     }
 
     private fun reportVideo(reason: String) {
-        binding.btnReport.isEnabled = false
         lifecycleScope.launch {
             val ok = viewModel.reportVideo(videoId, reason)
-            binding.btnReport.isEnabled = true
             Toast.makeText(
                 this@VideoDetailActivity,
                 if (ok) R.string.report_sent else R.string.report_failed,
@@ -99,7 +96,32 @@ class VideoDetailActivity : AppCompatActivity() {
     private fun setupToolbar() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.title = getString(R.string.video_detail_title)
         binding.toolbar.setNavigationOnClickListener { finish() }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_video_detail, menu)
+        return true
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        menu.findItem(R.id.action_delete_video)?.isVisible = isMine
+        menu.findItem(R.id.action_report_video)?.isVisible = !isMine
+        menu.findItem(R.id.action_delete_video)?.isEnabled = !isDeleting
+        return super.onPrepareOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
+        R.id.action_delete_video -> {
+            confirmDelete()
+            true
+        }
+        R.id.action_report_video -> {
+            ReportDialog.show(this) { reason -> reportVideo(reason) }
+            true
+        }
+        else -> super.onOptionsItemSelected(item)
     }
 
     private fun setupBackPressHandling() {
@@ -215,13 +237,15 @@ class VideoDetailActivity : AppCompatActivity() {
                 when (result) {
                     is Resource.Loading -> Unit
                     is Resource.Success -> {
+                        playbackController.close()
                         Toast.makeText(this@VideoDetailActivity, R.string.video_deleted, Toast.LENGTH_SHORT)
                             .show()
                         finish()
                     }
 
                     is Resource.Error -> {
-                        binding.btnDelete.isEnabled = true
+                        isDeleting = false
+                        invalidateOptionsMenu()
                         Toast.makeText(this@VideoDetailActivity, result.message, Toast.LENGTH_LONG)
                             .show()
                     }
@@ -239,70 +263,44 @@ class VideoDetailActivity : AppCompatActivity() {
         binding.tvDate.text = LocalTimeFormatter.format(video.uploadedAt)
 
         val myUsername = tokenManager.getUsername()
-        val isMine = myUsername != null && video.uploadedBy.trim() == myUsername.trim()
-        binding.btnDelete.visibility = if (isMine) View.VISIBLE else View.GONE
-        binding.btnReport.visibility = if (isMine) View.GONE else View.VISIBLE
-        binding.btnReport.isEnabled = true
+        isMine = myUsername != null && video.uploadedBy.trim() == myUsername.trim()
+        invalidateOptionsMenu()
 
-        val fullVideoUrl = video.getFullVideoUrl(com.example.muzea.utils.Constants.BASE_URL)
-        initializePlayer(fullVideoUrl)
+        initializePlayer(video)
     }
 
-    @UnstableApi private fun initializePlayer(videoUrl: String, useCache: Boolean = true) {
-        val token = tokenManager.getToken()
-
-        if (token == null) {
+    @UnstableApi private fun initializePlayer(video: com.example.muzea.domain.model.Video) {
+        val newPlayer = playbackController.play(video)
+        if (newPlayer == null) {
+            // Контент и действия остаются доступны; без токена просто нет
+            // воспроизведения (например, сессия истекла).
             Toast.makeText(this, R.string.auth_required, Toast.LENGTH_SHORT).show()
-            finish()
             return
         }
-
-        val newPlayer = VideoPlayerHelper.createPlayerWithAuth(this, videoUrl, token, useCache)
-        // Без этого сбой воспроизведения выглядел бы как молчаливый чёрный экран.
         newPlayer.addListener(object : Player.Listener {
             override fun onVideoSizeChanged(videoSize: VideoSize) {
-                // Размер приходит уже после первого кадра: если экран успели
-                // развернуть раньше, ориентацию доводим здесь.
                 if (isFullscreen) applyFullscreenOrientation(videoSize.width, videoSize.height)
-            }
-
-            override fun onPlayerError(error: PlaybackException) {
-                // В телеметрию уходит вся цепочка причин: по одному коду
-                // CODE_IO_UNSPECIFIED не понять, сеть это, ответ сервера или кэш.
-                ErrorReporter.logCaught("VideoPlayer", error)
-
-                // Один повтор без дискового кэша: обрыв сети/битый фрагмент
-                // кэша чаще всего лечатся именно так.
-                if (!retryAttempted && VideoPlayerHelper.isRetryableIoError(error)) {
-                    retryAttempted = true
-                    retryPlayback(videoUrl)
-                    return
-                }
-
-                Toast.makeText(
-                    this@VideoDetailActivity,
-                    getString(R.string.video_play_failed, error.errorCodeName),
-                    Toast.LENGTH_LONG
-                ).show()
             }
         })
         player = newPlayer
         binding.playerView.player = newPlayer
     }
 
-    /** Пересоздаёт плеер без кэша, чтобы исключить битый скачанный фрагмент. */
-    @UnstableApi private fun retryPlayback(videoUrl: String) {
-        val oldPlayer = player
-        player = null
-        binding.playerView.player = null
-        VideoPlayerHelper.releasePlayer(oldPlayer)
-        VideoCache.remove(videoUrl)
-        initializePlayer(videoUrl, useCache = false)
+    override fun onResume() {
+        super.onResume()
+        playbackController.setDetailVisible(true)
+        if (player == null && playbackController.activeVideo.value?.id == videoId) {
+            player = playbackController.player
+        }
+        if (binding.playerView.player == null && player != null) {
+            binding.playerView.player = player
+        }
     }
 
     override fun onPause() {
         super.onPause()
-        player?.playWhenReady = false
+        // Видео продолжает играть: при возврате на вкладки его покажет mini-плеер.
+        playbackController.setDetailVisible(false)
         if (isFullscreen) {
             exitFullscreen()
         }
@@ -310,7 +308,9 @@ class VideoDetailActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        VideoPlayerHelper.releasePlayer(player)
+        playbackController.setDetailVisible(false)
+        binding.playerView.player = null
+        // Плеер принадлежит VideoPlaybackController и не освобождается здесь.
     }
 
     private companion object {

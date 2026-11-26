@@ -369,4 +369,11 @@
     <string name="count_million_short">M</string>
     <string name="count_billion_short">B</string>
     <string name="count_compact_format">%1$s %2$s</string>
+
+    <string name="video_detail_title">Video</string>
+    <string name="video_play">Play</string>
+    <string name="video_pause">Pause</string>
+    <string name="video_rewind">Rewind 10 seconds</string>
+    <string name="video_forward">Forward 10 seconds</string>
+    <string name="video_close">Close player</string>
 </resources>

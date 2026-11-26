@@ -27,9 +27,11 @@ import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.HiltTestApplication
 import dagger.hilt.android.testing.UninstallModules
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import okhttp3.MultipartBody
 import org.junit.Assert.assertEquals
@@ -64,6 +66,7 @@ class VideoScreensTest {
     @BindValue @JvmField val newsRepository: NewsRepository = mockk(relaxed = true)
     @BindValue @JvmField val videoRepository: VideoRepository = mockk(relaxed = true)
     @BindValue @JvmField val userRepository: UserRepository = mockk(relaxed = true)
+    @BindValue @JvmField val videoPlaybackController: VideoPlaybackController = mockk(relaxed = true)
 
     @Before
     fun setUp() {
@@ -73,6 +76,12 @@ class VideoScreensTest {
             .edit().putString("username", "Morris").commit()
         coEvery { videoRepository.uploadVideo(any(), any(), any(), any(), any(), any()) } returns
             flowOf(Resource.Success(video()))
+        every { videoPlaybackController.play(any()) } returns null
+        every { videoPlaybackController.player } returns null
+        every { videoPlaybackController.activeVideo } returns MutableStateFlow(null)
+        every { videoPlaybackController.detailVisible } returns MutableStateFlow(false)
+        every { videoPlaybackController.isPlaying } returns MutableStateFlow(false)
+        every { videoPlaybackController.isBuffering } returns MutableStateFlow(false)
     }
 
     private fun video() = Video(
@@ -181,6 +190,7 @@ class VideoScreensTest {
             delay(20)
             emit(Resource.Success(video()))
         }
+        every { videoPlaybackController.play(any()) } returns null
         val intent = Intent(
             ApplicationProvider.getApplicationContext(),
             VideoDetailActivity::class.java
@@ -194,8 +204,8 @@ class VideoScreensTest {
             "Видео",
             activity.findViewById<android.widget.TextView>(R.id.tvTitle).text.toString()
         )
-        // Токена чата в тесте нет — плеер не создаётся, экран закрывается.
-        assertTrue(activity.isFinishing)
+        // Плеер не создан, но экран с контентом и действиями остаётся открыт.
+        assertTrue(!activity.isFinishing)
     }
 
     @Test
@@ -210,9 +220,10 @@ class VideoScreensTest {
             .setup().get()
         shadowOf(Looper.getMainLooper()).idle()
 
-        assertEquals(View.VISIBLE, activity.findViewById<View>(R.id.btnDelete).visibility)
-        assertEquals(View.GONE, activity.findViewById<View>(R.id.btnReport).visibility)
-        activity.findViewById<View>(R.id.btnDelete).performClick()
+        val toolbar = activity.findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
+        assertTrue(toolbar.menu.findItem(R.id.action_delete_video).isVisible)
+        assertTrue(!toolbar.menu.findItem(R.id.action_report_video).isVisible)
+        activity.onOptionsItemSelected(toolbar.menu.findItem(R.id.action_delete_video))
         val dialog = org.robolectric.shadows.ShadowDialog.getLatestDialog()
             as androidx.appcompat.app.AlertDialog
         dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).performClick()
@@ -234,8 +245,9 @@ class VideoScreensTest {
             .setup().get()
         shadowOf(Looper.getMainLooper()).idle()
 
-        assertEquals(View.VISIBLE, activity.findViewById<View>(R.id.btnReport).visibility)
-        assertEquals(View.GONE, activity.findViewById<View>(R.id.btnDelete).visibility)
+        val toolbar = activity.findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
+        assertTrue(toolbar.menu.findItem(R.id.action_report_video).isVisible)
+        assertTrue(!toolbar.menu.findItem(R.id.action_delete_video).isVisible)
     }
 
     @Test

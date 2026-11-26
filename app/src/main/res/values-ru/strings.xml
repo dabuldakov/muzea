@@ -355,4 +355,11 @@
     <string name="count_million_short">млн</string>
     <string name="count_billion_short">млрд</string>
     <string name="count_compact_format">%1$s %2$s</string>
+
+    <string name="video_detail_title">Видео</string>
+    <string name="video_play">Воспроизвести</string>
+    <string name="video_pause">Пауза</string>
+    <string name="video_rewind">Назад на 10 секунд</string>
+    <string name="video_forward">Вперёд на 10 секунд</string>
+    <string name="video_close">Закрыть плеер</string>
 </resources>

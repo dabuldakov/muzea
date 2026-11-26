@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/miniPlayerCard"
+    android:layout_width="188dp"
+    android:layout_height="wrap_content"
+    android:visibility="gone"
+    app:cardBackgroundColor="?attr/colorSurface"
+    app:cardCornerRadius="14dp"
+    app:cardElevation="10dp"
+    app:strokeColor="#22000000"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="106dp"
+            android:background="@android:color/black">
+
+            <androidx.media3.ui.PlayerView
+                android:id="@+id/miniPlayerView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:resize_mode="zoom"
+                app:show_buffering="never"
+                app:use_controller="false" />
+
+            <ProgressBar
+                android:id="@+id/miniBuffering"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:indeterminateTint="@android:color/white"
+                android:visibility="gone" />
+
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/tvMiniTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:paddingStart="10dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="10dp"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <SeekBar
+            android:id="@+id/miniSeek"
+            android:layout_width="match_parent"
+            android:layout_height="20dp"
+            android:layout_marginStart="6dp"
+            android:layout_marginEnd="6dp"
+            android:max="1000"
+            android:paddingStart="0dp"
+            android:paddingEnd="0dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="36dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="2dp"
+            android:paddingEnd="2dp">
+
+            <ImageButton
+                android:id="@+id/btnMiniPlayPause"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/video_pause"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_pause"
+                app:tint="?attr/colorPrimary" />
+
+            <ImageButton
+                android:id="@+id/btnMiniRewind"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/video_rewind"
+                android:padding="7dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_replay_10"
+                app:tint="?attr/colorOnSurface" />
+
+            <ImageButton
+                android:id="@+id/btnMiniForward"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/video_forward"
+                android:padding="7dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_forward_10"
+                app:tint="?attr/colorOnSurface" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <ImageButton
+                android:id="@+id/btnMiniClose"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/video_close"
+                android:padding="9dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_close"
+                app:tint="@color/gray" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

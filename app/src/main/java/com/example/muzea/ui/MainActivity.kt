@@ -29,7 +29,9 @@ import com.example.muzea.ui.news.NewsDetailFragment
 import com.example.muzea.ui.news.NewsListFragment
 import com.example.muzea.ui.profile.ProfileFragment
 import com.example.muzea.ui.navigation.Navigator
+import com.example.muzea.ui.video.MiniPlayerController
 import com.example.muzea.ui.video.VideoListFragment
+import com.example.muzea.ui.video.VideoPlaybackController
 import com.example.muzea.core.Resource
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
@@ -48,6 +50,11 @@ class MainActivity : AppCompatActivity(), Navigator {
     @Inject
     lateinit var appUpdateRepository: AppUpdateRepository
 
+    @Inject
+    lateinit var videoPlaybackController: VideoPlaybackController
+
+    private lateinit var miniPlayerController: MiniPlayerController
+
     /** Создаём при старте: очередь исходящих сама доотправит накопленное. */
     @Inject
     lateinit var outboxSender: com.example.muzea.data.repository.OutboxSender
@@ -65,6 +72,11 @@ class MainActivity : AppCompatActivity(), Navigator {
         // Нижний отступ не добавляем: BottomNavigationView сам учитывает
         // навигационную панель, иначе получится двойной зазор.
         SystemBars.apply(this, applyBottomInset = false)
+        miniPlayerController = MiniPlayerController(
+            activity = this,
+            parent = binding.root,
+            playback = videoPlaybackController
+        ).also { it.start() }
 
         requestNotificationPermissionIfNeeded()
 
@@ -94,6 +106,13 @@ class MainActivity : AppCompatActivity(), Navigator {
         }
         handledNotificationKey = savedInstanceState?.getString(STATE_HANDLED_NOTIFICATION)
         handleNotificationIntent(intent)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Поворот/пересоздание Activity не должны обрывать видео; выход из
+        // приложения — должны.
+        if (isFinishing) videoPlaybackController.close()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

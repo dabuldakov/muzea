@@ -26,6 +26,7 @@ import com.example.muzea.ui.contact.ContactListFragment
 import com.example.muzea.ui.news.NewsListFragment
 import com.example.muzea.ui.profile.ProfileFragment
 import com.example.muzea.ui.video.VideoListFragment
+import com.example.muzea.ui.video.VideoPlaybackController
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import dagger.hilt.android.testing.BindValue
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -70,6 +71,7 @@ class MainActivityTest {
     @BindValue @JvmField val authRepository: AuthRepository = mockk(relaxed = true)
     @BindValue @JvmField val appUpdateRepository: AppUpdateRepository = mockk(relaxed = true)
     @BindValue @JvmField val outboxSender: OutboxSender = mockk(relaxed = true)
+    @BindValue @JvmField val videoPlaybackController: VideoPlaybackController = mockk(relaxed = true)
 
     @Before
     fun setUp() {
@@ -108,6 +110,11 @@ class MainActivityTest {
         every { appUpdateRepository.availableUpdate } returns MutableStateFlow<AppUpdate?>(null)
         every { appUpdateRepository.currentVersionName } returns "1.7.28"
         coEvery { appUpdateRepository.checkForUpdate() } returns UpdateCheckResult.UpToDate
+        every { videoPlaybackController.activeVideo } returns MutableStateFlow(null)
+        every { videoPlaybackController.detailVisible } returns MutableStateFlow(false)
+        every { videoPlaybackController.isPlaying } returns MutableStateFlow(false)
+        every { videoPlaybackController.isBuffering } returns MutableStateFlow(false)
+        every { videoPlaybackController.player } returns null
     }
 
     private fun launch(): MainActivity =

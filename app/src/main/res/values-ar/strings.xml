@@ -335,4 +335,11 @@
     <string name="count_million_short">مليون</string>
     <string name="count_billion_short">مليار</string>
     <string name="count_compact_format">%1$s %2$s</string>
+
+    <string name="video_detail_title">فيديو</string>
+    <string name="video_play">تشغيل</string>
+    <string name="video_pause">إيقاف مؤقت</string>
+    <string name="video_rewind">رجوع 10 ثوانٍ</string>
+    <string name="video_forward">تقدّم 10 ثوانٍ</string>
+    <string name="video_close">إغلاق المشغّل</string>
 </resources>
