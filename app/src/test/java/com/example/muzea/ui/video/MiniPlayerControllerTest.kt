@@ -115,6 +115,18 @@ class MiniPlayerControllerTest {
     }
 
     @Test
+    fun `pip mode hides the mini card and restores it`() {
+        val card = parent.findViewById<View>(R.id.miniPlayerCard)
+
+        controller.setPipMode(true)
+        assertEquals(View.GONE, card.visibility)
+
+        controller.setPipMode(false)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(View.VISIBLE, card.visibility)
+    }
+
+    @Test
     fun `long press and move drags the card`() {
         val card = parent.findViewById<View>(R.id.miniPlayerCard)
         val target = parent.findViewById<View>(R.id.tvMiniTitle)

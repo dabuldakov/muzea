@@ -1,16 +1,23 @@
 package com.example.muzea.ui
 
 import android.Manifest
+import android.app.PictureInPictureParams
 import android.content.Intent
+import android.content.res.Configuration
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Rational
 import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -54,6 +61,7 @@ class MainActivity : AppCompatActivity(), Navigator {
     lateinit var videoPlaybackController: VideoPlaybackController
 
     private lateinit var miniPlayerController: MiniPlayerController
+    private var pipPlayerView: PlayerView? = null
 
     /** Создаём при старте: очередь исходящих сама доотправит накопленное. */
     @Inject
@@ -106,6 +114,48 @@ class MainActivity : AppCompatActivity(), Navigator {
         }
         handledNotificationKey = savedInstanceState?.getString(STATE_HANDLED_NOTIFICATION)
         handleNotificationIntent(intent)
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        if (videoPlaybackController.activeVideo.value == null) return
+        if (videoPlaybackController.detailVisible.value) return
+        enterPictureInPictureMode(
+            PictureInPictureParams.Builder()
+                .setAspectRatio(Rational(16, 9))
+                .build()
+        )
+    }
+
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: Configuration
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        binding.mainContent.visibility =
+            if (isInPictureInPictureMode) View.GONE else View.VISIBLE
+        if (isInPictureInPictureMode) {
+            miniPlayerController.setPipMode(true)
+            pipPlayerView?.let { binding.root.removeView(it) }
+            val player = videoPlaybackController.player ?: return
+            pipPlayerView = PlayerView(this).apply {
+                useController = false
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                setBackgroundColor(android.graphics.Color.BLACK)
+                layoutParams = FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+                setPlayer(player)
+            }
+            binding.root.addView(pipPlayerView)
+        } else {
+            pipPlayerView?.player = null
+            pipPlayerView?.let { binding.root.removeView(it) }
+            pipPlayerView = null
+            miniPlayerController.setPipMode(false)
+        }
     }
 
     override fun onDestroy() {

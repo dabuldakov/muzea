@@ -39,6 +39,7 @@ class MiniPlayerController(
     private var userSeeking = false
     private var positionRestored = false
     private var lastDurationMs = 0L
+    private var pipMode = false
 
     private val dragListener = DragTouchListener()
 
@@ -72,6 +73,30 @@ class MiniPlayerController(
         }
     }
 
+    /** На время системного PiP mini-карточка уступает место отдельному PlayerView. */
+    fun setPipMode(enabled: Boolean) {
+        pipMode = enabled
+        if (enabled) {
+            ticker?.cancel()
+            ticker = null
+            binding.miniPlayerView.player = null
+            binding.miniPlayerCard.visibility = View.GONE
+        } else {
+            refresh()
+        }
+    }
+
+    fun refresh() {
+        render(
+            MiniState(
+                video = playback.activeVideo.value,
+                detailVisible = playback.detailVisible.value,
+                playing = playback.isPlaying.value,
+                buffering = playback.isBuffering.value
+            )
+        )
+    }
+
     private fun setupControls() {
         binding.btnMiniPlayPause.setOnClickListener { playback.togglePlayPause() }
         binding.btnMiniRewind.setOnClickListener { playback.seekBy(-SEEK_STEP_MS) }
@@ -100,6 +125,7 @@ class MiniPlayerController(
     }
 
     private fun render(state: MiniState) {
+        if (pipMode) return
         val video = state.video
         val visible = video != null && !state.detailVisible && playback.player != null
         binding.miniPlayerCard.visibility = if (visible) View.VISIBLE else View.GONE

@@ -1,7 +1,11 @@
 package com.example.muzea.ui.video
 
+import android.app.PictureInPictureParams
 import android.content.pm.ActivityInfo
+import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
+import android.util.Rational
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -300,6 +304,38 @@ class VideoDetailActivity : AppCompatActivity(), VideoActionsBottomSheet.Listene
         playbackController.setDetailVisible(false)
         if (isFullscreen) {
             exitFullscreen()
+        }
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || player == null) return
+        if (isInPictureInPictureMode) return
+        enterPictureInPictureMode(
+            PictureInPictureParams.Builder()
+                .setAspectRatio(Rational(16, 9))
+                .build()
+        )
+    }
+
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: Configuration
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (isInPictureInPictureMode) {
+            binding.toolbar.visibility = View.GONE
+            binding.contentScroll.visibility = View.GONE
+            binding.playerContainer.layoutParams = binding.playerContainer.layoutParams.apply {
+                height = ViewGroup.LayoutParams.MATCH_PARENT
+            }
+            playbackController.setDetailVisible(true)
+        } else {
+            binding.toolbar.visibility = View.VISIBLE
+            binding.contentScroll.visibility = View.VISIBLE
+            binding.playerContainer.layoutParams = binding.playerContainer.layoutParams.apply {
+                height = (DEFAULT_PLAYER_HEIGHT_DP * resources.displayMetrics.density).toInt()
+            }
         }
     }
 
