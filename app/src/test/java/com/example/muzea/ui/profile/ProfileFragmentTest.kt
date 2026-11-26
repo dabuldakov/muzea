@@ -216,6 +216,26 @@ class ProfileFragmentTest {
         )
     }
 
+
+    @Test
+    fun `tapping version shows the update dialog`() {
+        every { appUpdateRepository.availableUpdate } returns
+            MutableStateFlow<AppUpdate?>(AppUpdate("1.7.61", "https://muzea.su/downloads/muzea-1.7.61.apk"))
+        coEvery { appUpdateRepository.checkForUpdate() } returns
+            UpdateCheckResult.Available(
+                AppUpdate("1.7.61", "https://muzea.su/downloads/muzea-1.7.61.apk")
+            )
+
+        val activity = launch()
+        shadowOf(Looper.getMainLooper()).idle()
+        activity.findViewById<View>(R.id.rowAppVersion).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertTrue(
+            org.robolectric.shadows.ShadowDialog.getLatestDialog()?.isShowing == true
+        )
+    }
+
     @Test
     fun `hides update dot when no newer release exists`() {
         val activity = launch()
