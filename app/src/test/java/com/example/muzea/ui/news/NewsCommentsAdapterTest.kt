@@ -3,11 +3,17 @@ package com.example.muzea.ui.news
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.TextView
 import com.example.muzea.databinding.ItemNewsCommentBinding
 import com.example.muzea.domain.model.NewsComment
+import com.example.muzea.utils.AvatarLoader
+import io.mockk.Runs
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import io.mockk.slot
 import io.mockk.verify
 import org.junit.Assert.assertEquals
@@ -21,6 +27,7 @@ class NewsCommentsAdapterTest {
     private lateinit var time: TextView
     private lateinit var content: TextView
     private lateinit var more: ImageButton
+    private lateinit var avatar: ImageView
     private lateinit var binding: ItemNewsCommentBinding
 
     @Before
@@ -30,6 +37,7 @@ class NewsCommentsAdapterTest {
         time = mockk(relaxed = true)
         content = mockk(relaxed = true)
         more = mockk(relaxed = true)
+        avatar = mockk(relaxed = true)
         binding = mockk(relaxed = true)
 
         every { binding.root } returns root
@@ -37,6 +45,7 @@ class NewsCommentsAdapterTest {
         setField("tvCommentTime", time)
         setField("tvCommentContent", content)
         setField("btnCommentMore", more)
+        setField("ivCommentAvatar", avatar)
     }
 
     private fun setField(name: String, value: View) {
@@ -61,6 +70,20 @@ class NewsCommentsAdapterTest {
         verify { author.setText("bob") }
         verify { content.setText("Текст комментария") }
         verify { time.setText(any<CharSequence>()) }
+    }
+
+    @Test
+    fun `binds author avatar`() {
+        mockkObject(AvatarLoader)
+        every { AvatarLoader.load(any(), any()) } just Runs
+        try {
+            val item = comment().copy(authorAvatarUrl = "/api/avatars/bob/1.png")
+            NewsCommentsAdapter.CommentViewHolder(binding) {}.bind(item)
+
+            verify { AvatarLoader.load(avatar, "/api/avatars/bob/1.png") }
+        } finally {
+            unmockkObject(AvatarLoader)
+        }
     }
 
     @Test

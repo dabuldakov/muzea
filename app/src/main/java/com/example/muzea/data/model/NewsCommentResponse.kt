@@ -13,7 +13,9 @@ data class NewsCommentResponse(
     @SerializedName("author")
     val author: String,
     @SerializedName("createdAt")
-    val createdAt: String
+    val createdAt: String,
+    @SerializedName("authorAvatarUrl")
+    val authorAvatarUrl: String? = null
 )
 
 /** Страница комментариев: по возрастанию id, более ранние — по before. */

@@ -5,8 +5,10 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.example.muzea.R
 import com.example.muzea.databinding.ItemNewsCommentBinding
 import com.example.muzea.domain.model.NewsComment
+import com.example.muzea.utils.AvatarLoader
 import com.example.muzea.utils.LocalTimeFormatter
 
 /** Лента комментариев: старые сверху, новые снизу. */
@@ -32,6 +34,11 @@ class NewsCommentsAdapter(
 
         fun bind(comment: NewsComment) {
             binding.tvCommentAuthor.text = comment.author
+            if (comment.authorAvatarUrl.isNullOrBlank()) {
+                binding.ivCommentAvatar.setImageResource(R.drawable.ic_default_avatar)
+            } else {
+                AvatarLoader.load(binding.ivCommentAvatar, comment.authorAvatarUrl)
+            }
             binding.tvCommentTime.text = LocalTimeFormatter.format(comment.createdAt)
             binding.tvCommentContent.text = comment.content
             binding.btnCommentMore.setOnClickListener { onCommentActions(comment) }

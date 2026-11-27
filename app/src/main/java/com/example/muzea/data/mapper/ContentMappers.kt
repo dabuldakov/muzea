@@ -41,7 +41,8 @@ fun com.example.muzea.data.model.NewsCommentResponse.toDomain(): NewsComment = N
     newsId = newsId,
     content = content,
     author = author,
-    createdAt = createdAt
+    createdAt = createdAt,
+    authorAvatarUrl = authorAvatarUrl
 )
 
 fun com.example.muzea.data.model.NewsCommentsResponse.toDomain(): NewsCommentsPage = NewsCommentsPage(

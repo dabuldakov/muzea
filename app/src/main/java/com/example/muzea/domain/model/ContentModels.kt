@@ -24,7 +24,8 @@ data class NewsComment(
     val newsId: Long,
     val content: String,
     val author: String,
-    val createdAt: String
+    val createdAt: String,
+    val authorAvatarUrl: String? = null
 )
 
 /** Страница комментариев в хронологическом порядке. */

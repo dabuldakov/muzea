@@ -155,7 +155,10 @@ class NewsRepositoryImplTest {
         coEvery { api.getNewsComments(5L, 10L, 20) } returns httpOk(
             NewsCommentsResponse(
                 comments = listOf(
-                    NewsCommentResponse(11L, 5L, "Hi", "bob", "2026-01-01T00:00:00")
+                    NewsCommentResponse(
+                        11L, 5L, "Hi", "bob", "2026-01-01T00:00:00",
+                        authorAvatarUrl = "/api/avatars/bob/1.png"
+                    )
                 ),
                 total = 1,
                 hasMore = false,
@@ -167,6 +170,7 @@ class NewsRepositoryImplTest {
         val page = (last as Resource.Success).data!!
 
         assertEquals("Hi", page.comments.single().content)
+        assertEquals("/api/avatars/bob/1.png", page.comments.single().authorAvatarUrl)
         assertEquals(1L, page.total)
     }
 
