@@ -15,11 +15,6 @@ import com.example.muzea.ui.common.SystemBars
 @AndroidEntryPoint
 class RegisterActivity : AppCompatActivity() {
 
-    private companion object {
-        const val POLICY_URL = "https://muzea.su/privacy"
-        const val TERMS_URL = "https://muzea.su/terms"
-    }
-
     private lateinit var binding: ActivityRegisterBinding
     private val viewModel: AuthViewModel by viewModels()
 
@@ -36,8 +31,8 @@ class RegisterActivity : AppCompatActivity() {
     private var pendingEmail: String = ""
 
     private fun setupClickListeners() {
-        binding.tvRegisterTerms.setOnClickListener { openLegalDocument(TERMS_URL) }
-        binding.tvRegisterPolicy.setOnClickListener { openLegalDocument(POLICY_URL) }
+        binding.tvRegisterTerms.setOnClickListener { openLegalDocument(getString(R.string.terms_url)) }
+        binding.tvRegisterPolicy.setOnClickListener { openLegalDocument(getString(R.string.policy_url)) }
 
         binding.btnRegister.setOnClickListener {
             if (!binding.cbConsent.isChecked) {

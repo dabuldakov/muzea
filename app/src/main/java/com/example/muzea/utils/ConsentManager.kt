@@ -14,7 +14,7 @@ object ConsentManager {
     private const val KEY_ACCEPTED_AT = "accepted_at"
 
     /** Текущая редакция согласия. Увеличивайте при изменении текста/политики. */
-    const val VERSION = 1
+    const val VERSION = 2
 
     fun isAccepted(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

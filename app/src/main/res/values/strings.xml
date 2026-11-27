@@ -7,8 +7,8 @@
     <string name="chat_channel_description">Notifications about new chat messages</string>
 
     <!-- Legal information (operator details stay in Russian: RF legal entity) -->
-    <string name="policy_url">https://muzea.su/privacy</string>
-    <string name="terms_url">https://muzea.su/terms</string>
+    <string name="policy_url">https://muzea.su/en/privacy?lang=en</string>
+    <string name="terms_url">https://muzea.su/en/terms?lang=en</string>
     <string name="operator_email">dabuldakov@mail.ru</string>
     <string name="operator_phone">+7 913 800-24-16</string>
     <string name="operator_name">Булдаков Дмитрий Александрович</string>
@@ -17,7 +17,7 @@
     <string name="operator_status">Физическое лицо, оператор персональных данных</string>
 
     <string name="consent_title">Terms and personal data processing</string>
-    <string name="consent_body">To use the muzea app, you need to accept the terms of use and give consent to personal data processing.\n\nData: login, full name, email, one-time confirmation codes (email sign-in), device identifier and model, device token for push notifications, chat message text, group composition and members, online status and last seen time, contacts list, images, posts and videos, technical account data.\n\nPurposes: registration and sign-in, messaging, push notifications, showing your profile to other users, posting content and videos, handling requests.\n\nThe device token for push notifications is transferred to Google services (Google Ireland Limited, Ireland) — a cross-border transfer. Other personal data is not transferred outside Russia.\n\nYou can withdraw consent in the profile (“Delete account”) or by email to %1$s — then processing stops and the data is destroyed within 10 business days.</string>
+    <string name="consent_body">To use the muzea app, you need to accept the terms of use and give consent to personal data processing.\n\nData: login, full name, email, one-time confirmation codes (email sign-in), device identifier and model, device token for push notifications, chat message text, group composition and members, online status and last seen time, contacts list, images, posts and videos, technical account data.\n\nPurposes: registration and sign-in, messaging, push notifications, showing your profile to other users, posting content and videos, handling requests.\n\nPush notifications are processed by Google (Ireland/USA), and on iOS by Apple (USA): the push token, notification type, and, if included, the notification text, sender name and chat title are transferred. GIF search and link previews may send the query and IP address to third parties. Sign-in code emails are sent via Mail.ru (Russia).\n\nYou can withdraw consent in the profile (“Delete account”) or by email to %1$s — then processing stops and the data is destroyed within 30 days.</string>
     <string name="consent_accept">Accept and continue</string>
     <string name="consent_decline">Decline</string>
     <string name="consent_open_terms">Open Terms of Use</string>
@@ -32,10 +32,10 @@
 
     <string name="delete_account">Delete account</string>
     <string name="delete_account_title">Delete account?</string>
-    <string name="delete_account_message">The account will be deactivated: you will not be able to sign in. Your profile will be shown as deleted, messages in chats will stay, and you will leave groups. Support can restore the account later.</string>
-    <string name="delete_account_done">Account deactivated</string>
-    <string name="delete_account_failed">Could not deactivate the account on the server. Write to %1$s and support will do it manually.</string>
-    <string name="delete_account_chat_failed">Could not deactivate the account on the chat server. Check your connection and try again.</string>
+    <string name="delete_account_message">The account will be hidden immediately. You can restore it through support within 30 days. After 30 days the profile, messages, attachments and content will be permanently deleted. Recipients may keep local copies on their devices.</string>
+    <string name="delete_account_done">Account hidden. You can restore it within 30 days</string>
+    <string name="delete_account_failed">Could not start account deletion on the server. Write to %1$s and support will do it manually.</string>
+    <string name="delete_account_chat_failed">Could not delete chat data. Check your connection and try again.</string>
     <string name="delete_account_logout">Log out</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_delete">Delete</string>

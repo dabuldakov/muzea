@@ -24,8 +24,6 @@ import com.example.muzea.ui.common.SystemBars
 class LoginActivity : AppCompatActivity() {
 
     private companion object {
-        const val POLICY_URL = "https://muzea.su/privacy"
-        const val TERMS_URL = "https://muzea.su/terms"
         const val PREFS = "app_prefs"
         const val KEY_REAUTH_NOTICE_SHOWN = "reauth_notice_shown_v1"
     }
@@ -108,8 +106,8 @@ class LoginActivity : AppCompatActivity() {
             startActivity(Intent(this, RegisterActivity::class.java))
         }
 
-        binding.tvLegalTerms.setOnClickListener { openLegalDocument(TERMS_URL) }
-        binding.tvLegalPolicy.setOnClickListener { openLegalDocument(POLICY_URL) }
+        binding.tvLegalTerms.setOnClickListener { openLegalDocument(getString(R.string.terms_url)) }
+        binding.tvLegalPolicy.setOnClickListener { openLegalDocument(getString(R.string.policy_url)) }
     }
 
     private fun openLegalDocument(url: String) {

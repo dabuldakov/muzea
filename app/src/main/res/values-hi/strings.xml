@@ -6,8 +6,8 @@
     <string name="chat_channel_name">संदेश</string>
     <string name="chat_channel_description">नए चैट संदेशों की सूचनाएँ</string>
 
-    <string name="policy_url">https://muzea.su/privacy</string>
-    <string name="terms_url">https://muzea.su/terms</string>
+    <string name="policy_url">https://muzea.su/en/privacy?lang=en</string>
+    <string name="terms_url">https://muzea.su/en/terms?lang=en</string>
     <string name="operator_email">dabuldakov@mail.ru</string>
     <string name="operator_phone">+7 913 800-24-16</string>
     <string name="operator_name">Булдаков Дмитрий Александрович</string>

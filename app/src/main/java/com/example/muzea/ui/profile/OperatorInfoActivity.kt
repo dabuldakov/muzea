@@ -14,11 +14,6 @@ import com.example.muzea.ui.common.SystemBars
  */
 class OperatorInfoActivity : AppCompatActivity() {
 
-    private companion object {
-        const val POLICY_URL = "https://muzea.su/privacy"
-        const val TERMS_URL = "https://muzea.su/terms"
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val binding = ActivityOperatorInfoBinding.inflate(layoutInflater)
@@ -29,8 +24,8 @@ class OperatorInfoActivity : AppCompatActivity() {
 
         binding.tvOperatorEmail.setOnClickListener { open("mailto:" + email) }
         binding.tvOperatorPhone.setOnClickListener { open("tel:${getString(R.string.operator_phone)}") }
-        binding.tvOperatorPolicy.setOnClickListener { open(POLICY_URL) }
-        binding.tvOperatorTerms.setOnClickListener { open(TERMS_URL) }
+        binding.tvOperatorPolicy.setOnClickListener { open(getString(R.string.policy_url)) }
+        binding.tvOperatorTerms.setOnClickListener { open(getString(R.string.terms_url)) }
     }
 
     private fun open(target: String) {

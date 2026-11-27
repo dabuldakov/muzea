@@ -64,7 +64,7 @@ class OperatorInfoActivityTest {
 
         val started = shadowOf(activity).nextStartedActivity
         assertEquals(Intent.ACTION_VIEW, started?.action)
-        assertEquals("https://muzea.su/privacy", started?.data.toString())
+        assertEquals(activity.getString(R.string.policy_url), started?.data.toString())
     }
 
     @Test
@@ -75,7 +75,7 @@ class OperatorInfoActivityTest {
 
         val started = shadowOf(activity).nextStartedActivity
         assertEquals(Intent.ACTION_VIEW, started?.action)
-        assertEquals("https://muzea.su/terms", started?.data.toString())
+        assertEquals(activity.getString(R.string.terms_url), started?.data.toString())
     }
 
     @Test
