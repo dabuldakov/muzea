@@ -40,7 +40,7 @@ class MediaUrlTest {
     @Test
     fun `relative path without leading slash is joined to base`() {
         assertEquals(
-            "https://chat-muzea.su/api/avatars/uuid.png",
+            "https://chat.muzea.su/api/avatars/uuid.png",
             MediaUrl.chat("api/avatars/uuid.png")
         )
     }

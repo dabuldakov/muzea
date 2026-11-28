@@ -58,7 +58,7 @@ class VideoRepositoryIntegrationTest {
         assertEquals(video.thumbnailUrl, MediaUrl.main(video.thumbnailUrl))
         // А плеер строит стрим через MediaUrl — относительный адрес должен склеиваться с базой.
         assertEquals(
-            "https://api-muzea.su/api/videos/stream/77b0e3ac-137a-4e47-bee4-011294332842.mp4",
+            "https://api.muzea.su/api/videos/stream/77b0e3ac-137a-4e47-bee4-011294332842.mp4",
             MediaUrl.main(video.url)
         )
 

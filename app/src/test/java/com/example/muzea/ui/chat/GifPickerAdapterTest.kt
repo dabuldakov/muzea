@@ -145,7 +145,7 @@ class GifPickerAdapterTest {
     fun `relative preview url is resolved against the chat server`() {
         bind(gif(url = "https://cdn.example/u.gif", previewUrl = "/media/p.gif"))
 
-        verify { requestManager.load("https://chat-muzea.su/media/p.gif") }
+        verify { requestManager.load("https://chat.muzea.su/media/p.gif") }
     }
 
     @Test

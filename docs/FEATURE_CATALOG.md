@@ -113,6 +113,7 @@
 | NET.05 | Инвайты | planned | В коде отсутствуют |
 | NET.06 | Deep links | done | Чат/новость из push и share |
 | NET.07 | Синхронизация без мигания | partial | Спиннер только при первой загрузке |
+| NET.08 | Новые домены API | done | `api.muzea.su` и `chat.muzea.su`: base URL, pinning, токены, картинки |
 
 ## SEC — безопасность
 

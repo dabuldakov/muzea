@@ -258,6 +258,8 @@ object NetworkModule {
         CertificatePinner.Builder()
             .add("api-muzea.su", PIN_INTERMEDIATE_CA, PIN_ROOT_CA)
             .add("chat-muzea.su", PIN_INTERMEDIATE_CA, PIN_ROOT_CA)
+            .add("api.muzea.su", PIN_INTERMEDIATE_CA, PIN_ROOT_CA)
+            .add("chat.muzea.su", PIN_INTERMEDIATE_CA, PIN_ROOT_CA)
             .add("auth.muzea.su", PIN_INTERMEDIATE_CA, PIN_ROOT_CA)
             // s3.muzea.su выпущен другим промежуточным CA (Let's Encrypt YE2),
             // но цепочка сходится к тому же корню — пиним только корень.

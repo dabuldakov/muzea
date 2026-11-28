@@ -156,7 +156,7 @@ class VideoAdapterTest {
     fun `relative thumbnail url is resolved against the main server`() {
         holder().bind(video(1, thumbnailUrl = "/api/videos/thumb/1.jpg"))
 
-        verify { requestManager.load("https://api-muzea.su/api/videos/thumb/1.jpg") }
+        verify { requestManager.load("https://api.muzea.su/api/videos/thumb/1.jpg") }
     }
 
     @Test

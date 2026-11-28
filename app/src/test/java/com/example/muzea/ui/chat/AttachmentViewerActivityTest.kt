@@ -129,7 +129,7 @@ class AttachmentViewerActivityTest {
             .nextStartedActivity
         assertEquals(AttachmentViewerActivity::class.java.name, started.component?.className)
         assertEquals("IMAGE", started.getStringExtra("type"))
-        assertEquals("https://chat-muzea.su/api/attachments/a-1", started.getStringExtra("url"))
+        assertEquals("https://chat.muzea.su/api/attachments/a-1", started.getStringExtra("url"))
         assertEquals("файл.IMAGE", started.getStringExtra("name"))
     }
 }

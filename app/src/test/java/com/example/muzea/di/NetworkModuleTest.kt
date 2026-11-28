@@ -74,6 +74,7 @@ class NetworkModuleTest {
         assertEquals(120_000, client.writeTimeoutMillis)
         assertEquals(10_000, client.connectTimeoutMillis)
         assertTrue(client.certificatePinner.pins.isNotEmpty())
+        assertTrue(client.certificatePinner.pins.any { it.pattern == "api.muzea.su" })
     }
 
     @Test
@@ -86,6 +87,7 @@ class NetworkModuleTest {
         assertEquals(30_000, client.writeTimeoutMillis)
         assertEquals(10_000, client.connectTimeoutMillis)
         assertTrue(client.certificatePinner.pins.isNotEmpty())
+        assertTrue(client.certificatePinner.pins.any { it.pattern == "chat.muzea.su" })
     }
 
     @Test

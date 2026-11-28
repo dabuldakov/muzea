@@ -62,7 +62,10 @@ class GlideModule : AppGlideModule() {
 
     private companion object {
         /** Домены, которым можно отправлять наш токен. */
-        val AUTH_HOSTS = setOf("api-muzea.su", "chat-muzea.su")
+        val AUTH_HOSTS = setOf(
+            "api-muzea.su", "chat-muzea.su",
+            "api.muzea.su", "chat.muzea.su"
+        )
 
         const val DISK_CACHE_BYTES = 250L * 1024 * 1024
     }

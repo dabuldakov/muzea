@@ -187,7 +187,7 @@ class NewsAdapterTest {
     fun `relative image url is resolved against the main server`() {
         holder().bind(news(1, imageUrl = "/api/news/image/1.jpg"))
 
-        verify { requestManager.load("https://api-muzea.su/api/news/image/1.jpg") }
+        verify { requestManager.load("https://api.muzea.su/api/news/image/1.jpg") }
     }
 
     @Test

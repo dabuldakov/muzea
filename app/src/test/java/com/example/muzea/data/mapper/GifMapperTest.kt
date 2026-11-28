@@ -151,8 +151,8 @@ class GifMapperTest {
         assertEquals("klipy", gif.provider)
         assertEquals("s", gif.providerGifId)
         // Относительный путь резолвится в абсолютный адрес чата.
-        assertEquals("https://chat-muzea.su/p", gif.previewUrl)
-        assertEquals("https://chat-muzea.su/u", gif.url)
+        assertEquals("https://chat.muzea.su/p", gif.previewUrl)
+        assertEquals("https://chat.muzea.su/u", gif.url)
         assertEquals("key-1", gif.gifKey)
         assertEquals(20, gif.height)
     }

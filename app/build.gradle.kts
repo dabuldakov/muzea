@@ -61,7 +61,7 @@ android {
         // По умолчанию — прод, чтобы обычная сборка ничего не меняла.
         val apiBaseUrl: String = (project.findProperty("MUZEA_API_BASE_URL") as String?)
             ?.takeIf { it.isNotBlank() }
-            ?: "https://api-muzea.su"
+            ?: "https://api.muzea.su"
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
 
