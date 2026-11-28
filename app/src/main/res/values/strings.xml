@@ -25,6 +25,9 @@
 
     <string name="register_consent_checkbox">I accept the Terms of Use and the Personal Data Policy</string>
     <string name="consent_required">You must accept the terms and the personal data policy</string>
+    <string name="login_subtitle">News, chats and video</string>
+    <string name="login_title">Sign in to muzea</string>
+    <string name="login_caption">Enter your email and we will send a sign-in code. No password needed.</string>
     <string name="login_legal_note">By continuing, you accept the Terms of Use and the Personal Data Policy</string>
 
     <string name="operator_info_title">Personal data operator</string>
@@ -82,10 +85,6 @@
     <string name="group_settings_title">Group settings</string>
     <string name="action_login">Login</string>
     <string name="action_get_code">Get code</string>
-    <string name="reauth_notice_title">Sign-in update</string>
-    <string name="reauth_notice_body">Sign-in and registration now use an email code, no password.\n\nIf you already had an account, sign in with the same email. If access is not restored, contact support.</string>
-    <string name="reauth_notice_register">Register</string>
-    <string name="reauth_notice_ok">Got it</string>
     <string name="otp_title">Enter the code</string>
     <string name="otp_subtitle">We sent a code to %1$s</string>
     <string name="otp_hint_code">6-digit code</string>

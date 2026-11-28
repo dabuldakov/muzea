@@ -1,12 +1,11 @@
 package com.example.muzea.ui.auth
 
-import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.muzea.R
 import com.example.muzea.databinding.ActivityLoginBinding
@@ -14,7 +13,6 @@ import com.example.muzea.ui.MainActivity
 import com.example.muzea.utils.ConsentManager
 import com.example.muzea.utils.PendingPush
 import com.example.muzea.utils.TokenManager
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -22,11 +20,6 @@ import com.example.muzea.ui.common.SystemBars
 
 @AndroidEntryPoint
 class LoginActivity : AppCompatActivity() {
-
-    private companion object {
-        const val PREFS = "app_prefs"
-        const val KEY_REAUTH_NOTICE_SHOWN = "reauth_notice_shown_v1"
-    }
 
     private lateinit var binding: ActivityLoginBinding
     private val viewModel: AuthViewModel by viewModels()
@@ -64,10 +57,14 @@ class LoginActivity : AppCompatActivity() {
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
         SystemBars.apply(this)
+        // На градиентном фоне нужны светлые иконки системных баров.
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
+        }
 
         setupClickListeners()
         observeViewModel()
-        showReauthNoticeIfNeeded()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -112,29 +109,6 @@ class LoginActivity : AppCompatActivity() {
 
     private fun openLegalDocument(url: String) {
         runCatching { startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))) }
-    }
-
-    /**
-     * Одноразовая подсказка после перехода на вход по email: существующим
-     * пользователям нужно «зарегистрироваться» (привязать аккаунт) с прежними
-     * email и username.
-     */
-    private fun showReauthNoticeIfNeeded() {
-        val prefs: SharedPreferences = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        if (prefs.getBoolean(KEY_REAUTH_NOTICE_SHOWN, false)) return
-
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.reauth_notice_title)
-            .setMessage(R.string.reauth_notice_body)
-            .setCancelable(false)
-            .setPositiveButton(R.string.reauth_notice_register) { _, _ ->
-                prefs.edit().putBoolean(KEY_REAUTH_NOTICE_SHOWN, true).apply()
-                startActivity(Intent(this, RegisterActivity::class.java))
-            }
-            .setNegativeButton(R.string.reauth_notice_ok) { _, _ ->
-                prefs.edit().putBoolean(KEY_REAUTH_NOTICE_SHOWN, true).apply()
-            }
-            .show()
     }
 
     private fun observeViewModel() {

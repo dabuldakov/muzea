@@ -81,10 +81,6 @@
     <string name="group_settings_title">Налады групы</string>
     <string name="action_login">Увайсці</string>
     <string name="action_get_code">Атрымаць код</string>
-    <string name="reauth_notice_title">Абнаўленне ўваходу</string>
-    <string name="reauth_notice_body">Цяпер уваход і рэгістрацыя — па кодзе на email, без пароля.\n\nКалі ў вас ужо быў акаўнт, націсніце «Зарэгістравацца» і ўкажыце ранейшыя email і username — доступ, перапіскі і кантакты захаваюцца (акаўнт злучыцца аўтаматычна).</string>
-    <string name="reauth_notice_register">Зарэгістравацца</string>
-    <string name="reauth_notice_ok">Зразумела</string>
     <string name="otp_title">Увядзіце код</string>
     <string name="otp_subtitle">Мы адправілі код на %1$s</string>
     <string name="otp_hint_code">6-значны код</string>

@@ -81,10 +81,6 @@
     <string name="group_settings_title">Configurações do grupo</string>
     <string name="action_login">Entrar</string>
     <string name="action_get_code">Obter código</string>
-    <string name="reauth_notice_title">Atualização do login</string>
-    <string name="reauth_notice_body">Agora o acesso e o cadastro usam um código por e-mail, sem senha.\n\nSe você já tinha uma conta, toque em «Registrar-se» e informe seu e-mail e nome de usuário anteriores — o acesso, as conversas e os contatos serão mantidos (a conta será vinculada automaticamente).</string>
-    <string name="reauth_notice_register">Registrar-se</string>
-    <string name="reauth_notice_ok">Entendi</string>
     <string name="otp_title">Digite o código</string>
     <string name="otp_subtitle">Enviamos um código para %1$s</string>
     <string name="otp_hint_code">Código de 6 dígitos</string>

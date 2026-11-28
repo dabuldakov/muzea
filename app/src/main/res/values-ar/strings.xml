@@ -81,10 +81,6 @@
     <string name="group_settings_title">إعدادات المجموعة</string>
     <string name="action_login">تسجيل الدخول</string>
     <string name="action_get_code">الحصول على الرمز</string>
-    <string name="reauth_notice_title">تحديث تسجيل الدخول</string>
-    <string name="reauth_notice_body">أصبح تسجيل الدخول والتسجيل الآن عبر رمز يُرسل إلى البريد الإلكتروني، دون كلمة مرور.\n\nإذا كان لديك حساب سابقًا، اضغط «التسجيل» وأدخل بريدك الإلكتروني واسم المستخدم السابقين — سيتم الاحتفاظ بالوصول والدردشات وجهات الاتصال (سيُربط الحساب تلقائيًا).</string>
-    <string name="reauth_notice_register">التسجيل</string>
-    <string name="reauth_notice_ok">حسنًا</string>
     <string name="otp_title">أدخل الرمز</string>
     <string name="otp_subtitle">أرسلنا رمزًا إلى %1$s</string>
     <string name="otp_hint_code">رمز من 6 أرقام</string>

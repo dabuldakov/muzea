@@ -81,10 +81,6 @@
     <string name="group_settings_title">群组设置</string>
     <string name="action_login">登录</string>
     <string name="action_get_code">获取验证码</string>
-    <string name="reauth_notice_title">登录方式更新</string>
-    <string name="reauth_notice_body">现在登录和注册使用邮箱验证码，无需密码。\n\n如果您已有账户，请点击「注册」并填写之前的邮箱和用户名——访问权限、聊天和联系人都会保留（账户将自动关联）。</string>
-    <string name="reauth_notice_register">注册</string>
-    <string name="reauth_notice_ok">知道了</string>
     <string name="otp_title">输入验证码</string>
     <string name="otp_subtitle">我们已向 %1$s 发送验证码</string>
     <string name="otp_hint_code">6 位验证码</string>

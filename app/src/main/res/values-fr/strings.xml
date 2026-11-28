@@ -81,10 +81,6 @@
     <string name="group_settings_title">Paramètres du groupe</string>
     <string name="action_login">Se connecter</string>
     <string name="action_get_code">Obtenir le code</string>
-    <string name="reauth_notice_title">Mise à jour de la connexion</string>
-    <string name="reauth_notice_body">La connexion et l’inscription se font désormais par code envoyé par e-mail, sans mot de passe.\n\nSi vous aviez déjà un compte, appuyez sur « S’inscrire » et indiquez votre e-mail et votre nom d’utilisateur précédents — l’accès, les discussions et les contacts seront conservés (le compte sera lié automatiquement).</string>
-    <string name="reauth_notice_register">S’inscrire</string>
-    <string name="reauth_notice_ok">Compris</string>
     <string name="otp_title">Saisissez le code</string>
     <string name="otp_subtitle">Nous avons envoyé un code à %1$s</string>
     <string name="otp_hint_code">Code à 6 chiffres</string>

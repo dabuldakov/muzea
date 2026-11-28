@@ -81,10 +81,6 @@
     <string name="group_settings_title">گروپ کی ترتیبات</string>
     <string name="action_login">لاگ ان</string>
     <string name="action_get_code">کوڈ حاصل کریں</string>
-    <string name="reauth_notice_title">سائن ان کی تازہ کاری</string>
-    <string name="reauth_notice_body">اب سائن ان اور رجسٹریشن ای میل کوڈ سے ہوتے ہیں، پاس ورڈ کے بغیر۔\n\nاگر آپ کا پہلے سے اکاؤنٹ تھا تو «رجسٹر کریں» دبائیں اور اپنا سابقہ ای میل اور صارف نام درج کریں — رسائی، چیٹس اور روابط محفوظ رہیں گے (اکاؤنٹ خودکار طور پر منسلک ہو جائے گا)۔</string>
-    <string name="reauth_notice_register">رجسٹر کریں</string>
-    <string name="reauth_notice_ok">سمجھ گیا</string>
     <string name="otp_title">کوڈ درج کریں</string>
     <string name="otp_subtitle">ہم نے %1$s پر کوڈ بھیجا ہے</string>
     <string name="otp_hint_code">6 ہندسوں کا کوڈ</string>

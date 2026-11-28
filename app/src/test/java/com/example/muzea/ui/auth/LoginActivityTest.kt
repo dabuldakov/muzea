@@ -15,6 +15,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -24,6 +25,7 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowAlertDialog
 
 /** Robolectric+Hilt тесты экрана входа: согласие, валидация, отправка кода. */
 @HiltAndroidTest
@@ -43,10 +45,6 @@ class LoginActivityTest {
     @Before
     fun setUp() {
         hiltRule.inject()
-        context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-            .edit()
-            .putBoolean("reauth_notice_shown_v1", true)
-            .commit()
     }
 
     private fun launch(): LoginActivity =
@@ -75,6 +73,14 @@ class LoginActivityTest {
             android.view.View.VISIBLE,
             activity.findViewById<android.view.View>(R.id.btnLogin).visibility
         )
+    }
+
+    @Test
+    fun `no password migration notice is shown`() {
+        ConsentManager.accept(context)
+        launch()
+
+        assertNull(ShadowAlertDialog.getLatestAlertDialog())
     }
 
     @Test

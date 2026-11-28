@@ -81,10 +81,6 @@
     <string name="group_settings_title">Бүлгийн тохиргоо</string>
     <string name="action_login">Нэвтрэх</string>
     <string name="action_get_code">Код авах</string>
-    <string name="reauth_notice_title">Нэвтрэлтийн шинэчлэл</string>
-    <string name="reauth_notice_body">Одоо нэвтрэлт ба бүртгэл нь email-ээр ирэх кодоор, нууц үггүй.\n\nХэрэв та өмнө нь бүртгэлтэй байсан бол «Бүртгүүлэх» дарж, өмнөх email болон username-ээ оруулна уу — хандалт, харилцаа, харилцагчид хадгалагдана (бүртгэл автоматаар холбогдоно).</string>
-    <string name="reauth_notice_register">Бүртгүүлэх</string>
-    <string name="reauth_notice_ok">Ойлголоо</string>
     <string name="otp_title">Код оруулна уу</string>
     <string name="otp_subtitle">Бид %1$s хаяг руу код илгээсэн</string>
     <string name="otp_hint_code">6 оронтой код</string>

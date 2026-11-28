@@ -81,10 +81,6 @@
     <string name="group_settings_title">Топ параметрлері</string>
     <string name="action_login">Кіру</string>
     <string name="action_get_code">Код алу</string>
-    <string name="reauth_notice_title">Кіруді жаңарту</string>
-    <string name="reauth_notice_body">Енді кіру мен тіркелу email-ға жіберілетін код арқылы, құпия сөзсіз.\n\nЕгер сізде бұрыннан аккаунт болса, «Тіркелу» түймесін басып, бұрынғы email мен username-ді енгізіңіз — қолжетімділік, хат алмасулар мен контактілер сақталады (аккаунт автоматты түрде байланысады).</string>
-    <string name="reauth_notice_register">Тіркелу</string>
-    <string name="reauth_notice_ok">Түсінікті</string>
     <string name="otp_title">Кодты енгізіңіз</string>
     <string name="otp_subtitle">Кодты %1$s мекенжайына жібердік</string>
     <string name="otp_hint_code">6 таңбалы код</string>

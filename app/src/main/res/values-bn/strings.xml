@@ -81,10 +81,6 @@
     <string name="group_settings_title">গ্রুপ সেটিংস</string>
     <string name="action_login">লগ ইন</string>
     <string name="action_get_code">কোড পান</string>
-    <string name="reauth_notice_title">সাইন-ইন আপডেট</string>
-    <string name="reauth_notice_body">এখন সাইন-ইন ও নিবন্ধন ইমেইল কোড দিয়ে হয়, পাসওয়ার্ড ছাড়াই।\n\nআপনার আগে থেকে অ্যাকাউন্ট থাকলে «নিবন্ধন করুন» চাপুন এবং আগের ইমেইল ও ব্যবহারকারীর নাম লিখুন — অ্যাক্সেস, চ্যাট ও পরিচিতি সংরক্ষিত থাকবে (অ্যাকাউন্ট স্বয়ংক্রিয়ভাবে যুক্ত হবে)।</string>
-    <string name="reauth_notice_register">নিবন্ধন করুন</string>
-    <string name="reauth_notice_ok">বুঝেছি</string>
     <string name="otp_title">কোড লিখুন</string>
     <string name="otp_subtitle">আমরা %1$s-এ একটি কোড পাঠিয়েছি</string>
     <string name="otp_hint_code">৬ সংখ্যার কোড</string>

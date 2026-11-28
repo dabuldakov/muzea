@@ -81,10 +81,6 @@
     <string name="group_settings_title">समूह सेटिंग्स</string>
     <string name="action_login">लॉग इन करें</string>
     <string name="action_get_code">कोड प्राप्त करें</string>
-    <string name="reauth_notice_title">साइन-इन अपडेट</string>
-    <string name="reauth_notice_body">अब साइन-इन और पंजीकरण ईमेल कोड से होते हैं, पासवर्ड के बिना।\n\nयदि आपका पहले से खाता था, तो «पंजीकरण करें» दबाएँ और अपना पुराना ईमेल और उपयोगकर्ता नाम दर्ज करें — पहुँच, चैट और संपर्क सुरक्षित रहेंगे (खाता स्वतः जुड़ जाएगा)।</string>
-    <string name="reauth_notice_register">पंजीकरण करें</string>
-    <string name="reauth_notice_ok">समझ गया</string>
     <string name="otp_title">कोड दर्ज करें</string>
     <string name="otp_subtitle">हमने %1$s पर कोड भेजा है</string>
     <string name="otp_hint_code">6 अंकों का कोड</string>
