@@ -22,7 +22,11 @@ import androidx.core.view.WindowInsetsCompat
  */
 object SystemBars {
 
-    fun apply(activity: Activity, applyBottomInset: Boolean = true) {
+    fun apply(
+        activity: Activity,
+        applyBottomInset: Boolean = true,
+        forceLightIcons: Boolean? = null
+    ) {
         val window = activity.window
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
@@ -36,8 +40,9 @@ object SystemBars {
             window.isNavigationBarContrastEnforced = false
         }
 
-        val lightTheme = (activity.resources.configuration.uiMode and
-            Configuration.UI_MODE_NIGHT_MASK) != Configuration.UI_MODE_NIGHT_YES
+        // Экраны с белым фоном всегда просят тёмные иконки, даже в тёмной теме.
+        val lightTheme = forceLightIcons ?: ((activity.resources.configuration.uiMode and
+            Configuration.UI_MODE_NIGHT_MASK) != Configuration.UI_MODE_NIGHT_YES)
         WindowCompat.getInsetsController(window, window.decorView).apply {
             isAppearanceLightStatusBars = lightTheme
             isAppearanceLightNavigationBars = lightTheme

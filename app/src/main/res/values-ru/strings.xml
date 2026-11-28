@@ -25,7 +25,7 @@
     <string name="register_consent_checkbox">Я принимаю Пользовательское соглашение и Политику обработки персональных данных</string>
     <string name="consent_required">Нужно принять условия и политику обработки персональных данных</string>
     <string name="login_subtitle">Новости, чаты и видео</string>
-    <string name="login_title">Вход в muzea</string>
+    <string name="login_title">Вход</string>
     <string name="login_caption">Введите email — пришлём код для входа. Пароль не нужен.</string>
     <string name="login_legal_note">Продолжая, вы принимаете Пользовательское соглашение и Политику обработки персональных данных</string>
 
@@ -75,6 +75,7 @@
     <string name="chat_title_default">Чат</string>
     <string name="contact_default">Контакт</string>
     <string name="register_create_account">Создать аккаунт</string>
+    <string name="register_caption">Заполните данные — отправим код для подтверждения email.</string>
     <string name="create_news_submit">Создать новость</string>
     <string name="label_date">Дата</string>
     <string name="video_delete">Удалить видео</string>

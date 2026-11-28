@@ -49,6 +49,15 @@ class RegisterAndOtpTest {
         Robolectric.buildActivity(RegisterActivity::class.java).setup().get()
 
     @Test
+    fun `auth screens share the same wave background`() {
+        val registration = register()
+        val code = otp(OtpActivity.MODE_LOGIN)
+
+        assertNotNull(registration.findViewById<AuthWavesView>(R.id.authWaves))
+        assertNotNull(code.findViewById<AuthWavesView>(R.id.authWaves))
+    }
+
+    @Test
     fun `register requires consent`() {
         val activity = register()
         activity.findViewById<android.widget.EditText>(R.id.etUsername).setText("morris")

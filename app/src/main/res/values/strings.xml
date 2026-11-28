@@ -26,7 +26,7 @@
     <string name="register_consent_checkbox">I accept the Terms of Use and the Personal Data Policy</string>
     <string name="consent_required">You must accept the terms and the personal data policy</string>
     <string name="login_subtitle">News, chats and video</string>
-    <string name="login_title">Sign in to muzea</string>
+    <string name="login_title">Sign in</string>
     <string name="login_caption">Enter your email and we will send a sign-in code. No password needed.</string>
     <string name="login_legal_note">By continuing, you accept the Terms of Use and the Personal Data Policy</string>
 
@@ -76,6 +76,7 @@
     <string name="chat_title_default">Chat</string>
     <string name="contact_default">Contact</string>
     <string name="register_create_account">Create Account</string>
+    <string name="register_caption">Fill in your details and we will email you a confirmation code.</string>
     <string name="create_news_submit">Create News</string>
     <string name="label_date">Date</string>
     <string name="video_delete">Delete video</string>

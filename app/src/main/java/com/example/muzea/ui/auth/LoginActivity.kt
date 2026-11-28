@@ -8,7 +8,6 @@ import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.WindowCompat
 import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import com.example.muzea.R
@@ -60,12 +59,8 @@ class LoginActivity : AppCompatActivity() {
 
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        SystemBars.apply(this)
-        // На градиентном фоне нужны светлые иконки системных баров.
-        WindowCompat.getInsetsController(window, window.decorView).apply {
-            isAppearanceLightStatusBars = false
-            isAppearanceLightNavigationBars = false
-        }
+        // Белый фон: тёмные иконки системных баров в любой теме.
+        SystemBars.apply(this, forceLightIcons = true)
 
         setupClickListeners()
         observeViewModel()

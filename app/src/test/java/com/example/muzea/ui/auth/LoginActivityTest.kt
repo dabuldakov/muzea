@@ -102,6 +102,13 @@ class LoginActivityTest {
     }
 
     @Test
+    fun `login screen uses the shared wave background`() {
+        val activity = launchConsented()
+
+        assertNotNull(activity.findViewById<AuthWavesView>(R.id.authWaves))
+    }
+
+    @Test
     fun `form shows the new title and caption`() {
         val activity = launchConsented()
 

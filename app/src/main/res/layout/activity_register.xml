@@ -1,118 +1,151 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="24dp"
-    android:gravity="center">
+    android:background="@color/white">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/register_create_account"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="32dp" />
-
-    <com.google.android.material.textfield.TextInputLayout
+    <com.example.muzea.ui.auth.AuthWavesView
+        android:id="@+id/authWaves"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="@string/hint_username"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no" />
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etUsername"
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:fillViewport="true">
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="text" />
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingStart="24dp"
+            android:paddingTop="32dp"
+            android:paddingEnd="24dp"
+            android:paddingBottom="32dp">
 
-    </com.google.android.material.textfield.TextInputLayout>
+            <TextView
+                style="@style/Widget.Muzea.AuthBrand"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/app_name" />
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:hint="@string/hint_full_name"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+            <TextView
+                style="@style/Widget.Muzea.AuthTagline"
+                android:layout_gravity="center_horizontal"
+                android:text="@string/login_subtitle" />
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etFullName"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="textPersonName" />
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.Muzea.AuthCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp">
 
-    </com.google.android.material.textfield.TextInputLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:hint="@string/hint_email"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    <TextView
+                        style="@style/Widget.Muzea.AuthTitle"
+                        android:text="@string/register_create_account" />
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etEmail"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="textEmailAddress" />
+                    <TextView
+                        style="@style/Widget.Muzea.AuthCaption"
+                        android:text="@string/register_caption" />
 
-    </com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Muzea.AuthInput"
+                        android:layout_marginTop="20dp"
+                        android:hint="@string/hint_username">
 
-    <CheckBox
-        android:id="@+id/cbConsent"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:text="@string/register_consent_checkbox"
-        android:textSize="13sp" />
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etUsername"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="text"
+                            android:textColor="@color/auth_ink" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Muzea.AuthInput"
+                        android:layout_marginTop="16dp"
+                        android:hint="@string/hint_full_name">
 
-        <TextView
-            android:id="@+id/tvRegisterTerms"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="4dp"
-            android:text="@string/consent_open_terms"
-            android:textColor="@color/purple_500"
-            android:textSize="12sp" />
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etFullName"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textPersonName"
+                            android:textColor="@color/auth_ink" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
-        <TextView
-            android:id="@+id/tvRegisterPolicy"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="4dp"
-            android:text="@string/consent_open_policy"
-            android:textColor="@color/purple_500"
-            android:textSize="12sp" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Muzea.AuthInput"
+                        android:layout_marginTop="16dp"
+                        android:hint="@string/hint_email">
 
-    </LinearLayout>
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etEmail"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textEmailAddress"
+                            android:textColor="@color/auth_ink" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
-    <Button
-        android:id="@+id/btnRegister"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="@string/action_register" />
+                    <CheckBox
+                        android:id="@+id/cbConsent"
+                        style="@style/Widget.Muzea.AuthCheckBox"
+                        android:layout_marginTop="18dp"
+                        android:text="@string/register_consent_checkbox" />
 
-    <TextView
-        android:id="@+id/tvLogin"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="@string/login_have_account"
-        android:textColor="@color/purple_500"
-        android:textSize="14sp" />
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical">
 
-    <ProgressBar
-        android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:visibility="gone" />
+                        <TextView
+                            android:id="@+id/tvRegisterTerms"
+                            style="@style/Widget.Muzea.AuthLink"
+                            android:text="@string/consent_open_terms"
+                            android:textSize="12sp" />
 
-</LinearLayout>
+                        <TextView
+                            android:id="@+id/tvRegisterPolicy"
+                            style="@style/Widget.Muzea.AuthLink"
+                            android:text="@string/consent_open_policy"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnRegister"
+                        style="@style/Widget.Muzea.AuthButton"
+                        android:layout_marginTop="18dp"
+                        android:text="@string/action_register" />
+
+                    <ProgressBar
+                        android:id="@+id/progressBar"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="12dp"
+                        android:indeterminateTint="@color/auth_purple"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/tvLogin"
+                        style="@style/Widget.Muzea.AuthLink"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/login_have_account" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>

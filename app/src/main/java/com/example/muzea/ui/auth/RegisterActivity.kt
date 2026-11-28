@@ -22,7 +22,7 @@ class RegisterActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityRegisterBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        SystemBars.apply(this)
+        SystemBars.apply(this, forceLightIcons = true)
 
         setupClickListeners()
         observeViewModel()

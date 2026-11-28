@@ -26,4 +26,14 @@
 
     <!-- Фон под гифками: в светлой теме белый, в тёмной — чёрный (values-night). -->
     <color name="gif_media_background">#FFFFFFFF</color>
+
+    <!-- Экраны входа, регистрации и кода: белый фон, розово-фиолетовые волны. -->
+    <color name="auth_pink">#FFFF5C8A</color>
+    <color name="auth_purple">#FF7C4DFF</color>
+    <color name="auth_purple_dark">#FF5B32D6</color>
+    <color name="auth_ink">#FF1B1B1F</color>
+    <color name="auth_muted">#FF6E6A7C</color>
+    <color name="auth_card">#FFFFFFFF</color>
+    <color name="auth_card_stroke">#FFEDE7FA</color>
+    <color name="auth_input_stroke">#FFDCD5EE</color>
 </resources>

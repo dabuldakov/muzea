@@ -52,7 +52,7 @@ class OtpActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityOtpBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        SystemBars.apply(this)
+        SystemBars.apply(this, forceLightIcons = true)
 
         email = intent.getStringExtra(EXTRA_EMAIL).orEmpty()
         mode = intent.getStringExtra(EXTRA_MODE) ?: MODE_LOGIN

@@ -52,6 +52,7 @@
         <activity
             android:name=".ui.auth.LoginActivity"
             android:exported="true"
+            android:theme="@style/Theme.Muzea.Auth"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -82,11 +83,13 @@
 
         <activity
             android:name=".ui.auth.RegisterActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.Muzea.Auth" />
 
         <activity
             android:name=".ui.auth.OtpActivity"
             android:exported="false"
+            android:theme="@style/Theme.Muzea.Auth"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
