@@ -24,6 +24,10 @@
 
     <string name="register_consent_checkbox">J’accepte les Conditions d’utilisation et la Politique de données personnelles</string>
     <string name="consent_required">Vous devez accepter les conditions et la politique de données personnelles</string>
+    <string name="login_subtitle">Actualités, chats et vidéo</string>
+    <string name="login_title">Connexion</string>
+    <string name="login_caption">Saisissez votre email, nous vous enverrons un code de connexion. Aucun mot de passe requis.</string>
+    <string name="register_caption">Renseignez vos informations, nous vous enverrons un code de confirmation par email.</string>
     <string name="login_legal_note">En continuant, vous acceptez les Conditions d’utilisation et la Politique de données personnelles</string>
 
     <string name="operator_info_title">Responsable du traitement des données personnelles</string>
@@ -339,4 +343,5 @@
     <string name="video_forward">Avancer de 10 secondes</string>
     <string name="video_close">Fermer le lecteur</string>
     <string name="video_actions">Actions de la vidéo</string>
+    <string name="registration_code_resent">Le compte n’est pas vérifié. Nous avons envoyé un nouveau code.</string>
 </resources>

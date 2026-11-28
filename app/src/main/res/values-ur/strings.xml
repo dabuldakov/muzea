@@ -24,6 +24,10 @@
 
     <string name="register_consent_checkbox">میں استعمال کی شرائط اور ذاتی ڈیٹا پالیسی قبول کرتا/کرتی ہوں</string>
     <string name="consent_required">شرائط اور ذاتی ڈیٹا پالیسی قبول کرنا ضروری ہے</string>
+    <string name="login_subtitle">خبریں، چیٹس اور ویڈیو</string>
+    <string name="login_title">سائن اِن</string>
+    <string name="login_caption">اپنا ای میل درج کریں — ہم سائن اِن کوڈ بھیجیں گے۔ پاس ورڈ کی ضرورت نہیں۔</string>
+    <string name="register_caption">اپنی معلومات درج کریں — ہم ای میل کی تصدیق کے لیے کوڈ بھیجیں گے۔</string>
     <string name="login_legal_note">جاری رکھ کر آپ استعمال کی شرائط اور ذاتی ڈیٹا پالیسی قبول کرتے ہیں</string>
 
     <string name="operator_info_title">ذاتی ڈیٹا آپریٹر</string>
@@ -339,4 +343,5 @@
     <string name="video_forward">10 سیکنڈ آگے</string>
     <string name="video_close">پلیئر بند کریں</string>
     <string name="video_actions">ویڈیو کے اعمال</string>
+    <string name="registration_code_resent">اکاؤنٹ کی تصدیق نہیں ہوئی۔ ہم نے نیا کوڈ بھیج دیا ہے۔</string>
 </resources>

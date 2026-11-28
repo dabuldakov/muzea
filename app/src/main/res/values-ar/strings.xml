@@ -24,6 +24,10 @@
 
     <string name="register_consent_checkbox">أوافق على شروط الاستخدام وسياسة البيانات الشخصية</string>
     <string name="consent_required">يجب قبول الشروط وسياسة البيانات الشخصية</string>
+    <string name="login_subtitle">الأخبار والدردشة والفيديو</string>
+    <string name="login_title">تسجيل الدخول</string>
+    <string name="login_caption">أدخل بريدك الإلكتروني وسنرسل رمز الدخول. لا حاجة لكلمة مرور.</string>
+    <string name="register_caption">أدخل بياناتك وسنرسل رمز تأكيد إلى بريدك الإلكتروني.</string>
     <string name="login_legal_note">بالمتابعة، أنت توافق على شروط الاستخدام وسياسة البيانات الشخصية</string>
 
     <string name="operator_info_title">مشغّل البيانات الشخصية</string>
@@ -339,4 +343,5 @@
     <string name="video_forward">تقدّم 10 ثوانٍ</string>
     <string name="video_close">إغلاق المشغّل</string>
     <string name="video_actions">إجراءات الفيديو</string>
+    <string name="registration_code_resent">الحساب غير مؤكد. أرسلنا رمزًا جديدًا.</string>
 </resources>

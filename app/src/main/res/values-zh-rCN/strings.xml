@@ -24,6 +24,10 @@
 
     <string name="register_consent_checkbox">我接受用户协议和个人数据政策</string>
     <string name="consent_required">需要接受条款和个人数据政策</string>
+    <string name="login_subtitle">新闻、聊天和视频</string>
+    <string name="login_title">登录</string>
+    <string name="login_caption">输入邮箱，我们会发送登录验证码。无需密码。</string>
+    <string name="register_caption">填写资料，我们会发送邮箱确认验证码。</string>
     <string name="login_legal_note">继续即表示您接受用户协议和个人数据政策</string>
 
     <string name="operator_info_title">个人数据运营者</string>
@@ -339,4 +343,5 @@
     <string name="video_forward">前进 10 秒</string>
     <string name="video_close">关闭播放器</string>
     <string name="video_actions">视频操作</string>
+    <string name="registration_code_resent">账户未验证。我们已发送新的验证码。</string>
 </resources>

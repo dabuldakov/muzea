@@ -24,6 +24,10 @@
 
     <string name="register_consent_checkbox">Мен Пайдалану шарттарын және Жеке деректер саясатын қабылдаймын</string>
     <string name="consent_required">Пайдалану шарттары мен жеке деректер саясатын қабылдау қажет</string>
+    <string name="login_subtitle">Жаңалықтар, чаттар және бейне</string>
+    <string name="login_title">Кіру</string>
+    <string name="login_caption">Email енгізіңіз — кіру кодын жібереміз. Құпия сөз қажет емес.</string>
+    <string name="register_caption">Деректерді толтырыңыз — email растау кодын жібереміз.</string>
     <string name="login_legal_note">Жалғастыра отырып, сіз Пайдалану шарттарын және Жеке деректер саясатын қабылдайсыз</string>
 
     <string name="operator_info_title">Жеке деректер операторы</string>
@@ -339,4 +343,5 @@
     <string name="video_forward">10 секунд алға</string>
     <string name="video_close">Ойнатқышты жабу</string>
     <string name="video_actions">Бейне әрекеттері</string>
+    <string name="registration_code_resent">Аккаунт расталмаған. Жаңа код жібердік.</string>
 </resources>

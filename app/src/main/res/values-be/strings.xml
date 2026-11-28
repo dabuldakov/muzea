@@ -24,6 +24,10 @@
 
     <string name="register_consent_checkbox">Я прымаю Умовы карыстання і Палітыку апрацоўкі персанальных даных</string>
     <string name="consent_required">Трэба прыняць умовы і палітыку апрацоўкі персанальных даных</string>
+    <string name="login_subtitle">Навіны, чаты і відэа</string>
+    <string name="login_title">Уваход</string>
+    <string name="login_caption">Увядзіце email — дашлём код для ўваходу. Пароль не патрэбны.</string>
+    <string name="register_caption">Запоўніце даныя — дашлём код для пацверджання email.</string>
     <string name="login_legal_note">Працягваючы, вы прымаеце Умовы карыстання і Палітыку апрацоўкі персанальных даных</string>
 
     <string name="operator_info_title">Аператар персанальных даных</string>
@@ -339,4 +343,5 @@
     <string name="video_forward">Наперад на 10 секунд</string>
     <string name="video_close">Закрыць прайгравальнік</string>
     <string name="video_actions">Дзеянні з відэа</string>
+    <string name="registration_code_resent">Акаўнт не пацверджаны. Даслалі новы код.</string>
 </resources>

@@ -24,6 +24,10 @@
 
     <string name="register_consent_checkbox">আমি ব্যবহারের শর্তাবলী এবং ব্যক্তিগত তথ্য নীতি গ্রহণ করি</string>
     <string name="consent_required">শর্তাবলী এবং ব্যক্তিগত তথ্য নীতি গ্রহণ করা আবশ্যক</string>
+    <string name="login_subtitle">সংবাদ, চ্যাট এবং ভিডিও</string>
+    <string name="login_title">সাইন ইন</string>
+    <string name="login_caption">আপনার ইমেল লিখুন — সাইন-ইন কোড পাঠাব। পাসওয়ার্ড লাগবে না।</string>
+    <string name="register_caption">আপনার তথ্য পূরণ করুন — ইমেল নিশ্চিত করার কোড পাঠাব।</string>
     <string name="login_legal_note">চালিয়ে যাওয়ার মাধ্যমে আপনি ব্যবহারের শর্তাবলী এবং ব্যক্তিগত তথ্য নীতি গ্রহণ করছেন</string>
 
     <string name="operator_info_title">ব্যক্তিগত তথ্য পরিচালক</string>
@@ -339,4 +343,5 @@
     <string name="video_forward">১০ সেকেন্ড সামনে</string>
     <string name="video_close">প্লেয়ার বন্ধ করুন</string>
     <string name="video_actions">ভিডিওর কাজ</string>
+    <string name="registration_code_resent">অ্যাকাউন্ট যাচাই করা হয়নি। নতুন কোড পাঠানো হয়েছে।</string>
 </resources>

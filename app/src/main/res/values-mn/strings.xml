@@ -24,6 +24,10 @@
 
     <string name="register_consent_checkbox">Би Үйлчилгээний нөхцөл болон Хувийн мэдээллийн бодлогыг зөвшөөрч байна</string>
     <string name="consent_required">Үйлчилгээний нөхцөл болон хувийн мэдээллийн бодлогыг зөвшөөрөх шаардлагатай</string>
+    <string name="login_subtitle">Мэдээ, чат, видео</string>
+    <string name="login_title">Нэвтрэх</string>
+    <string name="login_caption">Имэйлээ оруулна уу — нэвтрэх код илгээнэ. Нууц үг шаардлагагүй.</string>
+    <string name="register_caption">Мэдээллээ бөглөнө үү — имэйл баталгаажуулах код илгээнэ.</string>
     <string name="login_legal_note">Үргэлжлүүлснээр та Үйлчилгээний нөхцөл болон Хувийн мэдээллийн бодлогыг зөвшөөрч байна</string>
 
     <string name="operator_info_title">Хувийн мэдээллийн оператор</string>
@@ -339,4 +343,5 @@
     <string name="video_forward">10 секунд урагшлах</string>
     <string name="video_close">Тоглуулагчийг хаах</string>
     <string name="video_actions">Видеоның үйлдэл</string>
+    <string name="registration_code_resent">Бүртгэл баталгаажаагүй байна. Шинэ код илгээлээ.</string>
 </resources>

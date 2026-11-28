@@ -24,6 +24,10 @@
 
     <string name="register_consent_checkbox">Я приймаю Угоду користувача та Політику обробки персональних даних</string>
     <string name="consent_required">Потрібно прийняти умови та політику обробки персональних даних</string>
+    <string name="login_subtitle">Новини, чати та відео</string>
+    <string name="login_title">Вхід</string>
+    <string name="login_caption">Введіть email — надішлемо код для входу. Пароль не потрібен.</string>
+    <string name="register_caption">Заповніть дані — надішлемо код для підтвердження email.</string>
     <string name="login_legal_note">Продовжуючи, ви приймаєте Угоду користувача та Політику обробки персональних даних</string>
 
     <string name="operator_info_title">Оператор персональних даних</string>
@@ -339,4 +343,5 @@
     <string name="video_forward">Уперед на 10 секунд</string>
     <string name="video_close">Закрити плеєр</string>
     <string name="video_actions">Дії з відео</string>
+    <string name="registration_code_resent">Акаунт не підтверджено. Надіслали новий код.</string>
 </resources>

@@ -24,6 +24,10 @@
 
     <string name="register_consent_checkbox">Acepto los Términos de uso y la Política de datos personales</string>
     <string name="consent_required">Debe aceptar los términos y la política de datos personales</string>
+    <string name="login_subtitle">Noticias, chats y vídeo</string>
+    <string name="login_title">Iniciar sesión</string>
+    <string name="login_caption">Introduce tu email y te enviaremos un código de acceso. No necesitas contraseña.</string>
+    <string name="register_caption">Rellena tus datos y te enviaremos un código de confirmación por email.</string>
     <string name="login_legal_note">Al continuar, acepta los Términos de uso y la Política de datos personales</string>
 
     <string name="operator_info_title">Responsable del tratamiento de datos personales</string>
@@ -339,4 +343,5 @@
     <string name="video_forward">Avanzar 10 segundos</string>
     <string name="video_close">Cerrar reproductor</string>
     <string name="video_actions">Acciones del vídeo</string>
+    <string name="registration_code_resent">La cuenta no está verificada. Hemos enviado un código nuevo.</string>
 </resources>
