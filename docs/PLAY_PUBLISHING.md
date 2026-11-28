@@ -15,10 +15,11 @@
 
 - Приложение `com.cyber.muzea` зарегистрировано в Play Console.
 - APK/AAB собираются и подписываются в CI.
-- Шаг Play **пропускается**, потому что не задан
-  `PLAY_SERVICE_ACCOUNT_JSON_B64`.
-- `PLAY_TRACK` по умолчанию `internal`, `PLAY_STATUS` — `completed`.
+- Шаг Play включён: `PLAY_SERVICE_ACCOUNT_JSON_B64` задан.
+- `PLAY_TRACK=internal`, `PLAY_STATUS=completed`.
 - Скрипт публикации: `scripts/publish_play.py`.
+- Сейчас используется ключ `firebase-adminsdk-fbsvc@muzea-chat.iam.gserviceaccount.com`.
+  Для CI лучше позже завести отдельный `github-play` без лишних прав и заменить секрет.
 
 ## 1. Сервисный аккаунт
 
