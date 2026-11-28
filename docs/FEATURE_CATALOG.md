@@ -167,6 +167,12 @@
 | ARCH.33 | Присутствие в чате | done | ChatPresenceController: активный чат, push, polling, черновик |
 | ARCH.34 | Поле ввода | done | ChatInputController: клики, touch, текст, черновик, взрыв кнопки |
 
+## ASSIST — ассистент
+
+| ID | Функция | Статус | Комментарий |
+|---|---|---|---|
+| ASSIST.01 | Чат «Помощник» | planned | Default-чат, DeepSeek, заявки на доработку, web search; план в `docs/ASSISTANT_CHAT_PLAN.md` |
+
 ## DIST — дистрибуция
 
 | ID | Функция | Статус | Комментарий |
