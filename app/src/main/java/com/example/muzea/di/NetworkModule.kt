@@ -12,7 +12,6 @@ import com.example.muzea.data.api.SiteVersionApi
 import com.example.muzea.data.api.KlipyApi
 import com.example.muzea.data.api.TokenRefreshInterceptor
 import com.example.muzea.utils.Constants
-import com.example.muzea.utils.TokenManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -50,10 +49,6 @@ object NetworkModule {
         kotlinx.coroutines.CoroutineScope(
             kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO
         )
-
-    @Provides
-    @Singleton
-    fun provideTokenManager(@ApplicationContext context: Context): TokenManager = TokenManager(context)
 
     /** Постоянный кэш гифок в filesDir (переживает перезапуск приложения). */
     @Provides

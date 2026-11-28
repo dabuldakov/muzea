@@ -51,7 +51,7 @@ class NetworkModuleTest {
 
     @Test
     fun `token manager is built from the context`() {
-        val manager = NetworkModule.provideTokenManager(context)
+        val manager = TokenModule.provideTokenManager(context)
 
         assertNotNull(manager)
         assertEquals("ANDROID", manager.getDeviceType())

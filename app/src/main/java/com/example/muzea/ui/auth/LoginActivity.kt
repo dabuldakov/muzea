@@ -2,21 +2,25 @@ package com.example.muzea.ui.auth
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Patterns
+import android.view.View
+import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
+import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import com.example.muzea.R
 import com.example.muzea.databinding.ActivityLoginBinding
 import com.example.muzea.ui.MainActivity
+import com.example.muzea.ui.common.SystemBars
 import com.example.muzea.utils.ConsentManager
 import com.example.muzea.utils.PendingPush
 import com.example.muzea.utils.TokenManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import com.example.muzea.ui.common.SystemBars
 
 @AndroidEntryPoint
 class LoginActivity : AppCompatActivity() {
@@ -89,13 +93,14 @@ class LoginActivity : AppCompatActivity() {
             !tokenManager.getUsername().isNullOrEmpty()
 
     private fun setupClickListeners() {
-        binding.btnLogin.setOnClickListener {
-            val email = binding.etEmail.text.toString().trim()
-            if (android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                pendingEmail = email
-                viewModel.requestLoginCode(email)
+        binding.btnLogin.setOnClickListener { submitEmail() }
+        binding.etEmail.doAfterTextChanged { binding.etEmail.error = null }
+        binding.etEmail.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_GO || actionId == EditorInfo.IME_ACTION_DONE) {
+                submitEmail()
+                true
             } else {
-                binding.etEmail.error = getString(R.string.error_invalid_email)
+                false
             }
         }
 
@@ -103,11 +108,22 @@ class LoginActivity : AppCompatActivity() {
             startActivity(Intent(this, RegisterActivity::class.java))
         }
 
-        binding.tvLegalTerms.setOnClickListener { openLegalDocument(getString(R.string.terms_url)) }
-        binding.tvLegalPolicy.setOnClickListener { openLegalDocument(getString(R.string.policy_url)) }
+        binding.tvLegalTerms.setOnClickListener { openUrl(getString(R.string.terms_url)) }
+        binding.tvLegalPolicy.setOnClickListener { openUrl(getString(R.string.policy_url)) }
     }
 
-    private fun openLegalDocument(url: String) {
+    private fun submitEmail() {
+        val email = binding.etEmail.text?.toString().orEmpty().trim()
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            binding.etEmail.error = getString(R.string.error_invalid_email)
+            return
+        }
+        binding.etEmail.error = null
+        pendingEmail = email
+        viewModel.requestLoginCode(email)
+    }
+
+    private fun openUrl(url: String) {
         runCatching { startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))) }
     }
 
@@ -116,7 +132,7 @@ class LoginActivity : AppCompatActivity() {
             viewModel.uiState.collect { state ->
                 binding.btnLogin.isEnabled = !state.isLoading
                 binding.progressBar.visibility =
-                    if (state.isLoading) android.view.View.VISIBLE else android.view.View.GONE
+                    if (state.isLoading) View.VISIBLE else View.GONE
                 state.error?.let {
                     Toast.makeText(this@LoginActivity, it, Toast.LENGTH_LONG).show()
                     viewModel.consumeError()
