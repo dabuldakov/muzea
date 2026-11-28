@@ -181,7 +181,7 @@
 |---|---|---|---|
 | DIST.01 | Подпись keystore | done | CI проверяет отпечаток |
 | DIST.02 | Самообновление | done | Проверка `muzea.su/version.json` при запуске, GitHub Releases как fallback; красная точка в профиле |
-| DIST.03 | Google Play | done | API настроен, 1.7.66 (195) загружен в internal автоматически |
+| DIST.03 | Google Play | done | API настроен, 1.7.67 (196) загружен в internal автоматически; production пока требует настройки в Play Console |
 | DIST.04 | Беты в чат | deprecated | APK из чата отключён (безопасность); обновления — через сайт/GitHub Releases |
 | DIST.05 | Changelog из коммитов | done | `generate_release_notes.sh` |
 | DIST.06 | Поэтапный rollout | planned | Нет каналов beta/stable в Play |

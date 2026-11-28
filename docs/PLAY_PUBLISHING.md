@@ -10,6 +10,11 @@
 - `PLAY_TRACK=internal`, `PLAY_STATUS=completed`.
 - Проверено: AAB `1.7.65` (`versionCode 194`) загружен в internal вручную.
 - 28.11.2026: релиз `1.7.66` (`versionCode 195`) загружен в internal автоматически из workflow.
+- 28.11.2026: релиз `1.7.67` (`versionCode 196`) загружен в internal автоматически.
+- Production через API отвечает `400 FAILED_PRECONDITION`: сначала нужно
+  заполнить App content (Data safety, content rating, target audience, UGC),
+  проверить Store listing и демо-доступ. После этого релиз можно продвинуть из
+  internal в production.
 - Следующие теги `v*` будут загружаться автоматически.
 
 ## Текущее состояние
