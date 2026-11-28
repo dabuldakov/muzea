@@ -3,6 +3,14 @@
 Документ описывает, как включить шаг «Опубликовать в Google Play» в
 `.github/workflows/release.yml`.
 
+## Настроено
+
+- 28.11.2026: сервисный аккаунт добавлен в Play Console, API работает.
+- GitHub secret `PLAY_SERVICE_ACCOUNT_JSON_B64` задан.
+- `PLAY_TRACK=internal`, `PLAY_STATUS=completed`.
+- Проверено: AAB `1.7.65` (`versionCode 194`) загружен в internal.
+- Следующие теги `v*` будут загружаться автоматически.
+
 ## Текущее состояние
 
 - Приложение `com.cyber.muzea` зарегистрировано в Play Console.
