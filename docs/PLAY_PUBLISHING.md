@@ -8,7 +8,8 @@
 - 28.11.2026: сервисный аккаунт добавлен в Play Console, API работает.
 - GitHub secret `PLAY_SERVICE_ACCOUNT_JSON_B64` задан.
 - `PLAY_TRACK=internal`, `PLAY_STATUS=completed`.
-- Проверено: AAB `1.7.65` (`versionCode 194`) загружен в internal.
+- Проверено: AAB `1.7.65` (`versionCode 194`) загружен в internal вручную.
+- 28.11.2026: релиз `1.7.66` (`versionCode 195`) загружен в internal автоматически из workflow.
 - Следующие теги `v*` будут загружаться автоматически.
 
 ## Текущее состояние
