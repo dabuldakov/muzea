@@ -7,6 +7,7 @@ import com.example.muzea.core.firstTerminal
 import com.example.muzea.domain.model.News
 import com.example.muzea.domain.model.NewsComment
 import com.example.muzea.domain.repository.NewsRepository
+import com.example.muzea.domain.usecase.NewsLikeStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,7 +38,8 @@ data class NewsCommentsUiState(
 
 @HiltViewModel
 class NewsDetailViewModel @Inject constructor(
-    private val newsRepository: NewsRepository
+    private val newsRepository: NewsRepository,
+    private val likeStore: NewsLikeStore = NewsLikeStore(newsRepository)
 ) : ViewModel() {
 
     private val _detailState = MutableStateFlow(NewsDetailUiState())
@@ -58,13 +60,14 @@ class NewsDetailViewModel @Inject constructor(
     private var newsId: Long = 0
     private var initialized = false
     private var viewRegistered = false
-    private var likeInFlight = false
+    private var likesObserved = false
 
     private companion object {
         const val COMMENTS_PAGE_SIZE = 20
     }
 
     fun load(id: Long) {
+        observeLikes()
         if (initialized && newsId == id) return
         newsId = id
         initialized = true
@@ -92,12 +95,27 @@ class NewsDetailViewModel @Inject constructor(
         loadComments()
     }
 
+    /** Подписка на общий store: лайк из ленты сразу виден в детали. */
+    private fun observeLikes() {
+        if (likesObserved) return
+        likesObserved = true
+        viewModelScope.launch {
+            likeStore.states.collect {
+                val current = _detailState.value.news ?: return@collect
+                val updated = likeStore.apply(current)
+                if (updated != current) {
+                    _detailState.value = _detailState.value.copy(news = updated)
+                }
+            }
+        }
+    }
+
     private fun loadNews() {
         viewModelScope.launch {
             _detailState.value = _detailState.value.copy(isLoading = true, error = null)
             when (val result = newsRepository.getNewsById(newsId).firstTerminal()) {
                 is Resource.Success -> _detailState.value = NewsDetailUiState(
-                    news = result.data,
+                    news = result.data?.let(likeStore::apply),
                     isLoading = false
                 )
                 is Resource.Error -> _detailState.value = _detailState.value.copy(
@@ -235,37 +253,8 @@ class NewsDetailViewModel @Inject constructor(
 
     fun toggleLike() {
         val news = _detailState.value.news ?: return
-        if (likeInFlight) return
-        likeInFlight = true
-        val targetLiked = !news.likedByMe
-        val optimistic = news.copy(
-            likedByMe = targetLiked,
-            likes = (news.likes + if (targetLiked) 1 else -1).coerceAtLeast(0)
-        )
-        _detailState.value = _detailState.value.copy(news = optimistic)
-
         viewModelScope.launch {
-            val request = if (targetLiked) {
-                newsRepository.likeNews(news.id)
-            } else {
-                newsRepository.unlikeNews(news.id)
-            }
-            when (val result = request.firstTerminal()) {
-                is Resource.Success -> {
-                    val current = _detailState.value.news
-                    if (current != null) {
-                        _detailState.value = _detailState.value.copy(
-                            news = current.copy(likes = result.data ?: current.likes)
-                        )
-                    }
-                }
-                is Resource.Error -> {
-                    _detailState.value = _detailState.value.copy(news = news)
-                    _message.emit(result.message ?: "Failed to update like")
-                }
-                is Resource.Loading -> Unit
-            }
-            likeInFlight = false
+            likeStore.toggle(news)?.let { _message.emit(it) }
         }
     }
 

@@ -6,6 +6,7 @@ import com.example.muzea.core.firstTerminal
 import com.example.muzea.domain.model.News
 import com.example.muzea.domain.repository.ContactRepository
 import com.example.muzea.domain.repository.NewsRepository
+import com.example.muzea.domain.usecase.NewsLikeStore
 import com.example.muzea.core.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -30,7 +31,8 @@ data class NewsFeedUiState(
 @HiltViewModel
 class NewsViewModel @Inject constructor(
     private val newsRepository: NewsRepository,
-    private val contactRepository: ContactRepository
+    private val contactRepository: ContactRepository,
+    private val likeStore: NewsLikeStore = NewsLikeStore(newsRepository)
 ) : ViewModel() {
 
     private val _feedState = MutableStateFlow(NewsFeedUiState())
@@ -51,8 +53,6 @@ class NewsViewModel @Inject constructor(
     private val _likeError = MutableSharedFlow<String>()
     val likeError: SharedFlow<String> = _likeError.asSharedFlow()
 
-    private val likesInFlight = mutableSetOf<Long>()
-
     private var pageSize = 20
     private var isContactsLoaded = false
     private var contactUsernames = emptySet<String>()
@@ -62,6 +62,14 @@ class NewsViewModel @Inject constructor(
     private var endReached = false
     private var nextPage = 0
     private val rawNewsCache = mutableListOf<News>()
+
+    init {
+        viewModelScope.launch {
+            likeStore.states.collect {
+                _feedState.value = _feedState.value.copy(news = visibleNews())
+            }
+        }
+    }
 
     fun loadNews(
         pageSize: Int = 20,
@@ -165,6 +173,7 @@ class NewsViewModel @Inject constructor(
 
     private fun visibleNews(): List<News> {
         return NewsFeedFilter.filterByContacts(rawNewsCache, contactUsernames, ownUsername)
+            .map(likeStore::apply)
     }
 
     /** Подтягивает «мои лайки» одним запросом и мержит в уже загруженную ленту. */
@@ -186,46 +195,14 @@ class NewsViewModel @Inject constructor(
     }
 
     /**
-     * Оптимистичный лайк из ленты. Сервер подтверждает актуальное число;
-     * при ошибке возвращаем строку к исходному состоянию.
+     * Лайк из ленты. Состояние хранится в общем [NewsLikeStore], поэтому
+     * детальная новость получает его без повторной загрузки.
      */
     fun toggleLike(newsId: Long) {
         val current = _feedState.value.news.firstOrNull { it.id == newsId } ?: return
-        if (!likesInFlight.add(newsId)) return
-
-        val targetLiked = !current.likedByMe
-        val optimistic = current.copy(
-            likedByMe = targetLiked,
-            likes = (current.likes + if (targetLiked) 1 else -1).coerceAtLeast(0)
-        )
-        replaceNewsInFeed(optimistic)
-
         viewModelScope.launch {
-            val request = if (targetLiked) {
-                newsRepository.likeNews(newsId)
-            } else {
-                newsRepository.unlikeNews(newsId)
-            }
-            when (val result = request.firstTerminal()) {
-                is Resource.Success -> {
-                    replaceNewsInFeed(
-                        optimistic.copy(likes = result.data ?: optimistic.likes)
-                    )
-                }
-                is Resource.Error -> {
-                    replaceNewsInFeed(current)
-                    _likeError.emit(result.message ?: "Failed to update like")
-                }
-                is Resource.Loading -> Unit
-            }
-            likesInFlight.remove(newsId)
+            likeStore.toggle(current)?.let { _likeError.emit(it) }
         }
-    }
-
-    private fun replaceNewsInFeed(updated: News) {
-        val cacheIndex = rawNewsCache.indexOfFirst { it.id == updated.id }
-        if (cacheIndex >= 0) rawNewsCache[cacheIndex] = updated
-        _feedState.value = _feedState.value.copy(news = visibleNews())
     }
 
     fun loadNewsById(id: Long) {
